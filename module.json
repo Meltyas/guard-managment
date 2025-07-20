@@ -13,12 +13,8 @@
       "discord": "your-discord-handle"
     }
   ],
-  "scripts": [
-    "./dist/guard-management.js"
-  ],
-  "styles": [
-    "./dist/guard-management.css"
-  ],
+  "scripts": ["./dist/guard-management.js"],
+  "styles": ["./dist/guard-management.css"],
   "languages": [
     {
       "lang": "en",

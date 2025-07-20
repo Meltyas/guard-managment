@@ -60,9 +60,12 @@ export function registerHooks(): void {
   });
 
   // Custom hook for guard token updates
-  Hooks.on('guard-management.guardTokenUpdated', (token: TokenDocument, updateData: any, userId: string) => {
-    console.log('GuardManagement | Processing guard token update:', token.name);
-  });
+  Hooks.on(
+    'guard-management.guardTokenUpdated',
+    (token: TokenDocument, updateData: any, userId: string) => {
+      console.log('GuardManagement | Processing guard token update:', token.name);
+    }
+  );
 
   // Custom hook for combat updates
   Hooks.on('guard-management.combatUpdated', (combat: Combat, updateData: any, userId: string) => {

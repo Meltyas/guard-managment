@@ -1,38 +1,38 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SyncManager } from '../src/managers/SyncManager';
-import { SyncData, SyncOptions } from '../src/types/sync';
+import { SyncOptions } from '../src/types/sync';
 
 // Mock Foundry VTT globals
 const mockGame = {
   settings: {
     get: vi.fn(),
-    set: vi.fn()
+    set: vi.fn(),
   },
   socket: {
     emit: vi.fn(),
-    on: vi.fn()
+    on: vi.fn(),
   },
   user: {
     id: 'test-user-id',
-    isGM: false
+    isGM: false,
   },
   users: {
-    get: vi.fn()
-  }
+    get: vi.fn(),
+  },
 };
 
 const mockUI = {
   notifications: {
     warn: vi.fn(),
     info: vi.fn(),
-    error: vi.fn()
-  }
+    error: vi.fn(),
+  },
 };
 
 const mockHooks = {
   call: vi.fn(),
   on: vi.fn(),
-  once: vi.fn()
+  once: vi.fn(),
 };
 
 // Setup global mocks
@@ -46,19 +46,22 @@ describe('SyncManager', () => {
   beforeEach(() => {
     syncManager = new SyncManager();
     vi.clearAllMocks();
-    
+
     // Mock settings.get to return default sync options
     mockGame.settings.get.mockReturnValue({
       strategy: 'gm-priority',
       autoSync: true,
       syncInterval: 5000,
-      conflictResolution: 'auto'
+      conflictResolution: 'auto',
     });
   });
 
   it('should initialize successfully', async () => {
     await syncManager.initialize();
-    expect(mockGame.socket.on).toHaveBeenCalledWith('module.guard-management', expect.any(Function));
+    expect(mockGame.socket.on).toHaveBeenCalledWith(
+      'module.guard-management',
+      expect.any(Function)
+    );
   });
 
   it('should queue sync data', () => {
@@ -66,11 +69,11 @@ describe('SyncManager', () => {
       id: 'test-id',
       type: 'guard' as const,
       data: { test: true },
-      version: 1
+      version: 1,
     };
 
     syncManager.queueSync(testData);
-    
+
     // The queue should contain the data with timestamp and userId added
     // We can't directly access the private queue, but we can test the behavior
     expect(true).toBe(true); // Placeholder - in real implementation, you'd expose queue length
@@ -79,11 +82,11 @@ describe('SyncManager', () => {
   it('should update sync options', () => {
     const newOptions: Partial<SyncOptions> = {
       strategy: 'last-write-wins',
-      autoSync: false
+      autoSync: false,
     };
 
     syncManager.updateSyncOptions(newOptions);
-    
+
     expect(mockGame.settings.set).toHaveBeenCalledWith(
       'guard-management',
       'syncOptions',
@@ -93,7 +96,7 @@ describe('SyncManager', () => {
 
   it('should get current sync options', () => {
     const options = syncManager.getSyncOptions();
-    
+
     expect(options).toHaveProperty('strategy');
     expect(options).toHaveProperty('autoSync');
     expect(options).toHaveProperty('syncInterval');
@@ -102,13 +105,13 @@ describe('SyncManager', () => {
 
   it('should simulate sync operations', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    
+
     syncManager.simulateSync('guard', 3);
-    
+
     expect(consoleSpy).toHaveBeenCalledWith(
       'SyncManager | Simulated 3 sync operations of type: guard'
     );
-    
+
     consoleSpy.mockRestore();
   });
 
@@ -120,7 +123,7 @@ describe('SyncManager', () => {
         timestamp: 1000,
         userId: 'local-user',
         data: { version: 1 },
-        version: 1
+        version: 1,
       },
       remoteData: {
         id: 'test-id',
@@ -128,9 +131,9 @@ describe('SyncManager', () => {
         timestamp: 2000,
         userId: 'remote-user',
         data: { version: 2 },
-        version: 2
+        version: 2,
       },
-      conflictType: 'version' as const
+      conflictType: 'version' as const,
     };
 
     // Test that conflict handling doesn't throw
@@ -161,21 +164,21 @@ describe('SyncManager', () => {
 
   it('should cleanup properly', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    
+
     syncManager.cleanup();
-    
+
     expect(consoleSpy).toHaveBeenCalledWith('SyncManager | Cleaned up');
-    
+
     consoleSpy.mockRestore();
   });
 
   it('should handle auto-sync option changes', () => {
     // Enable auto-sync
     syncManager.updateSyncOptions({ autoSync: true });
-    
+
     // Disable auto-sync
     syncManager.updateSyncOptions({ autoSync: false });
-    
+
     // Should not throw errors
     expect(true).toBe(true);
   });
@@ -184,11 +187,11 @@ describe('SyncManager', () => {
     const conflicts = [
       { conflictType: 'version' as const },
       { conflictType: 'timestamp' as const },
-      { conflictType: 'user' as const }
+      { conflictType: 'user' as const },
     ];
 
     // Test that different conflict types are handled
-    conflicts.forEach(conflict => {
+    conflicts.forEach((conflict) => {
       expect(conflict.conflictType).toMatch(/version|timestamp|user/);
     });
   });

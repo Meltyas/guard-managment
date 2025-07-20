@@ -1,37 +1,37 @@
 {
   "guard.name.label": "Guard Name",
   "guard.status.active": "Active",
-  "guard.status.inactive": "Inactive", 
+  "guard.status.inactive": "Inactive",
   "guard.status.alert": "Alert",
   "guard.position.label": "Position",
   "guard.area.label": "Assigned Area",
-  
+
   "sync.strategy.lastWriteWins": "Last Write Wins",
   "sync.strategy.gmPriority": "GM Priority",
   "sync.strategy.manualResolve": "Manual Resolution",
-  
+
   "sync.status.syncing": "Syncing...",
   "sync.status.synced": "Synced",
   "sync.status.error": "Sync Error",
   "sync.status.conflict": "Conflict Detected",
-  
+
   "settings.debugMode.name": "Debug Mode",
   "settings.debugMode.hint": "Enable debug logging and testing features",
-  "settings.syncStrategy.name": "Sync Strategy", 
+  "settings.syncStrategy.name": "Sync Strategy",
   "settings.syncStrategy.hint": "How to handle data synchronization conflicts",
   "settings.autoSyncInterval.name": "Auto Sync Interval (ms)",
   "settings.autoSyncInterval.hint": "How often to automatically sync data (in milliseconds)",
   "settings.enableAutoSync.name": "Enable Auto Sync",
   "settings.enableAutoSync.hint": "Automatically synchronize data between clients",
-  
+
   "conflicts.title": "Synchronization Conflicts",
   "conflicts.description": "The following data conflicts need resolution:",
   "conflicts.accept": "Accept Remote",
   "conflicts.reject": "Keep Local",
   "conflicts.timestamp": "Timestamp Conflict",
-  "conflicts.version": "Version Conflict", 
+  "conflicts.version": "Version Conflict",
   "conflicts.user": "User Conflict",
-  
+
   "notifications.guardCreated": "Guard {name} created successfully",
   "notifications.guardUpdated": "Guard {name} updated",
   "notifications.guardDeleted": "Guard {name} deleted",
@@ -39,7 +39,7 @@
   "notifications.syncError": "Synchronization error occurred",
   "notifications.connectionLost": "Connection to other clients lost",
   "notifications.connectionRestored": "Connection to other clients restored",
-  
+
   "debug.createSampleGuards": "Create Sample Guards",
   "debug.simulateSync": "Simulate Sync",
   "debug.clearData": "Clear All Data",

@@ -22,27 +22,30 @@ A testing module for Foundry VTT V13 focused on data synchronization between Pla
 ### Quick Start
 
 1. Clone or download this module to your Foundry modules directory:
+
    ```
    c:\Games\foundry\Data\modules\guard-management\
    ```
 
 2. **Easy Setup (Recommended)**:
+
    ```bash
    # Windows
    npm run setup:win
-   
+
    # macOS/Linux/WSL
    npm run setup
    ```
 
 3. **Manual Setup**:
+
    ```bash
    # Use the correct Node.js version
    nvm use
-   
+
    # Install dependencies
    npm install
-   
+
    # Build the module
    npm run build
    ```
@@ -64,21 +67,25 @@ npm run check-node
 ### Development Commands
 
 **Setup & Maintenance:**
+
 - `npm run setup` / `npm run setup:win` - Complete project setup
 - `npm run check-node` - Verify Node.js/npm versions
 - `npm run fresh` - Clean install (removes node_modules and reinstalls)
 
 **Development:**
+
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 
 **Testing:**
+
 - `npm run test` - Run tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:ui` - Run tests with UI
 
 **Code Quality:**
+
 - `npm run lint` - Lint code
 - `npm run lint:fix` - Fix linting issues
 - `npm run format` - Format code with Prettier
@@ -94,6 +101,7 @@ The module includes comprehensive tests for:
 - Edge cases and error handling
 
 Run tests with:
+
 ```bash
 npm test
 ```
@@ -132,13 +140,13 @@ const guard = guardModule.guardManager.createGuard({
   name: 'Guard Alpha',
   position: { x: 100, y: 100 },
   status: 'active',
-  assignedArea: 'North Gate'
+  assignedArea: 'North Gate',
 });
 
 // Update guard status
 guardModule.guardManager.updateGuard(guard.id, {
   status: 'alert',
-  position: { x: 120, y: 110 }
+  position: { x: 120, y: 110 },
 });
 ```
 
@@ -152,13 +160,14 @@ guardModule.syncManager.simulateSync('guard', 5);
 guardModule.syncManager.updateSyncOptions({
   strategy: 'last-write-wins',
   autoSync: true,
-  syncInterval: 3000
+  syncInterval: 3000,
 });
 ```
 
 ### Debug Mode
 
 Enable debug mode in module settings to see:
+
 - Real-time sync operations
 - Conflict detection and resolution
 - Performance metrics
@@ -176,6 +185,7 @@ Enable debug mode in module settings to see:
 ### Advanced Configuration
 
 Edit `vite.config.ts` for build settings:
+
 - Change bundle format
 - Modify external dependencies
 - Adjust output directory
@@ -246,6 +256,7 @@ MIT License - See LICENSE file for details
 ## Support
 
 For issues and questions:
+
 1. Check the troubleshooting section
 2. Review the console logs
 3. Test with debug mode enabled

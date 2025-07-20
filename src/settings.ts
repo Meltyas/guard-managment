@@ -12,7 +12,7 @@ export function registerSettings(): void {
     scope: 'world',
     config: false,
     type: Array,
-    default: []
+    default: [],
   });
 
   // Sync options
@@ -26,8 +26,8 @@ export function registerSettings(): void {
       strategy: 'gm-priority',
       autoSync: true,
       syncInterval: 5000,
-      conflictResolution: 'auto'
-    }
+      conflictResolution: 'auto',
+    },
   });
 
   // Debug mode
@@ -37,7 +37,7 @@ export function registerSettings(): void {
     scope: 'client',
     config: true,
     type: Boolean,
-    default: false
+    default: false,
   });
 
   // Sync strategy setting (user-configurable)
@@ -51,8 +51,8 @@ export function registerSettings(): void {
     choices: {
       'last-write-wins': 'Last Write Wins',
       'gm-priority': 'GM Priority',
-      'manual-resolve': 'Manual Resolution'
-    }
+      'manual-resolve': 'Manual Resolution',
+    },
   });
 
   // Auto sync interval
@@ -66,8 +66,8 @@ export function registerSettings(): void {
     range: {
       min: 1000,
       max: 30000,
-      step: 1000
-    }
+      step: 1000,
+    },
   });
 
   // Enable auto sync
@@ -77,7 +77,7 @@ export function registerSettings(): void {
     scope: 'world',
     config: true,
     type: Boolean,
-    default: true
+    default: true,
   });
 
   console.log('GuardManagement | Settings registered successfully');

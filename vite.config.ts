@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
@@ -7,32 +7,32 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/main.ts'),
       name: 'GuardManagement',
       fileName: 'guard-management',
-      formats: ['es']
+      formats: ['es'],
     },
     outDir: 'dist',
     rollupOptions: {
       external: ['foundry'],
       output: {
         globals: {
-          foundry: 'foundry'
-        }
-      }
+          foundry: 'foundry',
+        },
+      },
     },
     minify: false,
-    sourcemap: true
+    sourcemap: true,
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
-    }
+      '@': resolve(__dirname, 'src'),
+    },
   },
   css: {
     postcss: {
-      plugins: []
-    }
+      plugins: [],
+    },
   },
   test: {
     globals: true,
-    environment: 'jsdom'
-  }
+    environment: 'jsdom',
+  },
 });

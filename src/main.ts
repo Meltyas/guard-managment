@@ -3,10 +3,10 @@
  * Handles initialization and data synchronization between Player and GM
  */
 
+import { registerHooks } from './hooks';
 import { GuardManager } from './managers/GuardManager';
 import { SyncManager } from './managers/SyncManager';
 import { registerSettings } from './settings';
-import { registerHooks } from './hooks';
 import './styles/main.css';
 
 // Global module reference
@@ -26,17 +26,17 @@ class GuardManagementModule {
    */
   public async initialize(): Promise<void> {
     console.log('Guard Management | Initializing module...');
-    
+
     // Register module settings
     registerSettings();
-    
+
     // Register Foundry hooks
     registerHooks();
-    
+
     // Initialize managers
     await this.guardManager.initialize();
     await this.syncManager.initialize();
-    
+
     console.log('Guard Management | Module initialized successfully');
   }
 

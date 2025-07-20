@@ -1,19 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GuardManager } from '../src/managers/GuardManager';
-import { GuardData } from '../src/types/sync';
 
 // Mock Foundry VTT globals
 const mockGame = {
   settings: {
     get: vi.fn(),
-    set: vi.fn()
-  }
+    set: vi.fn(),
+  },
 };
 
 const mockFoundry = {
   utils: {
-    randomID: vi.fn(() => `test-id-${Date.now()}`)
-  }
+    randomID: vi.fn(() => `test-id-${Date.now()}`),
+  },
 };
 
 // Setup global mocks
@@ -26,7 +25,7 @@ describe('GuardManager', () => {
   beforeEach(() => {
     guardManager = new GuardManager();
     vi.clearAllMocks();
-    
+
     // Mock settings.get to return empty array for guard data
     mockGame.settings.get.mockReturnValue([]);
   });
@@ -41,7 +40,7 @@ describe('GuardManager', () => {
       name: 'Test Guard',
       position: { x: 100, y: 100 },
       status: 'active' as const,
-      assignedArea: 'Test Area'
+      assignedArea: 'Test Area',
     };
 
     const createdGuard = guardManager.createGuard(guardData);
@@ -58,7 +57,7 @@ describe('GuardManager', () => {
       name: 'Test Guard',
       position: { x: 100, y: 100 },
       status: 'active' as const,
-      assignedArea: 'Test Area'
+      assignedArea: 'Test Area',
     };
 
     const createdGuard = guardManager.createGuard(guardData);
@@ -68,7 +67,7 @@ describe('GuardManager', () => {
     setTimeout(() => {
       const updates = {
         status: 'alert' as const,
-        position: { x: 200, y: 200 }
+        position: { x: 200, y: 200 },
       };
 
       const updatedGuard = guardManager.updateGuard(createdGuard.id, updates);
@@ -89,7 +88,7 @@ describe('GuardManager', () => {
       name: 'Test Guard',
       position: { x: 100, y: 100 },
       status: 'active' as const,
-      assignedArea: 'Test Area'
+      assignedArea: 'Test Area',
     };
 
     const createdGuard = guardManager.createGuard(guardData);
@@ -108,14 +107,14 @@ describe('GuardManager', () => {
       name: 'Guard 1',
       position: { x: 100, y: 100 },
       status: 'active' as const,
-      assignedArea: 'Area 1'
+      assignedArea: 'Area 1',
     };
 
     const guardData2 = {
       name: 'Guard 2',
       position: { x: 200, y: 200 },
       status: 'inactive' as const,
-      assignedArea: 'Area 2'
+      assignedArea: 'Area 2',
     };
 
     guardManager.createGuard(guardData1);
@@ -123,8 +122,8 @@ describe('GuardManager', () => {
 
     const allGuards = guardManager.getAllGuards();
     expect(allGuards).toHaveLength(2);
-    expect(allGuards.some(g => g.name === 'Guard 1')).toBe(true);
-    expect(allGuards.some(g => g.name === 'Guard 2')).toBe(true);
+    expect(allGuards.some((g) => g.name === 'Guard 1')).toBe(true);
+    expect(allGuards.some((g) => g.name === 'Guard 2')).toBe(true);
   });
 
   it('should delete a guard', () => {
@@ -132,7 +131,7 @@ describe('GuardManager', () => {
       name: 'Test Guard',
       position: { x: 100, y: 100 },
       status: 'active' as const,
-      assignedArea: 'Test Area'
+      assignedArea: 'Test Area',
     };
 
     const createdGuard = guardManager.createGuard(guardData);
@@ -150,11 +149,11 @@ describe('GuardManager', () => {
   it('should create sample guards', () => {
     guardManager.createSampleGuards();
     const allGuards = guardManager.getAllGuards();
-    
+
     expect(allGuards).toHaveLength(3);
-    expect(allGuards.some(g => g.name === 'Guard Alpha')).toBe(true);
-    expect(allGuards.some(g => g.name === 'Guard Beta')).toBe(true);
-    expect(allGuards.some(g => g.name === 'Guard Charlie')).toBe(true);
+    expect(allGuards.some((g) => g.name === 'Guard Alpha')).toBe(true);
+    expect(allGuards.some((g) => g.name === 'Guard Beta')).toBe(true);
+    expect(allGuards.some((g) => g.name === 'Guard Charlie')).toBe(true);
   });
 
   it('should save guard data when creating guards', () => {
@@ -162,14 +161,14 @@ describe('GuardManager', () => {
       name: 'Test Guard',
       position: { x: 100, y: 100 },
       status: 'active' as const,
-      assignedArea: 'Test Area'
+      assignedArea: 'Test Area',
     };
 
     guardManager.createGuard(guardData);
-    
+
     expect(mockGame.settings.set).toHaveBeenCalledWith(
-      'guard-management', 
-      'guardData', 
+      'guard-management',
+      'guardData',
       expect.any(Array)
     );
   });

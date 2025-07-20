@@ -2,7 +2,7 @@
  * Sync Manager - Handles data synchronization between clients
  */
 
-import { SyncData, SyncConflict, SyncOptions, SyncStrategy } from '../types/sync';
+import { SyncConflict, SyncData, SyncOptions } from '../types/sync';
 
 export class SyncManager {
   private syncQueue: SyncData[] = [];
@@ -15,7 +15,7 @@ export class SyncManager {
       strategy: 'gm-priority',
       autoSync: true,
       syncInterval: 5000, // 5 seconds
-      conflictResolution: 'auto'
+      conflictResolution: 'auto',
     };
   }
 
@@ -24,18 +24,18 @@ export class SyncManager {
    */
   public async initialize(): Promise<void> {
     console.log('SyncManager | Initializing...');
-    
+
     // Load sync options from settings
     this.loadSyncOptions();
-    
+
     // Set up socket listener for incoming sync data
     this.setupSocketListener();
-    
+
     // Start auto-sync if enabled
     if (this.options.autoSync) {
       this.startAutoSync();
     }
-    
+
     console.log('SyncManager | Initialized successfully');
   }
 
@@ -46,7 +46,7 @@ export class SyncManager {
     const syncData: SyncData = {
       ...data,
       timestamp: Date.now(),
-      userId: game.user?.id || 'unknown'
+      userId: game.user?.id || 'unknown',
     };
 
     this.syncQueue.push(syncData);
@@ -93,7 +93,7 @@ export class SyncManager {
     // Emit to all other clients
     game.socket.emit('module.guard-management', {
       type: 'sync-data',
-      data: syncData
+      data: syncData,
     });
 
     console.log(`SyncManager | Sent sync data: ${syncData.type} (${syncData.id})`);
@@ -122,20 +122,21 @@ export class SyncManager {
   private async detectConflict(incomingData: SyncData): Promise<SyncConflict | null> {
     // This is a simplified conflict detection
     // In a real implementation, you'd check against local data
-    
+
     // For testing purposes, let's simulate occasional conflicts
-    if (Math.random() < 0.1) { // 10% chance of conflict
+    if (Math.random() < 0.1) {
+      // 10% chance of conflict
       const localData: SyncData = {
         ...incomingData,
         timestamp: incomingData.timestamp - 1000, // 1 second earlier
         userId: game.user?.id || 'local',
-        version: incomingData.version - 1
+        version: incomingData.version - 1,
       };
 
       return {
         localData,
         remoteData: incomingData,
-        conflictType: 'version'
+        conflictType: 'version',
       };
     }
 
@@ -165,10 +166,11 @@ export class SyncManager {
    * Resolve conflict by timestamp (last write wins)
    */
   private resolveByTimestamp(conflict: SyncConflict): void {
-    const winner = conflict.remoteData.timestamp > conflict.localData.timestamp 
-      ? conflict.remoteData 
-      : conflict.localData;
-    
+    const winner =
+      conflict.remoteData.timestamp > conflict.localData.timestamp
+        ? conflict.remoteData
+        : conflict.localData;
+
     this.applySyncData(winner);
     console.log('SyncManager | Conflict resolved by timestamp');
   }
@@ -187,9 +189,10 @@ export class SyncManager {
       winner = conflict.localData;
     } else {
       // Both or neither are GM, fall back to timestamp
-      winner = conflict.remoteData.timestamp > conflict.localData.timestamp 
-        ? conflict.remoteData 
-        : conflict.localData;
+      winner =
+        conflict.remoteData.timestamp > conflict.localData.timestamp
+          ? conflict.remoteData
+          : conflict.localData;
     }
 
     this.applySyncData(winner);
@@ -202,7 +205,7 @@ export class SyncManager {
   private queueForManualResolution(conflict: SyncConflict): void {
     this.conflictQueue.push(conflict);
     console.log('SyncManager | Conflict queued for manual resolution');
-    
+
     // Emit a notification to the user
     ui.notifications?.warn('Data conflict detected. Please check the sync panel for resolution.');
   }
@@ -214,7 +217,7 @@ export class SyncManager {
     // This would typically update your local data structures
     // For testing, we'll just log it
     console.log(`SyncManager | Applied sync data: ${syncData.type} (${syncData.id})`);
-    
+
     // Emit a hook for other parts of the module to react
     Hooks.call('guard-management.syncDataApplied', syncData);
   }
@@ -268,7 +271,10 @@ export class SyncManager {
    */
   private loadSyncOptions(): void {
     try {
-      const savedOptions = game.settings.get('guard-management', 'syncOptions') as Partial<SyncOptions>;
+      const savedOptions = game.settings.get(
+        'guard-management',
+        'syncOptions'
+      ) as Partial<SyncOptions>;
       this.options = { ...this.options, ...savedOptions };
       console.log('SyncManager | Loaded sync options:', this.options);
     } catch (error) {
@@ -281,10 +287,10 @@ export class SyncManager {
    */
   public updateSyncOptions(newOptions: Partial<SyncOptions>): void {
     this.options = { ...this.options, ...newOptions };
-    
+
     // Save to settings
     game.settings.set('guard-management', 'syncOptions', this.options);
-    
+
     // Restart auto-sync if needed
     if (this.options.autoSync) {
       this.startAutoSync();
@@ -321,10 +327,10 @@ export class SyncManager {
 
     const winner = chooseRemote ? conflict.remoteData : conflict.localData;
     this.applySyncData(winner);
-    
+
     // Remove from queue
     this.conflictQueue.splice(conflictIndex, 1);
-    
+
     console.log('SyncManager | Conflict manually resolved');
   }
 
@@ -339,9 +345,9 @@ export class SyncManager {
         data: {
           test: true,
           index: i,
-          randomValue: Math.random()
+          randomValue: Math.random(),
         },
-        version: 1
+        version: 1,
       };
 
       this.queueSync(testData);

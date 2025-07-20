@@ -13,10 +13,10 @@ export class GuardManager {
    */
   public async initialize(): Promise<void> {
     console.log('GuardManager | Initializing...');
-    
+
     // Load existing guard data from game settings
     await this.loadGuardData();
-    
+
     this.isInitialized = true;
     console.log('GuardManager | Initialized successfully');
   }
@@ -28,7 +28,7 @@ export class GuardManager {
     const guard: GuardData = {
       id: foundry.utils.randomID(),
       lastUpdate: Date.now(),
-      ...guardData
+      ...guardData,
     };
 
     this.guards.set(guard.id, guard);
@@ -52,7 +52,7 @@ export class GuardManager {
       ...guard,
       ...updates,
       id, // Ensure ID doesn't change
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
     };
 
     this.guards.set(id, updatedGuard);
@@ -93,10 +93,10 @@ export class GuardManager {
    */
   private async loadGuardData(): Promise<void> {
     try {
-      const guardData = game.settings.get('guard-management', 'guardData') as GuardData[] || [];
+      const guardData = (game.settings.get('guard-management', 'guardData') as GuardData[]) || [];
       this.guards.clear();
-      
-      guardData.forEach(guard => {
+
+      guardData.forEach((guard) => {
         this.guards.set(guard.id, guard);
       });
 
@@ -128,23 +128,23 @@ export class GuardManager {
         name: 'Guard Alpha',
         position: { x: 100, y: 100 },
         status: 'active' as const,
-        assignedArea: 'North Gate'
+        assignedArea: 'North Gate',
       },
       {
         name: 'Guard Beta',
         position: { x: 200, y: 150 },
         status: 'active' as const,
-        assignedArea: 'South Tower'
+        assignedArea: 'South Tower',
       },
       {
         name: 'Guard Charlie',
         position: { x: 150, y: 200 },
         status: 'inactive' as const,
-        assignedArea: 'East Wall'
-      }
+        assignedArea: 'East Wall',
+      },
     ];
 
-    sampleGuards.forEach(guardData => {
+    sampleGuards.forEach((guardData) => {
       this.createGuard(guardData);
     });
 

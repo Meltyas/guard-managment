@@ -47,14 +47,17 @@ guard-management/
 ### Prerequisites
 
 #### Node Version Manager (nvm) Setup
+
 This project uses nvm to ensure consistent Node.js versions across development environments.
 
 **Windows (nvm-windows):**
+
 1. Download and install nvm-windows from: https://github.com/coreybutler/nvm-windows
 2. Open a new terminal (bash.exe or PowerShell)
 3. Verify installation: `nvm version`
 
 **Using nvm with this project:**
+
 ```bash
 # Use the Node.js version specified in .nvmrc
 nvm use
@@ -69,6 +72,7 @@ npm --version   # Should be compatible version
 ```
 
 ### Initial Setup
+
 ```bash
 # Ensure correct Node.js version
 nvm use
@@ -81,6 +85,7 @@ npm run build
 ```
 
 ### Development Commands
+
 ```bash
 npm run dev         # Development with hot reload
 npm run test        # Run tests
@@ -94,6 +99,7 @@ npm run format      # Format code
 ## Core Components
 
 ### 1. GuardManager (`src/managers/GuardManager.ts`)
+
 - **Purpose**: Manages guard entities and their data
 - **Key Methods**:
   - `createGuard()`: Create new guards
@@ -103,6 +109,7 @@ npm run format      # Format code
   - `createSampleGuards()`: Generate test data
 
 ### 2. SyncManager (`src/managers/SyncManager.ts`)
+
 - **Purpose**: Handles data synchronization between clients
 - **Key Features**:
   - Queue-based sync processing
@@ -115,6 +122,7 @@ npm run format      # Format code
   - `manual-resolve`: Queue for user resolution
 
 ### 3. Types (`src/types/sync.ts`)
+
 - **SyncData**: Base sync data structure
 - **GuardData**: Guard entity structure
 - **SyncConflict**: Conflict representation
@@ -123,6 +131,7 @@ npm run format      # Format code
 ## Anti-Death Spiral Design
 
 ### Prevention Mechanisms
+
 1. **Version Tracking**: Each sync operation includes version numbers
 2. **Timestamp Validation**: Prevent processing outdated sync data
 3. **User Identification**: Track sync origin to prevent loops
@@ -130,6 +139,7 @@ npm run format      # Format code
 5. **Conflict Queuing**: Handle conflicts asynchronously
 
 ### Conflict Resolution
+
 1. **Detection**: Compare timestamps, versions, user IDs
 2. **Classification**: Determine conflict type
 3. **Resolution**: Apply configured strategy
@@ -138,16 +148,19 @@ npm run format      # Format code
 ## Testing Strategy
 
 ### Unit Tests
+
 - **GuardManager**: CRUD operations, data validation
 - **SyncManager**: Sync operations, conflict resolution
 - **Mock Environment**: Foundry globals are mocked for testing
 
 ### Integration Testing
+
 - End-to-end sync scenarios
 - Multi-client simulation
 - Conflict resolution testing
 
 ### Manual Testing
+
 - Debug panel with testing controls
 - Sample data generation
 - Sync simulation tools
@@ -155,23 +168,27 @@ npm run format      # Format code
 ## Common Development Tasks
 
 ### Adding New Guard Properties
+
 1. Update `GuardData` interface in `src/types/sync.ts`
 2. Modify `GuardManager` methods as needed
 3. Update tests in `tests/GuardManager.test.ts`
 4. Add UI elements if necessary
 
 ### Adding New Sync Strategy
+
 1. Add strategy to `SyncStrategy` type in `src/types/sync.ts`
 2. Implement resolution logic in `SyncManager.handleConflict()`
 3. Add tests for the new strategy
 4. Update settings registration
 
 ### Adding New Test Scenario
+
 1. Create test method in appropriate manager
 2. Add debug panel button if needed
 3. Document the scenario in README
 
 ### Modifying UI
+
 1. Update CSS in `src/styles/main.css`
 2. Add localization strings to `lang/en.json`
 3. Test across different screen sizes
@@ -179,11 +196,13 @@ npm run format      # Format code
 ## Debugging Guidelines
 
 ### Enable Debug Mode
+
 1. Go to module settings in Foundry
 2. Enable "Debug Mode"
 3. Use browser developer tools for detailed logging
 
 ### Common Debug Scenarios
+
 ```javascript
 // Access module instance
 const gm = window.GuardManagement;
@@ -201,6 +220,7 @@ gm.syncManager.updateSyncOptions({ strategy: 'manual-resolve' });
 ```
 
 ### Performance Monitoring
+
 - Monitor sync queue length
 - Track conflict resolution time
 - Watch for memory leaks in long sessions
@@ -208,16 +228,19 @@ gm.syncManager.updateSyncOptions({ strategy: 'manual-resolve' });
 ## Code Quality Standards
 
 ### TypeScript
+
 - Strict type checking enabled
 - Prefer interfaces over `any`
 - Use proper error handling
 
 ### Testing
+
 - Aim for 80%+ test coverage
 - Test both success and failure scenarios
 - Mock external dependencies
 
 ### Documentation
+
 - Update README for major changes
 - Comment complex algorithms
 - Maintain type definitions
@@ -225,32 +248,39 @@ gm.syncManager.updateSyncOptions({ strategy: 'manual-resolve' });
 ## Common Issues and Solutions
 
 ### Issue: Module not loading
+
 **Check**: Console errors, dependency installation, build process
 
 ### Issue: Sync not working
+
 **Check**: Socket connections, user permissions, network connectivity
 
 ### Issue: Conflicts not resolving
+
 **Check**: Strategy settings, conflict queue, manual resolution UI
 
 ### Issue: Performance problems
+
 **Check**: Sync interval settings, queue length, memory usage
 
 ## Best Practices
 
 ### Sync Operations
+
 - Batch multiple changes when possible
 - Use debouncing for rapid updates
 - Validate data before syncing
 - Handle network failures gracefully
 
 ### Conflict Resolution
+
 - Provide clear user feedback
 - Log all conflict decisions
 - Allow manual override when needed
 - Test edge cases thoroughly
 
 ### Error Handling
+
 - Graceful degradation when features fail
 - Clear error messages for users
 - Comprehensive logging for debugging
@@ -259,6 +289,7 @@ gm.syncManager.updateSyncOptions({ strategy: 'manual-resolve' });
 ## Future Enhancements
 
 ### Potential Features
+
 - **Real-time Visualization**: Live sync status dashboard
 - **Advanced Conflict UI**: Rich conflict resolution interface
 - **Performance Analytics**: Detailed sync performance metrics
@@ -266,6 +297,7 @@ gm.syncManager.updateSyncOptions({ strategy: 'manual-resolve' });
 - **Multi-Scene Support**: Cross-scene guard management
 
 ### Scalability Considerations
+
 - Optimize for larger guard counts
 - Improve network efficiency
 - Add data compression
@@ -274,17 +306,20 @@ gm.syncManager.updateSyncOptions({ strategy: 'manual-resolve' });
 ## Integration with Foundry
 
 ### Hooks Usage
+
 - `userConnected`: Sync on user join
 - `updateToken`: Track guard movement
 - `updateCombat`: React to combat changes
 - Custom hooks for module communication
 
 ### Settings System
+
 - World settings for shared configuration
 - Client settings for personal preferences
 - Runtime setting updates
 
 ### Socket Communication
+
 - Structured message format
 - Error handling and retries
 - Rate limiting and throttling
@@ -292,20 +327,24 @@ gm.syncManager.updateSyncOptions({ strategy: 'manual-resolve' });
 ## When to Ask for Help
 
 ### Complex Foundry API Questions
+
 - Use `get_vscode_api` tool for Foundry-specific questions
 - Check Foundry documentation for API changes
 
 ### Build Issues
+
 - Verify Node.js version compatibility
 - Check for dependency conflicts
 - Review Vite configuration
 
 ### Testing Problems
+
 - Ensure test environment setup
 - Verify mock configurations
 - Check for async/await issues
 
 ### Performance Issues
+
 - Profile with browser tools
 - Monitor memory usage
 - Check for infinite loops
