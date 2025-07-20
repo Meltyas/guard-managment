@@ -6,7 +6,6 @@ import { GuardData } from '../types/sync';
 
 export class GuardManager {
   private guards: Map<string, GuardData> = new Map();
-  private isInitialized = false;
 
   /**
    * Initialize the Guard Manager
@@ -17,7 +16,6 @@ export class GuardManager {
     // Load existing guard data from game settings
     await this.loadGuardData();
 
-    this.isInitialized = true;
     console.log('GuardManager | Initialized successfully');
   }
 
@@ -93,7 +91,7 @@ export class GuardManager {
    */
   private async loadGuardData(): Promise<void> {
     try {
-      const guardData = (game.settings.get('guard-management', 'guardData') as GuardData[]) || [];
+      const guardData = (game?.settings?.get('guard-management', 'guardData') as GuardData[]) || [];
       this.guards.clear();
 
       guardData.forEach((guard) => {
@@ -112,7 +110,7 @@ export class GuardManager {
   private async saveGuardData(): Promise<void> {
     try {
       const guardData = Array.from(this.guards.values());
-      await game.settings.set('guard-management', 'guardData', guardData);
+      await game?.settings?.set('guard-management', 'guardData', guardData);
       console.log(`GuardManager | Saved ${guardData.length} guards to settings`);
     } catch (error) {
       console.error('GuardManager | Error saving guard data:', error);
@@ -156,7 +154,6 @@ export class GuardManager {
    */
   public cleanup(): void {
     this.guards.clear();
-    this.isInitialized = false;
     console.log('GuardManager | Cleaned up');
   }
 }

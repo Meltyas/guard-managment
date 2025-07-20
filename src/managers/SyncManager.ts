@@ -46,7 +46,7 @@ export class SyncManager {
     const syncData: SyncData = {
       ...data,
       timestamp: Date.now(),
-      userId: game.user?.id || 'unknown',
+      userId: game?.user?.id || 'unknown',
     };
 
     this.syncQueue.push(syncData);
@@ -86,7 +86,7 @@ export class SyncManager {
    * Send sync data to other clients
    */
   private async sendSyncData(syncData: SyncData): Promise<void> {
-    if (!game.socket) {
+    if (!game?.socket) {
       throw new Error('Socket not available');
     }
 
@@ -129,7 +129,7 @@ export class SyncManager {
       const localData: SyncData = {
         ...incomingData,
         timestamp: incomingData.timestamp - 1000, // 1 second earlier
-        userId: game.user?.id || 'local',
+        userId: game?.user?.id || 'local',
         version: incomingData.version - 1,
       };
 
@@ -179,8 +179,8 @@ export class SyncManager {
    * Resolve conflict by GM priority
    */
   private resolveByGMPriority(conflict: SyncConflict): void {
-    const remoteUserIsGM = game.users?.get(conflict.remoteData.userId)?.isGM || false;
-    const localUserIsGM = game.user?.isGM || false;
+    const remoteUserIsGM = game?.users?.get(conflict.remoteData.userId)?.isGM || false;
+    const localUserIsGM = game?.user?.isGM || false;
 
     let winner: SyncData;
     if (remoteUserIsGM && !localUserIsGM) {
@@ -226,7 +226,7 @@ export class SyncManager {
    * Set up socket listener for incoming sync data
    */
   private setupSocketListener(): void {
-    if (!game.socket) {
+    if (!game?.socket) {
       console.warn('SyncManager | No socket available');
       return;
     }
@@ -271,7 +271,7 @@ export class SyncManager {
    */
   private loadSyncOptions(): void {
     try {
-      const savedOptions = game.settings.get(
+      const savedOptions = game?.settings?.get(
         'guard-management',
         'syncOptions'
       ) as Partial<SyncOptions>;
@@ -289,7 +289,7 @@ export class SyncManager {
     this.options = { ...this.options, ...newOptions };
 
     // Save to settings
-    game.settings.set('guard-management', 'syncOptions', this.options);
+    game?.settings?.set('guard-management', 'syncOptions', this.options);
 
     // Restart auto-sync if needed
     if (this.options.autoSync) {

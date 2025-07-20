@@ -54,11 +54,11 @@ class GuardManagementModule {
 Hooks.once('init', async () => {
   guardManagementModule = new GuardManagementModule();
   await guardManagementModule.initialize();
+
+  // Export for global access
+  (window as any).GuardManagement = guardManagementModule;
 });
 
 Hooks.once('ready', () => {
   console.log('Guard Management | Foundry is ready, module is active');
 });
-
-// Export for global access
-(window as any).GuardManagement = guardManagementModule;

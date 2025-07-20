@@ -10,7 +10,7 @@ export function registerHooks(): void {
     if (connected) {
       console.log(`GuardManagement | User connected: ${user.name}`);
       // Trigger a sync to the newly connected user
-      if (game.user?.isGM) {
+      if (game?.user?.isGM) {
         // GM can send current state to the new user
         Hooks.call('guard-management.userConnected', user);
       }
@@ -25,16 +25,19 @@ export function registerHooks(): void {
   });
 
   // Hook for token updates (useful for guard position tracking)
-  Hooks.on('updateToken', (token: TokenDocument, updateData: any, options: any, userId: string) => {
-    // Check if this token represents a guard
-    if (token.name?.toLowerCase().includes('guard')) {
-      console.log(`GuardManagement | Guard token updated: ${token.name}`);
-      Hooks.call('guard-management.guardTokenUpdated', token, updateData, userId);
+  Hooks.on(
+    'updateToken',
+    (token: TokenDocument, updateData: any, _options: any, userId: string) => {
+      // Check if this token represents a guard
+      if (token.name?.toLowerCase().includes('guard')) {
+        console.log(`GuardManagement | Guard token updated: ${token.name}`);
+        Hooks.call('guard-management.guardTokenUpdated', token, updateData, userId);
+      }
     }
-  });
+  );
 
   // Hook for combat tracker updates (guards might react to combat)
-  Hooks.on('updateCombat', (combat: Combat, updateData: any, options: any, userId: string) => {
+  Hooks.on('updateCombat', (combat: Combat, updateData: any, _options: any, userId: string) => {
     console.log('GuardManagement | Combat updated');
     Hooks.call('guard-management.combatUpdated', combat, updateData, userId);
   });
@@ -55,22 +58,25 @@ export function registerHooks(): void {
   });
 
   // Custom hook for canvas ready events
-  Hooks.on('guard-management.canvasReady', (canvas: Canvas) => {
+  Hooks.on('guard-management.canvasReady', (_canvas: Canvas) => {
     console.log('GuardManagement | Processing canvas ready');
   });
 
   // Custom hook for guard token updates
   Hooks.on(
     'guard-management.guardTokenUpdated',
-    (token: TokenDocument, updateData: any, userId: string) => {
+    (token: TokenDocument, _updateData: any, _userId: string) => {
       console.log('GuardManagement | Processing guard token update:', token.name);
     }
   );
 
   // Custom hook for combat updates
-  Hooks.on('guard-management.combatUpdated', (combat: Combat, updateData: any, userId: string) => {
-    console.log('GuardManagement | Processing combat update');
-  });
+  Hooks.on(
+    'guard-management.combatUpdated',
+    (_combat: Combat, _updateData: any, _userId: string) => {
+      console.log('GuardManagement | Processing combat update');
+    }
+  );
 
   console.log('GuardManagement | Hooks registered successfully');
 }

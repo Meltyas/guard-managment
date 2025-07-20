@@ -19,7 +19,6 @@ export interface UpdateGuardData {
 
 export class GuardStatisticsManager {
   private guards: Map<string, GuardStatistics> = new Map();
-  private isInitialized = false;
 
   /**
    * Initialize the Guard Statistics Manager
@@ -30,7 +29,6 @@ export class GuardStatisticsManager {
     // Load existing data if any
     await this.loadGuardData();
 
-    this.isInitialized = true;
     console.log('GuardStatisticsManager | Initialized successfully');
   }
 
@@ -188,7 +186,7 @@ export class GuardStatisticsManager {
   private async loadGuardData(): Promise<void> {
     try {
       const data =
-        (game.settings.get('guard-management', 'guardStatistics') as GuardStatistics[]) || [];
+        (game?.settings?.get('guard-management', 'guardStatistics') as GuardStatistics[]) || [];
       this.guards.clear();
 
       for (const guard of data) {
@@ -207,7 +205,7 @@ export class GuardStatisticsManager {
   private async saveGuardData(): Promise<void> {
     try {
       const data = Array.from(this.guards.values());
-      await game.settings.set('guard-management', 'guardStatistics', data);
+      await game?.settings?.set('guard-management', 'guardStatistics', data);
       console.log(`GuardStatisticsManager | Saved ${data.length} guards`);
     } catch (error) {
       console.error('GuardStatisticsManager | Error saving guard data:', error);

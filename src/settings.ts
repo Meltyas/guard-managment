@@ -6,7 +6,7 @@ export function registerSettings(): void {
   console.log('GuardManagement | Registering settings...');
 
   // Guard data storage
-  game.settings.register('guard-management', 'guardData', {
+  game?.settings?.register('guard-management', 'guardData', {
     name: 'Guard Data',
     hint: 'Stored guard information',
     scope: 'world',
@@ -16,7 +16,7 @@ export function registerSettings(): void {
   });
 
   // Sync options
-  game.settings.register('guard-management', 'syncOptions', {
+  game?.settings?.register('guard-management', 'syncOptions', {
     name: 'Synchronization Options',
     hint: 'Options for data synchronization between clients',
     scope: 'world',
@@ -31,7 +31,7 @@ export function registerSettings(): void {
   });
 
   // Debug mode
-  game.settings.register('guard-management', 'debugMode', {
+  game?.settings?.register('guard-management', 'debugMode', {
     name: 'Debug Mode',
     hint: 'Enable debug logging and testing features',
     scope: 'client',
@@ -41,7 +41,7 @@ export function registerSettings(): void {
   });
 
   // Sync strategy setting (user-configurable)
-  game.settings.register('guard-management', 'syncStrategy', {
+  game?.settings?.register('guard-management', 'syncStrategy', {
     name: 'Sync Strategy',
     hint: 'How to handle data synchronization conflicts',
     scope: 'world',
@@ -56,7 +56,7 @@ export function registerSettings(): void {
   });
 
   // Auto sync interval
-  game.settings.register('guard-management', 'autoSyncInterval', {
+  game?.settings?.register('guard-management', 'autoSyncInterval', {
     name: 'Auto Sync Interval (ms)',
     hint: 'How often to automatically sync data (in milliseconds)',
     scope: 'world',
@@ -71,7 +71,7 @@ export function registerSettings(): void {
   });
 
   // Enable auto sync
-  game.settings.register('guard-management', 'enableAutoSync', {
+  game?.settings?.register('guard-management', 'enableAutoSync', {
     name: 'Enable Auto Sync',
     hint: 'Automatically synchronize data between clients',
     scope: 'world',
@@ -81,4 +81,13 @@ export function registerSettings(): void {
   });
 
   console.log('GuardManagement | Settings registered successfully');
+}
+
+// Helper functions for accessing settings
+export function getSetting(key: string): unknown {
+  return game?.settings?.get('guard-management', key);
+}
+
+export function setSetting(key: string, value: unknown): Promise<unknown> | undefined {
+  return game?.settings?.set('guard-management', key, value);
 }

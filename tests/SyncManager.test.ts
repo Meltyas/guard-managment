@@ -116,29 +116,8 @@ describe('SyncManager', () => {
   });
 
   it('should handle different sync strategies', () => {
-    const conflict = {
-      localData: {
-        id: 'test-id',
-        type: 'guard' as const,
-        timestamp: 1000,
-        userId: 'local-user',
-        data: { version: 1 },
-        version: 1,
-      },
-      remoteData: {
-        id: 'test-id',
-        type: 'guard' as const,
-        timestamp: 2000,
-        userId: 'remote-user',
-        data: { version: 2 },
-        version: 2,
-      },
-      conflictType: 'version' as const,
-    };
-
-    // Test that conflict handling doesn't throw
+    // Test that sync option updates don't throw
     expect(() => {
-      // This would normally call private methods, so we test indirectly
       syncManager.updateSyncOptions({ strategy: 'last-write-wins' });
       syncManager.updateSyncOptions({ strategy: 'gm-priority' });
       syncManager.updateSyncOptions({ strategy: 'manual-resolve' });
