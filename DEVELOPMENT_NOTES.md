@@ -1,149 +1,422 @@
-# Development Notes: Foundry VTT V13 Features
+# Development Notes: Guard Management for Foundryborne/Daggerheart
 
-## Key APIs to Investigate
+## Project Overview
 
-### DialogV2.query
+**Guard Management** is a Foundry VTT V13 module designed for the **Foundryborne system (Daggerheart)** to manage guard operations in campaigns. The module handles comprehensive guard management including statistics, patrols, resources, reputation, and temporary effects with full synchronization between GM and Players.
 
-- **Purpose**: New dialog system in Foundry V13
-- **Use Case**: Could be useful for conflict resolution UI
-- **Investigation**: Test for better user interaction when sync conflicts occur
-- **Documentation**: Check Foundry V13 API docs for DialogV2 methods
+## Core Entities & CRUD Operations
 
-### Socket Communication
+### 1. Guard Statistics (Base Stats)
+**Purpose**: Foundation statistics for all guard operations and patrol calculations.
 
-- **Reference**: https://foundryvtt.wiki/en/development/api/sockets
-- **Current Usage**: Already implemented in SyncManager
-- **Improvements**:
-  - Error handling patterns
-  - Rate limiting strategies
-  - Connection stability monitoring
-  - Message queuing during disconnections
+**Structure**:
+- **Name**: Primary guard name
+- **Subtitle**: Secondary identifier
+- **Base Statistics** (4 core + expandable):
+  - Robustismo (Robustness)
+  - Analítica (Analytical) 
+  - Subterfugio (Subterfuge)
+  - Elocuencia (Eloquence)
+  - *Future stats can be added*
 
-## Implementation Ideas
+**CRUD Operations**:
+- ✅ **Create**: New guard with base stats
+- ✅ **Read**: View current guard stats
+- ✅ **Update**: Modify base statistics and names
+- ✅ **Delete**: Remove guard (with safety checks)
 
-### Enhanced Conflict Resolution with DialogV2
+### 2. Guard Modifiers (Temporary Effects)
+**Purpose**: Temporary effects that modify base guard statistics.
 
+**Structure**:
+- **Name**: Effect identifier
+- **Description**: Detailed explanation
+- **Type**: Positive/Negative/Neutral indicator
+- **Image**: Visual representation
+- **Stat Modifications**: Which stats are affected and by how much
+
+**CRUD Operations**:
+- ✅ **Create**: New temporary modifier
+- ✅ **Read**: List active/available modifiers
+- ✅ **Update**: Modify effect properties
+- ✅ **Delete**: Remove modifier
+- 🔄 **Apply/Remove**: Activate/deactivate on guard
+
+### 3. Patrols
+**Purpose**: Operational units composed of leader + units with derived statistics.
+
+**Structure**:
+- **Name**: Patrol identifier
+- **Leader**: Reference to Actor (1 required)
+- **Units**: Count (1-12 members)
+- **Statistics**: Derived from Guard base + custom modifiers
+- **Custom Modifiers**: User-defined stat adjustments (e.g., +1 Robustismo, -1 Elocuencia)
+
+**CRUD Operations**:
+- ✅ **Create**: New patrol with leader and units
+- ✅ **Read**: View patrol details and current stats
+- ✅ **Update**: Modify composition, leader, or custom modifiers
+- ✅ **Delete**: Disband patrol
+- 🔄 **Deploy/Recall**: Change patrol status
+
+### 4. Patrol Effects
+**Purpose**: Temporary effects specific to individual patrols.
+
+**Structure**:
+- **Name**: Effect identifier
+- **Description**: Detailed explanation
+- **Type**: Positive/Negative/Neutral indicator
+- **Image**: Visual representation
+- **Target Patrol**: Which patrol is affected
+- **Stat Modifications**: Specific statistical changes
+
+**CRUD Operations**:
+- ✅ **Create**: New patrol-specific effect
+- ✅ **Read**: View effects on specific patrol
+- ✅ **Update**: Modify effect properties
+- ✅ **Delete**: Remove effect
+- 🔄 **Apply/Remove**: Activate/deactivate on patrol
+
+### 5. Resources
+**Purpose**: Tracked materials and supplies for guard operations.
+
+**Structure**:
+- **Name**: Resource identifier
+- **Description**: What the resource represents
+- **Quantity**: Current amount (numeric)
+
+**CRUD Operations**:
+- ✅ **Create**: New resource type
+- ✅ **Read**: View current resources and quantities
+- ✅ **Update**: Modify description or adjust quantities
+- ✅ **Delete**: Remove resource type
+- 🔄 **Spend/Gain**: Modify quantities through operations
+
+### 6. Reputation
+**Purpose**: Relationship tracking with various factions/groups.
+
+**Structure**:
+- **Name**: Faction/group identifier
+- **Description**: Context about the relationship
+- **Level**: 7-tier system:
+  1. **Enemigos** (Enemies)
+  2. **Hostiles** (Hostile)
+  3. **Desconfiados** (Distrustful)
+  4. **Neutrales** (Neutral)
+  5. **Amistosos** (Friendly)
+  6. **Confiados** (Trusting)
+  7. **Aliados** (Allies)
+
+**CRUD Operations**:
+- ✅ **Create**: New faction relationship
+- ✅ **Read**: View current reputation levels
+- ✅ **Update**: Change reputation level or description
+- ✅ **Delete**: Remove faction relationship
+- 🔄 **Improve/Degrade**: Modify reputation levels
+
+### 7. GM Storage/Warehouse
+**Purpose**: Centralized storage for GM to pre-create and manage templates.
+
+**Stored Items**:
+- **Resources**: Pre-defined resource types for quick assignment
+- **Reputation Entries**: Template faction relationships
+- **Patrol Effects**: Ready-to-apply patrol modifications
+- **Guard Modifiers**: Prepared temporary effects
+
+**Operations**:
+- ✅ **Create Templates**: Pre-build effects, resources, etc.
+- ✅ **Organize Storage**: Categorize and manage templates
+- ✅ **Quick Apply**: Rapidly assign stored items to active elements
+- ✅ **Batch Operations**: Apply multiple effects simultaneously
+
+## TDD Implementation Strategy
+
+### Test-First Development Approach
+
+**Phase 1: Core CRUD (Red-Green-Refactor)**
+1. **Red**: Write failing tests for basic entity creation
+2. **Green**: Implement minimal CRUD functionality
+3. **Refactor**: Optimize and clean up code
+
+**Phase 2: Business Logic (Red-Green-Refactor)**
+1. **Red**: Write failing tests for stat calculations
+2. **Green**: Implement patrol stat derivation
+3. **Refactor**: Optimize calculation logic
+
+**Phase 3: Synchronization (Red-Green-Refactor)**
+1. **Red**: Write failing tests for multi-client sync
+2. **Green**: Implement basic synchronization
+3. **Refactor**: Add conflict resolution
+
+**Phase 4: UI Integration (Red-Green-Refactor)**
+1. **Red**: Write failing tests for DialogV2 interactions
+2. **Green**: Implement basic UI
+3. **Refactor**: Enhance user experience
+
+### Testing Priorities
+
+**Unit Tests (High Priority)**:
+- ✅ Guard stat calculations
+- ✅ Patrol composition validation
+- ✅ Modifier application logic
+- ✅ Resource quantity management
+- ✅ Reputation level changes
+
+**Integration Tests (Medium Priority)**:
+- ✅ Stat derivation from Guard → Patrol
+- ✅ Effect application chains
+- ✅ GM storage → Active assignment
+- ✅ Multi-entity synchronization
+
+**E2E Tests (Lower Priority)**:
+- ✅ Complete patrol creation workflow
+- ✅ GM storage management interface
+- ✅ Player vs GM permission scenarios
+- ✅ Cross-client synchronization validation
+
+## Synchronization Strategy
+
+### Anti-Death Spiral Design for Foundryborne
+
+**Key Sync Challenges**:
+1. **Multiple Entities**: Guards, Patrols, Resources, Reputation all need sync
+2. **Derived Data**: Patrol stats depend on Guard stats + modifiers
+3. **Permission Levels**: GM vs Player access to different operations
+4. **Real-time Updates**: Changes should reflect immediately across clients
+
+**Sync Patterns**:
+- **Guard Base Stats**: GM-only write, all read
+- **Patrols**: GM creates, Players can view and request modifications
+- **Resources/Reputation**: GM manages, Players can view
+- **Effects**: GM applies, all see results
+
+**Conflict Resolution Priorities**:
+1. **GM Override**: GM changes always take precedence
+2. **Timestamp**: Most recent change wins for same permission level
+3. **Manual Resolution**: Complex conflicts require DialogV2 intervention
+
+## Development Phases
+
+### Phase 1: Foundation (TDD Focus)
+- ✅ Basic entity models and TypeScript types
+- ✅ Core CRUD operations with full test coverage
+- ✅ Simple synchronization without conflict resolution
+
+### Phase 2: Business Logic (TDD Focus)
+- ✅ Stat calculation and derivation logic
+- ✅ Effect application and stacking rules
+- ✅ Patrol composition validation
+
+### Phase 3: Advanced Sync (TDD Focus)
+- ✅ Conflict detection and resolution
+- ✅ Permission-based access control
+- ✅ Real-time updates with DialogV2
+
+### Phase 4: GM Tools (TDD Focus)
+- ✅ Storage/warehouse management interface
+- ✅ Batch operations and templates
+- ✅ Advanced admin features
+
+### Phase 5: Polish (TDD Focus)
+- ✅ Enhanced UI with Foundryborne theming
+- ✅ Performance optimization
+- ✅ Comprehensive error handling
+
+## Key Implementation Notes
+
+**Entity Relationships**:
+```
+Guard (base stats) 
+  ↓ (derives to)
+Patrols (Guard stats + custom modifiers + effects)
+  ↓ (references)
+Actors (Leaders)
+
+GM Storage
+  ↓ (templates for)
+All Effect Types + Resources + Reputation
+```
+
+**Stat Calculation Flow**:
+```
+Guard Base Stats 
+  → Apply Guard Modifiers 
+  → Derive to Patrol 
+  → Apply Custom Patrol Modifiers 
+  → Apply Patrol Effects 
+  → Final Patrol Stats
+```
+
+**Permission Matrix**:
+- **GM**: Full CRUD on all entities
+- **Players**: Read all, limited modify on assigned patrols
+- **Storage**: GM-only access for template management
+
+## Foundry V13 Technical Implementation
+
+### DialogV2.query Integration
+
+**Primary Use Cases**:
+- **Conflict Resolution**: When sync conflicts occur between GM/Player changes
+- **Patrol Assignment**: Assign leaders and units to patrols
+- **Effect Application**: Apply modifiers and effects with visual confirmation
+- **Resource Management**: Spend/gain resources with confirmation dialogs
+- **Reputation Changes**: Modify faction relationships with context
+
+**Implementation Pattern**:
 ```javascript
-// Potential implementation for manual conflict resolution
-async showConflictDialog(conflict) {
+// Enhanced conflict resolution for Guard Management
+async showGuardConflictDialog(conflict) {
   const result = await DialogV2.query({
-    window: { title: "Sync Conflict Detected" },
+    window: { title: `Guard Sync Conflict: ${conflict.entityType}` },
     content: `
-      <div class="conflict-resolution">
-        <h3>Data Conflict</h3>
-        <p>Choose which version to keep:</p>
+      <div class="guard-conflict-resolution">
+        <h3>Synchronization Conflict Detected</h3>
+        <p>Choose which version to keep for ${conflict.entityName}:</p>
         <div class="conflict-options">
           <div class="option local">
-            <h4>Local Version</h4>
-            <pre>${JSON.stringify(conflict.localData, null, 2)}</pre>
+            <h4>Local Version (${conflict.localUser})</h4>
+            <div class="guard-stats">${this.formatGuardData(conflict.localData)}</div>
           </div>
           <div class="option remote">
-            <h4>Remote Version</h4>
-            <pre>${JSON.stringify(conflict.remoteData, null, 2)}</pre>
+            <h4>Remote Version (${conflict.remoteUser})</h4>
+            <div class="guard-stats">${this.formatGuardData(conflict.remoteData)}</div>
           </div>
         </div>
       </div>
     `,
     buttons: [
-      {
-        action: "local",
-        icon: "fas fa-home",
-        label: "Use Local",
-        default: true
-      },
-      {
-        action: "remote",
-        icon: "fas fa-cloud",
-        label: "Use Remote"
-      },
-      {
-        action: "cancel",
-        icon: "fas fa-times",
-        label: "Cancel"
-      }
+      { action: "local", icon: "fas fa-user", label: "Keep Local", default: true },
+      { action: "remote", icon: "fas fa-cloud", label: "Accept Remote" },
+      { action: "merge", icon: "fas fa-code-merge", label: "Attempt Merge" },
+      { action: "cancel", icon: "fas fa-times", label: "Cancel" }
     ]
   });
-
   return result;
 }
 ```
 
-### Advanced Socket Patterns
+### Socket Communication Patterns
 
+**Guard Management Specific Events**:
+- `guard-management.guard-updated`: Base guard statistics changed
+- `guard-management.patrol-created`: New patrol formed
+- `guard-management.effect-applied`: Modifier/effect activated
+- `guard-management.resource-changed`: Resource quantities modified
+- `guard-management.reputation-updated`: Faction relationship changed
+
+**Enhanced Socket Manager for Foundryborne**:
 ```javascript
-// Enhanced socket handling with retry logic
-class SocketManager {
+class GuardSyncManager extends SyncManager {
   constructor() {
-    this.messageQueue = [];
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
+    super();
+    this.entityTypes = ['guard', 'patrol', 'modifier', 'effect', 'resource', 'reputation'];
+    this.derivedDataCache = new Map(); // For patrol stat calculations
   }
 
-  async sendWithRetry(data, maxRetries = 3) {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        await this.send(data);
-        return true;
-      } catch (error) {
-        if (i === maxRetries - 1) throw error;
-        await this.delay(Math.pow(2, i) * 1000); // Exponential backoff
-      }
+  async syncGuardEntity(entityType, entityData, operation = 'update') {
+    // Handle derived data invalidation
+    if (entityType === 'guard' && operation === 'update') {
+      this.invalidatePatrolStats(entityData.id);
     }
+    
+    return super.queueSync({
+      id: entityData.id,
+      type: entityType,
+      operation: operation,
+      data: entityData,
+      version: entityData.version || 1
+    });
+  }
+
+  invalidatePatrolStats(guardId) {
+    // Recalculate all patrol stats that depend on this guard
+    this.derivedDataCache.forEach((value, key) => {
+      if (key.startsWith(`patrol-${guardId}`)) {
+        this.derivedDataCache.delete(key);
+      }
+    });
   }
 }
 ```
 
-## Research Tasks
+## Research Tasks for Foundryborne Integration
 
 ### High Priority
-
-- [ ] Test DialogV2.query with complex conflict scenarios
-- [ ] Implement socket reconnection patterns
-- [ ] Test multi-user scenarios with network interruptions
-- [ ] Performance testing with large sync queues
+- [ ] Test DialogV2.query with guard-specific conflict scenarios
+- [ ] Implement patrol stat derivation with real-time updates
+- [ ] Test multi-patrol synchronization with effect cascading
+- [ ] Performance testing with large numbers of patrols and effects
 
 ### Medium Priority
-
-- [ ] Explore Foundry V13 new hooks for better integration
-- [ ] Test compatibility with other modules
-- [ ] Implement data compression for large sync payloads
-- [ ] Add metrics collection for sync performance
+- [ ] Explore Foundry V13 Actor integration for patrol leaders
+- [ ] Test compatibility with Foundryborne system hooks
+- [ ] Implement visual indicators for active effects
+- [ ] Add drag-and-drop support for GM storage items
 
 ### Low Priority
+- [ ] Custom CSS themes matching Foundryborne aesthetics
+- [ ] Internationalization for Spanish/English Daggerheart terms
+- [ ] Integration with Foundryborne's existing UI elements
+- [ ] Advanced patrol visualization tools
 
-- [ ] Custom CSS themes for conflict resolution UI
-- [ ] Internationalization for conflict messages
-- [ ] Integration with Foundry's notification system
-- [ ] Advanced debugging tools and visualizations
+## Testing Scenarios for Guard Management
 
-## Testing Scenarios
+### Entity-Specific Testing
 
-### DialogV2 Testing
+**Guard Statistics**:
+1. **Basic CRUD**: Create guard with 4 base stats, update individual stats
+2. **Modifier Application**: Apply positive/negative/neutral modifiers
+3. **Stat Boundaries**: Test minimum/maximum stat values
+4. **Derived Calculations**: Verify patrol stats derive correctly from guard base
 
-1. **Simple Conflicts**: Test basic conflict resolution UI
-2. **Complex Data**: Test with nested objects and arrays
-3. **Rapid Conflicts**: Test multiple conflicts in quick succession
-4. **User Cancellation**: Test dialog cancellation behavior
+**Patrol Management**:
+1. **Composition Validation**: Test 1-12 unit limits with leader requirement
+2. **Stat Inheritance**: Verify base stats come from guard correctly
+3. **Custom Modifiers**: Test user-defined stat adjustments
+4. **Effect Stacking**: Multiple effects on same patrol
 
-### Socket Testing
+**Resource Tracking**:
+1. **Quantity Management**: Spend/gain resources with validation
+2. **Negative Prevention**: Ensure quantities don't go below zero
+3. **Bulk Operations**: Add/remove large quantities efficiently
 
-1. **Connection Loss**: Simulate network disconnections
-2. **Message Ordering**: Test out-of-order message handling
-3. **Large Payloads**: Test with significant data volumes
-4. **Concurrent Users**: Test with multiple simultaneous users
+**Reputation System**:
+1. **Level Transitions**: Test all 7 reputation levels
+2. **Faction Management**: Multiple factions with different levels
+3. **Relationship Changes**: Improve/degrade reputation over time
+
+### Synchronization Testing
+
+**Multi-Client Scenarios**:
+1. **GM Creates, Player Views**: Immediate update visibility
+2. **Simultaneous Modifications**: Conflict resolution testing
+3. **Permission Boundaries**: Players can't modify GM-only content
+4. **Offline/Online**: Handle disconnected clients gracefully
+
+**Complex Entity Relationships**:
+1. **Guard → Patrol Updates**: Base stat changes propagate to patrols
+2. **Effect Cascading**: Guard modifiers affect all derived patrols
+3. **Leader Changes**: Patrol leader updates from Actor changes
+4. **Storage Assignment**: GM storage items applied to active entities
 
 ## Notes for AI Assistant
 
-When working on this module:
+When developing Guard Management for Foundryborne:
 
-1. **DialogV2 Focus**: Prioritize using DialogV2.query for user interactions
-2. **Socket Reliability**: Implement robust error handling and retry logic
-3. **Performance**: Monitor and optimize sync operations
-4. **User Experience**: Ensure clear feedback during conflicts
-5. **Testing**: Always test with multiple simulated clients
+1. **Entity Relationship Priority**: Always maintain Guard → Patrol → Effects hierarchy
+2. **Permission Awareness**: Respect GM vs Player access levels throughout
+3. **Derived Data Management**: Invalidate and recalculate patrol stats when base guard stats change
+4. **Foundryborne Integration**: Use Daggerheart terminology and maintain system compatibility
+5. **TDD Discipline**: Write tests first for all CRUD operations and business logic
+6. **DialogV2 Focus**: Prioritize DialogV2.query for all user interactions requiring choice
+7. **Performance Consciousness**: Cache derived calculations and batch synchronization updates
+8. **Spanish/English Support**: Support both languages for Daggerheart terminology
 
 ## References
 
 - [Foundry VTT Sockets Documentation](https://foundryvtt.wiki/en/development/api/sockets)
 - [DialogV2 API Documentation](https://foundryvtt.com/api/v13/DialogV2.html)
 - [Foundry V13 Release Notes](https://foundryvtt.com/releases/13.0.0)
+- [Daggerheart System Documentation](https://daggerheart.com/)
+- [Foundryborne Module Repository](https://github.com/foundryvtt-daggerheart/foundryvtt-daggerheart)
