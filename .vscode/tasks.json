@@ -1,0 +1,41 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Guard Management: Setup with nvm",
+      "type": "shell",
+      "command": "bash",
+      "args": ["setup.sh"],
+      "group": "build",
+      "isBackground": false,
+      "problemMatcher": []
+    },
+    {
+      "label": "Guard Management: Dev Server (with nvm)",
+      "type": "shell",
+      "command": "bash",
+      "args": ["-c", "nvm use && npm run dev"],
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Guard Management: Build (with nvm)",
+      "type": "shell",
+      "command": "bash",
+      "args": ["-c", "nvm use && npm run build"],
+      "group": "build",
+      "isBackground": false,
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Guard Management: Test (with nvm)",
+      "type": "shell",
+      "command": "bash",
+      "args": ["-c", "nvm use && npm run test"],
+      "group": "test",
+      "isBackground": false,
+      "problemMatcher": []
+    }
+  ]
+}
