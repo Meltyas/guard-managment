@@ -1,5 +1,8 @@
 /* Main module styles */
 
+/* Import custom info dialog styles */
+@import url('./custom-info-dialog.css');
+
 .guard-management {
   font-family: 'Signika', sans-serif;
 }

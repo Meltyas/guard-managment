@@ -25,7 +25,9 @@
     "type-check": "tsc --noEmit",
     "check-node": "node --version && npm --version",
     "clean": "rm -rf dist node_modules package-lock.json",
-    "fresh": "npm run clean && npm install && npm run build"
+    "fresh": "npm run clean && npm install && npm run build",
+    "ai-context": "bash generate-ai-context.sh",
+    "ai-context:win": "generate-ai-context.bat"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

@@ -1,0 +1,244 @@
+/**
+ * Custom Info Dialog Styles
+ * Movable and resizable custom dialog without using Foundry's Dialog system
+ */
+
+/* Dialog Container */
+.custom-info-dialog {
+  position: fixed;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 2px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Roboto', sans-serif;
+  color: #f0f0e0;
+  overflow: hidden;
+  resize: both;
+  min-width: 300px;
+  min-height: 200px;
+  user-select: none;
+  backdrop-filter: blur(1px);
+}
+
+.custom-info-dialog:focus {
+  outline: none;
+}
+
+/* Dialog Header */
+.custom-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, #333 0%, #2a2a2a 100%);
+  border-bottom: 1px solid #555;
+  cursor: grab;
+  border-radius: 6px 6px 0 0;
+}
+
+.custom-dialog-header:active {
+  cursor: grabbing;
+}
+
+.custom-dialog-title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #f0f0e0;
+}
+
+.custom-dialog-title i {
+  margin-right: 8px;
+  color: #4a9eff;
+}
+
+/* Dialog Controls */
+.custom-dialog-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.custom-dialog-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0f0e0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.custom-dialog-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.custom-dialog-edit {
+  background: rgba(74, 158, 255, 0.2);
+}
+
+.custom-dialog-edit:hover {
+  background: rgba(74, 158, 255, 0.4);
+}
+
+.custom-dialog-close {
+  background: rgba(255, 68, 68, 0.2);
+}
+
+.custom-dialog-close:hover {
+  background: rgba(255, 68, 68, 0.4);
+}
+
+/* Dialog Content */
+.custom-dialog-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Resize Handle */
+.custom-dialog-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: se-resize;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 40%,
+    #666 40%,
+    #666 60%,
+    transparent 60%
+  );
+}
+
+.custom-dialog-resize-handle:hover {
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 40%,
+    #888 40%,
+    #888 60%,
+    transparent 60%
+  );
+}
+
+/* Organization Info Content */
+.organization-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.info-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-section h3 {
+  margin: 0 0 1rem 0;
+  color: #4a9eff;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-item label {
+  font-weight: bold;
+  color: #d0d0c0;
+  font-size: 13px;
+}
+
+.info-item span {
+  color: #f0f0e0;
+  text-align: right;
+}
+
+/* Stats Display */
+.stats-display {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.stat-box {
+  text-align: center;
+  background: rgba(74, 158, 255, 0.1);
+  border: 1px solid rgba(74, 158, 255, 0.3);
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #4a9eff;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #d0d0c0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Count Displays */
+.patrol-count,
+.resource-count,
+.reputation-count {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.count {
+  font-size: 28px;
+  font-weight: bold;
+  color: #4a9eff;
+}
+
+.label {
+  color: #d0d0c0;
+  font-size: 14px;
+}
+
+/* Floating Panel Z-Index Update */
+.floating-guard-panel {
+  z-index: 40 !important;
+}

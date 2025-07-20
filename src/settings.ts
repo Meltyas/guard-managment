@@ -5,10 +5,20 @@
 export function registerSettings(): void {
   console.log('GuardManagement | Registering settings...');
 
-  // Guard organization data storage
-  game?.settings?.register('guard-management', 'guardOrganizations', {
-    name: 'Guard Organizations Data',
+  // Guard organization data storage (single organization)
+  game?.settings?.register('guard-management', 'guardOrganization', {
+    name: 'Guard Organization Data',
     hint: 'Stored guard organization information',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: null,
+  });
+
+  // Guard organization data storage (legacy - multiple organizations)
+  game?.settings?.register('guard-management', 'guardOrganizations', {
+    name: 'Guard Organizations Data (Legacy)',
+    hint: 'Legacy stored guard organization information',
     scope: 'world',
     config: false,
     type: Array,

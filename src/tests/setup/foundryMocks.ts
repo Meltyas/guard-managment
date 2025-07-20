@@ -20,4 +20,18 @@ import { vi } from 'vitest';
   },
 };
 
+// Mock global ui object
+(global as any).ui = {
+  notifications: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+  },
+};
+
+// Mock DialogV2
+(global as any).DialogV2 = {
+  query: vi.fn(() => Promise.resolve(null)),
+};
+
 export {};

@@ -1,0 +1,15 @@
+{
+  "ai.context.files": [
+    "AI_CONTEXT.md",
+    "DEVELOPMENT_NOTES.md",
+    "DEVELOPMENT.md",
+    "INSTRUCTIONS.md",
+    "README.md",
+    "package.json",
+    "module.json"
+  ],
+  "ai.context.priority": ["AI_CONTEXT.md", "INSTRUCTIONS.md"],
+  "ai.project.type": "foundry-vtt-module",
+  "ai.project.language": "typescript",
+  "ai.project.framework": "vite"
+}

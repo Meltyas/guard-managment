@@ -2,6 +2,17 @@
 
 A testing module for Foundry VTT V13 focused on data synchronization between Player and GM clients, designed to help understand and prevent synchronization death spirals.
 
+## 🤖 AI Assistant Quick Start
+
+When starting a new conversation about this project, please read these files for complete context:
+
+1. **`AI_CONTEXT.md`** - Consolidated project overview and guidelines
+2. **`INSTRUCTIONS.md`** - Detailed AI assistant instructions
+3. **`DEVELOPMENT_NOTES.md`** - Comprehensive project documentation
+4. **`DEVELOPMENT.md`** - Developer workflow and best practices
+
+These files contain all the essential information about the project architecture, development workflow, testing strategy, and implementation guidelines.
+
 ## Features
 
 - **Real-time Data Synchronization**: Test data sync between multiple clients

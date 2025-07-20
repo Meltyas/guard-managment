@@ -1,0 +1,30 @@
+{
+  "project": {
+    "name": "Guard Management Module",
+    "type": "foundry-vtt-module",
+    "language": "typescript",
+    "framework": "vite"
+  },
+  "context": {
+    "essential_files": [
+      "AI_CONTEXT.md",
+      "INSTRUCTIONS.md",
+      "DEVELOPMENT_NOTES.md",
+      "DEVELOPMENT.md"
+    ],
+    "always_read": ["AI_CONTEXT.md"]
+  },
+  "development": {
+    "methodology": "TDD",
+    "node_version": "20.11.0",
+    "primary_commands": ["npm run dev", "npm run build:watch", "npm run test:watch"]
+  },
+  "guidelines": [
+    "Always use TDD approach: Red-Green-Refactor",
+    "Maintain entity hierarchy: Guard Organization → Patrols",
+    "Use DialogV2.query for all edir and add interactions",
+    "Respect GM vs Player permissions",
+    "Cache derived calculations for performance",
+    "Support Spanish/English for Daggerheart terms"
+  ]
+}

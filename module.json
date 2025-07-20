@@ -14,7 +14,7 @@
     }
   ],
   "scripts": ["./dist/guard-management.js"],
-  "styles": ["./dist/guard-management.css"],
+  "styles": ["./dist/style.css"],
   "languages": [
     {
       "lang": "en",
