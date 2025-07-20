@@ -5,10 +5,40 @@
 export function registerSettings(): void {
   console.log('GuardManagement | Registering settings...');
 
-  // Guard data storage
+  // Guard organization data storage
+  game?.settings?.register('guard-management', 'guardOrganizations', {
+    name: 'Guard Organizations Data',
+    hint: 'Stored guard organization information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+  });
+
+  // Guard data storage (legacy - for patrols)
   game?.settings?.register('guard-management', 'guardData', {
     name: 'Guard Data',
     hint: 'Stored guard information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+  });
+
+  // Resources data storage
+  game?.settings?.register('guard-management', 'resources', {
+    name: 'Resources Data',
+    hint: 'Stored resource information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+  });
+
+  // Reputation data storage
+  game?.settings?.register('guard-management', 'reputations', {
+    name: 'Reputation Data',
+    hint: 'Stored reputation information',
     scope: 'world',
     config: false,
     type: Array,

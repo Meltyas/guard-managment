@@ -2,18 +2,23 @@
 
 ## Project Overview
 
-**Guard Management** is a Foundry VTT V13 module designed for the **Foundryborne system (Daggerheart)** to manage guard operations in campaigns. The module handles comprehensive guard management including statistics, patrols, resources, reputation, and temporary effects with full synchronization between GM and Players.
+**Guard Management** is a Foundry VTT V13 module designed for the **Foundryborne system (Daggerheart)** to manage guard operations in campaigns. The module handles comprehensive guard management including statistics, patrols, resources, reputation, and temporary effects with full synchronization between GM and Players.**Entity-Specific Testing**:
 
-## Core Entities & CRUD Operations
+**Guard Organization**:
 
-### 1. Guard Statistics (Base Stats)
+1. **Basic CRUD**: Create guard organization with 4 base stats, update individual stats
+2. **Modifier Application**: Apply positive/negative/neutral modifiers to organization
+3. **Stat Boundaries**: Test minimum/maximum stat values
+4. **Derived Calculations**: Verify patrol stats derive correctly from guard organization basere Entities & CRUD Operations
 
-**Purpose**: Foundation statistics for all guard operations and patrol calculations.
+### 1. Guard Organization (La Guardia)
+
+**Purpose**: The complete guard organization - container for all guard operations and management.
 
 **Structure**:
 
-- **Name**: Primary guard name
-- **Subtitle**: Secondary identifier
+- **Name**: Guard organization name (e.g., "City Watch", "Royal Guard")
+- **Subtitle**: Secondary identifier or motto
 - **Base Statistics** (4 core + expandable):
   - Robustismo (Robustness)
   - Analítica (Analytical)
@@ -23,14 +28,14 @@
 
 **CRUD Operations**:
 
-- ✅ **Create**: New guard with base stats
-- ✅ **Read**: View current guard stats
+- ✅ **Create**: New guard organization with base stats
+- ✅ **Read**: View current guard organization stats
 - ✅ **Update**: Modify base statistics and names
-- ✅ **Delete**: Remove guard (with safety checks)
+- ✅ **Delete**: Remove guard organization (with safety checks)
 
-### 2. Guard Modifiers (Temporary Effects)
+### 2. Guard Modifiers (Organizational Effects)
 
-**Purpose**: Temporary effects that modify base guard statistics.
+**Purpose**: Temporary effects that modify the entire guard organization's statistics.
 
 **Structure**:
 
@@ -42,56 +47,15 @@
 
 **CRUD Operations**:
 
-- ✅ **Create**: New temporary modifier
+- ✅ **Create**: New organizational modifier
 - ✅ **Read**: List active/available modifiers
 - ✅ **Update**: Modify effect properties
 - ✅ **Delete**: Remove modifier
-- 🔄 **Apply/Remove**: Activate/deactivate on guard
+- 🔄 **Apply/Remove**: Activate/deactivate on guard organization
 
-### 3. Patrols
+### 3. Resources
 
-**Purpose**: Operational units composed of leader + units with derived statistics.
-
-**Structure**:
-
-- **Name**: Patrol identifier
-- **Leader**: Reference to Actor (1 required)
-- **Units**: Count (1-12 members)
-- **Statistics**: Derived from Guard base + custom modifiers
-- **Custom Modifiers**: User-defined stat adjustments (e.g., +1 Robustismo, -1 Elocuencia)
-
-**CRUD Operations**:
-
-- ✅ **Create**: New patrol with leader and units
-- ✅ **Read**: View patrol details and current stats
-- ✅ **Update**: Modify composition, leader, or custom modifiers
-- ✅ **Delete**: Disband patrol
-- 🔄 **Deploy/Recall**: Change patrol status
-
-### 4. Patrol Effects
-
-**Purpose**: Temporary effects specific to individual patrols.
-
-**Structure**:
-
-- **Name**: Effect identifier
-- **Description**: Detailed explanation
-- **Type**: Positive/Negative/Neutral indicator
-- **Image**: Visual representation
-- **Target Patrol**: Which patrol is affected
-- **Stat Modifications**: Specific statistical changes
-
-**CRUD Operations**:
-
-- ✅ **Create**: New patrol-specific effect
-- ✅ **Read**: View effects on specific patrol
-- ✅ **Update**: Modify effect properties
-- ✅ **Delete**: Remove effect
-- 🔄 **Apply/Remove**: Activate/deactivate on patrol
-
-### 5. Resources
-
-**Purpose**: Tracked materials and supplies for guard operations.
+**Purpose**: Tracked materials and supplies for the entire guard organization.
 
 **Structure**:
 
@@ -107,9 +71,9 @@
 - ✅ **Delete**: Remove resource type
 - 🔄 **Spend/Gain**: Modify quantities through operations
 
-### 6. Reputation
+### 4. Reputation
 
-**Purpose**: Relationship tracking with various factions/groups.
+**Purpose**: Relationship tracking with various factions/groups for the guard organization.
 
 **Structure**:
 
@@ -131,6 +95,47 @@
 - ✅ **Update**: Change reputation level or description
 - ✅ **Delete**: Remove faction relationship
 - 🔄 **Improve/Degrade**: Modify reputation levels
+
+### 5. Patrols
+
+**Purpose**: Operational units within the guard organization composed of leader + units with derived statistics.
+
+**Structure**:
+
+- **Name**: Patrol identifier
+- **Leader**: Reference to Actor (1 required)
+- **Units**: Count (1-12 members)
+- **Statistics**: Derived from Guard organization base + custom modifiers
+- **Custom Modifiers**: User-defined stat adjustments (e.g., +1 Robustismo, -1 Elocuencia)
+
+**CRUD Operations**:
+
+- ✅ **Create**: New patrol with leader and units
+- ✅ **Read**: View patrol details and current stats
+- ✅ **Update**: Modify composition, leader, or custom modifiers
+- ✅ **Delete**: Disband patrol
+- 🔄 **Deploy/Recall**: Change patrol status
+
+### 6. Patrol Effects
+
+**Purpose**: Temporary effects specific to individual patrols.
+
+**Structure**:
+
+- **Name**: Effect identifier
+- **Description**: Detailed explanation
+- **Type**: Positive/Negative/Neutral indicator
+- **Image**: Visual representation
+- **Target Patrol**: Which patrol is affected
+- **Stat Modifications**: Specific statistical changes
+
+**CRUD Operations**:
+
+- ✅ **Create**: New patrol-specific effect
+- ✅ **Read**: View effects on specific patrol
+- ✅ **Update**: Modify effect properties
+- ✅ **Delete**: Remove effect
+- 🔄 **Apply/Remove**: Activate/deactivate on patrol
 
 ### 7. GM Storage/Warehouse
 
@@ -208,16 +213,16 @@
 
 **Key Sync Challenges**:
 
-1. **Multiple Entities**: Guards, Patrols, Resources, Reputation all need sync
-2. **Derived Data**: Patrol stats depend on Guard stats + modifiers
+1. **Multiple Entities**: Guard Organization, Resources, Reputation, Patrols, Effects all need sync
+2. **Derived Data**: Patrol stats depend on Guard Organization stats + modifiers
 3. **Permission Levels**: GM vs Player access to different operations
 4. **Real-time Updates**: Changes should reflect immediately across clients
 
 **Sync Patterns**:
 
-- **Guard Base Stats**: GM and Players can edit, all read (real-time sync)
-- **Patrols**: GM and Players can create/edit, all read (real-time sync)
+- **Guard Organization Base**: GM and Players can edit, all read (real-time sync)
 - **Resources/Reputation**: GM and Players can edit, all read (real-time sync)
+- **Patrols**: GM and Players can create/edit, all read (real-time sync)
 - **Effects**: GM and Players can apply, all see results (real-time sync)
 - **GM Warehouse**: GM-only access (separate dialog, not synced to players)
 
@@ -264,22 +269,25 @@
 **Entity Relationships**:
 
 ```
-Guard (base stats)
-  ↓ (derives to)
-Patrols (Guard stats + custom modifiers + effects)
-  ↓ (references)
-Actors (Leaders)
+Guard Organization (base stats + resources + reputation)
+  ├── Resources (organizational level)
+  ├── Reputation (organizational level)
+  ├── Guard Modifiers (affect entire organization)
+  └── Patrols (derive from Guard organization stats)
+      ├── Patrol Effects (specific to patrol)
+      ├── Custom Modifiers (patrol-specific adjustments)
+      └── Leader (references Actors)
 
 GM Storage
   ↓ (templates for)
-All Effect Types + Resources + Reputation
+All Effect Types + Resources + Reputation + Modifiers
 ```
 
 **Stat Calculation Flow**:
 
 ```
-Guard Base Stats
-  → Apply Guard Modifiers
+Guard Organization Base Stats
+  → Apply Guard Organization Modifiers
   → Derive to Patrol
   → Apply Custom Patrol Modifiers
   → Apply Patrol Effects
@@ -421,7 +429,7 @@ class GuardSyncManager extends SyncManager {
 **Patrol Management**:
 
 1. **Composition Validation**: Test 1-12 unit limits with leader requirement
-2. **Stat Inheritance**: Verify base stats come from guard correctly
+2. **Stat Inheritance**: Verify base stats come from guard organization correctly
 3. **Custom Modifiers**: Test user-defined stat adjustments
 4. **Effect Stacking**: Multiple effects on same patrol
 
@@ -448,8 +456,8 @@ class GuardSyncManager extends SyncManager {
 
 **Complex Entity Relationships**:
 
-1. **Guard → Patrol Updates**: Base stat changes propagate to patrols
-2. **Effect Cascading**: Guard modifiers affect all derived patrols
+1. **Guard Organization → Patrol Updates**: Base stats changes propagate to patrols
+2. **Effect Cascading**: Guard organization modifiers affect all derived patrols
 3. **Leader Changes**: Patrol leader updates from Actor changes
 4. **Storage Assignment**: GM storage items applied to active entities
 
@@ -466,8 +474,8 @@ class GuardSyncManager extends SyncManager {
 
 ```
 Main Guard Management Window
-├── Tab 1: Guard Statistics (primary)
-│   ├── Guard Stats Management (top section)
+├── Tab 1: Guard Organization (primary)
+│   ├── Guard Organization Stats Management (top section)
 │   └── Sub-tabs (bottom section):
 │       ├── Resources Sub-tab
 │       └── Reputation Sub-tab
@@ -480,7 +488,7 @@ Main Guard Management Window
 
 ### Dialog Architecture Specifics
 
-- **Guard Stats**: Independent create/edit dialogs
+- **Guard Organization**: Independent create/edit dialogs
 - **Resources**: Independent create/edit dialogs
 - **Reputation**: Independent create/edit dialogs
 - **Patrols**: Independent create/edit dialogs with grid layout
@@ -533,9 +541,9 @@ Patrol Tab Layout:
 
 When developing Guard Management for Foundryborne:
 
-1. **Entity Relationship Priority**: Always maintain Guard → Patrol → Effects hierarchy
+1. **Entity Relationship Priority**: Always maintain Guard Organization → Resources/Reputation → Patrols → Effects hierarchy
 2. **Permission Awareness**: Respect GM vs Player access levels throughout
-3. **Derived Data Management**: Invalidate and recalculate patrol stats when base guard stats change
+3. **Derived Data Management**: Invalidate and recalculate patrol stats when guard organization stats change
 4. **Foundryborne Integration**: Use Daggerheart terminology and maintain system compatibility
 5. **TDD Discipline**: Write tests first for all CRUD operations and business logic
 6. **DialogV2 Focus**: Prioritize DialogV2.query for all user interactions requiring choice

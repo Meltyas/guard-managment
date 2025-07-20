@@ -12,11 +12,14 @@ export interface BaseEntity {
   version: number;
 }
 
-// Guard Statistics (Base Stats)
-export interface GuardStatistics extends BaseEntity {
+// Guard Organization (La Guardia - Main Container)
+export interface GuardOrganization extends BaseEntity {
   subtitle: string;
   baseStats: GuardStats;
   activeModifiers: string[]; // IDs of applied GuardModifiers
+  resources: string[]; // IDs of associated Resources
+  reputation: string[]; // IDs of associated Reputation entries
+  patrols: string[]; // IDs of associated Patrols
 }
 
 export interface GuardStats {
@@ -27,12 +30,13 @@ export interface GuardStats {
   [key: string]: number; // Support for future stats
 }
 
-// Guard Modifiers (Temporary Effects)
+// Guard Modifiers (Organizational Effects)
 export interface GuardModifier extends BaseEntity {
   description: string;
   type: EffectType;
   image?: string;
   statModifications: StatModification[];
+  organizationId: string; // Reference to GuardOrganization
 }
 
 export interface StatModification {
@@ -42,11 +46,45 @@ export interface StatModification {
 
 export type EffectType = 'positive' | 'negative' | 'neutral';
 
-// Patrols
+// Resources (Organizational Level)
+export interface Resource extends BaseEntity {
+  description: string;
+  quantity: number;
+  organizationId: string; // Reference to GuardOrganization
+}
+
+// Reputation (Organizational Level)
+export interface Reputation extends BaseEntity {
+  description: string;
+  level: ReputationLevel;
+  organizationId: string; // Reference to GuardOrganization
+}
+
+export enum ReputationLevel {
+  Enemigos = 1,
+  Hostiles = 2,
+  Desconfiados = 3,
+  Neutrales = 4,
+  Amistosos = 5,
+  Confiados = 6,
+  Aliados = 7,
+}
+
+export const REPUTATION_LABELS: Record<ReputationLevel, string> = {
+  [ReputationLevel.Enemigos]: 'Enemigos',
+  [ReputationLevel.Hostiles]: 'Hostiles',
+  [ReputationLevel.Desconfiados]: 'Desconfiados',
+  [ReputationLevel.Neutrales]: 'Neutrales',
+  [ReputationLevel.Amistosos]: 'Amistosos',
+  [ReputationLevel.Confiados]: 'Confiados',
+  [ReputationLevel.Aliados]: 'Aliados',
+};
+
+// Patrols (Operational Units)
 export interface Patrol extends BaseEntity {
   leaderId: string; // Reference to Foundry Actor ID
   unitCount: number; // 1-12 members
-  baseGuardId: string; // Reference to GuardStatistics
+  organizationId: string; // Reference to GuardOrganization
   customModifiers: StatModification[];
   activeEffects: string[]; // IDs of applied PatrolEffects
   status: PatrolStatus;
@@ -63,37 +101,6 @@ export interface PatrolEffect extends BaseEntity {
   targetPatrolId?: string; // If applied to specific patrol
   statModifications: StatModification[];
 }
-
-// Resources
-export interface Resource extends BaseEntity {
-  description: string;
-  quantity: number;
-}
-
-// Reputation
-export interface Reputation extends BaseEntity {
-  description: string;
-  level: ReputationLevel;
-}
-
-export type ReputationLevel =
-  | 'enemigos' // Enemies (1)
-  | 'hostiles' // Hostile (2)
-  | 'desconfiados' // Distrustful (3)
-  | 'neutrales' // Neutral (4)
-  | 'amistosos' // Friendly (5)
-  | 'confiados' // Trusting (6)
-  | 'aliados'; // Allies (7)
-
-export const REPUTATION_LEVELS: Record<ReputationLevel, number> = {
-  enemigos: 1,
-  hostiles: 2,
-  desconfiados: 3,
-  neutrales: 4,
-  amistosos: 5,
-  confiados: 6,
-  aliados: 7,
-};
 
 // GM Storage/Warehouse
 export interface GMStorage {
