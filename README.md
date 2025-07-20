@@ -76,6 +76,7 @@ npm run check-node
 
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build for production
+- `npm run build:watch` - Build in watch mode (auto-rebuild on file changes)
 - `npm run preview` - Preview production build
 
 **Testing:**

@@ -29,6 +29,15 @@
       "problemMatcher": ["$tsc"]
     },
     {
+      "label": "Guard Management: Build Watch (with nvm)",
+      "type": "shell",
+      "command": "bash",
+      "args": ["-c", "nvm use && npm run build:watch"],
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": ["$tsc"]
+    },
+    {
       "label": "Guard Management: Test (with nvm)",
       "type": "shell",
       "command": "bash",

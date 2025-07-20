@@ -12,6 +12,7 @@
     "setup:win": "setup.bat",
     "dev": "vite",
     "build": "vite build",
+    "build:watch": "vite build --watch",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",

@@ -24,8 +24,11 @@ npm run build
 # Always start with the correct Node.js version
 nvm use 20.11.0
 
-# Start development
-npm run dev     # Starts Vite dev server
+# Option 1: Development server (recommended for active development)
+npm run dev     # Starts Vite dev server with hot reload
+
+# Option 2: Build watch mode (for Foundry testing)
+npm run build:watch  # Auto-rebuild on file changes
 
 # In another terminal, run tests
 npm run test:watch  # Run tests in watch mode
@@ -225,6 +228,8 @@ npm run test:ui
 - "Guard Management: Setup with nvm"
 - "Guard Management: Dev Server (with nvm)"
 - "Guard Management: Build (with nvm)"
+- "Guard Management: Build Watch (with nvm)"
+- "Guard Management: Test (with nvm)"
 - "Guard Management: Test (with nvm)"
 
 ### Debugging
