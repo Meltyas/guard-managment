@@ -2,46 +2,46 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Guard Management: Setup with nvm",
+      "label": "Guard Management: Setup",
       "type": "shell",
       "command": "bash",
-      "args": ["setup.sh"],
+      "args": ["-c", "./setup.sh"],
       "group": "build",
       "isBackground": false,
       "problemMatcher": []
     },
     {
-      "label": "Guard Management: Dev Server (with nvm)",
+      "label": "Guard Management: Dev Server",
       "type": "shell",
       "command": "bash",
-      "args": ["-c", "nvm use && npm run dev"],
+      "args": ["-c", "npm run dev"],
       "group": "build",
       "isBackground": true,
       "problemMatcher": []
     },
     {
-      "label": "Guard Management: Build (with nvm)",
+      "label": "Guard Management: Build",
       "type": "shell",
       "command": "bash",
-      "args": ["-c", "nvm use && npm run build"],
+      "args": ["-c", "npm run build"],
       "group": "build",
       "isBackground": false,
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "Guard Management: Build Watch (with nvm)",
+      "label": "Guard Management: Build Watch",
       "type": "shell",
       "command": "bash",
-      "args": ["-c", "nvm use && npm run build:watch"],
+      "args": ["-c", "npm run build:watch"],
       "group": "build",
       "isBackground": true,
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "Guard Management: Test (with nvm)",
+      "label": "Guard Management: Test",
       "type": "shell",
       "command": "bash",
-      "args": ["-c", "nvm use && npm run test"],
+      "args": ["-c", "npm run test"],
       "group": "test",
       "isBackground": false,
       "problemMatcher": []

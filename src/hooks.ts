@@ -8,16 +8,24 @@ export function registerHooks(): void {
   // Hook for when the game is ready - register macro and keybindings
   Hooks.once('ready', () => {
     console.log('GuardManagement | Game ready, setting up Guard Management');
-    
+
     // Register global access
     const guardManagement = (window as any).guardManagementInstance;
     (window as any).GuardManagement = guardManagement;
-    
+
+    // Setup socket listener for organization sync
+    if (game?.socket && guardManagement?.guardOrganizationManager) {
+      game.socket.on('module.guard-management', async (data: any) => {
+        await guardManagement.guardOrganizationManager.handleSocketMessage(data);
+      });
+      console.log('GuardManagement | Socket listener registered for organization sync');
+    }
+
     // Register keybindings
     if (guardManagement) {
       registerKeybindings(guardManagement);
     }
-    
+
     // Create chat command
     registerChatCommands(guardManagement);
   });
@@ -109,13 +117,13 @@ function registerKeybindings(guardManagement: any): void {
     editable: [
       {
         key: 'KeyG',
-        modifiers: ['Control', 'Shift']
-      }
+        modifiers: ['Control', 'Shift'],
+      },
     ],
     onDown: () => {
       guardManagement?.toggleFloatingPanel();
     },
-    restricted: false
+    restricted: false,
   });
 
   // Register keybinding to create new organization
@@ -125,16 +133,18 @@ function registerKeybindings(guardManagement: any): void {
     editable: [
       {
         key: 'KeyN',
-        modifiers: ['Control', 'Shift']
-      }
+        modifiers: ['Control', 'Shift'],
+      },
     ],
     onDown: () => {
       guardManagement?.showCreateOrganizationDialog();
     },
-    restricted: false
+    restricted: false,
   });
 
-  console.log('GuardManagement | Keybindings registered (Ctrl+Shift+G to toggle panel, Ctrl+Shift+N for new org)');
+  console.log(
+    'GuardManagement | Keybindings registered (Ctrl+Shift+G to toggle panel, Ctrl+Shift+N for new org)'
+  );
 }
 
 /**
@@ -146,7 +156,7 @@ function registerChatCommands(guardManagement: any): void {
     // Handle /guard command
     if (message.startsWith('/guard') || message.startsWith('/guardia')) {
       const args = message.split(' ').slice(1);
-      
+
       switch (args[0]?.toLowerCase()) {
         case 'panel':
         case 'toggle':
@@ -188,10 +198,10 @@ function registerChatCommands(guardManagement: any): void {
           guardManagement?.toggleFloatingPanel();
           break;
       }
-      
+
       return false; // Prevent message from being sent to chat
     }
-    
+
     return true; // Allow other messages to proceed
   });
 

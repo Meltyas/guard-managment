@@ -7,8 +7,8 @@
 export interface BaseEntity {
   id: string;
   name: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
   version: number;
 }
 

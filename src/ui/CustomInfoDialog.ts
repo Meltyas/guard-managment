@@ -327,14 +327,6 @@ export class CustomInfoDialog {
               <label>Subtítulo:</label>
               <span>${organization.subtitle || '<em>Sin subtítulo</em>'}</span>
             </div>
-            <div class="info-item">
-              <label>Creada:</label>
-              <span>${organization.createdAt.toLocaleDateString()}</span>
-            </div>
-            <div class="info-item">
-              <label>Actualizada:</label>
-              <span>${organization.updatedAt.toLocaleDateString()}</span>
-            </div>
           </div>
         </div>
 

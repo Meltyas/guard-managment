@@ -44,8 +44,6 @@ export class ResourceManager {
       description: data.description,
       quantity: data.quantity,
       organizationId: data.organizationId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
       version: 1,
     };
 
@@ -94,7 +92,6 @@ export class ResourceManager {
     const updated: Resource = {
       ...resource,
       ...updates,
-      updatedAt: new Date(),
       version: resource.version + 1,
     };
 

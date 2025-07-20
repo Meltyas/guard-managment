@@ -13,9 +13,22 @@ export class GuardOrganizationManager {
     console.log('GuardOrganizationManager | Initializing...');
     await this.loadOrganization();
 
-    // Si no hay organización, crear una por defecto
+    // Si no hay organización, intentar obtenerla del GM o crear una por defecto
     if (!this.organization) {
-      await this.createDefaultOrganization();
+      if (!(game as any)?.user?.isGM) {
+        // Si no somos GM, solicitar sync al GM
+        console.log('GuardOrganizationManager | No organization found, requesting sync from GM...');
+        await this.requestOrganizationSync();
+
+        // Esperar un poco para que llegue el sync
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await this.loadOrganization();
+      }
+
+      // Si aún no hay organización (somos GM o no hubo respuesta), crear por defecto
+      if (!this.organization) {
+        await this.createDefaultOrganization();
+      }
     }
 
     console.log('GuardOrganizationManager | Initialized successfully');
@@ -98,7 +111,7 @@ export class GuardOrganizationManager {
    * Update the existing organization
    */
   public async updateOrganization(
-    updates: Partial<Omit<GuardOrganization, 'id' | 'createdAt' | 'version'>>
+    updates: Partial<Omit<GuardOrganization, 'id' | 'version'>>
   ): Promise<GuardOrganization | null> {
     if (!this.organization) {
       console.warn('GuardOrganizationManager | No organization to update');
@@ -109,8 +122,6 @@ export class GuardOrganizationManager {
       ...this.organization,
       ...updates,
       id: this.organization.id,
-      createdAt: this.organization.createdAt,
-      updatedAt: new Date(),
       version: this.organization.version + 1,
     };
 
@@ -176,11 +187,89 @@ export class GuardOrganizationManager {
    */
   private async saveToSettings(): Promise<void> {
     try {
-      await game?.settings?.set('guard-management', 'guardOrganization', this.organization);
-      console.log('GuardOrganizationManager | Saved organization to settings');
+      // Solo el GM guarda en settings como backup (usando duck typing para evitar problemas de tipos)
+      const user = game?.user as any;
+      if (user?.isGM) {
+        await game?.settings?.set('guard-management', 'guardOrganization', this.organization);
+        console.log('GuardOrganizationManager | Saved organization to settings (GM backup)');
+      }
+
+      // Sincronizar con todos los clientes via socket
+      this.broadcastOrganization();
     } catch (error) {
-      console.error('GuardOrganizationManager | Error saving organization:', error);
+      // Si hay error de permisos con settings, simplemente continuar con la sincronización
+      if (error instanceof Error && error.message?.includes('lacks permission')) {
+        console.log(
+          'GuardOrganizationManager | User lacks permission to save to settings, using socket sync only'
+        );
+        this.broadcastOrganization();
+      } else {
+        console.warn('GuardOrganizationManager | Could not save organization to settings:', error);
+        // Aún así, intentar sincronizar por socket
+        this.broadcastOrganization();
+      }
     }
+  }
+
+  /**
+   * Broadcast organization to all clients via socket
+   */
+  private broadcastOrganization(): void {
+    if (!game?.socket || !this.organization) return;
+
+    game.socket.emit('module.guard-management', {
+      type: 'updateOrganization',
+      data: this.organization,
+      userId: game.user?.id,
+    });
+
+    console.log('GuardOrganizationManager | Broadcasted organization update via socket');
+  }
+
+  /**
+   * Handle incoming socket messages
+   */
+  public async handleSocketMessage(data: any): Promise<void> {
+    if (!game) return;
+
+    if (data.type === 'updateOrganization' && data.userId !== game.user?.id) {
+      this.organization = data.data;
+      console.log('GuardOrganizationManager | Received organization update via socket');
+
+      // Si no somos GM, no podemos guardar en settings, solo mantener en memoria
+      if (!(game as any)?.user?.isGM) {
+        console.log(
+          'GuardOrganizationManager | Non-GM received organization data, stored in memory'
+        );
+      }
+
+      // Obtener el nombre del usuario que hizo el cambio
+      const users = game.users as any;
+      const userName = users?.get(data.userId)?.name || 'otro jugador';
+
+      // Opcional: mostrar notificación de que se actualizó
+      ui?.notifications?.info(`Organización actualizada por ${userName}`);
+    } else if (data.type === 'requestOrganization') {
+      // Solo el GM responde con su organización guardada
+      if ((game as any)?.user?.isGM && this.organization) {
+        console.log('GuardOrganizationManager | GM responding to organization sync request');
+        this.broadcastOrganization();
+      }
+    }
+  }
+
+  /**
+   * Request current organization from other clients
+   */
+  public async requestOrganizationSync(): Promise<void> {
+    if (!game?.socket) return;
+
+    game.socket.emit('module.guard-management', {
+      type: 'requestOrganization',
+      userId: game.user?.id,
+    });
+
+    console.log('GuardOrganizationManager | Requested organization sync from other clients');
   }
 
   /**

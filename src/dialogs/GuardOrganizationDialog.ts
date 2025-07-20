@@ -51,19 +51,155 @@ export class GuardOrganizationDialog {
             icon: 'fas fa-save',
             label: mode === 'create' ? 'Crear' : 'Guardar',
             default: true,
-            callback: (_event: Event, _button: any, dialog: any) => {
-              const formData = new FormData(dialog.form);
-              const data = this.extractFormData(formData);
+            callback: (event: Event, button: any, dialog: any) => {
+              try {
+                console.log('Dialog callback triggered', { dialog, event, button });
+                console.log('Dialog properties:', Object.keys(dialog));
+                console.log('Event target:', event.target);
+                console.log('Event currentTarget:', event.currentTarget);
 
-              // Validar datos
-              if (!this.validateData(data)) {
-                ui?.notifications?.error(
-                  'Por favor, completa todos los campos requeridos correctamente'
-                );
+                // En DialogV2, necesitamos usar diferentes métodos para acceder al contenido
+                let form: HTMLFormElement | null = null;
+
+                // Primero intentar con el event target
+                if (event.target && event.target instanceof Element) {
+                  form = event.target.closest('form') as HTMLFormElement;
+                  if (!form) {
+                    // Buscar el formulario en el elemento padre
+                    const dialogElement = event.target.closest('.dialog');
+                    if (dialogElement) {
+                      form = dialogElement.querySelector('form.guard-organization-form');
+                    }
+                  }
+                }
+
+                // Si no encontramos el formulario con el event, intentar con el dialog
+                if (!form && dialog.form) {
+                  form = dialog.form;
+                } else if (!form && dialog.element) {
+                  form = dialog.element.querySelector('form.guard-organization-form');
+                } else if (!form && dialog.contentElement) {
+                  form = dialog.contentElement.querySelector('form.guard-organization-form');
+                } else if (!form) {
+                  // Buscar en el DOM usando el ID del diálogo
+                  const dialogElement =
+                    document.querySelector(`[data-appid="${dialog.id}"]`) ||
+                    document.querySelector('.dialog.window-app:last-child') ||
+                    document.querySelector('[data-app-id]:last-child');
+
+                  if (dialogElement) {
+                    form = dialogElement.querySelector('form.guard-organization-form');
+                  }
+
+                  // Último recurso: buscar en todo el documento
+                  if (!form) {
+                    const allForms = document.querySelectorAll('form.guard-organization-form');
+                    form = allForms[allForms.length - 1] as HTMLFormElement; // Tomar el último formulario
+                  }
+                }
+
+                console.log('Form found:', form);
+                console.log('Form element type:', form?.constructor.name);
+
+                if (!form || !(form instanceof HTMLFormElement)) {
+                  console.error('No se encontró un HTMLFormElement válido', {
+                    form,
+                    dialog,
+                    dialogId: dialog.id,
+                    dialogElement: dialog.element,
+                    allForms: document.querySelectorAll('form'),
+                    allGuardForms: document.querySelectorAll('form.guard-organization-form'),
+                  });
+
+                  // Alternativa: extraer datos directamente por ID de campos
+                  console.log('Intentando extraer datos directamente por ID de campos...');
+                  const nameInput = document.getElementById('name') as HTMLInputElement;
+                  const subtitleInput = document.getElementById('subtitle') as HTMLInputElement;
+                  const robustismoInput = document.getElementById('robustismo') as HTMLInputElement;
+                  const analiticaInput = document.getElementById('analitica') as HTMLInputElement;
+                  const subterfugioInput = document.getElementById(
+                    'subterfugio'
+                  ) as HTMLInputElement;
+                  const elocuenciaInput = document.getElementById('elocuencia') as HTMLInputElement;
+
+                  if (
+                    nameInput &&
+                    robustismoInput &&
+                    analiticaInput &&
+                    subterfugioInput &&
+                    elocuenciaInput
+                  ) {
+                    console.log('Datos extraídos directamente de los campos');
+                    const data = {
+                      name: nameInput.value || '',
+                      subtitle: subtitleInput?.value || '',
+                      robustismo:
+                        robustismoInput.value !== ''
+                          ? parseInt(robustismoInput.value)
+                          : DEFAULT_GUARD_STATS.robustismo,
+                      analitica:
+                        analiticaInput.value !== ''
+                          ? parseInt(analiticaInput.value)
+                          : DEFAULT_GUARD_STATS.analitica,
+                      subterfugio:
+                        subterfugioInput.value !== ''
+                          ? parseInt(subterfugioInput.value)
+                          : DEFAULT_GUARD_STATS.subterfugio,
+                      elocuencia:
+                        elocuenciaInput.value !== ''
+                          ? parseInt(elocuenciaInput.value)
+                          : DEFAULT_GUARD_STATS.elocuencia,
+                    };
+
+                    console.log('Data extracted directly:', data);
+
+                    // Validar datos
+                    const validationResult = this.validateDataWithDetails(data);
+                    if (!validationResult.isValid) {
+                      console.error('Validation failed:', validationResult);
+                      ui?.notifications?.error(validationResult.errorMessage);
+                      return false;
+                    }
+
+                    return data;
+                  }
+
+                  ui?.notifications?.error('No se pudo encontrar el formulario ni los campos');
+                  return false;
+                }
+
+                const formData = new FormData(form);
+                console.log('FormData created:', formData);
+
+                // Log de todos los valores del formulario para debug
+                for (const [key, value] of formData.entries()) {
+                  console.log(`FormData ${key}:`, value);
+                }
+
+                const data = this.extractFormData(formData);
+                console.log('Data extracted:', data);
+
+                // Validar datos
+                const validationResult = this.validateDataWithDetails(data);
+                if (!validationResult.isValid) {
+                  console.error('Validation failed:', validationResult);
+
+                  // Resaltar campos con errores
+                  this.highlightErrorFields(form, validationResult.errorFields);
+
+                  ui?.notifications?.error(validationResult.errorMessage);
+                  return false;
+                }
+
+                return data;
+              } catch (error) {
+                console.error('Error in dialog callback:', error);
+                if (error instanceof Error) {
+                  console.error('Error stack:', error.stack);
+                }
+                ui?.notifications?.error('Error al procesar el formulario');
                 return false;
               }
-
-              return data;
             },
           },
           {
@@ -131,9 +267,9 @@ export class GuardOrganizationDialog {
                 type="number"
                 name="robustismo"
                 id="robustismo"
-                value="${data.baseStats?.robustismo || DEFAULT_GUARD_STATS.robustismo}"
-                min="1"
-                max="20"
+                value="${data.baseStats?.robustismo !== undefined ? data.baseStats.robustismo : DEFAULT_GUARD_STATS.robustismo}"
+                min="-99"
+                max="99"
                 required
               />
             </div>
@@ -144,9 +280,9 @@ export class GuardOrganizationDialog {
                 type="number"
                 name="analitica"
                 id="analitica"
-                value="${data.baseStats?.analitica || DEFAULT_GUARD_STATS.analitica}"
-                min="1"
-                max="20"
+                value="${data.baseStats?.analitica !== undefined ? data.baseStats.analitica : DEFAULT_GUARD_STATS.analitica}"
+                min="-99"
+                max="99"
                 required
               />
             </div>
@@ -157,9 +293,9 @@ export class GuardOrganizationDialog {
                 type="number"
                 name="subterfugio"
                 id="subterfugio"
-                value="${data.baseStats?.subterfugio || DEFAULT_GUARD_STATS.subterfugio}"
-                min="1"
-                max="20"
+                value="${data.baseStats?.subterfugio !== undefined ? data.baseStats.subterfugio : DEFAULT_GUARD_STATS.subterfugio}"
+                min="-99"
+                max="99"
                 required
               />
             </div>
@@ -170,9 +306,9 @@ export class GuardOrganizationDialog {
                 type="number"
                 name="elocuencia"
                 id="elocuencia"
-                value="${data.baseStats?.elocuencia || DEFAULT_GUARD_STATS.elocuencia}"
-                min="1"
-                max="20"
+                value="${data.baseStats?.elocuencia !== undefined ? data.baseStats.elocuencia : DEFAULT_GUARD_STATS.elocuencia}"
+                min="-99"
+                max="99"
                 required
               />
             </div>
@@ -181,7 +317,7 @@ export class GuardOrganizationDialog {
 
         <div class="dialog-info">
           <p><small>* Campos requeridos</small></p>
-          <p><small>Las estadísticas pueden ser modificadas más tarde mediante modificadores de organización.</small></p>
+          <p><small>Las estadísticas pueden ser de -99 a 99 y modificadas más tarde mediante modificadores de organización.</small></p>
         </div>
       </form>
 
@@ -278,14 +414,30 @@ export class GuardOrganizationDialog {
    * Extract form data and convert to typed object
    */
   private extractFormData(formData: FormData): GuardOrganizationDialogData {
+    const robustismoValue = formData.get('robustismo') as string;
+    const analiticaValue = formData.get('analitica') as string;
+    const subterfugioValue = formData.get('subterfugio') as string;
+    const elocuenciaValue = formData.get('elocuencia') as string;
+
     return {
       name: (formData.get('name') as string) || '',
       subtitle: (formData.get('subtitle') as string) || '',
-      robustismo: parseInt(formData.get('robustismo') as string) || DEFAULT_GUARD_STATS.robustismo,
-      analitica: parseInt(formData.get('analitica') as string) || DEFAULT_GUARD_STATS.analitica,
+      robustismo:
+        robustismoValue !== null && robustismoValue !== ''
+          ? parseInt(robustismoValue)
+          : DEFAULT_GUARD_STATS.robustismo,
+      analitica:
+        analiticaValue !== null && analiticaValue !== ''
+          ? parseInt(analiticaValue)
+          : DEFAULT_GUARD_STATS.analitica,
       subterfugio:
-        parseInt(formData.get('subterfugio') as string) || DEFAULT_GUARD_STATS.subterfugio,
-      elocuencia: parseInt(formData.get('elocuencia') as string) || DEFAULT_GUARD_STATS.elocuencia,
+        subterfugioValue !== null && subterfugioValue !== ''
+          ? parseInt(subterfugioValue)
+          : DEFAULT_GUARD_STATS.subterfugio,
+      elocuencia:
+        elocuenciaValue !== null && elocuenciaValue !== ''
+          ? parseInt(elocuenciaValue)
+          : DEFAULT_GUARD_STATS.elocuencia,
     };
   }
 
@@ -322,9 +474,9 @@ export class GuardOrganizationDialog {
     ];
 
     for (const stat of statChecks) {
-      if (stat.value < 1 || stat.value > 20 || isNaN(stat.value)) {
+      if (stat.value < -99 || stat.value > 99 || isNaN(stat.value)) {
         errorFields.push(stat.name);
-        errors.push(`${stat.label} debe estar entre 1 y 20`);
+        errors.push(`${stat.label} debe estar entre -99 y 99`);
       }
     }
 
@@ -378,7 +530,6 @@ export class GuardOrganizationDialog {
         name: data.name.trim(),
         subtitle: data.subtitle.trim(),
         baseStats,
-        updatedAt: new Date(),
         version: existingOrganization.version + 1,
       };
     } else {
@@ -386,8 +537,6 @@ export class GuardOrganizationDialog {
         id: foundry.utils.randomID(),
         name: data.name.trim(),
         subtitle: data.subtitle.trim(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
         version: 1,
         baseStats,
         activeModifiers: [],

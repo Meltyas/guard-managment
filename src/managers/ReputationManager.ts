@@ -44,8 +44,6 @@ export class ReputationManager {
       description: data.description,
       level: data.level,
       organizationId: data.organizationId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
       version: 1,
     };
 
@@ -94,7 +92,6 @@ export class ReputationManager {
     const updated: Reputation = {
       ...reputation,
       ...updates,
-      updatedAt: new Date(),
       version: reputation.version + 1,
     };
 

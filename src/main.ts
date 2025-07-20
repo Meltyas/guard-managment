@@ -9,6 +9,7 @@ import { GuardManager } from './managers/GuardManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { SyncManager } from './managers/SyncManager';
 import { registerSettings } from './settings';
+import './styles/custom-info-dialog.css';
 import './styles/main.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 

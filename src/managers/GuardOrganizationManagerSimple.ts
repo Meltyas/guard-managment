@@ -17,8 +17,6 @@ export class GuardOrganizationManager {
       id: foundry.utils.randomID(),
       name: organizationData.name,
       subtitle: organizationData.subtitle || '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
       version: 1,
       baseStats: organizationData.baseStats || { ...DEFAULT_GUARD_STATS },
       activeModifiers: [],

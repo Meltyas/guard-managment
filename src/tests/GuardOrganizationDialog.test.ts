@@ -13,13 +13,11 @@ describe('GuardOrganizationDialog', () => {
 
   beforeEach(() => {
     dialog = new GuardOrganizationDialog();
-    
+
     mockGuardOrganization = {
       id: 'test-org-1',
       name: 'Test Guard Organization',
       subtitle: 'Testing Unit',
-      createdAt: new Date(),
-      updatedAt: new Date(),
       version: 1,
       baseStats: {
         robustismo: 12,
