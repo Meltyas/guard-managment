@@ -154,10 +154,10 @@ export interface GuardManagementConfig {
 
 // Default values
 export const DEFAULT_GUARD_STATS: GuardStats = {
-  robustismo: 10,
-  analitica: 10,
-  subterfugio: 10,
-  elocuencia: 10,
+  robustismo: 0,
+  analitica: 0,
+  subterfugio: 0,
+  elocuencia: 0,
 };
 
 export const DEFAULT_CONFIG: GuardManagementConfig = {

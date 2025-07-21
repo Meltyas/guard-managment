@@ -3,32 +3,31 @@
  * Handles initialization and data synchronization between Player and GM
  */
 
+import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
-import { GuardDialogManager } from './managers/GuardDialogManager';
-import { GuardManager } from './managers/GuardManager';
-import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
+import { DocumentBasedManager } from './managers/DocumentBasedManager';
+import { SimpleGuardDialogManager } from './managers/SimpleGuardDialogManager';
 import { SyncManager } from './managers/SyncManager';
 import { registerSettings } from './settings';
 import './styles/custom-info-dialog.css';
 import './styles/main.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
+import { GuardManagementHelpers } from './utils/console-helpers';
 
 // Global module reference
 let guardManagementModule: GuardManagementModule;
 
 class GuardManagementModule {
-  public guardManager: GuardManager;
-  public guardOrganizationManager: GuardOrganizationManager;
-  public guardDialogManager: GuardDialogManager;
+  public documentManager: DocumentBasedManager;
+  public guardDialogManager: SimpleGuardDialogManager;
   public syncManager: SyncManager;
   public floatingPanel: FloatingGuardPanel;
 
   constructor() {
-    this.guardManager = new GuardManager();
-    this.guardOrganizationManager = new GuardOrganizationManager();
-    this.guardDialogManager = new GuardDialogManager(this.guardOrganizationManager);
+    this.documentManager = new DocumentBasedManager();
+    this.guardDialogManager = new SimpleGuardDialogManager(this.documentManager);
     this.syncManager = new SyncManager();
-    this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
+    this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager as any);
   }
 
   /**
@@ -37,6 +36,9 @@ class GuardManagementModule {
   public async initialize(): Promise<void> {
     console.log('Guard Management | Initializing module...');
 
+    // Register custom DataModels
+    registerDataModels();
+
     // Register module settings
     registerSettings();
 
@@ -44,8 +46,7 @@ class GuardManagementModule {
     registerHooks();
 
     // Initialize managers
-    await this.guardManager.initialize();
-    await this.guardOrganizationManager.initialize();
+    await this.documentManager.initialize();
     await this.guardDialogManager.initialize();
     await this.syncManager.initialize();
 
@@ -99,8 +100,7 @@ class GuardManagementModule {
     this.floatingPanel.cleanup();
     this.syncManager.cleanup();
     this.guardDialogManager.cleanup();
-    this.guardOrganizationManager.cleanup();
-    this.guardManager.cleanup();
+    this.documentManager.cleanup();
   }
 }
 
@@ -111,6 +111,9 @@ Hooks.once('init', async () => {
 
   // Export for global access
   (window as any).GuardManagement = guardManagementModule;
+
+  // Initialize console helpers
+  GuardManagementHelpers.help();
 });
 
 Hooks.once('ready', () => {

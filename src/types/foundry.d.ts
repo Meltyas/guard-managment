@@ -9,6 +9,18 @@ declare global {
       get: (namespace: string, key: string) => any;
       set: (namespace: string, key: string, value: any) => Promise<any>;
     };
+    actors?: {
+      get: (id: string) => any;
+      filter: (predicate: (actor: any) => boolean) => any[];
+    };
+    items?: {
+      get: (id: string) => any;
+      filter: (predicate: (item: any) => boolean) => any[];
+    };
+    scenes?: {
+      active?: any;
+    };
+    world?: any;
   }
 
   interface DialogData {
@@ -29,6 +41,7 @@ declare global {
   class Dialog {
     constructor(data: DialogData, options?: any);
     render(force?: boolean): void;
+    close(): void;
     static confirm(config: {
       title: string;
       content: string;
@@ -60,7 +73,24 @@ declare global {
 
   // Foundry V13 globals
   const game: Game | undefined;
-  const ui: any;
+  const ui: {
+    notifications?: {
+      info: (message: string) => void;
+      warn: (message: string) => void;
+      error: (message: string) => void;
+    };
+  };
+
+  // jQuery types
+  interface JQuery {
+    find: (selector: string) => JQuery;
+    on: (event: string, handler: (event: any) => void) => JQuery;
+    val: () => string | number;
+    data: (key: string) => any;
+  }
+
+  const $: (selector: any) => JQuery;
+
   const foundry: {
     applications: {
       api: {
@@ -74,6 +104,96 @@ declare global {
     utils: {
       randomID(): string;
     };
+    abstract: {
+      TypeDataModel: typeof TypeDataModel;
+      DataModel: typeof DataModel;
+    };
+    data: {
+      fields: {
+        StringField: typeof StringField;
+        NumberField: typeof NumberField;
+        BooleanField: typeof BooleanField;
+        ArrayField: typeof ArrayField;
+        SchemaField: typeof SchemaField;
+        HTMLField: typeof HTMLField;
+        FilePathField: typeof FilePathField;
+      };
+    };
+  };
+
+  // DataModel types
+  abstract class DataModel {
+    constructor(data?: any, options?: any);
+    prepareBaseData(): void;
+    prepareDerivedData(): void;
+    parent: any;
+  }
+
+  abstract class TypeDataModel extends DataModel {
+    static defineSchema(): any;
+  }
+
+  // Field types
+  class StringField {
+    constructor(options?: any);
+  }
+
+  class NumberField {
+    constructor(options?: any);
+  }
+
+  class BooleanField {
+    constructor(options?: any);
+  }
+
+  class ArrayField {
+    constructor(element: any, options?: any);
+  }
+
+  class SchemaField {
+    constructor(fields: Record<string, any>, options?: any);
+  }
+
+  class HTMLField {
+    constructor(options?: any);
+  }
+
+  class FilePathField {
+    constructor(options?: any);
+  }
+
+  // Document classes
+  class Actor {
+    static create(data: any): Promise<any>;
+    name: string;
+    type: string;
+    system: any;
+    update(data: any): Promise<any>;
+  }
+
+  class Item {
+    static create(data: any): Promise<any>;
+    name: string;
+    type: string;
+    system: any;
+    update(data: any): Promise<any>;
+  }
+
+  // CONFIG object
+  const CONFIG: {
+    Actor: {
+      dataModels: Record<string, any>;
+    };
+    Item: {
+      dataModels: Record<string, any>;
+    };
+  };
+
+  // Hooks system
+  const Hooks: {
+    on: (event: string, callback: (...args: any[]) => void) => void;
+    once: (event: string, callback: (...args: any[]) => void) => void;
+    off: (event: string, callback: (...args: any[]) => void) => void;
   };
 
   const Dialog: typeof Dialog;

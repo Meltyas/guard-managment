@@ -89,10 +89,10 @@ describe('GuardOrganizationDialog', () => {
       const isValid = dialog.validateData({
         name: '',
         subtitle: 'Test',
-        robustismo: 10,
-        analitica: 10,
-        subterfugio: 10,
-        elocuencia: 10,
+        robustismo: 0,
+        analitica: 0,
+        subterfugio: 0,
+        elocuencia: 0,
       });
       expect(isValid).toBe(false);
     });
@@ -101,7 +101,7 @@ describe('GuardOrganizationDialog', () => {
       const isValid = dialog.validateData({
         name: 'Test Organization',
         subtitle: 'Test',
-        robustismo: -5, // Invalid negative value
+        robustismo: -100, // Invalid: outside valid range (-99 to 99)
         analitica: 10,
         subterfugio: 10,
         elocuencia: 10,
@@ -113,10 +113,22 @@ describe('GuardOrganizationDialog', () => {
       const isValid = dialog.validateData({
         name: 'Test Organization',
         subtitle: 'Test',
-        robustismo: 10,
-        analitica: 10,
-        subterfugio: 10,
-        elocuencia: 10,
+        robustismo: 0,
+        analitica: 0,
+        subterfugio: 0,
+        elocuencia: 0,
+      });
+      expect(isValid).toBe(true);
+    });
+
+    it('should accept valid negative stat values', () => {
+      const isValid = dialog.validateData({
+        name: 'Test Organization',
+        subtitle: 'Test',
+        robustismo: -5, // Valid negative value
+        analitica: -10, // Valid negative value
+        subterfugio: -99, // Valid boundary value
+        elocuencia: 15,
       });
       expect(isValid).toBe(true);
     });
