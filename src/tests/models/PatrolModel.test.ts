@@ -131,6 +131,33 @@ describe('PatrolModel', () => {
         expect(() => new PatrolModel(testData)).not.toThrow();
       });
     });
+
+    it('should allow empty leaderId', () => {
+      const testData = {
+        leaderId: '',
+        unitCount: 4,
+        organizationId: 'test-org',
+        customModifiers: [],
+        activeEffects: [],
+        status: 'idle' as PatrolStatus,
+        version: 1,
+      };
+
+      expect(() => new PatrolModel(testData)).not.toThrow();
+    });
+
+    it('should allow undefined leaderId', () => {
+      const testData = {
+        unitCount: 4,
+        organizationId: 'test-org',
+        customModifiers: [],
+        activeEffects: [],
+        status: 'idle' as PatrolStatus,
+        version: 1,
+      };
+
+      expect(() => new PatrolModel(testData)).not.toThrow();
+    });
   });
 
   describe('Data Preparation', () => {
@@ -400,6 +427,20 @@ describe('PatrolModel', () => {
       expect(leader).toBeDefined();
       expect(leader.id).toBe('test-leader-id');
       expect((global as any).game.actors.get).toHaveBeenCalledWith('test-leader-id');
+    });
+
+    it('should return null when leaderId is empty', () => {
+      model.leaderId = '';
+      const leader = model.getLeader();
+
+      expect(leader).toBeNull();
+    });
+
+    it('should return null when leaderId is not set', () => {
+      model.leaderId = undefined as any;
+      const leader = model.getLeader();
+
+      expect(leader).toBeNull();
     });
 
     it('should get active effects', () => {

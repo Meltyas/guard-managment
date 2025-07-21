@@ -6,7 +6,8 @@
 import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
 import { DocumentBasedManager } from './managers/DocumentBasedManager';
-import { SimpleGuardDialogManager } from './managers/SimpleGuardDialogManager';
+import { GuardDialogManager } from './managers/GuardDialogManager';
+import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { SyncManager } from './managers/SyncManager';
 import { registerSettings } from './settings';
 import './styles/custom-info-dialog.css';
@@ -19,15 +20,17 @@ let guardManagementModule: GuardManagementModule;
 
 class GuardManagementModule {
   public documentManager: DocumentBasedManager;
-  public guardDialogManager: SimpleGuardDialogManager;
+  public guardOrganizationManager: GuardOrganizationManager;
+  public guardDialogManager: GuardDialogManager;
   public syncManager: SyncManager;
   public floatingPanel: FloatingGuardPanel;
 
   constructor() {
     this.documentManager = new DocumentBasedManager();
-    this.guardDialogManager = new SimpleGuardDialogManager(this.documentManager);
+    this.guardOrganizationManager = new GuardOrganizationManager();
+    this.guardDialogManager = new GuardDialogManager(this.guardOrganizationManager);
     this.syncManager = new SyncManager();
-    this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager as any);
+    this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
   }
 
   /**
@@ -47,6 +50,7 @@ class GuardManagementModule {
 
     // Initialize managers
     await this.documentManager.initialize();
+    await this.guardOrganizationManager.initialize();
     await this.guardDialogManager.initialize();
     await this.syncManager.initialize();
 
@@ -100,6 +104,7 @@ class GuardManagementModule {
     this.floatingPanel.cleanup();
     this.syncManager.cleanup();
     this.guardDialogManager.cleanup();
+    this.guardOrganizationManager?.cleanup?.();
     this.documentManager.cleanup();
   }
 }
@@ -116,11 +121,28 @@ Hooks.once('init', async () => {
   GuardManagementHelpers.help();
 });
 
-Hooks.once('ready', () => {
+Hooks.once('ready', async () => {
   console.log('Guard Management | Foundry is ready, module is active');
 
   // Ensure the floating panel is visible when Foundry is ready
   if (guardManagementModule && guardManagementModule.floatingPanel) {
     guardManagementModule.floatingPanel.show();
+    
+    // Check if there are any organizations, if not create sample data
+    const organizations = guardManagementModule.documentManager.getGuardOrganizations();
+    if (organizations.length === 0) {
+      console.log('Guard Management | No organizations found, creating sample data...');
+      try {
+        await guardManagementModule.documentManager.createSampleData();
+        console.log('Guard Management | Sample data created successfully');
+        
+        // Update the floating panel to show the new organizations
+        setTimeout(() => {
+          guardManagementModule.floatingPanel.updateOrganizationList();
+        }, 500);
+      } catch (error) {
+        console.error('Guard Management | Error creating sample data:', error);
+      }
+    }
   }
 });

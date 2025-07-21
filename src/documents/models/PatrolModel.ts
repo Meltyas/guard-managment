@@ -27,8 +27,8 @@ export class PatrolModel extends foundry.abstract.TypeDataModel {
 
     return {
       leaderId: new fields.StringField({
-        required: true,
-        blank: false,
+        required: false,
+        blank: true,
         initial: '',
       }),
 
@@ -144,7 +144,7 @@ export class PatrolModel extends foundry.abstract.TypeDataModel {
    * Get the leader actor
    */
   getLeader() {
-    if (!game?.actors) return null;
+    if (!game?.actors || !this.leaderId || this.leaderId.trim() === '') return null;
     return game.actors.get(this.leaderId);
   }
 

@@ -65,19 +65,23 @@ export async function createGuardOrganization(data: any = {}) {
  * Create a Patrol actor
  */
 export async function createPatrol(data: any = {}) {
-  const patrolData = {
+  const patrolData: any = {
     name: data.name || 'New Patrol',
     type: 'guard-management.patrol',
     system: {
-      leaderId: data.leaderId || '',
       unitCount: data.unitCount || 1,
       organizationId: data.organizationId || '',
       customModifiers: [],
       activeEffects: [],
-      status: 'idle',
+      status: data.status || 'idle',
       version: 1,
     },
   };
+
+  // Only add leaderId if provided and not empty
+  if (data.leaderId && data.leaderId.trim() !== '') {
+    patrolData.system.leaderId = data.leaderId;
+  }
 
   return await Actor.create(patrolData);
 }
