@@ -4,9 +4,9 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
+import './setup/foundryMocks';
 import { DocumentBasedManager } from '../managers/DocumentBasedManager';
 import { DEFAULT_GUARD_STATS, GuardStats } from '../types/entities';
-import './setup/foundryMocks';
 import { clearMockData } from './setup/foundryMocks';
 
 describe('Guard Organization CRUD Operations', () => {

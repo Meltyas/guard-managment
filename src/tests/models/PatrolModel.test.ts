@@ -4,9 +4,9 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '../setup/foundryMocks';
 import { PatrolModel } from '../../documents/models/PatrolModel';
 import { PatrolStatus } from '../../types/entities';
-import '../setup/foundryMocks';
 
 describe('PatrolModel', () => {
   let model: PatrolModel;

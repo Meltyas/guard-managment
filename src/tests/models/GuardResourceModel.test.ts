@@ -4,8 +4,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GuardResourceModel } from '../../documents/models/GuardResourceModel';
 import '../setup/foundryMocks';
+import { GuardResourceModel } from '../../documents/models/GuardResourceModel';
 
 describe('GuardResourceModel', () => {
   let model: GuardResourceModel;

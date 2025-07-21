@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SyncManager } from '../src/managers/SyncManager';
-import { SyncOptions } from '../src/types/sync';
+import { SyncManager } from '../../managers/SyncManager';
+import { SyncOptions } from '../../types/sync';
 
 // Mock Foundry VTT globals
 const mockGame = {

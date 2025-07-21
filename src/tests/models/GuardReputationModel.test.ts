@@ -4,9 +4,9 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '../setup/foundryMocks';
 import { GuardReputationModel } from '../../documents/models/GuardReputationModel';
 import { ReputationLevel } from '../../types/entities';
-import '../setup/foundryMocks';
 
 describe('GuardReputationModel', () => {
   let model: GuardReputationModel;

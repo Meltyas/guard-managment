@@ -4,8 +4,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DocumentBasedManager } from '../../managers/DocumentBasedManager';
 import '../setup/foundryMocks';
+import { DocumentBasedManager } from '../../managers/DocumentBasedManager';
 
 describe('DocumentBasedManager', () => {
   let manager: DocumentBasedManager;

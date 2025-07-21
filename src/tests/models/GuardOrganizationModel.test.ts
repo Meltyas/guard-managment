@@ -4,8 +4,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GuardOrganizationModel } from '../../documents/models/GuardOrganizationModel';
 import '../setup/foundryMocks';
+import { GuardOrganizationModel } from '../../documents/models/GuardOrganizationModel';
 
 describe('GuardOrganizationModel', () => {
   let model: GuardOrganizationModel;
