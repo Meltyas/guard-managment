@@ -396,3 +396,40 @@
   background: linear-gradient(90deg, #2c5aa0, #4a9eff);
   color: white;
 }
+
+/* =================================================================
+   CUSTOM DIALOG Z-INDEX AND FOCUS SYSTEM
+   ================================================================= */
+
+/* Base z-index for all custom dialogs */
+.custom-dialog {
+  z-index: 51;
+  transition: z-index 0.1s ease;
+}
+
+/* Focused state - higher z-index */
+.custom-dialog.focused {
+  z-index: 80;
+}
+
+/* Specific targeting for guard dialog and GM warehouse dialog */
+.guard-info-dialog,
+.gm-warehouse-dialog {
+  z-index: 51;
+  transition: z-index 0.1s ease;
+}
+
+.guard-info-dialog.focused,
+.gm-warehouse-dialog.focused {
+  z-index: 80;
+}
+
+/* Also target custom-info-dialog specifically */
+.custom-info-dialog {
+  z-index: 51;
+  transition: z-index 0.1s ease;
+}
+
+.custom-info-dialog.focused {
+  z-index: 80;
+}

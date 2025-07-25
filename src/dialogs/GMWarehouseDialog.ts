@@ -1,70 +1,141 @@
 import { html, TemplateResult } from 'lit-html';
-import { renderTemplateToString } from '../utils/template-renderer.js';
+import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
+import { safeRender } from '../utils/template-renderer.js';
 
 /**
  * GM Warehouse Dialog
- * A specialized dialog for GM-only warehouse/storage management with tabs
+ * A specialized custom popup for GM-only warehouse/storage management with tabs
  */
 
-export class GMWarehouseDialog {
+export class GMWarehouseDialog implements FocusableDialog {
+  public element: HTMLElement | null = null;
+  private isDragging = false;
+  private isResizing = false;
+  private dragOffset = { x: 0, y: 0 };
+  private isFocused = false;
+
   constructor() {
     // Check GM permissions
-    if (!game?.user?.isGM) {
+    if (!(game as any)?.user?.isGM) {
       throw new Error('Only GM can access the warehouse');
     }
+
+    this.handleMouseDown = this.handleMouseDown.bind(this);
+    this.handleMouseMove = this.handleMouseMove.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this);
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleFocus = this.handleFocus.bind(this);
+    this.handleBlur = this.handleBlur.bind(this);
+    this.handleGlobalClick = this.handleGlobalClick.bind(this);
   }
 
   /**
    * Show the GM Warehouse dialog
    */
-  public async show(): Promise<boolean> {
-    const content = this.generateContent();
-    const title = 'GM Warehouse - Template Storage';
+  public show(
+    options: {
+      width?: number;
+      height?: number;
+      x?: number;
+      y?: number;
+    } = {}
+  ): void {
+    // Create the dialog element
+    this.element = this.createElement(options);
 
-    try {
-      const DialogV2Class = (foundry as any)?.applications?.api?.DialogV2;
+    // Add to document
+    document.body.appendChild(this.element);
 
-      if (!DialogV2Class) {
-        console.warn('DialogV2 no está disponible, usando Dialog estándar como fallback');
-        return this.showWithStandardDialog();
-      }
+    // Register with focus manager
+    DialogFocusManager.getInstance().registerDialog(this);
 
-      const result = await DialogV2Class.wait({
-        window: {
-          title,
-          resizable: true,
-          classes: ['guard-management', 'gm-warehouse-dialog'],
-        },
-        position: {
-          width: 800,
-          height: 600,
-        },
-        content,
-        buttons: [
-          {
-            action: 'close',
-            icon: 'fas fa-times',
-            label: 'Cerrar',
-            default: true,
-            callback: () => true,
-          },
-        ],
-      });
+    // Add event listeners
+    this.addEventListeners();
 
-      return result === 'close';
-    } catch (error) {
-      console.error('Error showing GM Warehouse dialog:', error);
-      return false;
+    // Give this dialog focus immediately
+    DialogFocusManager.getInstance().setFocus(this);
+
+    // Center on screen if no position specified
+    if (!options.x && !options.y) {
+      this.centerOnScreen();
     }
   }
 
   /**
-   * Generate the dialog content
+   * Close the dialog
    */
-  private generateContent(): string {
-    const template = this.renderWarehouseContent();
-    // Convert TemplateResult to string for DialogV2 using safe renderer
-    return renderTemplateToString(template);
+  public close(): void {
+    if (this.element) {
+      // Unregister from focus manager
+      DialogFocusManager.getInstance().unregisterDialog(this);
+
+      this.removeEventListeners();
+      this.element.remove();
+      this.element = null;
+    }
+  }
+
+  /**
+   * Check if dialog is open
+   */
+  public isOpen(): boolean {
+    return (
+      this.element !== null &&
+      document.body &&
+      document.body.contains &&
+      document.body.contains(this.element)
+    );
+  }
+
+  /**
+   * Create the dialog HTML element
+   */
+  private createElement(options: {
+    width?: number;
+    height?: number;
+    x?: number;
+    y?: number;
+  }): HTMLElement {
+    const dialog = document.createElement('div');
+    dialog.className = 'gm-warehouse-dialog custom-dialog';
+
+    // Set initial size and position
+    const width = options.width || 800;
+    const height = options.height || 600;
+    const x = options.x || (window.innerWidth - width) / 2;
+    const y = options.y || (window.innerHeight - height) / 2;
+
+    // Only set position and size, z-index comes from CSS
+    dialog.style.left = `${x}px`;
+    dialog.style.top = `${y}px`;
+    dialog.style.width = `${width}px`;
+    dialog.style.height = `${height}px`;
+    dialog.style.position = 'fixed';
+
+    dialog.tabIndex = -1; // Make focusable for keyboard events
+
+    dialog.innerHTML = '';
+
+    // Render using lit-html templates
+    const dialogTemplate = this.renderDialogTemplate();
+    safeRender(dialogTemplate, dialog);
+
+    return dialog;
+  }
+
+  /**
+   * Render the complete dialog template
+   */
+  private renderDialogTemplate(): TemplateResult {
+    return html`
+      <div class="custom-dialog-header">
+        <h2 class="custom-dialog-title-text">GM Warehouse - Template Storage</h2>
+        <button class="custom-dialog-close" type="button" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="custom-dialog-body">${this.renderWarehouseContent()}</div>
+    `;
   }
 
   /**
@@ -73,7 +144,7 @@ export class GMWarehouseDialog {
   private renderWarehouseContent(): TemplateResult {
     return html`
       <div class="gm-warehouse-container">
-        ${this.renderWarehouseTabs()} ${this.renderWarehouseMainContent()} ${this.renderTabScript()}
+        ${this.renderWarehouseTabs()} ${this.renderWarehouseMainContent()}
       </div>
     `;
   }
@@ -199,99 +270,234 @@ export class GMWarehouseDialog {
   }
 
   /**
-   * Render tab switching script
+   * Add event listeners
    */
-  private renderTabScript(): TemplateResult {
-    return html`
-      <script>
-        // Tab switching functionality
-        document.addEventListener('click', function (event) {
-          const target = event.target.closest('.tab');
-          if (target && target.hasAttribute('data-tab')) {
-            const tabName = target.getAttribute('data-tab');
-            const container = target.closest('.gm-warehouse-container');
+  private addEventListeners(): void {
+    if (!this.element) return;
 
-            // Remove active class from all tabs and contents
-            container.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
-            container
-              .querySelectorAll('.tab-content')
-              .forEach((content) => content.classList.remove('active'));
+    // Close button
+    const closeButton = this.element.querySelector('.custom-dialog-close');
+    if (closeButton) {
+      closeButton.addEventListener('click', () => this.close());
+    }
 
-            // Add active class to clicked tab and corresponding content
-            target.classList.add('active');
-            const content = container.querySelector('.tab-content[data-tab="' + tabName + '"]');
-            if (content) content.classList.add('active');
+    // Tab switching functionality
+    const tabs = this.element.querySelectorAll('.tab[data-tab]');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', (event) => {
+        event.preventDefault();
+        const target = event.currentTarget as HTMLElement;
+        const tabName = target.getAttribute('data-tab');
+        if (!tabName) return;
+
+        const container = target.closest('.gm-warehouse-container');
+        if (!container) return;
+
+        // Remove active class from all tabs and contents
+        container.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+        container
+          .querySelectorAll('.tab-content')
+          .forEach((content) => content.classList.remove('active'));
+
+        // Add active class to clicked tab and corresponding content
+        target.classList.add('active');
+        const content = container.querySelector(`.tab-content[data-tab="${tabName}"]`);
+        if (content) content.classList.add('active');
+      });
+    });
+
+    // Handle add buttons
+    const addButtons = this.element.querySelectorAll('[class*="add-"][class*="-btn"]');
+    addButtons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        const target = event.currentTarget as HTMLElement;
+        const classList = target.className;
+        let templateType = '';
+
+        if (classList.includes('add-resource-btn')) templateType = 'resource';
+        else if (classList.includes('add-reputation-btn')) templateType = 'reputation';
+        else if (classList.includes('add-patrol-effect-btn')) templateType = 'patrol-effect';
+        else if (classList.includes('add-guard-modifier-btn')) templateType = 'guard-modifier';
+
+        if (templateType) {
+          console.log(`Adding new ${templateType} template - functionality to be implemented`);
+          if ((globalThis as any).ui?.notifications) {
+            (globalThis as any).ui.notifications.info(
+              `Adding ${templateType} template - Coming soon!`
+            );
           }
+        }
+      });
+    });
 
-          // Handle add buttons
-          const addButton = event.target.closest('[class*="add-"][class*="-btn"]');
-          if (addButton) {
-            const classList = addButton.className;
-            let templateType = '';
+    // Keyboard events
+    this.element.addEventListener('keydown', this.handleKeyDown);
 
-            if (classList.includes('add-resource-btn')) templateType = 'resource';
-            else if (classList.includes('add-reputation-btn')) templateType = 'reputation';
-            else if (classList.includes('add-patrol-effect-btn')) templateType = 'patrol-effect';
-            else if (classList.includes('add-guard-modifier-btn')) templateType = 'guard-modifier';
+    // Mouse events for dragging (header)
+    const header = this.element.querySelector('.custom-dialog-header');
+    if (header) {
+      header.addEventListener('mousedown', (event: Event) =>
+        this.handleMouseDown(event as MouseEvent)
+      );
+    }
 
-            if (templateType) {
-              console.log(
-                'Adding new ' + templateType + ' template - functionality to be implemented'
-              );
-              if (ui.notifications) {
-                ui.notifications.info('Adding ' + templateType + ' template - Coming soon!');
-              }
-            }
-          }
-        });
-      </script>
-    `;
+    // Global mouse events
+    document.addEventListener('mousemove', (event: Event) =>
+      this.handleMouseMove(event as MouseEvent)
+    );
+    document.addEventListener('mouseup', () => this.handleMouseUp());
+
+    // Focus management
+    this.element.addEventListener('focus', this.handleFocus);
+    this.element.addEventListener('click', this.handleGlobalClick);
+    document.addEventListener('click', this.handleGlobalClick);
   }
 
   /**
-   * Fallback to standard Dialog if DialogV2 is not available
+   * Remove event listeners
    */
-  private async showWithStandardDialog(): Promise<boolean> {
-    return new Promise((resolve) => {
-      new Dialog(
-        {
-          title: 'GM Warehouse - Template Storage',
-          content: this.generateContent(),
-          buttons: {
-            close: {
-              icon: '<i class="fas fa-times"></i>',
-              label: 'Cerrar',
-              callback: () => resolve(true),
-            },
-          },
-          default: 'close',
-          render: () => {
-            // Tab functionality is handled by inline script
-          },
-        },
-        {
-          classes: ['guard-management', 'gm-warehouse-dialog'],
-          width: 800,
-          height: 600,
-          resizable: true,
-        }
-      ).render(true);
-    });
+  private removeEventListeners(): void {
+    document.removeEventListener('mousemove', this.handleMouseMove);
+    document.removeEventListener('mouseup', this.handleMouseUp);
+    document.removeEventListener('click', this.handleGlobalClick);
+  }
+
+  /**
+   * Center dialog on screen
+   */
+  private centerOnScreen(): void {
+    if (!this.element || !this.element.getBoundingClientRect) return;
+
+    const rect = this.element.getBoundingClientRect();
+    const x = (window.innerWidth - rect.width) / 2;
+    const y = (window.innerHeight - rect.height) / 2;
+
+    this.element.style.left = `${Math.max(0, x)}px`;
+    this.element.style.top = `${Math.max(0, y)}px`;
+  }
+
+  /**
+   * Handle mouse down events for dragging
+   */
+  private handleMouseDown(event: MouseEvent): void {
+    if (!this.element) return;
+
+    const target = event.target as HTMLElement;
+    if (target.closest('.custom-dialog-header')) {
+      this.isDragging = true;
+      const rect = this.element.getBoundingClientRect();
+      this.dragOffset.x = event.clientX - rect.left;
+      this.dragOffset.y = event.clientY - rect.top;
+      event.preventDefault();
+    }
+  }
+
+  /**
+   * Handle mouse move events for dragging
+   */
+  private handleMouseMove(event: MouseEvent): void {
+    if (!this.element || !this.isDragging) return;
+
+    const x = event.clientX - this.dragOffset.x;
+    const y = event.clientY - this.dragOffset.y;
+
+    this.element.style.left = `${Math.max(0, Math.min(x, window.innerWidth - this.element.offsetWidth))}px`;
+    this.element.style.top = `${Math.max(0, Math.min(y, window.innerHeight - this.element.offsetHeight))}px`;
+  }
+
+  /**
+   * Handle mouse up events for dragging
+   */
+  private handleMouseUp(): void {
+    this.isDragging = false;
+    this.isResizing = false;
+  }
+
+  /**
+   * Handle keyboard events
+   */
+  private handleKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.close();
+    }
+  }
+
+  /**
+   * Handle focus events - called when dialog gains focus
+   */
+  public onFocus(): void {
+    if (this.element) {
+      this.element.classList.add('focused');
+      this.isFocused = true;
+    }
+  }
+
+  /**
+   * Handle blur events - called when dialog loses focus
+   */
+  public onBlur(): void {
+    if (this.element) {
+      this.element.classList.remove('focused');
+      this.isFocused = false;
+    }
+  }
+
+  /**
+   * Handle global click events to manage focus
+   */
+  private handleGlobalClick(event: MouseEvent): void {
+    if (!this.element) return;
+
+    const target = event.target as HTMLElement;
+    const isClickOnDialog = this.element.contains(target);
+
+    if (isClickOnDialog && !this.isFocused) {
+      // Clicked on this dialog, give it focus
+      DialogFocusManager.getInstance().setFocus(this);
+    }
+  }
+
+  /**
+   * Handle focus events - focus gained
+   */
+  private handleFocus(): void {
+    if (!this.isFocused) {
+      DialogFocusManager.getInstance().setFocus(this);
+    }
+  }
+
+  /**
+   * Handle blur events - focus lost (not used in this implementation)
+   */
+  private handleBlur(): void {
+    // Note: We don't clear focus here because focus is managed globally
+    // Focus is only lost when another dialog gains focus or when dialog is closed
   }
 
   /**
    * Static method to show the warehouse dialog
    */
-  static async show(): Promise<boolean> {
+  static show(options?: {
+    width?: number;
+    height?: number;
+    x?: number;
+    y?: number;
+  }): GMWarehouseDialog {
     try {
       const dialog = new GMWarehouseDialog();
-      return await dialog.show();
+      dialog.show(options);
+      return dialog;
     } catch (error) {
       console.error('Error creating GM Warehouse dialog:', error);
       if (error instanceof Error && error.message.includes('Only GM can access')) {
-        ui.notifications?.error('Solo el GM puede acceder al almacén de plantillas');
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.error(
+            'Solo el GM puede acceder al almacén de plantillas'
+          );
+        }
       }
-      return false;
+      throw error;
     }
   }
 }

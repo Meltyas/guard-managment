@@ -5,21 +5,26 @@
 import { html, TemplateResult } from 'lit-html';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 import type { GuardOrganization } from '../types/entities';
+import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { renderTemplateToString, safeRender } from '../utils/template-renderer.js';
 
-export class CustomInfoDialog {
-  private element: HTMLElement | null = null;
+export class CustomInfoDialog implements FocusableDialog {
+  public element: HTMLElement | null = null;
   private isDragging = false;
   private isResizing = false;
   private dragOffset = { x: 0, y: 0 };
   private onEditCallback?: () => void;
   private onCloseCallback?: () => void;
+  private isFocused = false;
 
   constructor() {
     this.handleMouseDown = this.handleMouseDown.bind(this);
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleFocus = this.handleFocus.bind(this);
+    this.handleBlur = this.handleBlur.bind(this);
+    this.handleGlobalClick = this.handleGlobalClick.bind(this);
   }
 
   /**
@@ -46,11 +51,14 @@ export class CustomInfoDialog {
     // Add to document
     document.body.appendChild(this.element);
 
+    // Register with focus manager
+    DialogFocusManager.getInstance().registerDialog(this);
+
     // Add event listeners
     this.addEventListeners();
 
-    // Focus the dialog
-    this.element.focus();
+    // Give this dialog focus immediately
+    DialogFocusManager.getInstance().setFocus(this);
 
     // Center on screen if no position specified
     if (!options.x && !options.y) {
@@ -88,6 +96,9 @@ export class CustomInfoDialog {
    */
   public close(): void {
     if (this.element) {
+      // Unregister from focus manager
+      DialogFocusManager.getInstance().unregisterDialog(this);
+
       this.removeEventListeners();
       this.element.remove();
       this.element = null;
@@ -114,7 +125,7 @@ export class CustomInfoDialog {
     options: { width?: number; height?: number; x?: number; y?: number }
   ): HTMLElement {
     const dialog = document.createElement('div');
-    dialog.className = 'custom-info-dialog';
+    dialog.className = 'custom-info-dialog custom-dialog';
 
     // Set initial size and position
     const width = options.width || 500;
@@ -186,6 +197,11 @@ export class CustomInfoDialog {
     // Global mouse events for dragging/resizing
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
+
+    // Focus management
+    this.element.addEventListener('focus', this.handleFocus);
+    this.element.addEventListener('click', this.handleGlobalClick);
+    document.addEventListener('click', this.handleGlobalClick);
   }
 
   /**
@@ -194,6 +210,7 @@ export class CustomInfoDialog {
   private removeEventListeners(): void {
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
+    document.removeEventListener('click', this.handleGlobalClick);
   }
 
   /**
@@ -413,5 +430,57 @@ export class CustomInfoDialog {
    */
   private renderDialogResizeHandle(): TemplateResult {
     return html` <div class="custom-dialog-resize-handle"></div> `;
+  }
+
+  /**
+   * Handle focus events - called when dialog gains focus
+   */
+  public onFocus(): void {
+    if (this.element) {
+      this.element.classList.add('focused');
+      this.isFocused = true;
+    }
+  }
+
+  /**
+   * Handle blur events - called when dialog loses focus
+   */
+  public onBlur(): void {
+    if (this.element) {
+      this.element.classList.remove('focused');
+      this.isFocused = false;
+    }
+  }
+
+  /**
+   * Handle global click events to manage focus
+   */
+  private handleGlobalClick(event: MouseEvent): void {
+    if (!this.element) return;
+
+    const target = event.target as HTMLElement;
+    const isClickOnDialog = this.element.contains(target);
+
+    if (isClickOnDialog && !this.isFocused) {
+      // Clicked on this dialog, give it focus
+      DialogFocusManager.getInstance().setFocus(this);
+    }
+  }
+
+  /**
+   * Handle focus events - focus gained
+   */
+  private handleFocus(): void {
+    if (!this.isFocused) {
+      DialogFocusManager.getInstance().setFocus(this);
+    }
+  }
+
+  /**
+   * Handle blur events - focus lost (not used in this implementation)
+   */
+  private handleBlur(): void {
+    // Note: We don't clear focus here because focus is managed globally
+    // Focus is only lost when another dialog gains focus or when dialog is closed
   }
 }
