@@ -2,6 +2,7 @@
  * Floating Guard Management Panel - Canvas overlay component
  */
 
+import { GMWarehouseDialog } from '../dialogs/GMWarehouseDialog';
 import { GuardDialogManager } from '../managers/GuardDialogManager';
 
 export interface FloatingPanelPosition {
@@ -78,12 +79,50 @@ export class FloatingGuardPanel {
   }
 
   /**
+   * Force reconfigure GM elements (for debugging)
+   */
+  public forceConfigureGM(): void {
+    console.log('FloatingGuardPanel | No longer needed - simplified');
+  }
+
+  /**
+   * Refresh the panel content after game is ready
+   */
+  public refreshPanel(): void {
+    if (!this.panel) {
+      console.log('FloatingGuardPanel | No panel to refresh');
+      return;
+    }
+
+    console.log('FloatingGuardPanel | Refreshing panel for GM status');
+
+    // Remove existing panel
+    this.panel.remove();
+
+    // Recreate with current game state
+    this.createPanel();
+    this.attachEventListeners();
+    this.restorePosition();
+
+    console.log('FloatingGuardPanel | Panel refreshed');
+  }
+
+  /**
    * Create the panel HTML element
    */
   private createPanel(): void {
     this.panel = document.createElement('div');
     this.panel.id = 'guard-management-floating-panel';
     this.panel.className = 'guard-floating-panel';
+
+    // Debug GM status
+    const isGM = (game?.user as any)?.isGM;
+    console.log('FloatingGuardPanel | Creating panel - GM status:', {
+      game: !!game,
+      user: !!game?.user,
+      isGM: isGM,
+      userObject: game?.user,
+    });
 
     this.panel.innerHTML = `
       <div class="panel-header">
@@ -106,6 +145,16 @@ export class FloatingGuardPanel {
             <i class="fas fa-info-circle"></i>
             <span>Ver Organización</span>
           </button>
+          ${
+            isGM
+              ? `
+          <button class="action-btn secondary" data-action="open-warehouse">
+            <i class="fas fa-warehouse"></i>
+            <span>GM Warehouse</span>
+          </button>
+          `
+              : '<!-- No GM button - user is not GM -->'
+          }
         </div>
         <div class="organization-summary">
           <div class="summary-header">Organización de Guardias</div>
@@ -232,6 +281,10 @@ export class FloatingGuardPanel {
         background: linear-gradient(135deg, #777, #555);
         transform: translateY(-1px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .guard-floating-panel .action-btn.gm-only {
+        display: flex;
       }
 
       .guard-floating-panel .organization-summary {
@@ -425,6 +478,20 @@ export class FloatingGuardPanel {
       case 'manage-organizations':
         this.dialogManager.showManageOrganizationsDialog();
         break;
+      case 'open-warehouse':
+        this.openGMWarehouse();
+        break;
+    }
+  }
+
+  /**
+   * Open the GM Warehouse dialog
+   */
+  private async openGMWarehouse(): Promise<void> {
+    try {
+      await GMWarehouseDialog.show();
+    } catch (error) {
+      console.error('Error opening GM Warehouse:', error);
     }
   }
 

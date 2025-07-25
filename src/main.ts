@@ -10,6 +10,7 @@ import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { registerSettings } from './settings';
 import './styles/custom-info-dialog.css';
+import './styles/gm-warehouse.css';
 import './styles/main.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 import { GuardManagementHelpers } from './utils/console-helpers';
@@ -58,6 +59,15 @@ class GuardManagementModule {
     this.setupEventListeners();
 
     console.log('Guard Management | Module initialized successfully');
+  }
+
+  /**
+   * Refresh floating panel when game is ready
+   */
+  public refreshFloatingPanel(): void {
+    if (this.floatingPanel) {
+      this.floatingPanel.refreshPanel();
+    }
   }
 
   /**
@@ -119,8 +129,9 @@ Hooks.once('init', async () => {
 Hooks.once('ready', async () => {
   console.log('Guard Management | Foundry is ready, module is active');
 
-  // Ensure the floating panel is visible when Foundry is ready
+  // Refresh floating panel to ensure GM status is correct
   if (guardManagementModule && guardManagementModule.floatingPanel) {
+    guardManagementModule.refreshFloatingPanel();
     guardManagementModule.floatingPanel.show();
 
     // Check if there are any organizations, if not create sample data

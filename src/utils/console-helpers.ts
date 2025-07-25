@@ -52,6 +52,38 @@ export class GuardManagementHelpers {
   }
 
   /**
+   * Debug floating panel GM configuration
+   */
+  static debugFloatingPanel() {
+    const gm = window.GuardManagement;
+    if (!gm) {
+      console.error('GuardManagement not found');
+      return;
+    }
+
+    console.log('=== Floating Panel Debug ===');
+    console.log('Panel exists:', !!gm.floatingPanel);
+    console.log('Panel element:', gm.floatingPanel?.panel);
+    console.log('Current user isGM:', game?.user?.isGM);
+    console.log(
+      'GM elements found:',
+      gm.floatingPanel?.panel?.querySelectorAll?.('.gm-only')?.length || 0
+    );
+
+    // Force reconfigure
+    if (gm.floatingPanel?.forceConfigureGM) {
+      console.log('Forcing GM reconfiguration...');
+      gm.floatingPanel.forceConfigureGM();
+    }
+
+    return {
+      panel: gm.floatingPanel,
+      isGM: game?.user?.isGM,
+      gmElements: gm.floatingPanel?.panel?.querySelectorAll?.('.gm-only'),
+    };
+  }
+
+  /**
    * List all Patrols
    */
   static listPatrols() {
