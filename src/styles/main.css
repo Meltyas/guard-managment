@@ -241,3 +241,158 @@
 .debug-log-entry.success {
   color: #4caf50;
 }
+
+/* Information Dialog Styles */
+.guard-management .organization-info {
+  font-family: 'Signika', sans-serif;
+  line-height: 1.4;
+  color: #333;
+}
+
+.guard-management .info-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  border-left: 4px solid #4a9eff;
+}
+
+.guard-management .info-section h3 {
+  margin: 0 0 10px 0;
+  color: #2c5aa0;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guard-management .info-section h3 i {
+  color: #4a9eff;
+}
+
+.guard-management .info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.guard-management .info-item {
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.guard-management .info-item label {
+  font-weight: bold;
+  color: #555;
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.guard-management .info-item span {
+  color: #333;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.guard-management .stats-display {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.guard-management .stat-box {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  text-align: center;
+}
+
+.guard-management .stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c5aa0;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.guard-management .stat-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.guard-management .patrol-count,
+.guard-management .resource-count,
+.guard-management .reputation-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  margin-top: 8px;
+}
+
+.guard-management .count {
+  font-weight: bold;
+  color: #2c5aa0;
+  background: #e3f2fd;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.guard-management .label {
+  color: #666;
+  font-size: 13px;
+}
+
+/* Dialog content formatting */
+.dialog .window-content {
+  font-family: 'Signika', sans-serif;
+}
+
+.dialog .window-content .organization-info {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* Ensure proper text rendering in dialogs */
+.dialog .window-content pre,
+.dialog .window-content code {
+  display: none;
+}
+
+.dialog .window-content .organization-info * {
+  white-space: normal;
+}
+
+/* Custom dialog overrides */
+.guard-management .custom-info-dialog {
+  min-width: 500px;
+  max-width: 700px;
+}
+
+.guard-management .custom-info-dialog .window-content {
+  padding: 15px;
+  background: #f8f9fa;
+}
+
+.guard-management .custom-info-dialog .window-header {
+  background: linear-gradient(90deg, #2c5aa0, #4a9eff);
+  color: white;
+}

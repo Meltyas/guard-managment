@@ -2,8 +2,10 @@
  * Floating Guard Management Panel - Canvas overlay component
  */
 
+import { html, TemplateResult } from 'lit-html';
 import { GMWarehouseDialog } from '../dialogs/GMWarehouseDialog';
 import { GuardDialogManager } from '../managers/GuardDialogManager';
+import { safeRender } from '../utils/template-renderer.js';
 
 export interface FloatingPanelPosition {
   x: number;
@@ -124,7 +126,29 @@ export class FloatingGuardPanel {
       userObject: game?.user,
     });
 
-    this.panel.innerHTML = `
+    // Render using lit-html templates
+    const panelTemplate = this.renderPanelTemplate(isGM);
+    safeRender(panelTemplate, this.panel);
+
+    // Add CSS styles
+    this.addStyles();
+
+    // Append to body (will be positioned over canvas)
+    document.body.appendChild(this.panel);
+  }
+
+  /**
+   * Main panel template
+   */
+  private renderPanelTemplate(isGM: boolean): TemplateResult {
+    return html` ${this.renderPanelHeader()} ${this.renderPanelContent(isGM)} `;
+  }
+
+  /**
+   * Panel header with controls
+   */
+  private renderPanelHeader(): TemplateResult {
+    return html`
       <div class="panel-header">
         <div class="panel-title">
           <i class="fas fa-shield-alt"></i>
@@ -139,37 +163,59 @@ export class FloatingGuardPanel {
           </button>
         </div>
       </div>
+    `;
+  }
+
+  /**
+   * Panel content section
+   */
+  private renderPanelContent(isGM: boolean): TemplateResult {
+    return html`
       <div class="panel-content">
-        <div class="quick-actions">
-          <button class="action-btn primary" data-action="manage-organizations">
-            <i class="fas fa-info-circle"></i>
-            <span>Ver Organización</span>
-          </button>
-          ${
-            isGM
-              ? `
-          <button class="action-btn secondary" data-action="open-warehouse">
-            <i class="fas fa-warehouse"></i>
-            <span>GM Warehouse</span>
-          </button>
-          `
-              : '<!-- No GM button - user is not GM -->'
-          }
-        </div>
-        <div class="organization-summary">
-          <div class="summary-header">Organización de Guardias</div>
-          <div class="organization-list" id="organization-quick-list">
-            <!-- Dynamic content will be populated here -->
-          </div>
+        ${this.renderQuickActions(isGM)} ${this.renderOrganizationSummary()}
+      </div>
+    `;
+  }
+
+  /**
+   * Quick action buttons
+   */
+  private renderQuickActions(isGM: boolean): TemplateResult {
+    return html`
+      <div class="quick-actions">
+        <button class="action-btn primary" data-action="manage-organizations">
+          <i class="fas fa-info-circle"></i>
+          <span>Ver Organización</span>
+        </button>
+        ${isGM ? this.renderGMWarehouseButton() : html`<!-- No GM button - user is not GM -->`}
+      </div>
+    `;
+  }
+
+  /**
+   * GM Warehouse button (only for GMs)
+   */
+  private renderGMWarehouseButton(): TemplateResult {
+    return html`
+      <button class="action-btn secondary" data-action="open-warehouse">
+        <i class="fas fa-warehouse"></i>
+        <span>GM Warehouse</span>
+      </button>
+    `;
+  }
+
+  /**
+   * Organization summary section
+   */
+  private renderOrganizationSummary(): TemplateResult {
+    return html`
+      <div class="organization-summary">
+        <div class="summary-header">Organización de Guardias</div>
+        <div class="organization-list" id="organization-quick-list">
+          <!-- Dynamic content will be populated here -->
         </div>
       </div>
     `;
-
-    // Add CSS styles
-    this.addStyles();
-
-    // Append to body (will be positioned over canvas)
-    document.body.appendChild(this.panel);
   }
 
   /**
@@ -503,36 +549,50 @@ export class FloatingGuardPanel {
     if (!listContainer) return;
 
     const organizations = this.dialogManager.guardOrganizationManager.getAllOrganizations();
+    const organizationTemplate = this.renderOrganizationList(organizations);
 
+    safeRender(organizationTemplate, listContainer as HTMLElement);
+  }
+
+  /**
+   * Render organization list
+   */
+  private renderOrganizationList(organizations: any[]): TemplateResult {
     if (organizations.length === 0) {
-      listContainer.innerHTML =
-        '<div style="color: #999; font-size: 0.75rem; text-align: center; padding: 8px;">No hay organizaciones</div>';
-      return;
+      return html`
+        <div style="color: #999; font-size: 0.75rem; text-align: center; padding: 8px;">
+          No hay organizaciones
+        </div>
+      `;
     }
 
-    listContainer.innerHTML = organizations
-      .map(
-        (org: any) => `
-      <div class="organization-item" data-org-id="${org.id}">
+    return html` ${organizations.map((org) => this.renderOrganizationItem(org))} `;
+  }
+
+  /**
+   * Render individual organization item
+   */
+  private renderOrganizationItem(org: any): TemplateResult {
+    return html`
+      <div
+        class="organization-item"
+        data-org-id="${org.id}"
+        @click=${() => this.handleOrganizationClick()}
+      >
         <div>
           <div class="organization-name">${org.name}</div>
           <div class="organization-subtitle">${org.subtitle}</div>
         </div>
-        <div style="color: #888; font-size: 0.7rem;">
-          ${org.patrols.length} patrullas
-        </div>
+        <div style="color: #888; font-size: 0.7rem;">${org.patrols.length} patrullas</div>
       </div>
-    `
-      )
-      .join('');
+    `;
+  }
 
-    // Add click handlers for organization items
-    listContainer.querySelectorAll('.organization-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        // Al hacer clic en la organización, abrir el diálogo de edición
-        this.dialogManager.showEditOrganizationDialog();
-      });
-    });
+  /**
+   * Handle organization item click
+   */
+  private handleOrganizationClick(): void {
+    this.dialogManager.showEditOrganizationDialog();
   }
 
   /**

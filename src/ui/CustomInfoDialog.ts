@@ -2,7 +2,10 @@
  * Custom Info Dialog - Movable and resizable HTML dialog without using Foundry's Dialog system
  */
 
+import { html, TemplateResult } from 'lit-html';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 import type { GuardOrganization } from '../types/entities';
+import { renderTemplateToString, safeRender } from '../utils/template-renderer.js';
 
 export class CustomInfoDialog {
   private element: HTMLElement | null = null;
@@ -63,7 +66,8 @@ export class CustomInfoDialog {
 
     const contentArea = this.element.querySelector('.custom-dialog-content');
     if (contentArea) {
-      contentArea.innerHTML = content;
+      const contentTemplate = this.renderDialogContent(content);
+      safeRender(contentTemplate, contentArea.parentElement as HTMLElement);
     }
   }
 
@@ -126,28 +130,11 @@ export class CustomInfoDialog {
 
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
-    dialog.innerHTML = `
-      <div class="custom-dialog-header">
-        <div class="custom-dialog-title">
-          <i class="fas fa-info-circle"></i>
-          <span class="custom-dialog-title-text">${title}</span>
-        </div>
-        <div class="custom-dialog-controls">
-          <button class="custom-dialog-btn custom-dialog-edit" title="Editar">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="custom-dialog-btn custom-dialog-close" title="Cerrar">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </div>
+    dialog.innerHTML = '';
 
-      <div class="custom-dialog-content">
-        ${content}
-      </div>
-
-      <div class="custom-dialog-resize-handle"></div>
-    `;
+    // Render using lit-html templates
+    const dialogTemplate = this.renderDialogTemplate(title, content);
+    safeRender(dialogTemplate, dialog);
 
     // Load external CSS styles
     this.loadExternalStyles();
@@ -314,7 +301,7 @@ export class CustomInfoDialog {
    * Generate organization info content (same as GuardDialogManager)
    */
   public static generateOrganizationInfoContent(organization: GuardOrganization): string {
-    return `
+    const template = html`
       <div class="organization-info">
         <div class="info-section">
           <h3><i class="fas fa-shield-alt"></i> Información General</h3>
@@ -325,7 +312,7 @@ export class CustomInfoDialog {
             </div>
             <div class="info-item">
               <label>Subtítulo:</label>
-              <span>${organization.subtitle || '<em>Sin subtítulo</em>'}</span>
+              <span>${organization.subtitle || 'Sin subtítulo'}</span>
             </div>
           </div>
         </div>
@@ -377,5 +364,54 @@ export class CustomInfoDialog {
         </div>
       </div>
     `;
+
+    // Convert template to string for dialog usage
+    return renderTemplateToString(template);
+  }
+
+  /**
+   * Render dialog template
+   */
+  private renderDialogTemplate(title: string, content: string): TemplateResult {
+    return html`
+      ${this.renderDialogHeader(title)} ${this.renderDialogContent(content)}
+      ${this.renderDialogResizeHandle()}
+    `;
+  }
+
+  /**
+   * Render dialog header
+   */
+  private renderDialogHeader(title: string): TemplateResult {
+    return html`
+      <div class="custom-dialog-header">
+        <div class="custom-dialog-title">
+          <i class="fas fa-info-circle"></i>
+          <span class="custom-dialog-title-text">${title}</span>
+        </div>
+        <div class="custom-dialog-controls">
+          <button class="custom-dialog-btn custom-dialog-edit" title="Editar">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="custom-dialog-btn custom-dialog-close" title="Cerrar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render dialog content
+   */
+  private renderDialogContent(content: string): TemplateResult {
+    return html` <div class="custom-dialog-content">${unsafeHTML(content)}</div> `;
+  }
+
+  /**
+   * Render dialog resize handle
+   */
+  private renderDialogResizeHandle(): TemplateResult {
+    return html` <div class="custom-dialog-resize-handle"></div> `;
   }
 }

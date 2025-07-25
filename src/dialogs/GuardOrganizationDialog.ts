@@ -2,8 +2,10 @@
  * Guard Organization Dialog - Create/Edit Guard Organizations using DialogV2
  */
 
+import { html, TemplateResult } from 'lit-html';
 import type { GuardOrganization, GuardStats } from '../types/entities';
 import { DEFAULT_GUARD_STATS } from '../types/entities';
+import { renderTemplateToString } from '../utils/template-renderer.js';
 
 export interface GuardOrganizationDialogData {
   name: string;
@@ -233,94 +235,124 @@ export class GuardOrganizationDialog {
       baseStats: { ...DEFAULT_GUARD_STATS },
     };
 
-    return `
+    const template = this.renderOrganizationForm(data);
+    // Convert TemplateResult to string for DialogV2
+    return renderTemplateToString(template);
+  }
+
+  /**
+   * Render the complete organization form
+   */
+  private renderOrganizationForm(data: any): TemplateResult {
+    return html` ${this.renderFormContent(data)} ${this.renderFormStyles()} `;
+  }
+
+  /**
+   * Render form content section
+   */
+  private renderFormContent(data: any): TemplateResult {
+    return html`
       <form class="guard-organization-form">
-        <div class="form-group">
-          <label for="name">Nombre de la Organización *</label>
-          <input
-            type="text"
-            name="name"
-            id="name"
-            value="${data.name}"
-            placeholder="ej: Guardia de la Ciudad"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="subtitle">Subtítulo</label>
-          <input
-            type="text"
-            name="subtitle"
-            id="subtitle"
-            value="${data.subtitle}"
-            placeholder="ej: Protectores del Reino"
-          />
-        </div>
-
-        <div class="stats-section">
-          <h3>Estadísticas Base</h3>
-          <div class="stats-grid">
-            <div class="stat-input">
-              <label for="robustismo">Robustismo</label>
-              <input
-                type="number"
-                name="robustismo"
-                id="robustismo"
-                value="${data.baseStats?.robustismo !== undefined ? data.baseStats.robustismo : DEFAULT_GUARD_STATS.robustismo}"
-                min="-99"
-                max="99"
-                required
-              />
-            </div>
-
-            <div class="stat-input">
-              <label for="analitica">Analítica</label>
-              <input
-                type="number"
-                name="analitica"
-                id="analitica"
-                value="${data.baseStats?.analitica !== undefined ? data.baseStats.analitica : DEFAULT_GUARD_STATS.analitica}"
-                min="-99"
-                max="99"
-                required
-              />
-            </div>
-
-            <div class="stat-input">
-              <label for="subterfugio">Subterfugio</label>
-              <input
-                type="number"
-                name="subterfugio"
-                id="subterfugio"
-                value="${data.baseStats?.subterfugio !== undefined ? data.baseStats.subterfugio : DEFAULT_GUARD_STATS.subterfugio}"
-                min="-99"
-                max="99"
-                required
-              />
-            </div>
-
-            <div class="stat-input">
-              <label for="elocuencia">Elocuencia</label>
-              <input
-                type="number"
-                name="elocuencia"
-                id="elocuencia"
-                value="${data.baseStats?.elocuencia !== undefined ? data.baseStats.elocuencia : DEFAULT_GUARD_STATS.elocuencia}"
-                min="-99"
-                max="99"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="dialog-info">
-          <p><small>* Campos requeridos</small></p>
-          <p><small>Las estadísticas pueden ser de -99 a 99 y modificadas más tarde mediante modificadores de organización.</small></p>
-        </div>
+        ${this.renderBasicInfoSection(data)} ${this.renderStatsSection(data)}
+        ${this.renderInfoSection()}
       </form>
+    `;
+  }
 
+  /**
+   * Render basic information section
+   */
+  private renderBasicInfoSection(data: any): TemplateResult {
+    return html`
+      <div class="form-group">
+        <label for="name">Nombre de la Organización *</label>
+        <input
+          type="text"
+          name="name"
+          id="name"
+          value="${data.name}"
+          placeholder="ej: Guardia de la Ciudad"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="subtitle">Subtítulo</label>
+        <input
+          type="text"
+          name="subtitle"
+          id="subtitle"
+          value="${data.subtitle}"
+          placeholder="ej: Protectores del Reino"
+        />
+      </div>
+    `;
+  }
+
+  /**
+   * Render stats section
+   */
+  private renderStatsSection(data: any): TemplateResult {
+    return html`
+      <div class="stats-section">
+        <h3>Estadísticas Base</h3>
+        <div class="stats-grid">
+          ${this.renderStatInput('robustismo', 'Robustismo', data)}
+          ${this.renderStatInput('analitica', 'Analítica', data)}
+          ${this.renderStatInput('subterfugio', 'Subterfugio', data)}
+          ${this.renderStatInput('elocuencia', 'Elocuencia', data)}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render individual stat input
+   */
+  private renderStatInput(statName: string, label: string, data: any): TemplateResult {
+    const value =
+      data.baseStats?.[statName] !== undefined
+        ? data.baseStats[statName]
+        : (DEFAULT_GUARD_STATS as any)[statName];
+
+    return html`
+      <div class="stat-input">
+        <label for="${statName}">${label}</label>
+        <input
+          type="number"
+          name="${statName}"
+          id="${statName}"
+          value="${value}"
+          min="-99"
+          max="99"
+          required
+        />
+      </div>
+    `;
+  }
+
+  /**
+   * Render information section
+   */
+  private renderInfoSection(): TemplateResult {
+    return html`
+      <div class="dialog-info">
+        <p><small>* Campos requeridos</small></p>
+        <p>
+          <small
+            >Las estadísticas pueden ser de -99 a 99 y modificadas más tarde mediante modificadores
+            de organización.</small
+          >
+        </p>
+      </div>
+    `;
+  }
+
+  /**
+   * Render form styles
+   */
+  private renderFormStyles(): TemplateResult {
+    return html`
       <style>
         .guard-organization-form {
           display: flex;
@@ -380,7 +412,9 @@ export class GuardOrganizationDialog {
           background: rgba(0, 0, 0, 0.3);
           color: white;
           text-align: center;
-          transition: border-color 0.3s ease, background-color 0.3s ease;
+          transition:
+            border-color 0.3s ease,
+            background-color 0.3s ease;
         }
 
         .stat-input input.error,
@@ -391,9 +425,16 @@ export class GuardOrganizationDialog {
         }
 
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          25% {
+            transform: translateX(-5px);
+          }
+          75% {
+            transform: translateX(5px);
+          }
         }
 
         .dialog-info {
