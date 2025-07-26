@@ -46,6 +46,36 @@ export class GMWarehouseDialog implements FocusableDialog {
       y?: number;
     } = {}
   ): void {
+    // Verify that the module is available before showing
+    const gm = (window as any).GuardManagement;
+
+    if (!gm) {
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error(
+          'Guard Management module not found. Please reload the page.'
+        );
+      }
+      return;
+    }
+
+    if (!gm.isInitialized) {
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error(
+          'Guard Management module still loading. Please wait a moment and try again.'
+        );
+      }
+      return;
+    }
+
+    if (!gm.documentManager) {
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error(
+          'Document manager not available. Please reload the module.'
+        );
+      }
+      return;
+    }
+
     // Create the dialog element
     this.element = this.createElement(options);
 
@@ -225,15 +255,15 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async getResourceTemplates(): Promise<any[]> {
     try {
       const gm = (window as any).GuardManagement;
-      if (gm?.documentManager) {
-        // Get all resources from DocumentBasedManager (these serve as templates in GM Warehouse)
-        this.resourceTemplates = await gm.documentManager.getGuardResources();
-        return this.resourceTemplates;
-      } else {
-        console.warn('DocumentBasedManager not available, returning empty array');
+
+      if (!gm || !gm.isInitialized || !gm.documentManager) {
         this.resourceTemplates = [];
         return this.resourceTemplates;
       }
+
+      // Get all resources from DocumentBasedManager (these serve as templates in GM Warehouse)
+      this.resourceTemplates = await gm.documentManager.getGuardResources();
+      return this.resourceTemplates;
     } catch (error) {
       console.error('Error loading resource templates from DocumentBasedManager:', error);
       this.resourceTemplates = [];
@@ -559,18 +589,27 @@ export class GMWarehouseDialog implements FocusableDialog {
         // Save using DocumentBasedManager instead of localStorage
         try {
           const gm = (window as any).GuardManagement;
-          if (gm?.documentManager) {
-            const createdResource = await gm.documentManager.createGuardResource(newResource);
-            if (createdResource) {
-              console.log('Resource template saved via DocumentBasedManager');
 
-              // Refresh templates list from DocumentBasedManager
-              await this.refreshResourcesTab();
-            } else {
-              throw new Error('Failed to create resource via DocumentBasedManager');
-            }
-          } else {
+          if (!gm) {
+            throw new Error('GuardManagement module not loaded');
+          }
+
+          if (!gm.isInitialized) {
+            throw new Error('GuardManagement module not fully initialized');
+          }
+
+          if (!gm.documentManager) {
             throw new Error('DocumentBasedManager not available');
+          }
+
+          const createdResource = await gm.documentManager.createGuardResource(newResource);
+          if (createdResource) {
+            console.log('Resource template saved via DocumentBasedManager');
+
+            // Refresh templates list from DocumentBasedManager
+            await this.refreshResourcesTab();
+          } else {
+            throw new Error('Failed to create resource via DocumentBasedManager');
           }
         } catch (error) {
           console.error('Error saving resource template via DocumentBasedManager:', error);
@@ -709,6 +748,26 @@ export class GMWarehouseDialog implements FocusableDialog {
     y?: number;
   }): GMWarehouseDialog {
     try {
+      // Check if window exists
+      if (typeof window === 'undefined') {
+        throw new Error('Window object not available');
+      }
+
+      // Verify that GuardManagement module is available
+      const gm = (window as any).GuardManagement;
+
+      if (!gm) {
+        throw new Error('GuardManagement module not loaded yet');
+      }
+
+      if (!gm.isInitialized) {
+        throw new Error('GuardManagement module not fully initialized yet');
+      }
+
+      if (!gm.documentManager) {
+        throw new Error('DocumentBasedManager not initialized yet');
+      }
+
       const dialog = new GMWarehouseDialog();
       dialog.show(options);
       return dialog;
@@ -718,6 +777,15 @@ export class GMWarehouseDialog implements FocusableDialog {
         if ((globalThis as any).ui?.notifications) {
           (globalThis as any).ui.notifications.error(
             'Solo el GM puede acceder al almacén de plantillas'
+          );
+        }
+      } else if (
+        error instanceof Error &&
+        (error.message.includes('not loaded') || error.message.includes('not initialized'))
+      ) {
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.warn(
+            'Módulo aún no está completamente cargado. Intenta de nuevo en un momento.'
           );
         }
       }

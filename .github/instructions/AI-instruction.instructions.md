@@ -58,14 +58,6 @@ npm run build:watch  # Auto-rebuild for Foundry
 npm run test:watch   # Tests in watch mode
 ```
 
-**Available VS Code Tasks**:
-
-- Guard Management: Setup with nvm
-- Guard Management: Dev Server (with nvm)
-- Guard Management: Build (with nvm)
-- Guard Management: Build Watch (with nvm)
-- Guard Management: Test (with nvm)
-
 ### TDD Implementation Strategy
 
 **Test-First Development Approach**:

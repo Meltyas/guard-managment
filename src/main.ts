@@ -18,11 +18,73 @@ import { GuardManagementHelpers } from './utils/console-helpers';
 // Global module reference
 let guardManagementModule: GuardManagementModule;
 
+/**
+ * Set up a watchdog to detect if something deletes our module from window
+ */
+function setupModuleWatchdog(moduleInstance: GuardManagementModule): void {
+  // Store a backup reference
+  (globalThis as any)._guardManagementBackup = moduleInstance;
+
+  // Set up immediate monitoring using Object.defineProperty
+  try {
+    let currentValue = moduleInstance;
+
+    Object.defineProperty(window, 'GuardManagement', {
+      get() {
+        return currentValue;
+      },
+      set(newValue) {
+        if (newValue === null || newValue === undefined) {
+          // Don't allow deletion - keep the original value
+          return;
+        } else if (newValue !== moduleInstance) {
+          // Don't allow replacement with different object
+          return;
+        } else {
+          // Allow setting to the same instance
+          currentValue = newValue;
+        }
+      },
+      configurable: false, // Prevent deletion of the property
+      enumerable: true,
+    });
+  } catch (error) {
+    console.error(
+      'Guard Management | Failed to set up property protection, falling back to interval:',
+      error
+    );
+
+    // Fallback to interval-based monitoring
+    const watchdogInterval = setInterval(() => {
+      const currentModule = (window as any).GuardManagement;
+
+      if (!currentModule) {
+        // Restore the module
+        (window as any).GuardManagement = moduleInstance;
+
+        // Notify the user
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.warn(
+            'Guard Management module was unexpectedly removed and has been restored.'
+          );
+        }
+      } else if (currentModule !== moduleInstance) {
+        // Restore our module
+        (window as any).GuardManagement = moduleInstance;
+      }
+    }, 1000);
+
+    // Store the interval ID so we can clear it if needed
+    (moduleInstance as any)._watchdogInterval = watchdogInterval;
+  }
+}
+
 class GuardManagementModule {
   public documentManager: DocumentBasedManager;
   public guardOrganizationManager: GuardOrganizationManager;
   public guardDialogManager: GuardDialogManager;
   public floatingPanel: FloatingGuardPanel;
+  public isInitialized: boolean = false;
 
   constructor() {
     this.documentManager = new DocumentBasedManager();
@@ -35,8 +97,6 @@ class GuardManagementModule {
    * Initialize the module
    */
   public async initialize(): Promise<void> {
-    console.log('Guard Management | Initializing module...');
-
     // Register custom DataModels
     registerDataModels();
 
@@ -51,14 +111,13 @@ class GuardManagementModule {
     await this.guardOrganizationManager.initialize();
     await this.guardDialogManager.initialize();
 
-    // Initialize floating panel
+    // Initialize floating panel (but don't show it yet)
     this.floatingPanel.initialize();
-    this.floatingPanel.show(); // Always show the panel on startup
 
     // Set up event listeners for panel updates
     this.setupEventListeners();
 
-    console.log('Guard Management | Module initialized successfully');
+    this.isInitialized = true;
   }
 
   /**
@@ -103,10 +162,39 @@ class GuardManagementModule {
   }
 
   /**
+   * Debug method to check module state
+   */
+  public debugModuleState(): void {
+    console.log('=== GUARD MANAGEMENT MODULE DEBUG ===');
+    console.log('Module instance:', {
+      documentManager: !!this.documentManager,
+      guardOrganizationManager: !!this.guardOrganizationManager,
+      guardDialogManager: !!this.guardDialogManager,
+      floatingPanel: !!this.floatingPanel,
+      isInitialized: this.isInitialized,
+    });
+    console.log('Window export:', {
+      windowGuardManagement: !!(window as any).GuardManagement,
+      sameInstance: (window as any).GuardManagement === this,
+    });
+    console.log('Foundry state:', {
+      game: !!game,
+      user: !!(game as any)?.user,
+      isGM: !!(game as any)?.user?.isGM,
+      ready: game?.ready,
+    });
+  }
+
+  /**
    * Clean up resources when the module is disabled
    */
   public cleanup(): void {
-    console.log('Guard Management | Cleaning up module...');
+    // Clear the watchdog interval
+    const watchdogInterval = (this as any)._watchdogInterval;
+    if (watchdogInterval) {
+      clearInterval(watchdogInterval);
+    }
+
     this.floatingPanel.cleanup();
     this.guardDialogManager.cleanup();
     this.guardOrganizationManager?.cleanup?.();
@@ -116,18 +204,52 @@ class GuardManagementModule {
 
 // Foundry VTT Hooks
 Hooks.once('init', async () => {
-  guardManagementModule = new GuardManagementModule();
-  await guardManagementModule.initialize();
+  try {
+    guardManagementModule = new GuardManagementModule();
+    await guardManagementModule.initialize();
 
-  // Export for global access
-  (window as any).GuardManagement = guardManagementModule;
+    // Export for global access
+    (window as any).GuardManagement = guardManagementModule;
 
-  // Initialize console helpers
-  GuardManagementHelpers.help();
+    // Set up a watchdog to detect if something deletes our module
+    setupModuleWatchdog(guardManagementModule);
+
+    // Initialize console helpers
+    GuardManagementHelpers.help();
+  } catch (error) {
+    console.error('Guard Management | CRITICAL ERROR during initialization:', error);
+
+    if (error instanceof Error) {
+      console.error('Guard Management | Error stack:', error.stack);
+      console.error('Guard Management | Error name:', error.name);
+      console.error('Guard Management | Error message:', error.message);
+
+      // Try to export a minimal version to avoid complete failure
+      (window as any).GuardManagement = {
+        isInitialized: false,
+        error: error.message,
+        documentManager: null,
+      };
+    } else {
+      console.error('Guard Management | Unknown error type:', typeof error);
+
+      // Try to export a minimal version to avoid complete failure
+      (window as any).GuardManagement = {
+        isInitialized: false,
+        error: 'Unknown initialization error',
+        documentManager: null,
+      };
+    }
+  }
 });
 
 Hooks.once('ready', async () => {
-  console.log('Guard Management | Foundry is ready, module is active');
+  // Check if module was properly initialized
+  const gm = (window as any).GuardManagement;
+  if (!gm || !gm.isInitialized) {
+    console.error('Guard Management | Module not properly initialized');
+    return;
+  }
 
   // Refresh floating panel to ensure GM status is correct
   if (guardManagementModule && guardManagementModule.floatingPanel) {
@@ -137,10 +259,8 @@ Hooks.once('ready', async () => {
     // Check if there are any organizations, if not create sample data
     const organizations = guardManagementModule.documentManager.getGuardOrganizations();
     if (organizations.length === 0) {
-      console.log('Guard Management | No organizations found, creating sample data...');
       try {
         await guardManagementModule.documentManager.createSampleData();
-        console.log('Guard Management | Sample data created successfully');
 
         // Update the floating panel to show the new organizations
         setTimeout(() => {

@@ -32,7 +32,6 @@ export class FloatingGuardPanel {
     this.createPanel();
     this.attachEventListeners();
     this.restorePosition();
-    console.log('FloatingGuardPanel | Initialized');
   }
 
   /**
@@ -77,26 +76,20 @@ export class FloatingGuardPanel {
       this.panel.remove();
       this.panel = null;
     }
-    console.log('FloatingGuardPanel | Cleaned up');
   }
 
   /**
    * Force reconfigure GM elements (for debugging)
    */
   public forceConfigureGM(): void {
-    console.log('FloatingGuardPanel | No longer needed - simplified');
+    // Simplified - no longer needed
   }
 
   /**
    * Refresh the panel content after game is ready
    */
   public refreshPanel(): void {
-    if (!this.panel) {
-      console.log('FloatingGuardPanel | No panel to refresh');
-      return;
-    }
-
-    console.log('FloatingGuardPanel | Refreshing panel for GM status');
+    if (!this.panel) return;
 
     // Remove existing panel
     this.panel.remove();
@@ -105,8 +98,6 @@ export class FloatingGuardPanel {
     this.createPanel();
     this.attachEventListeners();
     this.restorePosition();
-
-    console.log('FloatingGuardPanel | Panel refreshed');
   }
 
   /**
@@ -117,14 +108,8 @@ export class FloatingGuardPanel {
     this.panel.id = 'guard-management-floating-panel';
     this.panel.className = 'guard-floating-panel';
 
-    // Debug GM status
+    // Check GM status
     const isGM = (game?.user as any)?.isGM;
-    console.log('FloatingGuardPanel | Creating panel - GM status:', {
-      game: !!game,
-      user: !!game?.user,
-      isGM: isGM,
-      userObject: game?.user,
-    });
 
     // Render using lit-html templates
     const panelTemplate = this.renderPanelTemplate(isGM);
@@ -540,11 +525,74 @@ export class FloatingGuardPanel {
   /**
    * Open the GM Warehouse dialog
    */
-  private async openGMWarehouse(): Promise<void> {
+  private openGMWarehouse(): void {
     try {
-      await GMWarehouseDialog.show();
+      // IMMEDIATE RECOVERY ATTEMPT - check and restore if needed
+      this.ensureModuleAvailable();
+
+      // Verify that GuardManagement module is available
+      const gm = (window as any).GuardManagement;
+
+      if (!gm) {
+        if (ui?.notifications) {
+          ui.notifications.error(
+            'Error crítico: El módulo Guard Management ha sido eliminado. Recarga la página.'
+          );
+        }
+        return;
+      }
+
+      if (!gm.isInitialized) {
+        if (ui?.notifications) {
+          ui.notifications.warn(
+            'Módulo aún no está completamente inicializado. Intenta de nuevo en un momento.'
+          );
+        }
+        return;
+      }
+
+      if (!gm.documentManager) {
+        if (ui?.notifications) {
+          ui.notifications.warn(
+            'Sistema de datos aún no está listo. Intenta de nuevo en un momento.'
+          );
+        }
+        return;
+      }
+
+      GMWarehouseDialog.show();
     } catch (error) {
-      console.error('Error opening GM Warehouse:', error);
+      console.error('FloatingGuardPanel.openGMWarehouse() | Error:', error);
+      if (ui?.notifications) {
+        ui.notifications.error(
+          `Error al abrir el almacén: ${error instanceof Error ? error.message : 'Error desconocido'}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Ensure the GuardManagement module is available, restore if needed
+   */
+  private ensureModuleAvailable(): void {
+    const currentModule = (window as any).GuardManagement;
+
+    if (!currentModule) {
+      // Try to find a backup reference in the system
+      try {
+        // Look for the module in Foundry's module registry
+        const foundryModule = (game as any)?.modules?.get('guard-management');
+        if (foundryModule && foundryModule.active) {
+          // Display recovery notification
+          if (ui?.notifications) {
+            ui.notifications.warn(
+              'El módulo Guard Management fue eliminado inesperadamente. Por favor, recarga la página.'
+            );
+          }
+        }
+      } catch (error) {
+        console.error('FloatingGuardPanel | Error during module recovery attempt:', error);
+      }
     }
   }
 
@@ -741,7 +789,6 @@ export class FloatingGuardPanel {
       this.panel.style.left = `${clampedX}px`;
       this.panel.style.top = `${clampedY}px`;
     } catch (error) {
-      console.warn('FloatingGuardPanel | Error restoring position:', error);
       this.panel.style.left = `${this.DEFAULT_POSITION.x}px`;
       this.panel.style.top = `${this.DEFAULT_POSITION.y}px`;
     }

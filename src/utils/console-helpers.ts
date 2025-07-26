@@ -11,6 +11,82 @@ declare global {
 
 export class GuardManagementHelpers {
   /**
+   * Debug module state
+   */
+  static debugModuleState() {
+    console.log('=== GUARD MANAGEMENT DEBUG ===');
+    const gm = window.GuardManagement;
+    console.log('Window.GuardManagement:', !!gm);
+
+    if (gm) {
+      console.log('Module state:', {
+        isInitialized: gm.isInitialized,
+        documentManager: !!gm.documentManager,
+        guardOrganizationManager: !!gm.guardOrganizationManager,
+        guardDialogManager: !!gm.guardDialogManager,
+        floatingPanel: !!gm.floatingPanel,
+      });
+
+      if (gm.debugModuleState) {
+        gm.debugModuleState();
+      }
+    } else {
+      console.error('GuardManagement module not found on window object');
+      console.log('Attempting recovery...');
+      GuardManagementHelpers.attemptModuleRecovery();
+    }
+  }
+
+  /**
+   * Attempt to recover the module if it's missing
+   */
+  static attemptModuleRecovery() {
+    console.log('GuardManagementHelpers | Attempting module recovery...');
+
+    // Try to find if Foundry has the module loaded
+    const foundryModules = (game as any)?.modules;
+    if (foundryModules) {
+      const guardModule = foundryModules.get('guard-management');
+      if (guardModule) {
+        console.log('Found guard-management module in Foundry:', guardModule);
+
+        // Check if the module has an active flag
+        if (guardModule.active) {
+          console.log('Module is marked as active, but window.GuardManagement is missing');
+          console.log('This suggests the module was deleted from window after initialization');
+          console.log('Please reload the page to restore the module');
+
+          if ((globalThis as any).ui?.notifications) {
+            (globalThis as any).ui.notifications.error(
+              'Guard Management module needs to be reloaded. Please refresh the page.'
+            );
+          }
+        } else {
+          console.log('Module is not active in Foundry');
+        }
+      } else {
+        console.log('guard-management module not found in Foundry modules');
+      }
+    }
+  }
+
+  /**
+   * Force restore the module (if we have a backup reference)
+   */
+  static forceRestoreModule() {
+    console.log('GuardManagementHelpers | Attempting to force restore module...');
+
+    // This would need to be implemented if we store a backup reference
+    console.log('Force restore not implemented yet - please reload the page');
+
+    if ((globalThis as any).ui?.notifications) {
+      (globalThis as any).ui.notifications.warn(
+        'Please reload the page to restore the Guard Management module.'
+      );
+    }
+  }
+
+  /**
    * Create sample data for testing
    */
   static async createSampleData() {
@@ -64,7 +140,7 @@ export class GuardManagementHelpers {
     console.log('=== Floating Panel Debug ===');
     console.log('Panel exists:', !!gm.floatingPanel);
     console.log('Panel element:', gm.floatingPanel?.panel);
-    console.log('Current user isGM:', game?.user?.isGM);
+    console.log('Current user isGM:', (game as any)?.user?.isGM);
     console.log(
       'GM elements found:',
       gm.floatingPanel?.panel?.querySelectorAll?.('.gm-only')?.length || 0
@@ -78,7 +154,7 @@ export class GuardManagementHelpers {
 
     return {
       panel: gm.floatingPanel,
-      isGM: game?.user?.isGM,
+      isGM: (game as any)?.user?.isGM,
       gmElements: gm.floatingPanel?.panel?.querySelectorAll?.('.gm-only'),
     };
   }
@@ -226,9 +302,14 @@ export class GuardManagementHelpers {
 Guard Management Console Helpers:
 
 Basic Commands:
+- GuardManagementHelpers.debugModuleState()     // Debug module initialization
 - GuardManagementHelpers.createSampleData()      // Create sample data
 - GuardManagementHelpers.showManagementDialog()  // Open management UI
 - GuardManagementHelpers.help()                  // Show this help
+
+Recovery Commands:
+- GuardManagementHelpers.attemptModuleRecovery() // Try to recover missing module
+- GuardManagementHelpers.forceRestoreModule()    // Force restore (reload required)
 
 List Commands:
 - GuardManagementHelpers.listOrganizations()     // List all organizations
@@ -239,6 +320,9 @@ List Commands:
 Create Commands:
 - GuardManagementHelpers.createTestOrganization('Name')  // Create test org
 - GuardManagementHelpers.createTestPatrol('orgId', 'Name') // Create test patrol
+
+Debug Commands:
+- GuardManagementHelpers.debugFloatingPanel()   // Debug floating panel
 
 Cleanup:
 - GuardManagementHelpers.cleanupTestData()       // Delete all test data
