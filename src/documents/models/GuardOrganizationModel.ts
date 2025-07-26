@@ -167,6 +167,17 @@ export class GuardOrganizationModel extends foundry.abstract.TypeDataModel {
   }
 
   /**
+   * Remove a resource from this organization
+   */
+  async removeResource(resourceId: string) {
+    const updatedResources = this.resources.filter((id) => id !== resourceId);
+    await this.parent.update({
+      'system.resources': updatedResources,
+      'system.version': this.version + 1,
+    });
+  }
+
+  /**
    * Add reputation entry to this organization
    */
   async addReputation(reputationId: string) {

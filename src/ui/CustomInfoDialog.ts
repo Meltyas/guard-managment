@@ -16,6 +16,8 @@ export class CustomInfoDialog implements FocusableDialog {
   private onEditCallback?: () => void;
   private onCloseCallback?: () => void;
   private isFocused = false;
+  private currentOrganization: GuardOrganization | null = null;
+  private resourceEventHandler: ((event: Event) => void) | null = null;
 
   constructor() {
     this.handleMouseDown = this.handleMouseDown.bind(this);
@@ -67,16 +69,204 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
-   * Update the content of the dialog
+   * Show organization info dialog
    */
-  public updateContent(content: string): void {
+  public showOrganizationInfo(
+    organization: GuardOrganization,
+    options: {
+      onEdit?: () => void;
+      onClose?: () => void;
+      width?: number;
+      height?: number;
+      x?: number;
+      y?: number;
+    } = {}
+  ): void {
+    console.log('🏛️ Setting current organization:', organization.name, organization.id);
+    this.currentOrganization = organization;
+    this.onEditCallback = options.onEdit;
+    this.onCloseCallback = options.onClose;
+
+    // Create the dialog element directly with organization content
+    this.element = this.createOrganizationDialogElement(organization, options);
+
+    // Add to document
+    document.body.appendChild(this.element);
+
+    // Register with focus manager
+    DialogFocusManager.getInstance().registerDialog(this);
+
+    // Add event listeners
+    this.addEventListeners();
+
+    // Give this dialog focus immediately
+    DialogFocusManager.getInstance().setFocus(this);
+
+    // Center on screen if no position specified
+    if (!options.x && !options.y) {
+      this.centerOnScreen();
+    }
+  }
+
+  /**
+   * Create the dialog HTML element specifically for organization info
+   */
+  private createOrganizationDialogElement(
+    organization: GuardOrganization,
+    options: { width?: number; height?: number; x?: number; y?: number }
+  ): HTMLElement {
+    const dialog = document.createElement('div');
+    dialog.className = 'custom-info-dialog custom-dialog';
+
+    // Set initial size and position
+    const width = options.width || 500;
+    const height = options.height || 400;
+    const x = options.x || (window.innerWidth - width) / 2;
+    const y = options.y || (window.innerHeight - height) / 2;
+
+    // Only set position and size, all other styles come from CSS
+    dialog.style.left = `${x}px`;
+    dialog.style.top = `${y}px`;
+    dialog.style.width = `${width}px`;
+    dialog.style.height = `${height}px`;
+
+    dialog.tabIndex = -1; // Make focusable for keyboard events
+
+    dialog.innerHTML = '';
+
+    // Render using lit-html templates directly
+    const dialogTemplate = this.renderOrganizationDialogTemplate(organization);
+    safeRender(dialogTemplate, dialog);
+
+    // Load external CSS styles
+    this.loadExternalStyles();
+
+    return dialog;
+  }
+
+  /**
+   * Render the complete organization dialog template
+   */
+  private renderOrganizationDialogTemplate(organization: GuardOrganization): TemplateResult {
+    const title = `Información: ${organization.name}`;
+
+    return html`
+      ${this.renderDialogHeader(title)}
+      <div class="custom-dialog-content">${this.renderOrganizationContent(organization)}</div>
+      ${this.renderDialogResizeHandle()}
+      <div class="drop-overlay" style="display: none;"></div>
+    `;
+  }
+
+  /**
+   * Update the organization and refresh the dialog content
+   */
+  public updateOrganization(organization: GuardOrganization): void {
+    console.log('🔄 Updating dialog content...');
+    this.currentOrganization = organization;
+
     if (!this.element) return;
 
-    const contentArea = this.element.querySelector('.custom-dialog-content');
-    if (contentArea) {
-      const contentTemplate = this.renderDialogContent(content);
-      safeRender(contentTemplate, contentArea.parentElement as HTMLElement);
+    // Update title
+    const titleElement = this.element.querySelector('.custom-dialog-title-text');
+    if (titleElement) {
+      titleElement.textContent = `Información: ${organization.name}`;
     }
+
+    // Update content
+    const contentElement = this.element.querySelector('.custom-dialog-content');
+    if (contentElement) {
+      // IMPORTANT: Clear existing content first to prevent duplication
+      contentElement.innerHTML = '';
+
+      const organizationTemplate = this.renderOrganizationContent(organization);
+      safeRender(organizationTemplate, contentElement as HTMLElement);
+      console.log('✅ Dialog updated with', organization.resources?.length || 0, 'resources');
+
+      // Re-setup resource event listeners after content is rendered
+      setTimeout(() => {
+        this.setupResourceEventListeners();
+      }, 50);
+    }
+  }
+
+  /**
+   * Render just the organization content (without dialog wrapper)
+   */
+  private renderOrganizationContent(organization: GuardOrganization): TemplateResult {
+    console.log('🔍 Rendering organization content:', organization.name);
+    console.log('🔍 Organization resources:', organization.resources);
+
+    return html`
+      <div class="organization-info">
+        <div class="info-section">
+          <h3><i class="fas fa-shield-alt"></i> Información General</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Nombre:</label>
+              <span>${organization.name}</span>
+            </div>
+            <div class="info-item">
+              <label>Subtítulo:</label>
+              <span>${organization.subtitle || 'Sin subtítulo'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h3><i class="fas fa-chart-bar"></i> Estadísticas Base</h3>
+          <div class="stats-display">
+            <div class="stat-box">
+              <div class="stat-value">${organization.baseStats.robustismo}</div>
+              <div class="stat-label">Robustismo</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">${organization.baseStats.analitica}</div>
+              <div class="stat-label">Analítica</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">${organization.baseStats.subterfugio}</div>
+              <div class="stat-label">Subterfugio</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">${organization.baseStats.elocuencia}</div>
+              <div class="stat-label">Elocuencia</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h3><i class="fas fa-users"></i> Patrullas</h3>
+          <div class="patrol-count">
+            <span class="count">${organization.patrols?.length || 0}</span>
+            <span class="label">patrullas activas</span>
+          </div>
+        </div>
+
+        <div class="info-section resources-section">
+          <h3><i class="fas fa-coins"></i> Recursos</h3>
+          <div class="resources-list" data-organization-id="${organization.id}">
+            ${organization.resources && organization.resources.length > 0
+              ? html`${organization.resources.map((resourceId: string) =>
+                  this.renderResourceItemTemplate(resourceId)
+                )}`
+              : html`<p class="empty-state">
+                  No hay recursos asignados a esta organización.<br /><small
+                    >Arrastra recursos desde el warehouse</small
+                  >
+                </p>`}
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h3><i class="fas fa-handshake"></i> Reputación</h3>
+          <div class="reputation-count">
+            <span class="count">${organization.reputation?.length || 0}</span>
+            <span class="label">relaciones con facciones</span>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   /**
@@ -198,10 +388,16 @@ export class CustomInfoDialog implements FocusableDialog {
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
 
+    // Drop zone functionality - entire dialog is a drop zone
+    this.setupDropZoneListeners();
+
     // Focus management
     this.element.addEventListener('focus', this.handleFocus);
     this.element.addEventListener('click', this.handleGlobalClick);
     document.addEventListener('click', this.handleGlobalClick);
+
+    // Add event listeners for remove resource buttons
+    this.setupResourceEventListeners();
   }
 
   /**
@@ -211,6 +407,192 @@ export class CustomInfoDialog implements FocusableDialog {
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
     document.removeEventListener('click', this.handleGlobalClick);
+
+    // Remove resource event listener
+    if (this.element && this.resourceEventHandler) {
+      this.element.removeEventListener('click', this.resourceEventHandler);
+      this.resourceEventHandler = null;
+      console.log('🧹 Cleaned up resource event handler');
+    }
+  }
+
+  /**
+   * Setup event listeners for resource buttons
+   */
+  private setupResourceEventListeners(): void {
+    if (!this.element) return;
+
+    console.log('🔧 Setting up resource event listeners...');
+
+    // Remove existing event handler if it exists
+    if (this.resourceEventHandler) {
+      this.element.removeEventListener('click', this.resourceEventHandler);
+      console.log('🧹 Removed existing resource event handler');
+    }
+
+    // Create new event handler and store reference
+    this.resourceEventHandler = (event: Event) => {
+      const target = event.target as HTMLElement;
+      const removeBtn = target.closest('.remove-resource-btn') as HTMLElement;
+
+      if (removeBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const resourceId = removeBtn.getAttribute('data-resource-id');
+        const resourceName = removeBtn.getAttribute('data-resource-name');
+
+        if (resourceId) {
+          console.log('🗑️ Remove button clicked for:', resourceName, resourceId);
+          this.handleRemoveResource(resourceId, resourceName || 'Recurso');
+        }
+      }
+    };
+
+    // Add the new event listener
+    this.element.addEventListener('click', this.resourceEventHandler);
+    console.log('✅ Resource event listeners set up');
+  }
+
+  /**
+   * Handle removing a resource from the organization
+   */
+  private async handleRemoveResource(resourceId: string, resourceName: string): Promise<void> {
+    console.log('🗑️ Remove resource request:', resourceName, resourceId);
+
+    // Show confirmation dialog
+    const confirmed = await this.showRemoveResourceDialog(resourceName);
+    if (!confirmed) {
+      console.log('❌ Resource removal cancelled by user');
+      return;
+    }
+
+    const gm = (window as any).GuardManagement;
+
+    if (!gm?.guardOrganizationManager || !this.currentOrganization) {
+      console.error('❌ GuardOrganizationManager or organization not available');
+      return;
+    }
+
+    try {
+      // Get current organization
+      const organization = gm.guardOrganizationManager.getOrganization();
+      if (!organization) {
+        console.error('❌ Organization not found');
+        return;
+      }
+
+      // Check if resource is assigned
+      if (!organization.resources || !organization.resources.includes(resourceId)) {
+        console.log('ℹ️ Resource not assigned - nothing to remove');
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.warn(
+            `El recurso "${resourceName}" no está asignado a esta organización`
+          );
+        }
+        return;
+      }
+
+      // Create a NEW array without the resource to avoid mutation issues
+      const newResources = organization.resources.filter((id: string) => id !== resourceId);
+
+      // Create a completely new organization object to avoid reference issues
+      const updatedOrganization = {
+        ...organization,
+        resources: newResources,
+        updatedAt: new Date(),
+        version: (organization.version || 0) + 1,
+      };
+
+      // Update organization
+      await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
+
+      // Update current organization in memory with the NEW object
+      this.currentOrganization = updatedOrganization;
+
+      console.log('✅ Resource removed successfully');
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Recurso "${resourceName}" removido de la organización`
+        );
+      }
+
+      // Re-render the dialog to show the updated resources
+      await this.refreshContent();
+    } catch (error) {
+      console.error('❌ Error removing resource:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error(
+          'Error al remover el recurso de la organización'
+        );
+      }
+    }
+  }
+
+  /**
+   * Show confirmation dialog for removing a resource
+   */
+  private async showRemoveResourceDialog(resourceName: string): Promise<boolean> {
+    try {
+      // Use foundry's built-in confirmation dialog
+      const result = await Dialog.confirm({
+        title: 'Confirmar Remoción',
+        content: `
+          <div style="margin-bottom: 1rem;">
+            <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
+            <strong>¿Estás seguro?</strong>
+          </div>
+          <p>¿Deseas remover el recurso "<strong>${resourceName}</strong>" de esta organización?</p>
+          <p><small>Esta acción se puede deshacer asignando el recurso nuevamente.</small></p>
+        `,
+        yes: () => true,
+        no: () => false,
+        defaultYes: false,
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error showing confirmation dialog:', error);
+      // Fallback to browser confirm if Dialog fails
+      return confirm(`¿Deseas remover el recurso "${resourceName}" de esta organización?`);
+    }
+  }
+
+  /**
+   * Setup drop zone listeners for the overlay
+   */
+  private setupDropZoneListeners(): void {
+    if (!this.element) return;
+
+    const overlay = this.element.querySelector('.drop-overlay') as HTMLElement;
+    if (!overlay) return;
+
+    // Remove existing listeners first to avoid duplicates
+    overlay.removeEventListener('dragover', this.handleDragOver.bind(this));
+    overlay.removeEventListener('dragenter', this.handleDragEnter.bind(this));
+    overlay.removeEventListener('dragleave', this.handleDragLeave.bind(this));
+    overlay.removeEventListener('drop', this.handleDrop.bind(this));
+
+    // Add new listeners
+    overlay.addEventListener('dragover', this.handleDragOver.bind(this));
+    overlay.addEventListener('dragenter', this.handleDragEnter.bind(this));
+    overlay.addEventListener('dragleave', this.handleDragLeave.bind(this));
+    overlay.addEventListener('drop', this.handleDrop.bind(this));
+
+    console.log('Drop zone listeners set up for overlay');
+
+    // Listen for global drag events to show/hide overlay
+    this.setupGlobalDragListeners();
+  }
+
+  /**
+   * Setup global drag listeners to detect when dragging starts/ends
+   */
+  private setupGlobalDragListeners(): void {
+    document.addEventListener('dragstart', this.handleGlobalDragStart.bind(this));
+    document.addEventListener('dragend', this.handleGlobalDragEnd.bind(this));
   }
 
   /**
@@ -302,7 +684,10 @@ export class CustomInfoDialog implements FocusableDialog {
     const styleId = 'custom-info-dialog-styles';
 
     // Check if styles already exist
-    if (document.getElementById(styleId)) return;
+    if (document.getElementById(styleId)) {
+      console.log('🎨 CSS styles already loaded');
+      return;
+    }
 
     // Create link element for external CSS
     const link = document.createElement('link');
@@ -311,13 +696,22 @@ export class CustomInfoDialog implements FocusableDialog {
     link.type = 'text/css';
     link.href = 'modules/guard-management/styles/custom-info-dialog.css';
 
+    link.onload = () => {
+      console.log('🎨 CSS styles loaded successfully');
+    };
+
+    link.onerror = () => {
+      console.error('❌ Error loading CSS styles');
+    };
+
     document.head.appendChild(link);
+    console.log('🎨 CSS link added to document head');
   }
 
   /**
-   * Generate organization info content (same as GuardDialogManager)
+   * Generate organization info content
    */
-  public static generateOrganizationInfoContent(organization: GuardOrganization): string {
+  public generateOrganizationInfoContent(organization: GuardOrganization): string {
     const template = html`
       <div class="organization-info">
         <div class="info-section">
@@ -364,11 +758,18 @@ export class CustomInfoDialog implements FocusableDialog {
           </div>
         </div>
 
-        <div class="info-section">
+        <div class="info-section resources-section">
           <h3><i class="fas fa-coins"></i> Recursos</h3>
-          <div class="resource-count">
-            <span class="count">${organization.resources?.length || 0}</span>
-            <span class="label">recursos gestionados</span>
+          <div class="resources-list" data-organization-id="${organization.id}">
+            ${organization.resources && organization.resources.length > 0
+              ? html`${organization.resources.map((resourceId: string) =>
+                  this.renderResourceItemTemplate(resourceId)
+                )}`
+              : html`<p class="empty-state">
+                  No hay recursos asignados a esta organización.<br /><small
+                    >Arrastra recursos desde el warehouse</small
+                  >
+                </p>`}
           </div>
         </div>
 
@@ -387,12 +788,21 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
+   * Static version for backward compatibility
+   */
+  public static generateOrganizationInfoContent(organization: GuardOrganization): string {
+    const instance = new CustomInfoDialog();
+    return instance.generateOrganizationInfoContent(organization);
+  }
+
+  /**
    * Render dialog template
    */
   private renderDialogTemplate(title: string, content: string): TemplateResult {
     return html`
       ${this.renderDialogHeader(title)} ${this.renderDialogContent(content)}
       ${this.renderDialogResizeHandle()}
+      <div class="drop-overlay" style="display: none;"></div>
     `;
   }
 
@@ -482,5 +892,300 @@ export class CustomInfoDialog implements FocusableDialog {
   private handleBlur(): void {
     // Note: We don't clear focus here because focus is managed globally
     // Focus is only lost when another dialog gains focus or when dialog is closed
+  }
+
+  /**
+   * Render individual resource item as TemplateResult
+   */
+  private renderResourceItemTemplate(resourceId: string): TemplateResult {
+    console.log('🔧 Rendering resource item:', resourceId);
+
+    // Get the actual resource data
+    const gm = (window as any).GuardManagement;
+    let resourceData = null;
+
+    try {
+      if (gm?.documentManager) {
+        const resources = gm.documentManager.getGuardResources();
+        console.log('📦 Available resources in documentManager:', resources.length);
+
+        const resource = resources.find((r: any) => r.id === resourceId);
+        if (resource) {
+          resourceData = {
+            name: resource.name || 'Recurso sin nombre',
+            description: resource.system?.description || resource.description || '',
+            quantity: resource.system?.quantity || resource.quantity || 0,
+          };
+          console.log('✅ Found resource data:', resourceData);
+        } else {
+          console.log('❌ Resource not found in documentManager:', resourceId);
+        }
+      } else {
+        console.log('❌ DocumentManager not available');
+      }
+    } catch (error) {
+      console.error('Error getting resource data for', resourceId, error);
+    }
+
+    return html`
+      <div class="resource-item" data-resource-id="${resourceId}">
+        <div class="resource-info">
+          <span class="resource-name">${resourceData?.name || `Recurso ${resourceId}`}</span>
+          <span class="resource-quantity">Cantidad: ${resourceData?.quantity || '--'}</span>
+          ${resourceData?.description
+            ? html`<span class="resource-description">${resourceData.description}</span>`
+            : ''}
+        </div>
+        <div class="resource-actions">
+          <button
+            type="button"
+            class="remove-resource-btn btn-icon"
+            title="Remover recurso"
+            data-resource-id="${resourceId}"
+            data-resource-name="${resourceData?.name || `Recurso ${resourceId}`}"
+          >
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Handle global drag start - show overlay
+   */
+  private handleGlobalDragStart(event: DragEvent): void {
+    // Only show overlay if this is a guard resource being dragged
+    const dragData = event.dataTransfer?.getData('text/plain');
+    if (dragData) {
+      try {
+        const data = JSON.parse(dragData);
+        if (data.type === 'guard-resource') {
+          this.showDropOverlay();
+        }
+      } catch (error) {
+        // Not valid JSON, could be from other source
+      }
+    }
+  }
+
+  /**
+   * Handle global drag end - hide overlay
+   */
+  private handleGlobalDragEnd(_event: DragEvent): void {
+    this.hideDropOverlay();
+  }
+
+  /**
+   * Show the drop overlay
+   */
+  private showDropOverlay(): void {
+    if (!this.element) return;
+
+    const overlay = this.element.querySelector('.drop-overlay') as HTMLElement;
+    if (overlay) {
+      overlay.style.display = 'block';
+      overlay.style.pointerEvents = 'auto';
+    }
+  }
+
+  /**
+   * Hide the drop overlay
+   */
+  private hideDropOverlay(): void {
+    if (!this.element) return;
+
+    const overlay = this.element.querySelector('.drop-overlay') as HTMLElement;
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.style.pointerEvents = 'none';
+      overlay.classList.remove('drag-over');
+    }
+  }
+
+  /**
+   * Handle drag over events
+   */
+  private handleDragOver(event: Event): void {
+    event.preventDefault();
+    console.log('Drag over overlay');
+  }
+
+  /**
+   * Handle drag enter events
+   */
+  private handleDragEnter(event: Event): void {
+    event.preventDefault();
+    if (this.element) {
+      const overlay = this.element.querySelector('.drop-overlay') as HTMLElement;
+      if (overlay) {
+        overlay.classList.add('drag-over');
+        console.log('Drag entered overlay');
+      }
+    }
+  }
+
+  /**
+   * Handle drag leave events
+   */
+  private handleDragLeave(_event: Event): void {
+    if (this.element) {
+      const overlay = this.element.querySelector('.drop-overlay') as HTMLElement;
+      if (overlay) {
+        overlay.classList.remove('drag-over');
+        console.log('Drag left overlay');
+      }
+    }
+  }
+
+  /**
+   * Handle drop events
+   */
+  private async handleDrop(event: Event): Promise<void> {
+    event.preventDefault();
+
+    if (this.element) {
+      const overlay = this.element.querySelector('.drop-overlay') as HTMLElement;
+      if (overlay) {
+        overlay.classList.remove('drag-over');
+      }
+    }
+
+    this.hideDropOverlay();
+
+    const dragEvent = event as DragEvent;
+    if (!dragEvent.dataTransfer) return;
+
+    try {
+      const data = JSON.parse(dragEvent.dataTransfer.getData('text/plain'));
+      console.log('🎯 Resource drop attempt:', data.resourceData.name);
+
+      if (data.type === 'guard-resource') {
+        // Implement actual resource assignment
+        await this.assignResourceToOrganization(data.resourceData);
+
+        // Show success notification
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Recurso "${data.resourceData.name}" asignado a la organización`
+          );
+        }
+
+        // Re-render the dialog to show the new resource
+        await this.refreshContent();
+      }
+    } catch (error) {
+      console.error('❌ Error parsing drop data:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al asignar el recurso a la organización');
+      }
+    }
+  }
+
+  /**
+   * Assign a resource to the current organization
+   */
+  private async assignResourceToOrganization(resourceData: any): Promise<void> {
+    console.log('🔧 Assigning resource:', resourceData.name);
+
+    const gm = (window as any).GuardManagement;
+
+    if (!gm?.guardOrganizationManager || !this.currentOrganization) {
+      console.error('❌ GuardOrganizationManager or organization not available');
+      return;
+    }
+
+    try {
+      // Get current organization (GuardOrganizationManager manages only one organization)
+      const organization = gm.guardOrganizationManager.getOrganization();
+      if (!organization) {
+        console.error('❌ Organization not found');
+        return;
+      }
+
+      // Initialize resources array if it doesn't exist
+      if (!organization.resources) {
+        organization.resources = [];
+      }
+
+      // Check if resource is already assigned
+      if (organization.resources.includes(resourceData.id)) {
+        console.log('ℹ️ Resource already assigned - skipping');
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.warn(
+            `El recurso "${resourceData.name}" ya está asignado a esta organización`
+          );
+        }
+        return;
+      }
+
+      // Create a NEW array with the new resource to avoid mutation issues
+      const newResources = [...organization.resources, resourceData.id];
+
+      // Create a completely new organization object to avoid reference issues
+      const updatedOrganization = {
+        ...organization,
+        resources: newResources,
+        updatedAt: new Date(),
+        version: (organization.version || 0) + 1,
+      };
+
+      // Update organization (GuardOrganizationManager has different update method)
+      await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
+
+      // Update current organization in memory with the NEW object
+      this.currentOrganization = updatedOrganization;
+
+      console.log('✅ Resource assigned successfully');
+    } catch (error) {
+      console.error('❌ Error assigning resource:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh dialog content with updated data
+   */
+  private async refreshContent(): Promise<void> {
+    console.log('🔄 RefreshContent called...');
+
+    if (!this.currentOrganization) {
+      console.log('❌ No current organization for refresh');
+      return;
+    }
+
+    const gm = (window as any).GuardManagement;
+    if (!gm?.guardOrganizationManager) {
+      console.log('❌ No guardOrganizationManager for refresh');
+      return;
+    }
+
+    try {
+      // Get the FRESH organization data from the manager IMMEDIATELY
+      const freshOrganization = gm.guardOrganizationManager.getOrganization();
+      if (!freshOrganization) {
+        console.log('❌ No organization found in manager');
+        return;
+      }
+
+      console.log(
+        '📊 Refreshing - Current resources count:',
+        this.currentOrganization.resources?.length || 0
+      );
+      console.log(
+        '📊 Refreshing - Fresh resources count:',
+        freshOrganization.resources?.length || 0
+      );
+
+      // IMPORTANT: Update our current organization reference to the fresh one
+      this.currentOrganization = freshOrganization;
+
+      // Force immediate update of the dialog content
+      this.updateOrganization(freshOrganization);
+
+      console.log('✅ Refresh completed immediately');
+    } catch (error) {
+      console.error('❌ Error refreshing dialog content:', error);
+    }
   }
 }

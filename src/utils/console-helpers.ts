@@ -38,6 +38,137 @@ export class GuardManagementHelpers {
   }
 
   /**
+   * Debug drag & drop setup
+   */
+  static debugDragDrop() {
+    console.log('=== DRAG & DROP DEBUG ===');
+
+    const dropZones = document.querySelectorAll('.drop-zone');
+    const draggables = document.querySelectorAll('[draggable="true"]');
+
+    console.log('Drop zones found:', dropZones.length);
+    console.log('Draggable elements found:', draggables.length);
+
+    dropZones.forEach((zone, index) => {
+      const htmlZone = zone as HTMLElement;
+      console.log(`Drop zone ${index}:`, {
+        element: zone,
+        classList: zone.classList.toString(),
+        organizationId: htmlZone.dataset.organizationId,
+        bounds: zone.getBoundingClientRect(),
+      });
+    });
+
+    draggables.forEach((element, index) => {
+      const htmlElement = element as HTMLElement;
+      console.log(`Draggable ${index}:`, {
+        element: element,
+        resourceId: htmlElement.dataset.resourceId,
+        classList: element.classList.toString(),
+      });
+    });
+
+    return {
+      dropZones: dropZones.length,
+      draggables: draggables.length,
+    };
+  }
+
+  /**
+   * Force setup of drag & drop event listeners
+   */
+  static setupDragDropListeners() {
+    console.log('=== FORCING DRAG & DROP SETUP ===');
+
+    const dropZones = document.querySelectorAll('.drop-zone');
+
+    if (dropZones.length === 0) {
+      console.warn('No drop zones found. Make sure an organization dialog is open.');
+      return false;
+    }
+
+    // Create temporary handlers for testing
+    const handleDragOver = (event: Event) => {
+      console.log('FORCE: Drag over');
+      const dragEvent = event as DragEvent;
+      dragEvent.preventDefault();
+      dragEvent.dataTransfer!.dropEffect = 'copy';
+    };
+
+    const handleDragEnter = (event: Event) => {
+      console.log('FORCE: Drag enter');
+      const dragEvent = event as DragEvent;
+      dragEvent.preventDefault();
+      (dragEvent.target as HTMLElement).closest('.drop-zone')?.classList.add('drag-over');
+    };
+
+    const handleDragLeave = (event: Event) => {
+      console.log('FORCE: Drag leave');
+      const dragEvent = event as DragEvent;
+      const dropZone = (dragEvent.target as HTMLElement).closest('.drop-zone');
+      const relatedTarget = dragEvent.relatedTarget as HTMLElement;
+      if (dropZone && (!relatedTarget || !dropZone.contains(relatedTarget))) {
+        dropZone.classList.remove('drag-over');
+      }
+    };
+
+    const handleDrop = async (event: Event) => {
+      console.log('FORCE: Drop event!');
+      const dragEvent = event as DragEvent;
+      dragEvent.preventDefault();
+
+      const dropZone = (dragEvent.target as HTMLElement).closest('.drop-zone') as HTMLElement;
+      if (!dropZone) return;
+
+      dropZone.classList.remove('drag-over');
+
+      const dragData = dragEvent.dataTransfer?.getData('text/plain');
+      console.log('FORCE: Drag data:', dragData);
+
+      if (dragData) {
+        try {
+          const data = JSON.parse(dragData);
+          console.log('FORCE: Parsed data:', data);
+
+          if (data.type === 'guard-resource') {
+            const organizationId = dropZone.dataset.organizationId;
+            console.log('FORCE: Organization ID:', organizationId);
+
+            // Show success message
+            if ((globalThis as any).ui?.notifications) {
+              (globalThis as any).ui.notifications.info(
+                `FORCE DROP: Would assign ${data.resourceData.name} to org ${organizationId}`
+              );
+            }
+          }
+        } catch (error) {
+          console.error('FORCE: Error parsing drag data:', error);
+        }
+      }
+    };
+
+    // Apply handlers to all drop zones
+    dropZones.forEach((zone, index) => {
+      console.log(`Setting up forced listeners on drop zone ${index}`);
+
+      // Remove existing listeners
+      zone.removeEventListener('dragover', handleDragOver);
+      zone.removeEventListener('dragenter', handleDragEnter);
+      zone.removeEventListener('dragleave', handleDragLeave);
+      zone.removeEventListener('drop', handleDrop);
+
+      // Add new listeners
+      zone.addEventListener('dragover', handleDragOver);
+      zone.addEventListener('dragenter', handleDragEnter);
+      zone.addEventListener('dragleave', handleDragLeave);
+      zone.addEventListener('drop', handleDrop);
+    });
+
+    console.log(`Forced drag & drop setup complete on ${dropZones.length} drop zones`);
+    return true;
+  }
+
+  /**
    * Attempt to recover the module if it's missing
    */
   static attemptModuleRecovery() {
@@ -323,6 +454,8 @@ Create Commands:
 
 Debug Commands:
 - GuardManagementHelpers.debugFloatingPanel()   // Debug floating panel
+- GuardManagementHelpers.debugDragDrop()        // Debug drag & drop elements
+- GuardManagementHelpers.setupDragDropListeners() // Force setup drag & drop
 
 Cleanup:
 - GuardManagementHelpers.cleanupTestData()       // Delete all test data

@@ -69,22 +69,16 @@ export class GuardDialogManager {
       // Crear nuevo diálogo personalizado
       this.customInfoDialog = new CustomInfoDialog();
 
-      const title = `Información: ${organization.name}`;
-      const content = CustomInfoDialog.generateOrganizationInfoContent(organization);
-
-      // Mostrar el diálogo con callbacks
-      this.customInfoDialog.show(title, content, {
+      // Mostrar el diálogo con la organización
+      this.customInfoDialog.showOrganizationInfo(organization, {
         width: 600,
         height: 500,
         onEdit: async () => {
           // Abrir diálogo de edición
           const updatedOrg = await this.showEditOrganizationDialog();
           if (updatedOrg && this.customInfoDialog) {
-            // Actualizar el contenido del diálogo personalizado
-            const newTitle = `Información: ${updatedOrg.name}`;
-            const newContent = CustomInfoDialog.generateOrganizationInfoContent(updatedOrg);
-            this.customInfoDialog.updateTitle(newTitle);
-            this.customInfoDialog.updateContent(newContent);
+            // Actualizar el contenido del diálogo sin recrearlo
+            this.customInfoDialog.updateOrganization(updatedOrg);
             ui?.notifications?.info('Información actualizada');
           }
         },

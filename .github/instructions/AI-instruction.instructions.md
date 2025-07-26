@@ -133,6 +133,7 @@ gm.syncManager.simulateSync('guard', 5);
 
 **Common Debug Scenarios**:
 
+- Never create a debug tool javascript, we will use the UI
 - Test guard CRUD operations
 - Simulate sync conflicts
 - Test permission boundaries

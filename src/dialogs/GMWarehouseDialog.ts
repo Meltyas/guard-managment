@@ -284,7 +284,12 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private renderResourceTemplate(resource: any): TemplateResult {
     return html`
-      <div class="template-item resource-template" data-resource-id="${resource.id}">
+      <div
+        class="template-item resource-template"
+        data-resource-id="${resource.id}"
+        draggable="true"
+        title="Arrastra este recurso a una organización para asignarlo"
+      >
         <div class="template-info">
           <div class="template-name">${resource.name}</div>
           <div class="template-description">${resource.description || 'Sin descripción'}</div>
@@ -715,6 +720,78 @@ export class GMWarehouseDialog implements FocusableDialog {
         }
       });
     });
+
+    // Handle drag start for resource templates
+    const resourceTemplates = this.element.querySelectorAll('.resource-template[draggable="true"]');
+    resourceTemplates.forEach((template) => {
+      template.addEventListener('dragstart', (event) => {
+        this.handleResourceDragStart(event as DragEvent);
+      });
+
+      template.addEventListener('dragend', (event) => {
+        this.handleResourceDragEnd(event as DragEvent);
+      });
+    });
+  }
+
+  /**
+   * Handle drag start for resource templates
+   */
+  private handleResourceDragStart(event: DragEvent): void {
+    const target = event.target as HTMLElement;
+    const resourceTemplate = target.closest('.resource-template') as HTMLElement;
+
+    if (!resourceTemplate || !event.dataTransfer) return;
+
+    const resourceId = resourceTemplate.dataset.resourceId;
+    if (!resourceId) return;
+
+    // Get the resource data from the documentManager
+    const gm = (window as any).GuardManagement;
+    if (!gm?.documentManager) {
+      console.error('DocumentManager not available for drag operation');
+      return;
+    }
+
+    const resource = gm.documentManager.getGuardResources().find((r: any) => r.id === resourceId);
+    if (!resource) {
+      console.error('Resource not found for drag operation:', resourceId);
+      return;
+    }
+
+    // Set the drag data
+    const dragData = {
+      type: 'guard-resource',
+      resourceId: resource.id,
+      resourceData: {
+        id: resource.id,
+        name: resource.name,
+        description: resource.system?.description || resource.description,
+        quantity: resource.system?.quantity || resource.quantity,
+        version: resource.system?.version || resource.version || 1,
+      },
+    };
+
+    event.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+    event.dataTransfer.effectAllowed = 'copy';
+
+    // Visual feedback
+    resourceTemplate.style.opacity = '0.6';
+
+    console.log('Starting drag for resource:', dragData);
+  }
+
+  /**
+   * Handle drag end for resource templates
+   */
+  private handleResourceDragEnd(event: DragEvent): void {
+    const target = event.target as HTMLElement;
+    const resourceTemplate = target.closest('.resource-template') as HTMLElement;
+
+    if (resourceTemplate) {
+      // Restore visual state
+      resourceTemplate.style.opacity = '1';
+    }
   }
 
   private async handleEditTemplate(resourceId: string): Promise<void> {

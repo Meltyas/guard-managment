@@ -215,7 +215,10 @@ export class GuardOrganizationDialog {
       });
 
       // Configurar event listeners para los botones de recursos después de renderizar
-      setTimeout(() => this.setupResourceEventListeners(existingOrganization?.id), 100);
+      // setTimeout(() => this.setupResourceEventListeners(existingOrganization?.id), 100);
+
+      // Setup additional listeners for drag & drop with retry mechanism
+      // this.setupResourceEventListenersWithRetry(existingOrganization?.id, 5);
 
       if (result) {
         return this.createOrganizationFromData(result, mode, existingOrganization);
@@ -360,13 +363,15 @@ export class GuardOrganizationDialog {
     const resources = data.resources || [];
 
     return html`
-      <div class="resources-info-section">
+      <div class="resources-info-section" data-organization-id="${organizationId}">
         <h4>Recursos de la Organización</h4>
-        <div class="resources-list">
+        <div class="resources-list" data-organization-id="${organizationId}">
           ${resources.length > 0
             ? resources.map((resourceId: string) => this.renderResourceItem(resourceId))
             : html`<p class="empty-state">
                 No hay recursos asignados a esta organización.
+                <br />
+                <small>Asigna recursos desde el diálogo de información o</small>
                 <button
                   type="button"
                   class="add-resource-btn link-button"
@@ -398,13 +403,29 @@ export class GuardOrganizationDialog {
    * Render individual resource item
    */
   private renderResourceItem(resourceId: string): TemplateResult {
-    // TODO: Fetch actual resource data by ID
-    // For now, render placeholder
+    // Get the actual resource data
+    const gm = (window as any).GuardManagement;
+    let resourceData = null;
+
+    if (gm?.documentManager) {
+      const resource = gm.documentManager.getGuardResources().find((r: any) => r.id === resourceId);
+      if (resource) {
+        resourceData = {
+          name: resource.name,
+          description: resource.system?.description || resource.description,
+          quantity: resource.system?.quantity || resource.quantity,
+        };
+      }
+    }
+
     return html`
       <div class="resource-item" data-resource-id="${resourceId}">
         <div class="resource-info">
-          <span class="resource-name">Recurso ${resourceId}</span>
-          <span class="resource-quantity">Cantidad: --</span>
+          <span class="resource-name">${resourceData?.name || `Recurso ${resourceId}`}</span>
+          <span class="resource-quantity">Cantidad: ${resourceData?.quantity || '--'}</span>
+          ${resourceData?.description
+            ? html`<span class="resource-description">${resourceData.description}</span>`
+            : ''}
         </div>
         <div class="resource-actions">
           <button type="button" class="edit-resource-btn btn-icon" title="Editar recurso">
@@ -793,12 +814,42 @@ export class GuardOrganizationDialog {
   }
 
   /**
+   * Setup resource event listeners with retry mechanism for DialogV2
+   */
+  private setupResourceEventListenersWithRetry(organizationId?: string, retries: number = 5): void {
+    const attempt = () => {
+      const dropZones = document.querySelectorAll('.drop-zone');
+      const addResourceBtns = document.querySelectorAll('.add-resource-btn');
+
+      if (dropZones.length > 0 || addResourceBtns.length > 0) {
+        console.log(
+          `Found ${dropZones.length} drop zones and ${addResourceBtns.length} add buttons, setting up listeners`
+        );
+        this.setupResourceEventListeners(organizationId);
+      } else if (retries > 0) {
+        console.log(`No drop zones found, retrying in 200ms (${retries} retries left)`);
+        setTimeout(
+          () => this.setupResourceEventListenersWithRetry(organizationId, retries - 1),
+          200
+        );
+      } else {
+        console.warn('Could not find drop zones after multiple retries');
+      }
+    };
+
+    attempt();
+  }
+
+  /**
    * Setup event listeners for resource management buttons
    */
   private setupResourceEventListeners(organizationId?: string): void {
     try {
+      console.log('Setting up resource event listeners for organization:', organizationId);
+
       // Find add resource button
       const addResourceBtn = document.querySelector('.add-resource-btn') as HTMLButtonElement;
+      console.log('Add resource button found:', !!addResourceBtn);
       if (addResourceBtn) {
         addResourceBtn.addEventListener('click', async (event) => {
           event.preventDefault();
@@ -810,6 +861,7 @@ export class GuardOrganizationDialog {
       const editResourceBtns = document.querySelectorAll(
         '.edit-resource-btn'
       ) as NodeListOf<HTMLButtonElement>;
+      console.log('Edit resource buttons found:', editResourceBtns.length);
       editResourceBtns.forEach((btn) => {
         btn.addEventListener('click', async (event) => {
           event.preventDefault();
@@ -825,6 +877,7 @@ export class GuardOrganizationDialog {
       const removeResourceBtns = document.querySelectorAll(
         '.remove-resource-btn'
       ) as NodeListOf<HTMLButtonElement>;
+      console.log('Remove resource buttons found:', removeResourceBtns.length);
       removeResourceBtns.forEach((btn) => {
         btn.addEventListener('click', (event) => {
           event.preventDefault();
@@ -835,8 +888,248 @@ export class GuardOrganizationDialog {
           }
         });
       });
+
+      // Setup drop zone event listeners
+      const dropZones = document.querySelectorAll('.drop-zone');
+      console.log('Drop zones found:', dropZones.length);
+      dropZones.forEach((zone, index) => {
+        console.log(`Setting up drop zone ${index}:`, zone);
+
+        // Remove existing listeners first to avoid duplicates
+        zone.removeEventListener('dragover', this.handleDragOver.bind(this));
+        zone.removeEventListener('dragenter', this.handleDragEnter.bind(this));
+        zone.removeEventListener('dragleave', this.handleDragLeave.bind(this));
+        zone.removeEventListener('drop', this.handleDrop.bind(this));
+
+        // Add new listeners
+        zone.addEventListener('dragover', this.handleDragOver.bind(this));
+        zone.addEventListener('dragenter', this.handleDragEnter.bind(this));
+        zone.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        zone.addEventListener('drop', this.handleDrop.bind(this));
+
+        console.log(`Drop zone ${index} listeners set up successfully`);
+      });
+
+      console.log('Resource event listeners setup complete');
     } catch (error) {
       console.error('Error setting up resource event listeners:', error);
+    }
+  }
+
+  /**
+   * Handle drag over events for drop zones
+   */
+  private handleDragOver(event: Event): void {
+    console.log('Drag over event triggered');
+    const dragEvent = event as DragEvent;
+    dragEvent.preventDefault();
+    dragEvent.dataTransfer!.dropEffect = 'copy';
+  }
+
+  /**
+   * Handle drag enter events for drop zones
+   */
+  private handleDragEnter(event: Event): void {
+    console.log('Drag enter event triggered');
+    const dragEvent = event as DragEvent;
+    dragEvent.preventDefault();
+    const target = dragEvent.target as HTMLElement;
+    const dropZone = target.closest('.drop-zone');
+    if (dropZone) {
+      console.log('Adding drag-over class to drop zone');
+      dropZone.classList.add('drag-over');
+    }
+  }
+
+  /**
+   * Handle drag leave events for drop zones
+   */
+  private handleDragLeave(event: Event): void {
+    console.log('Drag leave event triggered');
+    const dragEvent = event as DragEvent;
+    const target = dragEvent.target as HTMLElement;
+    const dropZone = target.closest('.drop-zone');
+    const relatedTarget = dragEvent.relatedTarget as HTMLElement;
+
+    // Only remove highlight if leaving the drop zone entirely
+    if (dropZone && (!relatedTarget || !dropZone.contains(relatedTarget))) {
+      console.log('Removing drag-over class from drop zone');
+      dropZone.classList.remove('drag-over');
+    }
+  }
+
+  /**
+   * Handle drop events for drop zones
+   */
+  private async handleDrop(event: Event): Promise<void> {
+    console.log('Drop event triggered!');
+    const dragEvent = event as DragEvent;
+    dragEvent.preventDefault();
+
+    const target = dragEvent.target as HTMLElement;
+    const dropZone = target.closest('.drop-zone') as HTMLElement;
+
+    if (!dropZone) {
+      console.log('No drop zone found');
+      return;
+    }
+
+    console.log('Drop zone found:', dropZone);
+
+    // Remove visual feedback
+    dropZone.classList.remove('drag-over');
+
+    try {
+      const dragData = dragEvent.dataTransfer?.getData('text/plain');
+      console.log('Drag data:', dragData);
+      if (!dragData) {
+        console.log('No drag data found');
+        return;
+      }
+
+      const data = JSON.parse(dragData);
+      console.log('Parsed drag data:', data);
+
+      if (data.type !== 'guard-resource') {
+        console.warn('Invalid drag data type:', data.type);
+        return;
+      }
+
+      const organizationId = dropZone.dataset.organizationId;
+      console.log('Organization ID from drop zone:', organizationId);
+      if (!organizationId) {
+        console.error('No organization ID found for drop zone');
+        return;
+      }
+
+      console.log('Attempting to assign resource to organization...');
+      await this.assignResourceToOrganization(organizationId, data.resourceData);
+    } catch (error) {
+      console.error('Error handling drop:', error);
+      if (ui?.notifications) {
+        ui.notifications.error('Error al asignar el recurso a la organización');
+      }
+    }
+  }
+
+  /**
+   * Assign a resource to an organization
+   */
+  private async assignResourceToOrganization(
+    organizationId: string,
+    resourceData: any
+  ): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        throw new Error('DocumentManager not available');
+      }
+
+      // Check if resource is already assigned to this organization
+      const organization = gm.documentManager.getGuardOrganization(organizationId);
+      if (!organization) {
+        throw new Error('Organization not found');
+      }
+
+      const existingResources = organization.system?.resources || [];
+      if (existingResources.includes(resourceData.id)) {
+        if (ui?.notifications) {
+          ui.notifications.warn('Este recurso ya está asignado a la organización');
+        }
+        return;
+      }
+
+      // Add resource to organization
+      await organization.system.addResource(resourceData.id);
+
+      if (ui?.notifications) {
+        ui.notifications.info(`Recurso "${resourceData.name}" asignado a la organización`);
+      }
+
+      // Emit event for UI updates
+      window.dispatchEvent(
+        new CustomEvent('guard-resource-assigned', {
+          detail: {
+            organizationId,
+            resourceId: resourceData.id,
+            resourceData,
+          },
+        })
+      );
+
+      // Refresh the resources list in the current dialog
+      this.refreshResourcesList(organizationId);
+
+      // Log success
+      console.log('Resource assigned successfully:', resourceData.name);
+    } catch (error) {
+      console.error('Error assigning resource to organization:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh the resources list in the current dialog
+   */
+  private refreshResourcesList(organizationId: string): void {
+    try {
+      const resourcesList = document.querySelector('.resources-list');
+      if (!resourcesList) return;
+
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) return;
+
+      const organization = gm.documentManager.getGuardOrganization(organizationId);
+      if (!organization) return;
+
+      const resources = organization.system?.resources || [];
+
+      // Clear current content
+      resourcesList.innerHTML = '';
+
+      if (resources.length > 0) {
+        // Add each resource
+        resources.forEach((resourceId: string) => {
+          const resourceElement = document.createElement('div');
+          const resourceContent = this.renderResourceItem(resourceId);
+          resourceElement.innerHTML = resourceContent.strings.join('');
+
+          if (resourceElement.firstElementChild) {
+            resourcesList.appendChild(resourceElement.firstElementChild);
+          }
+        });
+
+        // Show add button if not present
+        const resourcesActions = document.querySelector('.resources-actions');
+        if (!resourcesActions) {
+          const actionsElement = document.createElement('div');
+          actionsElement.className = 'resources-actions';
+          actionsElement.innerHTML = `
+            <button type="button" class="add-resource-btn btn-small" data-organization-id="${organizationId}">
+              <i class="fas fa-plus"></i>
+              Agregar Recurso
+            </button>
+          `;
+          resourcesList.parentElement?.appendChild(actionsElement);
+        }
+      } else {
+        // Show empty state
+        resourcesList.innerHTML = `
+          <p class="empty-state">
+            No hay recursos asignados a esta organización.
+            <br>
+            <small>Arrastra recursos desde el warehouse o</small>
+            <button type="button" class="add-resource-btn link-button" data-organization-id="${organizationId}">
+              Agregar el primer recurso
+            </button>
+          </p>
+        `;
+      }
+
+      // Re-setup event listeners for the new content
+      // this.setupResourceEventListeners(organizationId);
+    } catch (error) {
+      console.error('Error refreshing resources list:', error);
     }
   }
 
@@ -905,27 +1198,52 @@ export class GuardOrganizationDialog {
   /**
    * Handle removing a resource from the organization
    */
-  private handleRemoveResource(resourceId: string): void {
+  private async handleRemoveResource(resourceId: string): Promise<void> {
     try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        throw new Error('DocumentManager not available');
+      }
+
+      // Get resource data for confirmation
+      const resource = gm.documentManager.getGuardResources().find((r: any) => r.id === resourceId);
+      const resourceName = resource?.name || `Recurso ${resourceId}`;
+
       // Show confirmation dialog
-      Dialog.confirm({
+      const confirmed = await Dialog.confirm({
         title: 'Confirmar eliminación',
-        content: '<p>¿Estás seguro de que quieres eliminar este recurso?</p>',
-        yes: () => {
-          console.log('Removing resource:', resourceId);
-
-          if (ui?.notifications) {
-            ui.notifications.info('Recurso eliminado');
-          }
-
-          // TODO: Remove the resource from the organization and refresh UI
-        },
-        no: () => {
-          // User cancelled
-        },
+        content: `<p>¿Estás seguro de que quieres remover "${resourceName}" de esta organización?</p>
+                  <p><small>El recurso seguirá disponible en el warehouse.</small></p>`,
       });
+
+      if (!confirmed) return;
+
+      // Find which organization this dialog belongs to
+      const organizationElement = document.querySelector('[data-organization-id]') as HTMLElement;
+      const organizationId = organizationElement?.dataset.organizationId;
+
+      if (!organizationId) {
+        throw new Error('No organization ID found');
+      }
+
+      // Get the organization and remove the resource
+      const organization = gm.documentManager.getGuardOrganization(organizationId);
+      if (!organization) {
+        throw new Error('Organization not found');
+      }
+
+      await organization.system.removeResource(resourceId);
+
+      if (ui?.notifications) {
+        ui.notifications.info(`Recurso "${resourceName}" removido de la organización`);
+      }
+
+      // Refresh the UI
+      this.refreshResourcesList(organizationId);
+
+      console.log('Resource removed from organization:', resourceName);
     } catch (error) {
-      console.error('Error eliminando recurso:', error);
+      console.error('Error removiendo recurso:', error);
       if (ui?.notifications) {
         ui.notifications.error('Error al eliminar el recurso');
       }
