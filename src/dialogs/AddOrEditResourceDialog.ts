@@ -11,6 +11,7 @@ export interface ResourceDialogData {
   name: string;
   description: string;
   quantity: number;
+  image: string;
   organizationId: string;
 }
 
@@ -40,6 +41,83 @@ export class AddOrEditResourceDialog {
       }
 
       let resourceResult: Resource | null = null;
+
+      // Setup file picker using MutationObserver
+      const setupFilePickerWithObserver = () => {
+        const observer = new MutationObserver((mutations) => {
+          for (const mutation of mutations) {
+            if (mutation.type === 'childList') {
+              for (const node of mutation.addedNodes) {
+                if (
+                  node instanceof Element &&
+                  (node.querySelector?.('.file-picker-btn') ||
+                    node.classList?.contains('file-picker-btn'))
+                ) {
+                  console.log('File picker elements detected via MutationObserver');
+
+                  const filePickerBtn = document.querySelector(
+                    '.file-picker-btn[data-target="resource-image"]'
+                  );
+                  const imageInput = document.getElementById('resource-image') as HTMLInputElement;
+                  const descriptionTextarea = document.getElementById(
+                    'resource-description'
+                  ) as HTMLTextAreaElement;
+
+                  if (
+                    filePickerBtn &&
+                    imageInput &&
+                    !filePickerBtn.hasAttribute('data-initialized')
+                  ) {
+                    console.log('Setting up file picker via MutationObserver');
+
+                    // Set initial values for edit mode
+                    if (existingResource?.image) {
+                      imageInput.value = existingResource.image;
+                    }
+
+                    if (existingResource?.description && descriptionTextarea) {
+                      descriptionTextarea.value = existingResource.description;
+                      console.log('📝 Setting textarea value:', existingResource.description);
+                    }
+
+                    filePickerBtn.setAttribute('data-initialized', 'true');
+                    filePickerBtn.addEventListener('click', function (event: Event) {
+                      console.log('File picker button clicked (MutationObserver)');
+                      event.preventDefault();
+                      event.stopPropagation();
+
+                      const fp = new FilePicker({
+                        type: 'imagevideo',
+                        current: imageInput.value || '',
+                        callback: (path: string) => {
+                          console.log('File selected:', path);
+                          imageInput.value = path;
+                          imageInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        },
+                      });
+
+                      fp.render(true);
+                    });
+
+                    observer.disconnect();
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Cleanup observer after 5 seconds
+        setTimeout(() => {
+          observer.disconnect();
+          console.log('MutationObserver disconnected after timeout');
+        }, 5000);
+      };
+
+      setupFilePickerWithObserver();
 
       const result = await DialogV2Class.wait({
         window: {
@@ -142,6 +220,7 @@ export class AddOrEditResourceDialog {
                   name: formData.get('name') as string,
                   description: formData.get('description') as string,
                   quantity: parseInt(formData.get('quantity') as string) || 1,
+                  image: formData.get('image') as string,
                   organizationId: formData.get('organizationId') as string,
                 };
 
@@ -175,6 +254,7 @@ export class AddOrEditResourceDialog {
                   name: data.name.trim(),
                   description: data.description?.trim() || '',
                   quantity: data.quantity,
+                  image: data.image?.trim() || '',
                   organizationId: data.organizationId,
                   version: existingResource ? existingResource.version + 1 : 1,
                   createdAt: existingResource?.createdAt || new Date(),
@@ -229,6 +309,7 @@ export class AddOrEditResourceDialog {
       name: existingResource?.name || '',
       description: existingResource?.description || '',
       quantity: existingResource?.quantity || 1,
+      image: existingResource?.image || '',
       organizationId: organizationId,
     };
 
@@ -256,9 +337,34 @@ export class AddOrEditResourceDialog {
             placeholder="Descripción del recurso..."
             rows="3"
             maxlength="500"
-            .value="${data.description}"
-          ></textarea>
+          >
+${data.description}</textarea
+          >
           <small class="form-hint">Opcional. Máximo 500 caracteres</small>
+        </div>
+
+        <div class="form-group">
+          <label for="resource-image">Imagen</label>
+          <div class="file-picker-wrapper">
+            <input
+              type="text"
+              id="resource-image"
+              name="image"
+              placeholder="Selecciona una imagen..."
+            />
+            <button
+              type="button"
+              class="file-picker-btn"
+              data-type="imagevideo"
+              data-target="resource-image"
+              title="Seleccionar imagen"
+            >
+              <i class="fas fa-file-image"></i>
+            </button>
+          </div>
+          <small class="form-hint"
+            >Opcional. Haz click en el botón para seleccionar una imagen</small
+          >
         </div>
 
         <div class="form-group">
@@ -326,6 +432,7 @@ export class AddOrEditResourceDialog {
                   name: formData.get('name') as string,
                   description: formData.get('description') as string,
                   quantity: parseInt(formData.get('quantity') as string) || 1,
+                  image: formData.get('image') as string,
                   organizationId: formData.get('organizationId') as string,
                 };
 

@@ -699,6 +699,7 @@ export class CustomInfoDialog implements FocusableDialog {
         name: resource.name,
         description: resource.system?.description || '',
         quantity: resource.system?.quantity || 0,
+        image: resource.system?.image || '',
         organizationId: resource.system?.organizationId || '',
         version: resource.system?.version || 1,
         createdAt: resource.system?.createdAt || new Date(),
@@ -1115,8 +1116,15 @@ export class CustomInfoDialog implements FocusableDialog {
             name: resource.name || 'Recurso sin nombre',
             description: resource.system?.description || resource.description || '',
             quantity: resource.system?.quantity || resource.quantity || 0,
+            image: resource.system?.image || resource.image || '',
           };
           console.log('✅ Found resource data:', resourceData);
+          console.log('🔍 Description details:', {
+            original: resource.system?.description || resource.description,
+            cleaned: resourceData.description,
+            length: resourceData.description?.length,
+            chars: resourceData.description?.split('').map((c: string) => c.charCodeAt(0)),
+          });
         } else {
           console.log('❌ Resource not found in documentManager:', resourceId);
           // Return null instead of rendering a placeholder for non-existent resources
@@ -1140,11 +1148,22 @@ export class CustomInfoDialog implements FocusableDialog {
 
     return html`
       <div class="resource-item" data-resource-id="${resourceId}">
+        ${resourceData.image
+          ? html`
+              <div class="resource-image">
+                <img
+                  src="${resourceData.image}"
+                  alt="${resourceData.name}"
+                  onerror="this.style.display='none'"
+                />
+              </div>
+            `
+          : ''}
         <div class="resource-info">
           <span class="resource-name">${resourceData.name}</span>
           <span class="resource-quantity">Cantidad: ${resourceData.quantity}</span>
           ${resourceData.description
-            ? html`<span class="resource-description">${resourceData.description}</span>`
+            ? html`<span class="resource-description">${resourceData.description.trim()}</span>`
             : ''}
         </div>
         <div class="resource-actions">

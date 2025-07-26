@@ -323,6 +323,7 @@ export class DocumentBasedManager {
     if (data.name) updateData.name = data.name;
     if (data.description) updateData['system.description'] = data.description;
     if (data.quantity !== undefined) updateData['system.quantity'] = data.quantity;
+    if (data.image !== undefined) updateData['system.image'] = data.image;
     if (data.version) updateData['system.version'] = data.version;
 
     await resource.update(updateData);

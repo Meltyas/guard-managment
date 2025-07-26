@@ -96,6 +96,7 @@ export async function createGuardResource(data: any = {}) {
     system: {
       description: data.description || '',
       quantity: data.quantity || 1,
+      image: data.image || '',
       organizationId: data.organizationId || '',
       version: 1,
     },

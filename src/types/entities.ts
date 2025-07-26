@@ -50,6 +50,7 @@ export type EffectType = 'positive' | 'negative' | 'neutral';
 export interface Resource extends BaseEntity {
   description: string;
   quantity: number;
+  image?: string;
   organizationId: string; // Reference to GuardOrganization
 }
 
@@ -57,6 +58,7 @@ export interface Resource extends BaseEntity {
 export interface Reputation extends BaseEntity {
   description: string;
   level: ReputationLevel;
+  image?: string;
   organizationId: string; // Reference to GuardOrganization
 }
 

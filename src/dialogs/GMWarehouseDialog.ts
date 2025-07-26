@@ -287,6 +287,8 @@ export class GMWarehouseDialog implements FocusableDialog {
    * Render individual resource template
    */
   private renderResourceTemplate(resource: any): TemplateResult {
+    const imageUrl = resource.system?.image || resource.image || '';
+
     return html`
       <div
         class="template-item resource-template"
@@ -294,9 +296,18 @@ export class GMWarehouseDialog implements FocusableDialog {
         draggable="true"
         title="Arrastra este recurso a una organización para asignarlo"
       >
+        ${imageUrl
+          ? html`
+              <div class="template-image">
+                <img src="${imageUrl}" alt="${resource.name}" onerror="this.style.display='none'" />
+              </div>
+            `
+          : ''}
         <div class="template-info">
           <div class="template-name">${resource.name}</div>
-          <div class="template-description">${resource.description || 'Sin descripción'}</div>
+          <div class="template-description">
+            ${(resource.system?.description || resource.description || 'Sin descripción').trim()}
+          </div>
           <div class="template-quantity">Cantidad: ${resource.quantity}</div>
         </div>
         <div class="template-actions">
@@ -861,6 +872,7 @@ export class GMWarehouseDialog implements FocusableDialog {
         name: resource.name,
         description: resource.system?.description || '',
         quantity: resource.system?.quantity || 0,
+        image: resource.system?.image || '',
         organizationId: resource.system?.organizationId || '',
         version: resource.system?.version || 1,
         createdAt: resource.system?.createdAt || new Date(),

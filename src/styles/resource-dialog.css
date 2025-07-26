@@ -170,3 +170,41 @@
     transform: rotate(360deg);
   }
 }
+
+/* File Picker Styles */
+.file-picker-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.file-picker-wrapper input[type='text'] {
+  flex: 1;
+  min-width: 0; /* Allow input to shrink properly */
+}
+
+.file-picker-btn {
+  background: var(--color-button-bg, #495057);
+  color: var(--color-button-text, #ffffff);
+  border: 1px solid var(--color-button-border, #6c757d);
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  min-width: 80px;
+}
+
+.file-picker-btn:hover {
+  background: var(--color-button-hover-bg, #5a6268);
+  border-color: var(--color-button-hover-border, #7d848a);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-picker-btn:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
