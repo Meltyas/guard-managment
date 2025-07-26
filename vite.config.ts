@@ -33,15 +33,15 @@ export default defineConfig({
   },
   server: {
     open: false,
-    host: true
+    host: true,
   },
   preview: {
-    open: false
+    open: false,
   },
   test: {
     globals: true,
     environment: 'jsdom',
     watch: false,
-    reporters: ['verbose']
+    reporters: ['verbose'],
   },
 });
