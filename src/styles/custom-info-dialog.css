@@ -351,6 +351,16 @@
   transform: scale(1.05);
 }
 
+/* Edit button specific styling */
+.edit-resource-btn.btn-icon {
+  background: rgba(68, 136, 255, 0.2);
+  color: #4488ff;
+}
+
+.edit-resource-btn.btn-icon:hover {
+  background: rgba(68, 136, 255, 0.4);
+}
+
 .resources-list {
   min-height: 60px;
 }

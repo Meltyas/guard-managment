@@ -15,6 +15,10 @@ export class GMWarehouseDialog implements FocusableDialog {
   private dragOffset = { x: 0, y: 0 };
   private isFocused = false;
 
+  // Event handlers for cleanup
+  private resourceUpdateHandler?: (event: Event) => void;
+  private resourceDeleteHandler?: (event: Event) => void;
+
   // Storage for templates (in-memory for now)
   private resourceTemplates: any[] = [];
   private reputationTemplates: any[] = [];
@@ -455,6 +459,9 @@ export class GMWarehouseDialog implements FocusableDialog {
     this.element.addEventListener('focus', this.handleFocus);
     this.element.addEventListener('click', this.handleGlobalClick);
     document.addEventListener('click', this.handleGlobalClick);
+
+    // Listen for resource events from other dialogs
+    this.setupResourceEventListeners();
   }
 
   /**
@@ -464,6 +471,38 @@ export class GMWarehouseDialog implements FocusableDialog {
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
     document.removeEventListener('click', this.handleGlobalClick);
+
+    // Remove resource event listeners
+    if (this.resourceUpdateHandler) {
+      document.removeEventListener('guard-resource-updated', this.resourceUpdateHandler);
+    }
+    if (this.resourceDeleteHandler) {
+      document.removeEventListener('guard-resource-deleted', this.resourceDeleteHandler);
+    }
+  }
+
+  /**
+   * Setup event listeners for resource updates from other dialogs
+   */
+  private setupResourceEventListeners(): void {
+    // Listen for resource updates from other dialogs (like CustomInfoDialog)
+    this.resourceUpdateHandler = (event: Event) => {
+      console.log('🔄 Warehouse received resource update event:', event);
+      // Refresh the resources tab to show the updated resource
+      this.refreshResourcesTab();
+    };
+
+    this.resourceDeleteHandler = (event: Event) => {
+      console.log('🗑️ Warehouse received resource delete event:', event);
+      // Refresh the resources tab to remove the deleted resource
+      this.refreshResourcesTab();
+    };
+
+    // Add the event listeners
+    document.addEventListener('guard-resource-updated', this.resourceUpdateHandler);
+    document.addEventListener('guard-resource-deleted', this.resourceDeleteHandler);
+
+    console.log('✅ Warehouse resource event listeners set up');
   }
 
   /**

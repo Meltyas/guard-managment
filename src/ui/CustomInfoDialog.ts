@@ -518,8 +518,9 @@ export class CustomInfoDialog implements FocusableDialog {
     // Create new event handler and store reference
     this.resourceEventHandler = (event: Event) => {
       const target = event.target as HTMLElement;
-      const removeBtn = target.closest('.remove-resource-btn') as HTMLElement;
 
+      // Handle remove button
+      const removeBtn = target.closest('.remove-resource-btn') as HTMLElement;
       if (removeBtn) {
         event.preventDefault();
         event.stopPropagation();
@@ -531,6 +532,23 @@ export class CustomInfoDialog implements FocusableDialog {
           console.log('🗑️ Remove button clicked for:', resourceName, resourceId);
           this.handleRemoveResource(resourceId, resourceName || 'Recurso');
         }
+        return;
+      }
+
+      // Handle edit button
+      const editBtn = target.closest('.edit-resource-btn') as HTMLElement;
+      if (editBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const resourceId = editBtn.getAttribute('data-resource-id');
+        const resourceName = editBtn.getAttribute('data-resource-name');
+
+        if (resourceId) {
+          console.log('✏️ Edit button clicked for:', resourceName, resourceId);
+          this.handleEditResource(resourceId, resourceName || 'Recurso');
+        }
+        return;
       }
     };
 
@@ -642,6 +660,103 @@ export class CustomInfoDialog implements FocusableDialog {
       console.error('Error showing confirmation dialog:', error);
       // Fallback to browser confirm if Dialog fails
       return confirm(`¿Deseas remover el recurso "${resourceName}" de esta organización?`);
+    }
+  }
+
+  /**
+   * Handle editing a resource
+   */
+  private async handleEditResource(resourceId: string, resourceName: string): Promise<void> {
+    console.log('✏️ Edit resource request:', resourceName, resourceId);
+
+    const gm = (window as any).GuardManagement;
+    if (!gm?.documentManager) {
+      console.error('❌ DocumentBasedManager not available');
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('No se pudo acceder al gestor de documentos');
+      }
+      return;
+    }
+
+    try {
+      // Get the resource from the document manager
+      const resources = gm.documentManager.getGuardResources();
+      const resource = resources.find((r: any) => r.id === resourceId);
+
+      if (!resource) {
+        console.error('❌ Resource not found:', resourceId);
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.error('Recurso no encontrado');
+        }
+        return;
+      }
+
+      console.log('📝 Found resource for editing:', resource);
+
+      // Convert Foundry document to our Resource type
+      const resourceData = {
+        id: resource.id,
+        name: resource.name,
+        description: resource.system?.description || '',
+        quantity: resource.system?.quantity || 0,
+        organizationId: resource.system?.organizationId || '',
+        version: resource.system?.version || 1,
+        createdAt: resource.system?.createdAt || new Date(),
+        updatedAt: resource.system?.updatedAt || new Date(),
+      };
+
+      // Import AddOrEditResourceDialog dynamically to avoid circular imports
+      const { AddOrEditResourceDialog } = await import('../dialogs/AddOrEditResourceDialog.js');
+
+      // Show the edit dialog
+      const editedResource = await AddOrEditResourceDialog.edit(resourceData);
+
+      if (editedResource) {
+        console.log('💾 Resource edited successfully, saving to database:', editedResource);
+
+        // Save the edited resource using DocumentBasedManager
+        const updateSuccess = await gm.documentManager.updateGuardResource(
+          editedResource.id,
+          editedResource
+        );
+
+        if (updateSuccess) {
+          console.log('✅ Resource saved to database');
+
+          // Notify success
+          if ((globalThis as any).ui?.notifications) {
+            (globalThis as any).ui.notifications.info(
+              `Recurso "${editedResource.name}" actualizado exitosamente`
+            );
+          }
+
+          // Dispatch event for other dialogs to update (like warehouse)
+          const event = new CustomEvent('guard-resource-updated', {
+            detail: {
+              resourceId: editedResource.id,
+              updatedResource: editedResource,
+              oldName: resourceData.name,
+              newName: editedResource.name,
+            },
+          });
+          document.dispatchEvent(event);
+
+          // Refresh this dialog's content to show the updated resource
+          await this.refreshContent();
+        } else {
+          console.error('❌ Failed to save resource to database');
+          if ((globalThis as any).ui?.notifications) {
+            (globalThis as any).ui.notifications.error(
+              'Error al guardar el recurso en la base de datos'
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error editing resource:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al editar el recurso');
+      }
     }
   }
 
@@ -1033,6 +1148,15 @@ export class CustomInfoDialog implements FocusableDialog {
             : ''}
         </div>
         <div class="resource-actions">
+          <button
+            type="button"
+            class="edit-resource-btn btn-icon"
+            title="Editar recurso"
+            data-resource-id="${resourceId}"
+            data-resource-name="${resourceData.name}"
+          >
+            <i class="fas fa-edit"></i>
+          </button>
           <button
             type="button"
             class="remove-resource-btn btn-icon"
