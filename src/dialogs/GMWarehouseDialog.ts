@@ -795,8 +795,79 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   private async handleEditTemplate(resourceId: string): Promise<void> {
-    console.log('Edit template:', resourceId);
-    // TODO: Implement edit functionality
+    console.log('✏️ Edit resource request:', resourceId);
+
+    const gm = (window as any).GuardManagement;
+    if (!gm?.documentManager) {
+      console.error('❌ DocumentBasedManager not available');
+      return;
+    }
+
+    try {
+      // Get the resource to edit
+      const resources = gm.documentManager.getGuardResources();
+      const resource = resources.find((r: any) => r.id === resourceId);
+
+      if (!resource) {
+        console.error('❌ Resource not found:', resourceId);
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.error('Recurso no encontrado');
+        }
+        return;
+      }
+
+      // Convert Foundry document to our Resource type
+      const resourceData = {
+        id: resource.id,
+        name: resource.name,
+        description: resource.system?.description || '',
+        quantity: resource.system?.quantity || 0,
+        organizationId: resource.system?.organizationId || '',
+        version: resource.system?.version || 1,
+        createdAt: resource.system?.createdAt || new Date(),
+        updatedAt: resource.system?.updatedAt || new Date(),
+      };
+
+      console.log('📝 Opening edit dialog for resource:', resourceData);
+
+      // Show edit dialog
+      const updatedResource = await AddOrEditResourceDialog.edit(resourceData);
+
+      if (updatedResource) {
+        console.log('✅ Resource updated successfully:', updatedResource);
+
+        // Show success notification
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Recurso "${updatedResource.name}" actualizado correctamente`
+          );
+        }
+
+        // Refresh the warehouse dialog to show the updated resource
+        await this.refreshResourcesTab();
+
+        // Emit custom event to notify other dialogs (like CustomInfoDialog)
+        document.dispatchEvent(
+          new CustomEvent('guard-resource-updated', {
+            detail: {
+              resourceId: updatedResource.id,
+              updatedResource,
+              oldName: resourceData.name,
+              newName: updatedResource.name,
+            },
+          })
+        );
+
+        console.log('🔄 Resource update notifications sent');
+      } else {
+        console.log('❌ Resource edit cancelled or failed');
+      }
+    } catch (error) {
+      console.error('❌ Error editing resource:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al editar el recurso');
+      }
+    }
   }
 
   /**
@@ -808,11 +879,114 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Handle deleting a template (placeholder)
+   * Show confirmation dialog for deleting a resource permanently
    */
-  private handleDeleteTemplate(resourceId: string): void {
-    console.log('Delete template:', resourceId);
-    // TODO: Implement delete functionality
+  private async showDeleteResourceDialog(resourceName: string): Promise<boolean> {
+    try {
+      // Use foundry's built-in confirmation dialog
+      const result = await Dialog.confirm({
+        title: 'Confirmar Eliminación Permanente',
+        content: `
+          <div style="margin-bottom: 1rem;">
+            <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
+            <strong>¡ATENCIÓN! Eliminación Permanente</strong>
+          </div>
+          <p>¿Estás seguro de que deseas eliminar permanentemente el recurso "<strong>${resourceName}</strong>"?</p>
+          <p><strong style="color: #ff6b6b;">Esta acción NO se puede deshacer.</strong></p>
+          <p><small>El recurso será removido de todas las organizaciones y eliminado completamente del sistema.</small></p>
+        `,
+        yes: () => true,
+        no: () => false,
+        defaultYes: false,
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error showing delete confirmation dialog:', error);
+      // Fallback to browser confirm if Dialog fails
+      return confirm(
+        `¿Deseas eliminar permanentemente el recurso "${resourceName}"? Esta acción NO se puede deshacer.`
+      );
+    }
+  }
+
+  /**
+   * Handle deleting a resource permanently
+   */
+  private async handleDeleteTemplate(resourceId: string): Promise<void> {
+    console.log('🗑️ Delete resource request:', resourceId);
+
+    const gm = (window as any).GuardManagement;
+    if (!gm?.documentManager) {
+      console.error('❌ DocumentBasedManager not available');
+      return;
+    }
+
+    try {
+      // Get the resource first to show its name in confirmation
+      const resources = gm.documentManager.getGuardResources();
+      const resource = resources.find((r: any) => r.id === resourceId);
+
+      if (!resource) {
+        console.error('❌ Resource not found:', resourceId);
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.error('Recurso no encontrado');
+        }
+        return;
+      }
+
+      const resourceName = resource.name || 'Recurso sin nombre';
+
+      // Show confirmation dialog
+      const confirmed = await this.showDeleteResourceDialog(resourceName);
+      if (!confirmed) {
+        console.log('❌ Resource deletion cancelled by user');
+        return;
+      }
+
+      // Check if resource is assigned to any organization before deleting
+      const organizations = gm.documentManager.getGuardOrganizations();
+      const assignedOrganizations = organizations.filter((org: any) =>
+        org.system?.resources?.includes(resourceId)
+      );
+
+      if (assignedOrganizations.length > 0) {
+        console.log(`🔍 Resource is assigned to ${assignedOrganizations.length} organizations`);
+      }
+
+      // Use the DocumentBasedManager method to delete the resource and clean up references
+      const deleted = await gm.documentManager.deleteGuardResource(resourceId);
+
+      if (!deleted) {
+        console.error('❌ Failed to delete resource');
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.error('Error al eliminar el recurso');
+        }
+        return;
+      }
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Recurso "${resourceName}" eliminado permanentemente`
+        );
+      }
+
+      // Refresh the warehouse dialog to remove the deleted resource
+      this.refreshResourcesTab();
+
+      // Emit custom event to notify other dialogs
+      document.dispatchEvent(
+        new CustomEvent('guard-resource-deleted', {
+          detail: { resourceId, resourceName },
+        })
+      );
+    } catch (error) {
+      console.error('❌ Error deleting resource:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al eliminar el recurso');
+      }
+    }
   }
 
   /**

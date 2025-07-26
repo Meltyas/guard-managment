@@ -247,9 +247,9 @@ export class CustomInfoDialog implements FocusableDialog {
           <h3><i class="fas fa-coins"></i> Recursos</h3>
           <div class="resources-list" data-organization-id="${organization.id}">
             ${organization.resources && organization.resources.length > 0
-              ? html`${organization.resources.map((resourceId: string) =>
-                  this.renderResourceItemTemplate(resourceId)
-                )}`
+              ? html`${organization.resources
+                  .map((resourceId: string) => this.renderResourceItemTemplate(resourceId))
+                  .filter((template) => template !== null)}`
               : html`<p class="empty-state">
                   No hay recursos asignados a esta organización.<br /><small
                     >Arrastra recursos desde el warehouse</small
@@ -398,6 +398,80 @@ export class CustomInfoDialog implements FocusableDialog {
 
     // Add event listeners for remove resource buttons
     this.setupResourceEventListeners();
+
+    // Listen for resource updates and deletions from warehouse
+    this.setupResourceUpdateListeners();
+  }
+
+  /**
+   * Setup listeners for resource updates from warehouse
+   */
+  private setupResourceUpdateListeners(): void {
+    // Listen for resource deletions
+    document.addEventListener(
+      'guard-resource-deleted',
+      this.handleResourceDeleted.bind(this) as EventListener
+    );
+
+    // Listen for resource updates
+    document.addEventListener(
+      'guard-resource-updated',
+      this.handleResourceUpdated.bind(this) as EventListener
+    );
+
+    console.log('🔄 Resource update listeners set up');
+  }
+
+  /**
+   * Handle resource deletion events
+   */
+  private async handleResourceDeleted(event: Event): Promise<void> {
+    const customEvent = event as CustomEvent;
+    const { resourceId, resourceName } = customEvent.detail;
+    console.log('🗑️ Resource deleted event received:', resourceName, resourceId);
+
+    if (!this.currentOrganization) return;
+
+    // Check if this organization had the deleted resource
+    if (this.currentOrganization.resources?.includes(resourceId)) {
+      console.log('📊 Organization had deleted resource - refreshing content');
+
+      // Get fresh organization data
+      await this.refreshContent();
+
+      // Show notification with the proper resource name from the event
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `El recurso "${resourceName}" fue eliminado del sistema`
+        );
+      }
+    }
+  }
+
+  /**
+   * Handle resource update events
+   */
+  private async handleResourceUpdated(event: Event): Promise<void> {
+    const customEvent = event as CustomEvent;
+    const { resourceId, oldName, newName } = customEvent.detail;
+    console.log('✏️ Resource updated event received:', oldName, '->', newName, resourceId);
+
+    if (!this.currentOrganization) return;
+
+    // Check if this organization has the updated resource
+    if (this.currentOrganization.resources?.includes(resourceId)) {
+      console.log('📊 Organization has updated resource - refreshing content');
+
+      // Get fresh organization data
+      await this.refreshContent();
+
+      // Show notification only if name changed
+      if (oldName !== newName && (globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Recurso actualizado: "${oldName}" → "${newName}"`
+        );
+      }
+    }
   }
 
   /**
@@ -414,6 +488,17 @@ export class CustomInfoDialog implements FocusableDialog {
       this.resourceEventHandler = null;
       console.log('🧹 Cleaned up resource event handler');
     }
+
+    // Remove resource update listeners
+    document.removeEventListener(
+      'guard-resource-deleted',
+      this.handleResourceDeleted.bind(this) as EventListener
+    );
+    document.removeEventListener(
+      'guard-resource-updated',
+      this.handleResourceUpdated.bind(this) as EventListener
+    );
+    console.log('🧹 Cleaned up resource update listeners');
   }
 
   /**
@@ -762,9 +847,9 @@ export class CustomInfoDialog implements FocusableDialog {
           <h3><i class="fas fa-coins"></i> Recursos</h3>
           <div class="resources-list" data-organization-id="${organization.id}">
             ${organization.resources && organization.resources.length > 0
-              ? html`${organization.resources.map((resourceId: string) =>
-                  this.renderResourceItemTemplate(resourceId)
-                )}`
+              ? html`${organization.resources
+                  .map((resourceId: string) => this.renderResourceItemTemplate(resourceId))
+                  .filter((template) => template !== null)}`
               : html`<p class="empty-state">
                   No hay recursos asignados a esta organización.<br /><small
                     >Arrastra recursos desde el warehouse</small
@@ -897,7 +982,7 @@ export class CustomInfoDialog implements FocusableDialog {
   /**
    * Render individual resource item as TemplateResult
    */
-  private renderResourceItemTemplate(resourceId: string): TemplateResult {
+  private renderResourceItemTemplate(resourceId: string): TemplateResult | null {
     console.log('🔧 Rendering resource item:', resourceId);
 
     // Get the actual resource data
@@ -919,20 +1004,31 @@ export class CustomInfoDialog implements FocusableDialog {
           console.log('✅ Found resource data:', resourceData);
         } else {
           console.log('❌ Resource not found in documentManager:', resourceId);
+          // Return null instead of rendering a placeholder for non-existent resources
+          return null;
         }
       } else {
         console.log('❌ DocumentManager not available');
+        // Return null instead of rendering when DocumentManager is not available
+        return null;
       }
     } catch (error) {
       console.error('Error getting resource data for', resourceId, error);
+      // Return null instead of rendering when there's an error
+      return null;
+    }
+
+    // Only render if we have valid resource data
+    if (!resourceData) {
+      return null;
     }
 
     return html`
       <div class="resource-item" data-resource-id="${resourceId}">
         <div class="resource-info">
-          <span class="resource-name">${resourceData?.name || `Recurso ${resourceId}`}</span>
-          <span class="resource-quantity">Cantidad: ${resourceData?.quantity || '--'}</span>
-          ${resourceData?.description
+          <span class="resource-name">${resourceData.name}</span>
+          <span class="resource-quantity">Cantidad: ${resourceData.quantity}</span>
+          ${resourceData.description
             ? html`<span class="resource-description">${resourceData.description}</span>`
             : ''}
         </div>
@@ -942,7 +1038,7 @@ export class CustomInfoDialog implements FocusableDialog {
             class="remove-resource-btn btn-icon"
             title="Remover recurso"
             data-resource-id="${resourceId}"
-            data-resource-name="${resourceData?.name || `Recurso ${resourceId}`}"
+            data-resource-name="${resourceData.name}"
           >
             <i class="fas fa-trash"></i>
           </button>

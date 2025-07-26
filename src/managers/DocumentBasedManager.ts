@@ -329,6 +329,39 @@ export class DocumentBasedManager {
     return true;
   }
 
+  /**
+   * Delete a Guard Resource permanently
+   */
+  async deleteGuardResource(id: string): Promise<boolean> {
+    const resource = game?.items?.get(id);
+    if (!resource || resource.type !== 'guard-management.guard-resource') return false;
+
+    try {
+      // Remove resource from all organizations that have it
+      const organizations = this.getGuardOrganizations();
+      for (const org of organizations) {
+        if (org.system?.resources?.includes(id)) {
+          const newResources = org.system.resources.filter(
+            (resourceId: string) => resourceId !== id
+          );
+          await this.updateGuardOrganization(org.id, {
+            resources: newResources,
+            version: (org.system.version || 0) + 1,
+            updatedAt: new Date(),
+          });
+        }
+      }
+
+      // Delete the resource document
+      await resource.delete();
+      console.log(`✅ Resource ${resource.name} deleted permanently`);
+      return true;
+    } catch (error) {
+      console.error('❌ Error deleting resource:', error);
+      return false;
+    }
+  }
+
   // === REPUTATION METHODS ===
 
   /**
