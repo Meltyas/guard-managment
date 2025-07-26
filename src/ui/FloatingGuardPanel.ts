@@ -554,15 +554,15 @@ export class FloatingGuardPanel {
   private showDebugInfo(): void {
     const organizations = this.dialogManager.guardOrganizationManager.getAllOrganizations();
     console.log(organizations);
-    
+
     const warehouseData = {
       documentManager: (window as any).GuardManagement?.documentManager,
       allDocuments: (window as any).GuardManagement?.documentManager?.getGuardOrganizations(),
       localStorage: localStorage,
-      gameData: (game as any)?.data
+      gameData: (game as any)?.data,
     };
     console.log(warehouseData);
-    
+
     console.log(game);
   }
 
