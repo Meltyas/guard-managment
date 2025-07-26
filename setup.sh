@@ -3,6 +3,13 @@
 # Setup script for Guard Management Module
 # This script ensures the correct Node.js version and installs dependencies
 
+# Set non-interactive environment
+export CI=true
+export NPM_CONFIG_YES=true
+export NPM_CONFIG_AUDIT=false
+export NPM_CONFIG_FUND=false
+export NPM_CONFIG_UPDATE_NOTIFIER=false
+
 echo "🛡️  Guard Management Module Setup"
 echo "=================================="
 
@@ -27,7 +34,7 @@ echo "📋 Required Node.js version: $NODE_VERSION"
 
 # Install and use the correct Node.js version
 echo "🔄 Setting up Node.js $NODE_VERSION..."
-nvm install $NODE_VERSION
+nvm install $NODE_VERSION 2>/dev/null || true
 nvm use $NODE_VERSION
 
 # Verify Node.js version
@@ -36,7 +43,7 @@ echo "✅ Active Node.js version: $CURRENT_VERSION"
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm install
+npm install --no-audit --no-fund --quiet
 
 # Run type checking
 echo "🔍 Running type check..."

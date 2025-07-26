@@ -31,8 +31,17 @@ export default defineConfig({
       plugins: [],
     },
   },
+  server: {
+    open: false,
+    host: true
+  },
+  preview: {
+    open: false
+  },
   test: {
     globals: true,
     environment: 'jsdom',
+    watch: false,
+    reporters: ['verbose']
   },
 });
