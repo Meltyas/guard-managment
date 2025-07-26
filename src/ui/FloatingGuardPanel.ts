@@ -188,6 +188,10 @@ export class FloatingGuardPanel {
           <span>Ver Organización</span>
         </button>
         ${isGM ? this.renderGMWarehouseButton() : html`<!-- No GM button - user is not GM -->`}
+        <button class="action-btn secondary" data-action="debug-info">
+          <i class="fas fa-bug"></i>
+          <span>Debug Info</span>
+        </button>
       </div>
     `;
   }
@@ -527,6 +531,9 @@ export class FloatingGuardPanel {
       case 'open-warehouse':
         this.openGMWarehouse();
         break;
+      case 'debug-info':
+        this.showDebugInfo();
+        break;
     }
   }
 
@@ -539,6 +546,24 @@ export class FloatingGuardPanel {
     } catch (error) {
       console.error('Error opening GM Warehouse:', error);
     }
+  }
+
+  /**
+   * Show debug info in console
+   */
+  private showDebugInfo(): void {
+    const organizations = this.dialogManager.guardOrganizationManager.getAllOrganizations();
+    console.log(organizations);
+    
+    const warehouseData = {
+      documentManager: (window as any).GuardManagement?.documentManager,
+      allDocuments: (window as any).GuardManagement?.documentManager?.getGuardOrganizations(),
+      localStorage: localStorage,
+      gameData: (game as any)?.data
+    };
+    console.log(warehouseData);
+    
+    console.log(game);
   }
 
   /**
