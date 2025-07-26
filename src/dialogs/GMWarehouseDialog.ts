@@ -1,6 +1,7 @@
 import { html, TemplateResult } from 'lit-html';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { safeRender } from '../utils/template-renderer.js';
+import { AddOrEditResourceDialog } from './AddOrEditResourceDialog.js';
 
 /**
  * GM Warehouse Dialog
@@ -13,6 +14,11 @@ export class GMWarehouseDialog implements FocusableDialog {
   private isResizing = false;
   private dragOffset = { x: 0, y: 0 };
   private isFocused = false;
+
+  // Storage for templates (in-memory for now)
+  private resourceTemplates: any[] = [];
+  private reputationTemplates: any[] = [];
+  private patrolEffectTemplates: any[] = [];
 
   constructor() {
     // Check GM permissions
@@ -51,6 +57,9 @@ export class GMWarehouseDialog implements FocusableDialog {
 
     // Add event listeners
     this.addEventListeners();
+
+    // Load initial content
+    this.loadInitialContent();
 
     // Give this dialog focus immediately
     DialogFocusManager.getInstance().setFocus(this);
@@ -193,6 +202,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    * Render resources tab content
    */
   private renderResourcesTab(): TemplateResult {
+    // Initialize with empty state, will be populated async
     return html`
       <section class="tab-content active" data-tab="resources">
         <div class="content-header">
@@ -203,9 +213,65 @@ export class GMWarehouseDialog implements FocusableDialog {
           </button>
         </div>
         <div class="templates-list resources-list">
-          <p class="empty-state">No resource templates created yet</p>
+          <p class="loading-state">Loading resources...</p>
         </div>
       </section>
+    `;
+  }
+
+  /**
+   * Get resource templates from DocumentBasedManager
+   */
+  private async getResourceTemplates(): Promise<any[]> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (gm?.documentManager) {
+        // Get all resources from DocumentBasedManager (these serve as templates in GM Warehouse)
+        this.resourceTemplates = await gm.documentManager.getGuardResources();
+        return this.resourceTemplates;
+      } else {
+        console.warn('DocumentBasedManager not available, returning empty array');
+        this.resourceTemplates = [];
+        return this.resourceTemplates;
+      }
+    } catch (error) {
+      console.error('Error loading resource templates from DocumentBasedManager:', error);
+      this.resourceTemplates = [];
+      return this.resourceTemplates;
+    }
+  }
+
+  /**
+   * Load initial content when dialog opens
+   */
+  private async loadInitialContent(): Promise<void> {
+    // Load resources tab content
+    await this.refreshResourcesTab();
+  }
+
+  /**
+   * Render individual resource template
+   */
+  private renderResourceTemplate(resource: any): TemplateResult {
+    return html`
+      <div class="template-item resource-template" data-resource-id="${resource.id}">
+        <div class="template-info">
+          <div class="template-name">${resource.name}</div>
+          <div class="template-description">${resource.description || 'Sin descripción'}</div>
+          <div class="template-quantity">Cantidad: ${resource.quantity}</div>
+        </div>
+        <div class="template-actions">
+          <button type="button" class="edit-template-btn" title="Editar template">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button type="button" class="duplicate-template-btn" title="Duplicar template">
+            <i class="fas fa-copy"></i>
+          </button>
+          <button type="button" class="delete-template-btn" title="Eliminar template">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
     `;
   }
 
@@ -309,7 +375,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     // Handle add buttons
     const addButtons = this.element.querySelectorAll('[class*="add-"][class*="-btn"]');
     addButtons.forEach((button) => {
-      button.addEventListener('click', (event) => {
+      button.addEventListener('click', async (event) => {
         event.preventDefault();
         const target = event.currentTarget as HTMLElement;
         const classList = target.className;
@@ -320,7 +386,9 @@ export class GMWarehouseDialog implements FocusableDialog {
         else if (classList.includes('add-patrol-effect-btn')) templateType = 'patrol-effect';
         else if (classList.includes('add-guard-modifier-btn')) templateType = 'guard-modifier';
 
-        if (templateType) {
+        if (templateType === 'resource') {
+          await this.handleAddResource();
+        } else if (templateType) {
           console.log(`Adding new ${templateType} template - functionality to be implemented`);
           if ((globalThis as any).ui?.notifications) {
             (globalThis as any).ui.notifications.info(
@@ -473,6 +541,162 @@ export class GMWarehouseDialog implements FocusableDialog {
   private handleBlur(): void {
     // Note: We don't clear focus here because focus is managed globally
     // Focus is only lost when another dialog gains focus or when dialog is closed
+  }
+
+  /**
+   * Handle adding a new resource template
+   */
+  private async handleAddResource(): Promise<void> {
+    try {
+      // Use a generic organization ID for templates (GM warehouse)
+      const templateOrganizationId = 'gm-warehouse-templates';
+
+      const newResource = await AddOrEditResourceDialog.create(templateOrganizationId);
+
+      if (newResource) {
+        console.log('Recurso template creado:', newResource);
+
+        // Save using DocumentBasedManager instead of localStorage
+        try {
+          const gm = (window as any).GuardManagement;
+          if (gm?.documentManager) {
+            const createdResource = await gm.documentManager.createGuardResource(newResource);
+            if (createdResource) {
+              console.log('Resource template saved via DocumentBasedManager');
+
+              // Refresh templates list from DocumentBasedManager
+              await this.refreshResourcesTab();
+            } else {
+              throw new Error('Failed to create resource via DocumentBasedManager');
+            }
+          } else {
+            throw new Error('DocumentBasedManager not available');
+          }
+        } catch (error) {
+          console.error('Error saving resource template via DocumentBasedManager:', error);
+          if ((globalThis as any).ui?.notifications) {
+            (globalThis as any).ui.notifications.error('Error guardando template de recurso');
+          }
+          return;
+        }
+
+        // Show success message
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Template de recurso "${newResource.name}" creado exitosamente`
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error creando template de recurso:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al crear el template de recurso');
+      }
+    }
+  }
+
+  /**
+   * Refresh the resources tab content
+   */
+  private async refreshResourcesTab(): Promise<void> {
+    if (!this.element) return;
+
+    const resourcesList = this.element.querySelector('.resources-list');
+    if (resourcesList) {
+      const resourceTemplates = await this.getResourceTemplates();
+
+      // Clear current content
+      resourcesList.innerHTML = '';
+
+      if (resourceTemplates.length > 0) {
+        // Add each resource template
+        resourceTemplates.forEach((resource) => {
+          const templateElement = document.createElement('div');
+          const templateContent = this.renderResourceTemplate(resource);
+          safeRender(templateContent, templateElement);
+
+          if (templateElement.firstElementChild) {
+            resourcesList.appendChild(templateElement.firstElementChild);
+          }
+        });
+      } else {
+        // Show empty state
+        const emptyStateElement = document.createElement('p');
+        emptyStateElement.className = 'empty-state';
+        emptyStateElement.textContent = 'No resource templates created yet';
+        resourcesList.appendChild(emptyStateElement);
+      }
+
+      // Re-add event listeners only for the new template items
+      this.addTemplateEventListeners();
+    }
+  }
+
+  /**
+   * Add event listeners specifically for template items
+   */
+  private addTemplateEventListeners(): void {
+    if (!this.element) return;
+
+    // Handle edit template buttons
+    const editButtons = this.element.querySelectorAll('.edit-template-btn');
+    editButtons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        const templateItem = button.closest('.template-item') as HTMLElement;
+        const resourceId = templateItem?.dataset.resourceId;
+        if (resourceId) {
+          this.handleEditTemplate(resourceId);
+        }
+      });
+    });
+
+    // Handle duplicate template buttons
+    const duplicateButtons = this.element.querySelectorAll('.duplicate-template-btn');
+    duplicateButtons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        const templateItem = button.closest('.template-item') as HTMLElement;
+        const resourceId = templateItem?.dataset.resourceId;
+        if (resourceId) {
+          this.handleDuplicateTemplate(resourceId);
+        }
+      });
+    });
+
+    // Handle delete template buttons
+    const deleteButtons = this.element.querySelectorAll('.delete-template-btn');
+    deleteButtons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        const templateItem = button.closest('.template-item') as HTMLElement;
+        const resourceId = templateItem?.dataset.resourceId;
+        if (resourceId) {
+          this.handleDeleteTemplate(resourceId);
+        }
+      });
+    });
+  }
+
+  private async handleEditTemplate(resourceId: string): Promise<void> {
+    console.log('Edit template:', resourceId);
+    // TODO: Implement edit functionality
+  }
+
+  /**
+   * Handle duplicating a template (placeholder)
+   */
+  private handleDuplicateTemplate(resourceId: string): void {
+    console.log('Duplicate template:', resourceId);
+    // TODO: Implement duplicate functionality
+  }
+
+  /**
+   * Handle deleting a template (placeholder)
+   */
+  private handleDeleteTemplate(resourceId: string): void {
+    console.log('Delete template:', resourceId);
+    // TODO: Implement delete functionality
   }
 
   /**

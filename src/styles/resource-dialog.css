@@ -1,0 +1,172 @@
+/**
+ * Styles for AddOrEditResourceDialog
+ * These styles extend the main Guard Management theme
+ */
+
+/* Resource Dialog Form Styles */
+.resource-form.guard-dialog {
+  min-width: 400px;
+  max-width: 600px;
+}
+
+.resource-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.resource-form .form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  color: var(--color-text-dark-primary, #1c1c1c);
+}
+
+.resource-form .form-group input,
+.resource-form .form-group textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border-dark-primary, #ccc);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: var(--color-bg-option, #ffffff);
+  color: var(--color-text-dark-primary, #1c1c1c);
+}
+
+.resource-form .form-group input:focus,
+.resource-form .form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-border-highlight, #007bff);
+  box-shadow: 0 0 0 2px var(--color-border-highlight-box-shadow, rgba(0, 123, 255, 0.25));
+}
+
+.resource-form .form-group input[type='number'] {
+  text-align: right;
+}
+
+.resource-form .form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.resource-form .form-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--color-text-dark-5, #666);
+  font-style: italic;
+}
+
+.resource-form .form-notes {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--color-bg-btn, #f8f9fa);
+  border: 1px solid var(--color-border-light-tertiary, #e9ecef);
+  border-radius: 4px;
+}
+
+.resource-form .form-notes p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-dark-6, #495057);
+}
+
+.resource-form .form-notes i {
+  margin-right: 0.5rem;
+  color: var(--color-text-hyperlink, #007bff);
+}
+
+/* Validation Styles */
+.resource-form .form-group input:invalid,
+.resource-form .form-group textarea:invalid {
+  border-color: var(--color-border-highlight-failure, #dc3545);
+}
+
+.resource-form .form-group input:valid,
+.resource-form .form-group textarea:valid {
+  border-color: var(--color-border-highlight-success, #28a745);
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .resource-form.guard-dialog {
+    min-width: 300px;
+    max-width: 100%;
+  }
+
+  .resource-form .form-group input,
+  .resource-form .form-group textarea {
+    font-size: 16px; /* Prevent zoom on mobile */
+  }
+}
+
+/* Dark Theme Support */
+@media (prefers-color-scheme: dark) {
+  .resource-form .form-group input,
+  .resource-form .form-group textarea {
+    background: var(--color-bg-option-dark, #2d2d2d);
+    border-color: var(--color-border-dark-primary-dark, #555);
+    color: var(--color-text-light-primary, #ffffff);
+  }
+
+  .resource-form .form-group label {
+    color: var(--color-text-light-primary, #ffffff);
+  }
+
+  .resource-form .form-hint {
+    color: var(--color-text-light-5, #aaa);
+  }
+
+  .resource-form .form-notes {
+    background: var(--color-bg-btn-dark, #343a40);
+    border-color: var(--color-border-light-tertiary-dark, #495057);
+  }
+
+  .resource-form .form-notes p {
+    color: var(--color-text-light-6, #ced4da);
+  }
+}
+
+/* Animation for better UX */
+.resource-form .form-group {
+  transition: all 0.2s ease;
+}
+
+.resource-form .form-group:focus-within {
+  transform: translateY(-1px);
+}
+
+.resource-form .form-group input,
+.resource-form .form-group textarea {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Loading State (for future use) */
+.resource-form.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.resource-form.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid var(--color-border-light-tertiary, #e9ecef);
+  border-top: 2px solid var(--color-text-hyperlink, #007bff);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

@@ -552,18 +552,105 @@ export class FloatingGuardPanel {
    * Show debug info in console
    */
   private showDebugInfo(): void {
+    console.log('=== 🔍 GUARD MANAGEMENT DEBUG INFO ===');
+
+    // 1. Game and User Status
+    console.log('📊 Game Status:', {
+      gameExists: !!game,
+      gameReady: game?.ready,
+      userExists: !!game?.user,
+      isGM: (game?.user as any)?.isGM,
+      userId: game?.user?.id,
+      userName: game?.user?.name,
+    });
+
+    // 2. Module Status
+    const gm = (window as any).GuardManagement;
+    console.log('🏛️ Module Status:', {
+      moduleExists: !!gm,
+      guardManager: !!gm?.guardManager,
+      dialogManager: !!gm?.dialogManager,
+      documentManager: !!gm?.documentManager,
+      floatingPanel: !!gm?.floatingPanel,
+    });
+
+    // 3. Organization Data
     const organizations = this.dialogManager.guardOrganizationManager.getAllOrganizations();
-    console.log(organizations);
+    console.log('🏰 Organizations:', {
+      count: organizations.length,
+      organizations: organizations,
+    });
 
-    const warehouseData = {
-      documentManager: (window as any).GuardManagement?.documentManager,
-      allDocuments: (window as any).GuardManagement?.documentManager?.getGuardOrganizations(),
-      localStorage: localStorage,
-      gameData: (game as any)?.data,
-    };
-    console.log(warehouseData);
+    // 4. GM Warehouse Templates Data
+    console.log('🏪 GM Warehouse Templates:');
 
-    console.log(game);
+    // Resource Templates
+    const resourceTemplatesKey = 'guard-management-resource-templates';
+    const resourceTemplates = JSON.parse(localStorage.getItem(resourceTemplatesKey) || '[]');
+    console.log('📦 Resource Templates:', {
+      storageKey: resourceTemplatesKey,
+      count: resourceTemplates.length,
+      templates: resourceTemplates,
+    });
+
+    // Reputation Templates
+    const reputationTemplatesKey = 'guard-management-reputation-templates';
+    const reputationTemplates = JSON.parse(localStorage.getItem(reputationTemplatesKey) || '[]');
+    console.log('⭐ Reputation Templates:', {
+      storageKey: reputationTemplatesKey,
+      count: reputationTemplates.length,
+      templates: reputationTemplates,
+    });
+
+    // Patrol Effect Templates
+    const patrolEffectTemplatesKey = 'guard-management-patrol-effect-templates';
+    const patrolEffectTemplates = JSON.parse(
+      localStorage.getItem(patrolEffectTemplatesKey) || '[]'
+    );
+    console.log('⚡ Patrol Effect Templates:', {
+      storageKey: patrolEffectTemplatesKey,
+      count: patrolEffectTemplates.length,
+      templates: patrolEffectTemplates,
+    });
+
+    // 5. Local Storage Debug
+    console.log('💾 Local Storage Keys:');
+    const guardKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('guard-management')) {
+        guardKeys.push({
+          key: key,
+          valueLength: localStorage.getItem(key)?.length || 0,
+          preview: localStorage.getItem(key)?.substring(0, 100) + '...',
+        });
+      }
+    }
+    console.log('🔑 Guard Management Storage:', guardKeys);
+
+    // 6. Document Storage Debug
+    if (gm?.documentManager) {
+      console.log('📄 Document Manager:', {
+        allDocuments: gm.documentManager.getGuardOrganizations(),
+        documentCount: gm.documentManager.getGuardOrganizations()?.length || 0,
+      });
+    }
+
+    // 7. Dialog System Check
+    console.log('🪟 Dialog System:', {
+      DialogV2Available: !!foundry?.applications?.api?.DialogV2,
+      standardDialogAvailable: !!Dialog,
+    });
+
+    // 8. Canvas and UI Status
+    console.log('🎮 Canvas & UI:', {
+      canvasExists: !!canvas,
+      canvasReady: canvas?.ready,
+      uiExists: !!ui,
+      notificationsExists: !!ui?.notifications,
+    });
+
+    console.log('=== END DEBUG INFO ===');
   }
 
   /**

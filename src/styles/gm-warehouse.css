@@ -245,3 +245,95 @@
     font-size: 1.1rem;
   }
 }
+
+/* Template Items Styles */
+.template-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid #555;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.template-item:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  border-color: #777;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.template-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.template-name {
+  font-weight: bold;
+  color: #ecf0f1;
+  font-size: 1rem;
+}
+
+.template-description {
+  color: #bdc3c7;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.template-quantity {
+  color: #95a5a6;
+  font-size: 0.8rem;
+}
+
+.template-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.template-actions button {
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid #666;
+  border-radius: 4px;
+  color: #bdc3c7;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.template-actions button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #999;
+  color: #ecf0f1;
+}
+
+.edit-template-btn:hover {
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.duplicate-template-btn:hover {
+  border-color: #f39c12;
+  color: #f39c12;
+}
+
+.delete-template-btn:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+/* Empty state enhancement */
+.empty-state {
+  text-align: center;
+  color: #7f8c8d;
+  font-style: italic;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px dashed #555;
+  border-radius: 6px;
+}

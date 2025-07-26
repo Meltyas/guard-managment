@@ -6,6 +6,7 @@ import { html, TemplateResult } from 'lit-html';
 import type { GuardOrganization, GuardStats } from '../types/entities';
 import { DEFAULT_GUARD_STATS } from '../types/entities';
 import { renderTemplateToString } from '../utils/template-renderer.js';
+import { AddOrEditResourceDialog } from './AddOrEditResourceDialog.js';
 
 export interface GuardOrganizationDialogData {
   name: string;
@@ -213,6 +214,9 @@ export class GuardOrganizationDialog {
         ],
       });
 
+      // Configurar event listeners para los botones de recursos después de renderizar
+      setTimeout(() => this.setupResourceEventListeners(existingOrganization?.id), 100);
+
       if (result) {
         return this.createOrganizationFromData(result, mode, existingOrganization);
       }
@@ -254,7 +258,7 @@ export class GuardOrganizationDialog {
     return html`
       <form class="guard-organization-form">
         ${this.renderBasicInfoSection(data)} ${this.renderStatsSection(data)}
-        ${this.renderInfoSection()}
+        ${this.renderResourcesSection(data)} ${this.renderInfoSection()}
       </form>
     `;
   }
@@ -344,6 +348,72 @@ export class GuardOrganizationDialog {
             de organización.</small
           >
         </p>
+      </div>
+    `;
+  }
+
+  /**
+   * Render resources management section
+   */
+  private renderResourcesSection(data: any): TemplateResult {
+    const organizationId = data.id || 'temp-org-id';
+    const resources = data.resources || [];
+
+    return html`
+      <div class="resources-info-section">
+        <h4>Recursos de la Organización</h4>
+        <div class="resources-list">
+          ${resources.length > 0
+            ? resources.map((resourceId: string) => this.renderResourceItem(resourceId))
+            : html`<p class="empty-state">
+                No hay recursos asignados a esta organización.
+                <button
+                  type="button"
+                  class="add-resource-btn link-button"
+                  data-organization-id="${organizationId}"
+                >
+                  Agregar el primer recurso
+                </button>
+              </p>`}
+        </div>
+        ${resources.length > 0
+          ? html`
+              <div class="resources-actions">
+                <button
+                  type="button"
+                  class="add-resource-btn btn-small"
+                  data-organization-id="${organizationId}"
+                >
+                  <i class="fas fa-plus"></i>
+                  Agregar Recurso
+                </button>
+              </div>
+            `
+          : ''}
+      </div>
+    `;
+  }
+
+  /**
+   * Render individual resource item
+   */
+  private renderResourceItem(resourceId: string): TemplateResult {
+    // TODO: Fetch actual resource data by ID
+    // For now, render placeholder
+    return html`
+      <div class="resource-item" data-resource-id="${resourceId}">
+        <div class="resource-info">
+          <span class="resource-name">Recurso ${resourceId}</span>
+          <span class="resource-quantity">Cantidad: --</span>
+        </div>
+        <div class="resource-actions">
+          <button type="button" class="edit-resource-btn btn-icon" title="Editar recurso">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button type="button" class="remove-resource-btn btn-icon" title="Remover recurso">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
       </div>
     `;
   }
@@ -446,6 +516,140 @@ export class GuardOrganizationDialog {
         .dialog-info p {
           margin: 0.25rem 0;
           color: #bbb;
+        }
+
+        /* Resources Section Styles */
+        .resources-info-section {
+          margin-top: 1rem;
+          padding: 1rem;
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid #444;
+          border-radius: 4px;
+        }
+
+        .resources-info-section h4 {
+          margin: 0 0 1rem 0;
+          color: #f0f0e0;
+          font-size: 1rem;
+          font-weight: bold;
+          border-bottom: 1px solid #555;
+          padding-bottom: 0.5rem;
+        }
+
+        .resources-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .resource-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid #555;
+          border-radius: 3px;
+        }
+
+        .resource-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .resource-name {
+          font-weight: bold;
+          color: #f0f0e0;
+          font-size: 0.9rem;
+        }
+
+        .resource-quantity {
+          font-size: 0.8rem;
+          color: #bbb;
+        }
+
+        .resource-actions {
+          display: flex;
+          gap: 0.25rem;
+        }
+
+        .resources-actions {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 0.5rem;
+        }
+
+        .btn-small {
+          padding: 0.25rem 0.5rem;
+          font-size: 0.8rem;
+          background: #28a745;
+          color: white;
+          border: none;
+          border-radius: 3px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          transition: background-color 0.2s;
+        }
+
+        .btn-small:hover {
+          background: #218838;
+        }
+
+        .link-button {
+          background: none;
+          border: none;
+          color: #007bff;
+          text-decoration: underline;
+          cursor: pointer;
+          font-size: 0.9rem;
+          padding: 0;
+          margin-left: 0.5rem;
+        }
+
+        .link-button:hover {
+          color: #0056b3;
+        }
+
+        .btn-icon {
+          padding: 0.25rem;
+          background: transparent;
+          border: 1px solid #666;
+          border-radius: 3px;
+          color: #bbb;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 0.8rem;
+        }
+
+        .btn-icon:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: #999;
+          color: white;
+        }
+
+        .edit-resource-btn:hover {
+          border-color: #007bff;
+          color: #007bff;
+        }
+
+        .remove-resource-btn:hover {
+          border-color: #dc3545;
+          color: #dc3545;
+        }
+
+        .empty-state {
+          text-align: center;
+          color: #999;
+          font-style: italic;
+          padding: 1rem;
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px dashed #666;
+          border-radius: 4px;
+          margin: 0;
         }
       </style>
     `;
@@ -585,6 +789,146 @@ export class GuardOrganizationDialog {
         reputation: [],
         patrols: [],
       };
+    }
+  }
+
+  /**
+   * Setup event listeners for resource management buttons
+   */
+  private setupResourceEventListeners(organizationId?: string): void {
+    try {
+      // Find add resource button
+      const addResourceBtn = document.querySelector('.add-resource-btn') as HTMLButtonElement;
+      if (addResourceBtn) {
+        addResourceBtn.addEventListener('click', async (event) => {
+          event.preventDefault();
+          await this.handleAddResource(organizationId || 'temp-org-id');
+        });
+      }
+
+      // Find edit resource buttons
+      const editResourceBtns = document.querySelectorAll(
+        '.edit-resource-btn'
+      ) as NodeListOf<HTMLButtonElement>;
+      editResourceBtns.forEach((btn) => {
+        btn.addEventListener('click', async (event) => {
+          event.preventDefault();
+          const resourceItem = btn.closest('.resource-item') as HTMLElement;
+          const resourceId = resourceItem?.dataset.resourceId;
+          if (resourceId) {
+            await this.handleEditResource(resourceId);
+          }
+        });
+      });
+
+      // Find remove resource buttons
+      const removeResourceBtns = document.querySelectorAll(
+        '.remove-resource-btn'
+      ) as NodeListOf<HTMLButtonElement>;
+      removeResourceBtns.forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          const resourceItem = btn.closest('.resource-item') as HTMLElement;
+          const resourceId = resourceItem?.dataset.resourceId;
+          if (resourceId) {
+            this.handleRemoveResource(resourceId);
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error setting up resource event listeners:', error);
+    }
+  }
+
+  /**
+   * Handle adding a new resource to the organization
+   */
+  private async handleAddResource(organizationId: string): Promise<void> {
+    try {
+      const newResource = await AddOrEditResourceDialog.create(organizationId);
+
+      if (newResource) {
+        console.log('Nuevo recurso creado para organización:', newResource);
+
+        if (ui?.notifications) {
+          ui.notifications.info(`Recurso "${newResource.name}" agregado a la organización`);
+        }
+
+        // TODO: Update the organization's resources array and refresh UI
+        // This would require managing the organization state
+      }
+    } catch (error) {
+      console.error('Error agregando recurso:', error);
+      if (ui?.notifications) {
+        ui.notifications.error('Error al agregar el recurso');
+      }
+    }
+  }
+
+  /**
+   * Handle editing an existing resource
+   */
+  private async handleEditResource(resourceId: string): Promise<void> {
+    try {
+      // TODO: Fetch the actual resource by ID
+      // For now, create a mock resource
+      const mockResource = {
+        id: resourceId,
+        name: `Recurso ${resourceId}`,
+        description: 'Descripción del recurso',
+        quantity: 1,
+        organizationId: 'temp-org-id',
+        version: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const updatedResource = await AddOrEditResourceDialog.edit(mockResource);
+
+      if (updatedResource) {
+        console.log('Recurso actualizado:', updatedResource);
+
+        if (ui?.notifications) {
+          ui.notifications.info(`Recurso "${updatedResource.name}" actualizado`);
+        }
+
+        // TODO: Update the resource in storage and refresh UI
+      }
+    } catch (error) {
+      console.error('Error editando recurso:', error);
+      if (ui?.notifications) {
+        ui.notifications.error('Error al editar el recurso');
+      }
+    }
+  }
+
+  /**
+   * Handle removing a resource from the organization
+   */
+  private handleRemoveResource(resourceId: string): void {
+    try {
+      // Show confirmation dialog
+      Dialog.confirm({
+        title: 'Confirmar eliminación',
+        content: '<p>¿Estás seguro de que quieres eliminar este recurso?</p>',
+        yes: () => {
+          console.log('Removing resource:', resourceId);
+
+          if (ui?.notifications) {
+            ui.notifications.info('Recurso eliminado');
+          }
+
+          // TODO: Remove the resource from the organization and refresh UI
+        },
+        no: () => {
+          // User cancelled
+        },
+      });
+    } catch (error) {
+      console.error('Error eliminando recurso:', error);
+      if (ui?.notifications) {
+        ui.notifications.error('Error al eliminar el recurso');
+      }
     }
   }
 
