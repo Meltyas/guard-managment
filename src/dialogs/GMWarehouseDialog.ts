@@ -834,31 +834,55 @@ export class GMWarehouseDialog implements FocusableDialog {
       const updatedResource = await AddOrEditResourceDialog.edit(resourceData);
 
       if (updatedResource) {
-        console.log('✅ Resource updated successfully:', updatedResource);
+        console.log('✅ Resource returned from dialog:', updatedResource);
 
-        // Show success notification
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.info(
-            `Recurso "${updatedResource.name}" actualizado correctamente`
+        // IMPORTANT: Save the updated resource to the database using DocumentBasedManager
+        try {
+          const updateSuccess = await gm.documentManager.updateGuardResource(
+            updatedResource.id,
+            updatedResource
           );
+
+          if (updateSuccess) {
+            console.log('💾 Resource saved to database successfully');
+
+            // Show success notification
+            if ((globalThis as any).ui?.notifications) {
+              (globalThis as any).ui.notifications.info(
+                `Recurso "${updatedResource.name}" actualizado correctamente`
+              );
+            }
+
+            // Refresh the warehouse dialog to show the updated resource
+            await this.refreshResourcesTab();
+
+            // Emit custom event to notify other dialogs (like CustomInfoDialog)
+            document.dispatchEvent(
+              new CustomEvent('guard-resource-updated', {
+                detail: {
+                  resourceId: updatedResource.id,
+                  updatedResource: updatedResource,
+                  oldName: resourceData.name,
+                  newName: updatedResource.name,
+                },
+              })
+            );
+
+            console.log('🔄 Resource update notifications sent');
+          } else {
+            console.error('❌ Failed to save resource to database');
+            if ((globalThis as any).ui?.notifications) {
+              (globalThis as any).ui.notifications.error(
+                'Error al guardar el recurso en la base de datos'
+              );
+            }
+          }
+        } catch (saveError) {
+          console.error('❌ Error saving resource to database:', saveError);
+          if ((globalThis as any).ui?.notifications) {
+            (globalThis as any).ui.notifications.error('Error al guardar el recurso');
+          }
         }
-
-        // Refresh the warehouse dialog to show the updated resource
-        await this.refreshResourcesTab();
-
-        // Emit custom event to notify other dialogs (like CustomInfoDialog)
-        document.dispatchEvent(
-          new CustomEvent('guard-resource-updated', {
-            detail: {
-              resourceId: updatedResource.id,
-              updatedResource,
-              oldName: resourceData.name,
-              newName: updatedResource.name,
-            },
-          })
-        );
-
-        console.log('🔄 Resource update notifications sent');
       } else {
         console.log('❌ Resource edit cancelled or failed');
       }
