@@ -1,8 +1,10 @@
 import { html, TemplateResult } from 'lit-html';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
+import { DOMEventSetup } from '../utils/DOMEventSetup.js';
 import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
+import { ResourceErrorHandler } from '../utils/ResourceErrorHandler.js';
+import { ResourceEventHandler, type ResourceEventContext } from '../utils/ResourceEventHandler.js';
 import { safeRender } from '../utils/template-renderer.js';
-import { AddOrEditResourceDialog } from './AddOrEditResourceDialog.js';
 
 /**
  * GM Warehouse Dialog
@@ -478,8 +480,12 @@ export class GMWarehouseDialog implements FocusableDialog {
     this.element.addEventListener('click', this.handleGlobalClick);
     document.addEventListener('click', this.handleGlobalClick);
 
-    // Listen for resource events from other dialogs
-    this.setupResourceEventListeners();
+    // Setup resource event handlers using centralized approach
+    DOMEventSetup.setupOrRetry(
+      ['.add-resource-btn', '.edit-resource-btn', '.delete-resource-btn'],
+      () => this.setupResourceEventListeners(),
+      3
+    );
   }
 
   /**
@@ -503,17 +509,34 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Setup event listeners for resource updates from other dialogs
+   * Setup event listeners using centralized resource handler
    */
   private setupResourceEventListeners(): void {
-    // Listen for resource updates from other dialogs (like CustomInfoDialog)
+    const context: ResourceEventContext = {
+      organizationId: 'gm-warehouse-templates',
+      onResourceAdded: (resource) => {
+        console.log('Resource template added:', resource);
+        this.refreshResourcesTab();
+      },
+      onResourceEdited: (resource) => {
+        console.log('Resource template edited:', resource);
+        this.refreshResourcesTab();
+      },
+      onResourceRemoved: (resourceId) => {
+        console.log('Resource template removed:', resourceId);
+        this.refreshResourcesTab();
+      },
+      refreshUI: () => this.refreshResourcesTab(),
+    };
+
+    ResourceEventHandler.setup(context);
+
+    // Also setup window event listeners for external events
     this.resourceUpdateHandler = (_event: Event) => {
-      // Refresh the resources tab to show the updated resource
       this.refreshResourcesTab();
     };
 
     this.resourceDeleteHandler = (_event: Event) => {
-      // Refresh the resources tab to remove the deleted resource
       this.refreshResourcesTab();
     };
 
@@ -646,64 +669,37 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Handle adding a new resource template
+   * Handle adding a new resource template using centralized error handling
    */
   private async handleAddResource(): Promise<void> {
-    try {
-      // Use a generic organization ID for templates (GM warehouse)
-      const templateOrganizationId = 'gm-warehouse-templates';
+    await ResourceErrorHandler.handleResourceOperation(
+      async () => {
+        // Import AddOrEditResourceDialog dynamically to avoid circular dependency
+        const { AddOrEditResourceDialog } = await import('./AddOrEditResourceDialog.js');
 
-      const newResource = await AddOrEditResourceDialog.create(templateOrganizationId);
+        const templateOrganizationId = 'gm-warehouse-templates';
+        const newResource = await AddOrEditResourceDialog.create(templateOrganizationId);
 
-      if (newResource) {
-        console.log('Recurso template creado:', newResource);
-
-        // Save using DocumentBasedManager instead of localStorage
-        try {
+        if (newResource) {
           const gm = (window as any).GuardManagement;
-
-          if (!gm) {
-            throw new Error('GuardManagement module not loaded');
-          }
-
-          if (!gm.isInitialized) {
-            throw new Error('GuardManagement module not fully initialized');
-          }
-
-          if (!gm.documentManager) {
+          if (!gm?.documentManager) {
             throw new Error('DocumentBasedManager not available');
           }
 
           const createdResource = await gm.documentManager.createGuardResource(newResource);
-          if (createdResource) {
-            console.log('Resource template saved via DocumentBasedManager');
-
-            // Refresh templates list from DocumentBasedManager
-            await this.refreshResourcesTab();
-          } else {
+          if (!createdResource) {
             throw new Error('Failed to create resource via DocumentBasedManager');
           }
-        } catch (error) {
-          console.error('Error saving resource template via DocumentBasedManager:', error);
-          if ((globalThis as any).ui?.notifications) {
-            (globalThis as any).ui.notifications.error('Error guardando template de recurso');
-          }
-          return;
+
+          await this.refreshResourcesTab();
+          return createdResource;
         }
 
-        // Show success message
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.info(
-            `Template de recurso "${newResource.name}" creado exitosamente`
-          );
-        }
-      }
-    } catch (error) {
-      console.error('Error creando template de recurso:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al crear el template de recurso');
-      }
-    }
+        return null;
+      },
+      'create',
+      'template de recurso'
+    );
   }
 
   /**
@@ -857,94 +853,64 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   private async handleEditTemplate(resourceId: string): Promise<void> {
-    console.log('✏️ Edit resource request:', resourceId);
-
-    const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) {
-      console.error('❌ DocumentBasedManager not available');
-      return;
-    }
-
-    try {
-      // Get the resource to edit
-      const resources = gm.documentManager.getGuardResources();
-      const resource = resources.find((r: any) => r.id === resourceId);
-
-      if (!resource) {
-        console.error('❌ Resource not found:', resourceId);
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.error('Recurso no encontrado');
+    await ResourceErrorHandler.handleResourceOperation(
+      async () => {
+        const gm = (window as any).GuardManagement;
+        if (!gm?.documentManager) {
+          throw new Error('DocumentBasedManager not available');
         }
-        return;
-      }
 
-      // Convert Foundry document to our Resource type using the utility function
-      const resourceData = convertFoundryDocumentToResource(resource);
+        // Get the resource to edit
+        const resources = gm.documentManager.getGuardResources();
+        const resource = resources.find((r: any) => r.id === resourceId);
 
-      console.log('📝 Opening edit dialog for resource:', resourceData);
+        if (!resource) {
+          throw new Error('Resource not found');
+        }
 
-      // Show edit dialog
-      const updatedResource = await AddOrEditResourceDialog.edit(resourceData);
+        // Convert Foundry document to our Resource type
+        const resourceData = convertFoundryDocumentToResource(resource);
 
-      if (updatedResource) {
-        console.log('✅ Resource returned from dialog:', updatedResource);
+        // Import AddOrEditResourceDialog dynamically
+        const { AddOrEditResourceDialog } = await import('./AddOrEditResourceDialog.js');
 
-        // IMPORTANT: Save the updated resource to the database using DocumentBasedManager
-        try {
+        // Show edit dialog
+        const updatedResource = await AddOrEditResourceDialog.edit(resourceData);
+
+        if (updatedResource) {
+          // Save the updated resource to the database
           const updateSuccess = await gm.documentManager.updateGuardResource(
             updatedResource.id,
             updatedResource
           );
 
-          if (updateSuccess) {
-            console.log('💾 Resource saved to database successfully');
-
-            // Show success notification
-            if ((globalThis as any).ui?.notifications) {
-              (globalThis as any).ui.notifications.info(
-                `Recurso "${updatedResource.name}" actualizado correctamente`
-              );
-            }
-
-            // Refresh the warehouse dialog to show the updated resource
-            await this.refreshResourcesTab();
-
-            // Emit custom event to notify other dialogs (like CustomInfoDialog)
-            document.dispatchEvent(
-              new CustomEvent('guard-resource-updated', {
-                detail: {
-                  resourceId: updatedResource.id,
-                  updatedResource: updatedResource,
-                  oldName: resourceData.name,
-                  newName: updatedResource.name,
-                },
-              })
-            );
-
-            console.log('🔄 Resource update notifications sent');
-          } else {
-            console.error('❌ Failed to save resource to database');
-            if ((globalThis as any).ui?.notifications) {
-              (globalThis as any).ui.notifications.error(
-                'Error al guardar el recurso en la base de datos'
-              );
-            }
+          if (!updateSuccess) {
+            throw new Error('Failed to save resource to database');
           }
-        } catch (saveError) {
-          console.error('❌ Error saving resource to database:', saveError);
-          if ((globalThis as any).ui?.notifications) {
-            (globalThis as any).ui.notifications.error('Error al guardar el recurso');
-          }
+
+          // Refresh the warehouse dialog
+          await this.refreshResourcesTab();
+
+          // Emit custom event to notify other dialogs
+          document.dispatchEvent(
+            new CustomEvent('guard-resource-updated', {
+              detail: {
+                resourceId: updatedResource.id,
+                updatedResource: updatedResource,
+                oldName: resourceData.name,
+                newName: updatedResource.name,
+              },
+            })
+          );
+
+          return updatedResource;
         }
-      } else {
-        console.log('❌ Resource edit cancelled or failed');
-      }
-    } catch (error) {
-      console.error('❌ Error editing resource:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al editar el recurso');
-      }
-    }
+
+        return null;
+      },
+      'update',
+      `recurso`
+    );
   }
 
   /**

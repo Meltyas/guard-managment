@@ -10,7 +10,7 @@ import {
   createPatrol,
 } from '../documents/index.js';
 import { GuardOrganization, Patrol, Reputation, Resource } from '../types/entities.js';
-import { convertResourceToFoundryUpdateData } from '../utils/resource-converter.js';
+import { convertResourceToFoundryFormat } from '../utils/resource-converter.js';
 
 export class DocumentBasedManager {
   private initialized = false;
@@ -319,8 +319,8 @@ export class DocumentBasedManager {
     const resource = game?.items?.get(id);
     if (!resource || resource.type !== 'guard-management.guard-resource') return false;
 
-    // Use the unified conversion function
-    const updateData = convertResourceToFoundryUpdateData(data);
+    // Use the consolidated conversion function
+    const updateData = convertResourceToFoundryFormat(data, 'update');
 
     console.log('💾 About to update resource with:', {
       resourceId: id,

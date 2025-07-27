@@ -18,6 +18,32 @@ export class DocumentEventManager {
   private handlers: DocumentEventHandlers = {};
   private initialized = false;
 
+  // Document type mapping to avoid repetitive switch statements
+  private readonly documentTypeMap: Record<
+    string,
+    {
+      updateHandler: keyof DocumentEventHandlers;
+      eventPrefix: string;
+    }
+  > = {
+    'guard-management.guard-organization': {
+      updateHandler: 'onOrganizationUpdated',
+      eventPrefix: 'guard-organization',
+    },
+    'guard-management.patrol': {
+      updateHandler: 'onPatrolUpdated',
+      eventPrefix: 'guard-patrol',
+    },
+    'guard-management.guard-resource': {
+      updateHandler: 'onResourceUpdated',
+      eventPrefix: 'guard-resource',
+    },
+    'guard-management.guard-reputation': {
+      updateHandler: 'onReputationUpdated',
+      eventPrefix: 'guard-reputation',
+    },
+  };
+
   constructor(_documentManager: DocumentBasedManager) {
     // DocumentManager reference not needed currently but kept for future use
   }
@@ -67,28 +93,7 @@ export class DocumentEventManager {
   private handleDocumentUpdate(detail: any): void {
     const { document, data, userId, type } = detail;
 
-    // Route to specific handlers based on document type
-    switch (type) {
-      case 'guard-management.guard-organization':
-        this.handlers.onOrganizationUpdated?.(document, data, userId);
-        this.emitSpecificEvent('guard-organization-updated', document, data, userId);
-        break;
-      case 'guard-management.patrol':
-        this.handlers.onPatrolUpdated?.(document, data, userId);
-        this.emitSpecificEvent('guard-patrol-updated', document, data, userId);
-        break;
-      case 'guard-management.guard-resource':
-        this.handlers.onResourceUpdated?.(document, data, userId);
-        this.emitSpecificEvent('guard-resource-updated', document, data, userId);
-        break;
-      case 'guard-management.guard-reputation':
-        this.handlers.onReputationUpdated?.(document, data, userId);
-        this.emitSpecificEvent('guard-reputation-updated', document, data, userId);
-        break;
-    }
-
-    // Trigger UI updates if needed
-    this.triggerUIRefresh(type, document.id);
+    this.handleDocumentEvent('updated', document, data, userId, type);
   }
 
   /**
@@ -98,24 +103,7 @@ export class DocumentEventManager {
     const { document, userId, type } = detail;
 
     this.handlers.onDocumentCreated?.(document, userId);
-
-    // Emit specific creation events
-    switch (type) {
-      case 'guard-management.guard-organization':
-        this.emitSpecificEvent('guard-organization-created', document, {}, userId);
-        break;
-      case 'guard-management.patrol':
-        this.emitSpecificEvent('guard-patrol-created', document, {}, userId);
-        break;
-      case 'guard-management.guard-resource':
-        this.emitSpecificEvent('guard-resource-created', document, {}, userId);
-        break;
-      case 'guard-management.guard-reputation':
-        this.emitSpecificEvent('guard-reputation-created', document, {}, userId);
-        break;
-    }
-
-    this.triggerUIRefresh(type, document.id);
+    this.handleDocumentEvent('created', document, {}, userId, type);
   }
 
   /**
@@ -125,23 +113,37 @@ export class DocumentEventManager {
     const { document, userId, type } = detail;
 
     this.handlers.onDocumentDeleted?.(document, userId);
+    this.handleDocumentEvent('deleted', document, {}, userId, type);
+  }
 
-    // Emit specific deletion events
-    switch (type) {
-      case 'guard-management.guard-organization':
-        this.emitSpecificEvent('guard-organization-deleted', document, {}, userId);
-        break;
-      case 'guard-management.patrol':
-        this.emitSpecificEvent('guard-patrol-deleted', document, {}, userId);
-        break;
-      case 'guard-management.guard-resource':
-        this.emitSpecificEvent('guard-resource-deleted', document, {}, userId);
-        break;
-      case 'guard-management.guard-reputation':
-        this.emitSpecificEvent('guard-reputation-deleted', document, {}, userId);
-        break;
+  /**
+   * Generic document event handler - eliminates switch statement duplication
+   */
+  private handleDocumentEvent(
+    eventType: 'updated' | 'created' | 'deleted',
+    document: any,
+    data: any,
+    userId: string,
+    type: string
+  ): void {
+    const config = this.documentTypeMap[type];
+
+    if (config) {
+      // Call specific handler for updates
+      if (eventType === 'updated') {
+        const handler = this.handlers[config.updateHandler] as
+          | ((doc: any, data: any, userId: string) => void)
+          | undefined;
+        if (typeof handler === 'function') {
+          handler(document, data, userId);
+        }
+      }
+
+      // Emit specific event
+      this.emitSpecificEvent(`${config.eventPrefix}-${eventType}`, document, data, userId);
     }
 
+    // Trigger UI updates
     this.triggerUIRefresh(type, document.id);
   }
 

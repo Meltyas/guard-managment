@@ -29,65 +29,90 @@ export function convertFoundryDocumentToResource(document: any): Resource {
 }
 
 /**
+ * Convert our Resource type to Foundry document format
+ * Handles both creation and update cases
+ */
+export function convertResourceToFoundryFormat(
+  resource: Partial<Resource>,
+  mode: 'create' | 'update' = 'create'
+): any {
+  const baseData: any = {};
+
+  // Handle name - required for creation, optional for updates
+  if (resource.name !== undefined) {
+    baseData.name = resource.name;
+  } else if (mode === 'create') {
+    baseData.name = 'New Resource';
+  }
+
+  // Type is only needed for creation
+  if (mode === 'create') {
+    baseData.type = 'guard-management.guard-resource';
+  }
+
+  // Handle image - store in both places for compatibility
+  if (resource.image !== undefined) {
+    baseData.img = resource.image; // Foundry standard field
+    if (!baseData.system) baseData.system = {};
+    baseData.system.image = resource.image; // Legacy compatibility
+  }
+
+  // Handle system properties
+  const systemFields = [
+    'description',
+    'quantity',
+    'organizationId',
+    'version',
+    'createdAt',
+    'updatedAt',
+  ];
+  systemFields.forEach((field) => {
+    if (resource[field as keyof Resource] !== undefined) {
+      if (!baseData.system) baseData.system = {};
+      baseData.system[field] = resource[field as keyof Resource];
+    }
+  });
+
+  // Set defaults for creation
+  if (mode === 'create') {
+    if (!baseData.system) baseData.system = {};
+    baseData.system.description = baseData.system.description || '';
+    baseData.system.quantity = baseData.system.quantity || 1;
+    baseData.system.organizationId = baseData.system.organizationId || '';
+    baseData.system.version = baseData.system.version || 1;
+    baseData.system.createdAt = baseData.system.createdAt || new Date();
+    baseData.system.updatedAt = baseData.system.updatedAt || new Date();
+    baseData.img = baseData.img || '';
+    baseData.system.image = baseData.system.image || '';
+  }
+
+  // For updates, flatten system properties
+  if (mode === 'update' && baseData.system) {
+    const systemData = baseData.system;
+    delete baseData.system;
+
+    Object.keys(systemData).forEach((key) => {
+      baseData[`system.${key}`] = systemData[key];
+    });
+  }
+
+  return baseData;
+}
+
+/**
  * Convert our Resource type to Foundry document creation data
- * Ensures data is stored in both img and system.image for compatibility
+ * @deprecated Use convertResourceToFoundryFormat with mode 'create'
  */
 export function convertResourceToFoundryData(resource: Partial<Resource>): any {
-  const foundryData: any = {
-    name: resource.name || 'New Resource',
-    type: 'guard-management.guard-resource',
-    img: resource.image || '', // Foundry standard field
-    system: {
-      description: resource.description || '',
-      quantity: resource.quantity || 1,
-      image: resource.image || '', // Also store in system for compatibility
-      organizationId: resource.organizationId || '',
-      version: resource.version || 1,
-      createdAt: resource.createdAt || new Date(),
-      updatedAt: resource.updatedAt || new Date(),
-    },
-  };
-
-  return foundryData;
+  return convertResourceToFoundryFormat(resource, 'create');
 }
 
 /**
  * Convert our Resource type to Foundry document update data
- * Ensures updates are applied to both img and system.image
+ * @deprecated Use convertResourceToFoundryFormat with mode 'update'
  */
 export function convertResourceToFoundryUpdateData(resource: Partial<Resource>): any {
-  const updateData: any = {};
-
-  if (resource.name !== undefined) {
-    updateData.name = resource.name;
-  }
-
-  if (resource.description !== undefined) {
-    updateData['system.description'] = resource.description;
-  }
-
-  if (resource.quantity !== undefined) {
-    updateData['system.quantity'] = resource.quantity;
-  }
-
-  if (resource.image !== undefined) {
-    updateData.img = resource.image; // Foundry standard field
-    updateData['system.image'] = resource.image; // Also update system field
-  }
-
-  if (resource.organizationId !== undefined) {
-    updateData['system.organizationId'] = resource.organizationId;
-  }
-
-  if (resource.version !== undefined) {
-    updateData['system.version'] = resource.version;
-  }
-
-  if (resource.updatedAt !== undefined) {
-    updateData['system.updatedAt'] = resource.updatedAt;
-  }
-
-  return updateData;
+  return convertResourceToFoundryFormat(resource, 'update');
 }
 
 /**
