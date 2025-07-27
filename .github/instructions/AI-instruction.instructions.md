@@ -70,12 +70,12 @@ npm run test:watch   # Tests in watch mode
 
 - Unit Tests: CRUD operations, stat calculations, validation
 - Integration Tests: Entity relationships, sync operations
-- E2E Tests: Complete workflows, cross-client sync
 
 ### Synchronization Strategy
 
 **Anti-Death Spiral Design**:
 
+- All users should be able to edit all entities
 - Version tracking for all entities
 - Conflict detection and resolution
 - Permission-based access (GM vs Player)
@@ -117,19 +117,9 @@ When working on this project:
 ## Current Project State
 
 - **Foundation Phase**: Core CRUD operations and basic sync implemented
-- **Testing**: Comprehensive test suite with mocked Foundry environment
-- **Architecture**: Manager pattern with GuardManager and SyncManager
 - **UI**: DialogV2-based interface with tab structure planned
 
 ## Debug and Testing
-
-**Console Access**:
-
-```javascript
-const gm = window.GuardManagement;
-gm.guardManager.createSampleGuards();
-gm.syncManager.simulateSync('guard', 5);
-```
 
 **Common Debug Scenarios**:
 

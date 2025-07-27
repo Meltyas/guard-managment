@@ -17,6 +17,7 @@ export class FloatingGuardPanel {
   private isDragging: boolean = false;
   private dragOffset: { x: number; y: number } = { x: 0, y: 0 };
   private dialogManager: GuardDialogManager;
+  private uiRefreshHandler?: (event: Event) => void;
 
   private readonly STORAGE_KEY = 'guard-management-panel-position';
   private readonly DEFAULT_POSITION: FloatingPanelPosition = { x: 50, y: 50 };
@@ -72,6 +73,12 @@ export class FloatingGuardPanel {
    * Cleanup and remove the panel
    */
   public cleanup(): void {
+    // Remove UI refresh listener
+    if (this.uiRefreshHandler) {
+      document.removeEventListener('guard-ui-refresh', this.uiRefreshHandler);
+      this.uiRefreshHandler = undefined;
+    }
+
     if (this.panel) {
       this.panel.remove();
       this.panel = null;
@@ -434,6 +441,28 @@ export class FloatingGuardPanel {
     // Global drag handlers
     document.addEventListener('mousemove', this.handleDragMove.bind(this));
     document.addEventListener('mouseup', this.handleDragEnd.bind(this));
+
+    // Setup UI refresh listener
+    this.setupUIRefreshListener();
+  }
+
+  /**
+   * Setup listener for UI refresh events
+   */
+  private setupUIRefreshListener(): void {
+    this.uiRefreshHandler = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      console.log('🔄 FloatingGuardPanel received UI refresh event:', detail);
+      
+      // Refresh panel content for any guard-management document changes
+      if (detail.documentType?.startsWith('guard-management.')) {
+        console.log('♻️ Refreshing floating panel due to document change');
+        this.refreshPanel();
+      }
+    };
+
+    document.addEventListener('guard-ui-refresh', this.uiRefreshHandler);
+    console.log('✅ FloatingGuardPanel UI refresh listener set up');
   }
 
   /**

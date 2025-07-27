@@ -77,7 +77,6 @@ export class AddOrEditResourceDialog {
 
                     if (existingResource?.description && descriptionTextarea) {
                       descriptionTextarea.value = existingResource.description;
-                      console.log('📝 Setting textarea value:', existingResource.description);
                     }
 
                     filePickerBtn.setAttribute('data-initialized', 'true');
@@ -350,6 +349,7 @@ ${data.description}</textarea
               type="text"
               id="resource-image"
               name="image"
+              value="${data.image}"
               placeholder="Selecciona una imagen..."
             />
             <button

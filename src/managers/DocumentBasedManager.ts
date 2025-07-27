@@ -499,6 +499,62 @@ export class DocumentBasedManager {
   }
 
   /**
+   * Fix permissions for all existing Guard Management documents
+   * This function ensures all users can edit all Guard Management entities
+   */
+  async fixAllDocumentPermissions(): Promise<void> {
+    console.log('DocumentBasedManager | Fixing permissions for all Guard Management documents...');
+
+    try {
+      const newPermissions = {
+        default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
+      };
+
+      // Fix permissions for Guard Organizations (Actors)
+      const organizations = this.getGuardOrganizations();
+      for (const org of organizations) {
+        await org.update({ ownership: newPermissions });
+        console.log(`✅ Fixed permissions for organization: ${org.name}`);
+      }
+
+      // Fix permissions for Patrols (Actors)
+      const patrols = this.getPatrols();
+      for (const patrol of patrols) {
+        await patrol.update({ ownership: newPermissions });
+        console.log(`✅ Fixed permissions for patrol: ${patrol.name}`);
+      }
+
+      // Fix permissions for Resources (Items)
+      const resources = this.getGuardResources();
+      for (const resource of resources) {
+        await resource.update({ ownership: newPermissions });
+        console.log(`✅ Fixed permissions for resource: ${resource.name}`);
+      }
+
+      // Fix permissions for Reputation (Items)
+      const reputations = this.getGuardReputations();
+      for (const reputation of reputations) {
+        await reputation.update({ ownership: newPermissions });
+        console.log(`✅ Fixed permissions for reputation: ${reputation.name}`);
+      }
+
+      console.log('✅ All Guard Management document permissions have been fixed!');
+
+      // Show notification to user
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          'Permisos corregidos: Todos los usuarios ahora pueden editar todos los documentos de Guard Management'
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error fixing document permissions:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al corregir permisos de documentos');
+      }
+    }
+  }
+
+  /**
    * Cleanup when module is disabled
    */
   cleanup(): void {

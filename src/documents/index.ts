@@ -56,6 +56,10 @@ export async function createGuardOrganization(data: any = {}) {
       patrols: [],
       version: 1,
     },
+    // Establecer permisos para que todos los usuarios puedan editar
+    ownership: {
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
+    },
   };
 
   return await Actor.create(organizationData);
@@ -75,6 +79,10 @@ export async function createPatrol(data: any = {}) {
       activeEffects: [],
       status: data.status || 'idle',
       version: 1,
+    },
+    // Establecer permisos para que todos los usuarios puedan editar
+    ownership: {
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
     },
   };
 
@@ -101,6 +109,10 @@ export async function createGuardResource(data: any = {}) {
       organizationId: data.organizationId || '',
       version: 1,
     },
+    // Establecer permisos para que todos los usuarios puedan editar
+    ownership: {
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
+    },
   };
 
   return await Item.create(resourceData);
@@ -118,6 +130,10 @@ export async function createGuardReputation(data: any = {}) {
       level: data.level || 4, // Neutrales
       organizationId: data.organizationId || '',
       version: 1,
+    },
+    // Establecer permisos para que todos los usuarios puedan editar
+    ownership: {
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
     },
   };
 

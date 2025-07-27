@@ -426,6 +426,33 @@ export class GuardManagementHelpers {
   }
 
   /**
+   * Fix permissions for all Guard Management documents
+   */
+  static async fixPermissions() {
+    console.log('=== FIXING DOCUMENT PERMISSIONS ===');
+    const gm = window.GuardManagement;
+
+    if (!gm) {
+      console.error('GuardManagement module not found');
+      return false;
+    }
+
+    if (!gm.isInitialized) {
+      console.error('GuardManagement module not initialized');
+      return false;
+    }
+
+    try {
+      await gm.fixDocumentPermissions();
+      console.log('✅ Document permissions fixed successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Error fixing permissions:', error);
+      return false;
+    }
+  }
+
+  /**
    * Get helpful commands
    */
   static help() {
@@ -437,6 +464,9 @@ Basic Commands:
 - GuardManagementHelpers.createSampleData()      // Create sample data
 - GuardManagementHelpers.showManagementDialog()  // Open management UI
 - GuardManagementHelpers.help()                  // Show this help
+
+Permission Commands:
+- GuardManagementHelpers.fixPermissions()        // Fix all document permissions (allows all users to edit)
 
 Recovery Commands:
 - GuardManagementHelpers.attemptModuleRecovery() // Try to recover missing module

@@ -18,6 +18,7 @@ export class CustomInfoDialog implements FocusableDialog {
   private isFocused = false;
   private currentOrganization: GuardOrganization | null = null;
   private resourceEventHandler: ((event: Event) => void) | null = null;
+  private uiRefreshHandler?: (event: Event) => void;
 
   constructor() {
     this.handleMouseDown = this.handleMouseDown.bind(this);
@@ -419,7 +420,21 @@ export class CustomInfoDialog implements FocusableDialog {
       this.handleResourceUpdated.bind(this) as EventListener
     );
 
-    console.log('🔄 Resource update listeners set up');
+    // Listen for general UI refresh events
+    this.uiRefreshHandler = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      
+      // Refresh if it's related to our current organization's resources
+      if (detail.documentType === 'guard-management.guard-resource' && this.currentOrganization) {
+        this.refreshContent();
+      } else if (detail.documentType === 'guard-management.guard-organization' && 
+                 this.currentOrganization && 
+                 detail.documentId === this.currentOrganization.id) {
+        this.refreshContent();
+      }
+    };
+
+    window.addEventListener('guard-ui-refresh', this.uiRefreshHandler);
   }
 
   /**
@@ -428,7 +443,6 @@ export class CustomInfoDialog implements FocusableDialog {
   private async handleResourceDeleted(event: Event): Promise<void> {
     const customEvent = event as CustomEvent;
     const { resourceId, resourceName } = customEvent.detail;
-    console.log('🗑️ Resource deleted event received:', resourceName, resourceId);
 
     if (!this.currentOrganization) return;
 
@@ -498,6 +512,12 @@ export class CustomInfoDialog implements FocusableDialog {
       'guard-resource-updated',
       this.handleResourceUpdated.bind(this) as EventListener
     );
+
+    // Remove UI refresh listener from window
+    if (this.uiRefreshHandler) {
+      window.removeEventListener('guard-ui-refresh', this.uiRefreshHandler);
+    }
+    
     console.log('🧹 Cleaned up resource update listeners');
   }
 
@@ -691,15 +711,13 @@ export class CustomInfoDialog implements FocusableDialog {
         return;
       }
 
-      console.log('📝 Found resource for editing:', resource);
-
       // Convert Foundry document to our Resource type
       const resourceData = {
         id: resource.id,
         name: resource.name,
         description: resource.system?.description || '',
         quantity: resource.system?.quantity || 0,
-        image: resource.system?.image || '',
+        image: resource.img || resource.system?.image || '', // Usar resource.img primero
         organizationId: resource.system?.organizationId || '',
         version: resource.system?.version || 1,
         createdAt: resource.system?.createdAt || new Date(),

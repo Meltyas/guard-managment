@@ -18,6 +18,7 @@ export class GMWarehouseDialog implements FocusableDialog {
   // Event handlers for cleanup
   private resourceUpdateHandler?: (event: Event) => void;
   private resourceDeleteHandler?: (event: Event) => void;
+  private uiRefreshHandler?: (event: Event) => void;
 
   // Storage for templates (in-memory for now)
   private resourceTemplates: any[] = [];
@@ -492,12 +493,15 @@ export class GMWarehouseDialog implements FocusableDialog {
     document.removeEventListener('mouseup', this.handleMouseUp);
     document.removeEventListener('click', this.handleGlobalClick);
 
-    // Remove resource event listeners
+    // Remove resource event listeners from window
     if (this.resourceUpdateHandler) {
-      document.removeEventListener('guard-resource-updated', this.resourceUpdateHandler);
+      window.removeEventListener('guard-resource-updated', this.resourceUpdateHandler);
     }
     if (this.resourceDeleteHandler) {
-      document.removeEventListener('guard-resource-deleted', this.resourceDeleteHandler);
+      window.removeEventListener('guard-resource-deleted', this.resourceDeleteHandler);
+    }
+    if (this.uiRefreshHandler) {
+      window.removeEventListener('guard-ui-refresh', this.uiRefreshHandler);
     }
   }
 
@@ -506,23 +510,30 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private setupResourceEventListeners(): void {
     // Listen for resource updates from other dialogs (like CustomInfoDialog)
-    this.resourceUpdateHandler = (event: Event) => {
-      console.log('🔄 Warehouse received resource update event:', event);
+    this.resourceUpdateHandler = (_event: Event) => {
       // Refresh the resources tab to show the updated resource
       this.refreshResourcesTab();
     };
 
-    this.resourceDeleteHandler = (event: Event) => {
-      console.log('🗑️ Warehouse received resource delete event:', event);
+    this.resourceDeleteHandler = (_event: Event) => {
       // Refresh the resources tab to remove the deleted resource
       this.refreshResourcesTab();
     };
 
-    // Add the event listeners
-    document.addEventListener('guard-resource-updated', this.resourceUpdateHandler);
-    document.addEventListener('guard-resource-deleted', this.resourceDeleteHandler);
+    // Listen for general UI refresh events
+    this.uiRefreshHandler = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      
+      // Only refresh if it's related to resources
+      if (detail.documentType === 'guard-management.guard-resource') {
+        this.refreshResourcesTab();
+      }
+    };
 
-    console.log('✅ Warehouse resource event listeners set up');
+    // Add the event listeners to window (where DocumentEventManager emits them)
+    window.addEventListener('guard-resource-updated', this.resourceUpdateHandler);
+    window.addEventListener('guard-resource-deleted', this.resourceDeleteHandler);
+    window.addEventListener('guard-ui-refresh', this.uiRefreshHandler);
   }
 
   /**

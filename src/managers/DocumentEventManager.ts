@@ -28,13 +28,10 @@ export class DocumentEventManager {
   public async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('DocumentEventManager | Initializing...');
-
     // Set up event listeners for document changes
     this.setupEventListeners();
 
     this.initialized = true;
-    console.log('DocumentEventManager | Initialized successfully');
   }
 
   /**
@@ -70,21 +67,23 @@ export class DocumentEventManager {
   private handleDocumentUpdate(detail: any): void {
     const { document, data, userId, type } = detail;
 
-    console.log(`DocumentEventManager | Document updated: ${document.name} (${type}) by ${userId}`);
-
     // Route to specific handlers based on document type
     switch (type) {
       case 'guard-management.guard-organization':
         this.handlers.onOrganizationUpdated?.(document, data, userId);
+        this.emitSpecificEvent('guard-organization-updated', document, data, userId);
         break;
       case 'guard-management.patrol':
         this.handlers.onPatrolUpdated?.(document, data, userId);
+        this.emitSpecificEvent('guard-patrol-updated', document, data, userId);
         break;
-      case 'guard-management.resource':
+      case 'guard-management.guard-resource':
         this.handlers.onResourceUpdated?.(document, data, userId);
+        this.emitSpecificEvent('guard-resource-updated', document, data, userId);
         break;
-      case 'guard-management.reputation':
+      case 'guard-management.guard-reputation':
         this.handlers.onReputationUpdated?.(document, data, userId);
+        this.emitSpecificEvent('guard-reputation-updated', document, data, userId);
         break;
     }
 
@@ -98,9 +97,24 @@ export class DocumentEventManager {
   private handleDocumentCreate(detail: any): void {
     const { document, userId, type } = detail;
 
-    console.log(`DocumentEventManager | Document created: ${document.name} (${type}) by ${userId}`);
-
     this.handlers.onDocumentCreated?.(document, userId);
+    
+    // Emit specific creation events
+    switch (type) {
+      case 'guard-management.guard-organization':
+        this.emitSpecificEvent('guard-organization-created', document, {}, userId);
+        break;
+      case 'guard-management.patrol':
+        this.emitSpecificEvent('guard-patrol-created', document, {}, userId);
+        break;
+      case 'guard-management.guard-resource':
+        this.emitSpecificEvent('guard-resource-created', document, {}, userId);
+        break;
+      case 'guard-management.guard-reputation':
+        this.emitSpecificEvent('guard-reputation-created', document, {}, userId);
+        break;
+    }
+    
     this.triggerUIRefresh(type, document.id);
   }
 
@@ -110,10 +124,40 @@ export class DocumentEventManager {
   private handleDocumentDelete(detail: any): void {
     const { document, userId, type } = detail;
 
-    console.log(`DocumentEventManager | Document deleted: ${document.name} (${type}) by ${userId}`);
-
     this.handlers.onDocumentDeleted?.(document, userId);
+    
+    // Emit specific deletion events
+    switch (type) {
+      case 'guard-management.guard-organization':
+        this.emitSpecificEvent('guard-organization-deleted', document, {}, userId);
+        break;
+      case 'guard-management.patrol':
+        this.emitSpecificEvent('guard-patrol-deleted', document, {}, userId);
+        break;
+      case 'guard-management.guard-resource':
+        this.emitSpecificEvent('guard-resource-deleted', document, {}, userId);
+        break;
+      case 'guard-management.guard-reputation':
+        this.emitSpecificEvent('guard-reputation-deleted', document, {}, userId);
+        break;
+    }
+    
     this.triggerUIRefresh(type, document.id);
+  }
+
+  /**
+   * Emit specific event for UI components to listen to
+   */
+  private emitSpecificEvent(eventName: string, document: any, data: any, userId: string): void {
+    const event = new CustomEvent(eventName, {
+      detail: {
+        document,
+        data,
+        userId,
+        timestamp: Date.now(),
+      },
+    });
+    window.dispatchEvent(event);
   }
 
   /**
@@ -180,8 +224,6 @@ export class DocumentEventManager {
    * Cleanup when module is disabled
    */
   public cleanup(): void {
-    console.log('DocumentEventManager | Cleaning up...');
-
     // Remove event listeners
     window.removeEventListener('guard-document-updated', this.handleDocumentUpdate);
     window.removeEventListener('guard-document-created', this.handleDocumentCreate);

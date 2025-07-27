@@ -6,6 +6,7 @@
 import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
 import { DocumentBasedManager } from './managers/DocumentBasedManager';
+import { DocumentEventManager } from './managers/DocumentEventManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { registerSettings } from './settings';
@@ -81,6 +82,7 @@ function setupModuleWatchdog(moduleInstance: GuardManagementModule): void {
 
 class GuardManagementModule {
   public documentManager: DocumentBasedManager;
+  public documentEventManager: DocumentEventManager;
   public guardOrganizationManager: GuardOrganizationManager;
   public guardDialogManager: GuardDialogManager;
   public floatingPanel: FloatingGuardPanel;
@@ -88,6 +90,7 @@ class GuardManagementModule {
 
   constructor() {
     this.documentManager = new DocumentBasedManager();
+    this.documentEventManager = new DocumentEventManager(this.documentManager);
     this.guardOrganizationManager = new GuardOrganizationManager();
     this.guardDialogManager = new GuardDialogManager(this.guardOrganizationManager);
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
@@ -108,6 +111,7 @@ class GuardManagementModule {
 
     // Initialize managers
     await this.documentManager.initialize();
+    await this.documentEventManager.initialize();
     await this.guardOrganizationManager.initialize();
     await this.guardDialogManager.initialize();
 
@@ -183,6 +187,19 @@ class GuardManagementModule {
       isGM: !!(game as any)?.user?.isGM,
       ready: game?.ready,
     });
+  }
+
+  /**
+   * Fix permissions for all Guard Management documents
+   * This ensures all users can edit all entities
+   */
+  public async fixDocumentPermissions(): Promise<void> {
+    if (!this.isInitialized || !this.documentManager) {
+      console.error('Guard Management | Module not initialized - cannot fix permissions');
+      return;
+    }
+
+    await this.documentManager.fixAllDocumentPermissions();
   }
 
   /**
