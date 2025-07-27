@@ -179,11 +179,19 @@ export class CustomInfoDialog implements FocusableDialog {
     // Update content
     const contentElement = this.element.querySelector('.custom-dialog-content');
     if (contentElement) {
-      // IMPORTANT: Clear existing content first to prevent duplication
+      // IMPORTANT: Instead of clearing innerHTML, create a new container for lit-html
+      // This prevents lit-html from losing track of its DOM nodes
+
+      // Create a new container element
+      const newContainer = document.createElement('div');
+      newContainer.className = 'organization-content';
+
+      // Clear the parent and add the new container
       contentElement.innerHTML = '';
+      contentElement.appendChild(newContainer);
 
       const organizationTemplate = this.renderOrganizationContent(organization);
-      safeRender(organizationTemplate, contentElement as HTMLElement);
+      safeRender(organizationTemplate, newContainer);
       console.log('✅ Dialog updated with', organization.resources?.length || 0, 'resources');
 
       // Re-setup resource event listeners after content is rendered
