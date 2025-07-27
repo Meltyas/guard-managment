@@ -98,7 +98,7 @@ export class DocumentEventManager {
     const { document, userId, type } = detail;
 
     this.handlers.onDocumentCreated?.(document, userId);
-    
+
     // Emit specific creation events
     switch (type) {
       case 'guard-management.guard-organization':
@@ -114,7 +114,7 @@ export class DocumentEventManager {
         this.emitSpecificEvent('guard-reputation-created', document, {}, userId);
         break;
     }
-    
+
     this.triggerUIRefresh(type, document.id);
   }
 
@@ -125,7 +125,7 @@ export class DocumentEventManager {
     const { document, userId, type } = detail;
 
     this.handlers.onDocumentDeleted?.(document, userId);
-    
+
     // Emit specific deletion events
     switch (type) {
       case 'guard-management.guard-organization':
@@ -141,7 +141,7 @@ export class DocumentEventManager {
         this.emitSpecificEvent('guard-reputation-deleted', document, {}, userId);
         break;
     }
-    
+
     this.triggerUIRefresh(type, document.id);
   }
 

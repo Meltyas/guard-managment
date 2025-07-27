@@ -453,7 +453,7 @@ export class FloatingGuardPanel {
     this.uiRefreshHandler = (event: Event) => {
       const detail = (event as CustomEvent).detail;
       console.log('🔄 FloatingGuardPanel received UI refresh event:', detail);
-      
+
       // Refresh panel content for any guard-management document changes
       if (detail.documentType?.startsWith('guard-management.')) {
         console.log('♻️ Refreshing floating panel due to document change');

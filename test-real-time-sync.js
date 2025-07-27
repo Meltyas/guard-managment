@@ -1,6 +1,6 @@
 /**
  * Test Script: Real-Time Synchronization
- * 
+ *
  * This script tests the new real-time synchronization system
  * Run this in Foundry's console to test sync functionality
  */
@@ -16,28 +16,28 @@ async function testRealTimeSync() {
 
   // Test 1: Create a new resource and verify events are emitted
   console.log('\n📝 Test 1: Creating a new resource...');
-  
+
   try {
     const newResource = await gm.documentManager.createGuardResource({
       name: 'Test Sync Resource',
       description: 'A resource to test real-time sync',
       quantity: 50,
-      organizationId: 'test-org-sync'
+      organizationId: 'test-org-sync',
     });
 
     console.log('✅ Resource created:', newResource.name);
     console.log('📡 Check console for "guard-resource-created" and "guard-ui-refresh" events');
-    
+
     // Wait a moment for events to propagate
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Test 2: Update the resource
     console.log('\n📝 Test 2: Updating the resource...');
-    
+
     const success = await gm.documentManager.updateGuardResource(newResource.id, {
       name: 'Updated Sync Resource',
       quantity: 75,
-      description: 'Updated description for sync testing'
+      description: 'Updated description for sync testing',
     });
 
     if (success) {
@@ -48,27 +48,26 @@ async function testRealTimeSync() {
     }
 
     // Wait a moment for events to propagate
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Test 3: Delete the resource
     console.log('\n📝 Test 3: Deleting the resource...');
-    
+
     const deleted = await gm.documentManager.deleteGuardResource(newResource.id);
-    
+
     if (deleted) {
       console.log('✅ Resource deleted successfully');
       console.log('📡 Check console for "guard-resource-deleted" and "guard-ui-refresh" events');
     } else {
       console.log('❌ Resource deletion failed');
     }
-
   } catch (error) {
     console.error('❌ Test failed:', error);
   }
 
   // Test 4: Check event listener setup
   console.log('\n📝 Test 4: Checking DocumentEventManager...');
-  
+
   if (gm.documentEventManager && gm.documentEventManager.initialized) {
     console.log('✅ DocumentEventManager is initialized');
   } else {

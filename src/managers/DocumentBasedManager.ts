@@ -10,6 +10,7 @@ import {
   createPatrol,
 } from '../documents/index.js';
 import { GuardOrganization, Patrol, Reputation, Resource } from '../types/entities.js';
+import { convertResourceToFoundryUpdateData } from '../utils/resource-converter.js';
 
 export class DocumentBasedManager {
   private initialized = false;
@@ -318,16 +319,8 @@ export class DocumentBasedManager {
     const resource = game?.items?.get(id);
     if (!resource || resource.type !== 'guard-management.guard-resource') return false;
 
-    const updateData: any = {};
-
-    if (data.name) updateData.name = data.name;
-    if (data.description) updateData['system.description'] = data.description;
-    if (data.quantity !== undefined) updateData['system.quantity'] = data.quantity;
-    if (data.image !== undefined) {
-      updateData['system.image'] = data.image;
-      updateData.img = data.image; // También actualizar el campo img de Foundry
-    }
-    if (data.version) updateData['system.version'] = data.version;
+    // Use the unified conversion function
+    const updateData = convertResourceToFoundryUpdateData(data);
 
     console.log('💾 About to update resource with:', {
       resourceId: id,

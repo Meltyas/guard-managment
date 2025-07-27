@@ -6,6 +6,7 @@ import { html, TemplateResult } from 'lit-html';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 import type { GuardOrganization } from '../types/entities';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
+import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 import { renderTemplateToString, safeRender } from '../utils/template-renderer.js';
 
 export class CustomInfoDialog implements FocusableDialog {
@@ -423,13 +424,15 @@ export class CustomInfoDialog implements FocusableDialog {
     // Listen for general UI refresh events
     this.uiRefreshHandler = (event: Event) => {
       const detail = (event as CustomEvent).detail;
-      
+
       // Refresh if it's related to our current organization's resources
       if (detail.documentType === 'guard-management.guard-resource' && this.currentOrganization) {
         this.refreshContent();
-      } else if (detail.documentType === 'guard-management.guard-organization' && 
-                 this.currentOrganization && 
-                 detail.documentId === this.currentOrganization.id) {
+      } else if (
+        detail.documentType === 'guard-management.guard-organization' &&
+        this.currentOrganization &&
+        detail.documentId === this.currentOrganization.id
+      ) {
         this.refreshContent();
       }
     };
@@ -517,7 +520,7 @@ export class CustomInfoDialog implements FocusableDialog {
     if (this.uiRefreshHandler) {
       window.removeEventListener('guard-ui-refresh', this.uiRefreshHandler);
     }
-    
+
     console.log('🧹 Cleaned up resource update listeners');
   }
 
@@ -711,18 +714,8 @@ export class CustomInfoDialog implements FocusableDialog {
         return;
       }
 
-      // Convert Foundry document to our Resource type
-      const resourceData = {
-        id: resource.id,
-        name: resource.name,
-        description: resource.system?.description || '',
-        quantity: resource.system?.quantity || 0,
-        image: resource.img || resource.system?.image || '', // Usar resource.img primero
-        organizationId: resource.system?.organizationId || '',
-        version: resource.system?.version || 1,
-        createdAt: resource.system?.createdAt || new Date(),
-        updatedAt: resource.system?.updatedAt || new Date(),
-      };
+      // Convert Foundry document to our Resource type using the utility function
+      const resourceData = convertFoundryDocumentToResource(resource);
 
       // Import AddOrEditResourceDialog dynamically to avoid circular imports
       const { AddOrEditResourceDialog } = await import('../dialogs/AddOrEditResourceDialog.js');
@@ -1130,26 +1123,9 @@ export class CustomInfoDialog implements FocusableDialog {
 
         const resource = resources.find((r: any) => r.id === resourceId);
         if (resource) {
-          resourceData = {
-            name: resource.name || 'Recurso sin nombre',
-            description: resource.system?.description || resource.description || '',
-            quantity: resource.system?.quantity || resource.quantity || 0,
-            image: resource.system?.image || resource.img || resource.image || '',
-          };
+          // Use the unified conversion function
+          resourceData = convertFoundryDocumentToResource(resource);
           console.log('✅ Found resource data:', resourceData);
-          console.log('🖼️ Info Guild Image Debug:', {
-            resourceId,
-            systemImage: resource.system?.image,
-            imgField: resource.img,
-            resourceImage: resource.image,
-            finalImage: resourceData.image,
-          });
-          console.log('🔍 Description details:', {
-            original: resource.system?.description || resource.description,
-            cleaned: resourceData.description,
-            length: resourceData.description?.length,
-            chars: resourceData.description?.split('').map((c: string) => c.charCodeAt(0)),
-          });
         } else {
           console.log('❌ Resource not found in documentManager:', resourceId);
           // Return null instead of rendering a placeholder for non-existent resources

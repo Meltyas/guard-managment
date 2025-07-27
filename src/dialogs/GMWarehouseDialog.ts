@@ -1,5 +1,6 @@
 import { html, TemplateResult } from 'lit-html';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
+import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 import { safeRender } from '../utils/template-renderer.js';
 import { AddOrEditResourceDialog } from './AddOrEditResourceDialog.js';
 
@@ -288,37 +289,33 @@ export class GMWarehouseDialog implements FocusableDialog {
    * Render individual resource template
    */
   private renderResourceTemplate(resource: any): TemplateResult {
-    const imageUrl = resource.system?.image || resource.img || resource.image || '';
-
-    console.log('🖼️ Rendering resource template:', {
-      resourceId: resource.id,
-      resourceName: resource.name,
-      systemImage: resource.system?.image,
-      imgField: resource.img,
-      resourceImage: resource.image,
-      finalImageUrl: imageUrl,
-    });
+    // Use the unified conversion function to ensure consistency
+    const resourceData = convertFoundryDocumentToResource(resource);
 
     return html`
       <div
         class="template-item resource-template"
-        data-resource-id="${resource.id}"
+        data-resource-id="${resourceData.id}"
         draggable="true"
         title="Arrastra este recurso a una organización para asignarlo"
       >
-        ${imageUrl
+        ${resourceData.image
           ? html`
               <div class="template-image">
-                <img src="${imageUrl}" alt="${resource.name}" onerror="this.style.display='none'" />
+                <img
+                  src="${resourceData.image}"
+                  alt="${resourceData.name}"
+                  onerror="this.style.display='none'"
+                />
               </div>
             `
           : ''}
         <div class="template-info">
-          <div class="template-name">${resource.name}</div>
+          <div class="template-name">${resourceData.name}</div>
           <div class="template-description">
-            ${(resource.system?.description || resource.description || 'Sin descripción').trim()}
+            ${(resourceData.description || 'Sin descripción').trim()}
           </div>
-          <div class="template-quantity">Cantidad: ${resource.quantity}</div>
+          <div class="template-quantity">Cantidad: ${resourceData.quantity}</div>
         </div>
         <div class="template-actions">
           <button type="button" class="edit-template-btn" title="Editar template">
@@ -523,7 +520,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     // Listen for general UI refresh events
     this.uiRefreshHandler = (event: Event) => {
       const detail = (event as CustomEvent).detail;
-      
+
       // Only refresh if it's related to resources
       if (detail.documentType === 'guard-management.guard-resource') {
         this.refreshResourcesTab();
@@ -829,17 +826,12 @@ export class GMWarehouseDialog implements FocusableDialog {
       return;
     }
 
-    // Set the drag data
+    // Set the drag data using unified conversion
+    const resourceData = convertFoundryDocumentToResource(resource);
     const dragData = {
       type: 'guard-resource',
-      resourceId: resource.id,
-      resourceData: {
-        id: resource.id,
-        name: resource.name,
-        description: resource.system?.description || resource.description,
-        quantity: resource.system?.quantity || resource.quantity,
-        version: resource.system?.version || resource.version || 1,
-      },
+      resourceId: resourceData.id,
+      resourceData: resourceData,
     };
 
     event.dataTransfer.setData('text/plain', JSON.stringify(dragData));
@@ -886,18 +878,8 @@ export class GMWarehouseDialog implements FocusableDialog {
         return;
       }
 
-      // Convert Foundry document to our Resource type
-      const resourceData = {
-        id: resource.id,
-        name: resource.name,
-        description: resource.system?.description || '',
-        quantity: resource.system?.quantity || 0,
-        image: resource.system?.image || '',
-        organizationId: resource.system?.organizationId || '',
-        version: resource.system?.version || 1,
-        createdAt: resource.system?.createdAt || new Date(),
-        updatedAt: resource.system?.updatedAt || new Date(),
-      };
+      // Convert Foundry document to our Resource type using the utility function
+      const resourceData = convertFoundryDocumentToResource(resource);
 
       console.log('📝 Opening edit dialog for resource:', resourceData);
 

@@ -5,6 +5,7 @@
 import { html, TemplateResult } from 'lit-html';
 import type { GuardOrganization, GuardStats } from '../types/entities';
 import { DEFAULT_GUARD_STATS } from '../types/entities';
+import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 import { renderTemplateToString } from '../utils/template-renderer.js';
 import { AddOrEditResourceDialog } from './AddOrEditResourceDialog.js';
 
@@ -410,11 +411,8 @@ export class GuardOrganizationDialog {
     if (gm?.documentManager) {
       const resource = gm.documentManager.getGuardResources().find((r: any) => r.id === resourceId);
       if (resource) {
-        resourceData = {
-          name: resource.name,
-          description: resource.system?.description || resource.description,
-          quantity: resource.system?.quantity || resource.quantity,
-        };
+        // Use the unified conversion function
+        resourceData = convertFoundryDocumentToResource(resource);
       }
     }
 

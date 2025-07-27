@@ -94,17 +94,14 @@ export function convertResourceToFoundryUpdateData(resource: Partial<Resource>):
  * Validate that a Foundry document is a valid guard resource
  */
 export function isValidGuardResource(document: any): boolean {
-  return document && 
-         document.type === 'guard-management.guard-resource' &&
-         document.id &&
-         document.name;
+  return (
+    document && document.type === 'guard-management.guard-resource' && document.id && document.name
+  );
 }
 
 /**
  * Get a list of resources from Foundry documents with consistent conversion
  */
 export function convertFoundryDocumentsToResources(documents: any[]): Resource[] {
-  return documents
-    .filter(isValidGuardResource)
-    .map(convertFoundryDocumentToResource);
+  return documents.filter(isValidGuardResource).map(convertFoundryDocumentToResource);
 }
