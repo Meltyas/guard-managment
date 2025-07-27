@@ -19,8 +19,6 @@ export class ResourceEventHandler {
    * Setup all resource event listeners for a dialog/component
    */
   static setup(context: ResourceEventContext): void {
-    console.log('ResourceEventHandler | Setting up resource event listeners');
-
     // Setup add resource buttons
     const addResourceBtns = document.querySelectorAll(
       '.add-resource-btn'
@@ -91,17 +89,11 @@ export class ResourceEventHandler {
         removeBtns.length > 0 ||
         dropZones.length > 0
       ) {
-        console.log(
-          `ResourceEventHandler | Found elements, setting up (${addBtns.length} add, ${editBtns.length} edit, ${removeBtns.length} remove, ${dropZones.length} drop zones)`
-        );
         this.setup(context);
       } else if (retries > 0) {
-        console.log(
-          `ResourceEventHandler | No elements found, retrying in 200ms (${retries} retries left)`
-        );
         setTimeout(() => this.setupWithRetry(context, retries - 1), 200);
       } else {
-        console.warn(
+        console.error(
           'ResourceEventHandler | Could not find resource elements after multiple retries'
         );
       }
@@ -119,8 +111,6 @@ export class ResourceEventHandler {
       const newResource = await AddOrEditResourceDialog.create(organizationId);
 
       if (newResource) {
-        console.log('ResourceEventHandler | New resource created:', newResource);
-
         if (ui?.notifications) {
           ui.notifications.info(`Recurso "${newResource.name}" agregado`);
         }
@@ -160,13 +150,9 @@ export class ResourceEventHandler {
       // Convert to our Resource type
       const resourceData = convertFoundryDocumentToResource(resource);
 
-      console.log('ResourceEventHandler | Opening edit dialog for resource:', resourceData);
-
       const updatedResource = await AddOrEditResourceDialog.edit(resourceData);
 
       if (updatedResource) {
-        console.log('ResourceEventHandler | Resource updated:', updatedResource);
-
         if (ui?.notifications) {
           ui.notifications.info(`Recurso "${updatedResource.name}" actualizado`);
         }
@@ -207,8 +193,6 @@ export class ResourceEventHandler {
       });
 
       if (!confirmed) return;
-
-      console.log('ResourceEventHandler | Removing resource:', resourceName);
 
       if (ui?.notifications) {
         ui.notifications.info(`Recurso "${resourceName}" removido`);
@@ -279,8 +263,6 @@ export class ResourceEventHandler {
       );
 
       if (resourceData && resourceData.id && context.organizationId) {
-        console.log('ResourceEventHandler | Dropped resource:', resourceData);
-
         // Handle resource assignment logic here
         // This would typically involve adding the resource to an organization
 

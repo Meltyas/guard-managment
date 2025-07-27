@@ -16,7 +16,7 @@ export class DocumentBasedManager {
   private initialized = false;
 
   constructor() {
-    console.log('DocumentBasedManager | Constructor called');
+    // Constructor
   }
 
   /**
@@ -25,13 +25,10 @@ export class DocumentBasedManager {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('DocumentBasedManager | Initializing...');
-
     // Hook into document updates for real-time sync
     this.setupDocumentHooks();
 
     this.initialized = true;
-    console.log('DocumentBasedManager | Initialization complete');
   }
 
   /**
@@ -41,7 +38,6 @@ export class DocumentBasedManager {
     // Listen for Actor updates (Organizations and Patrols)
     Hooks.on('updateActor', (actor: any, data: any, _options: any, userId: string) => {
       if (actor.type?.startsWith('guard-management.')) {
-        console.log(`DocumentBasedManager | Actor updated: ${actor.name} (${actor.type})`);
         this.onDocumentUpdate('actor', actor, data, userId);
       }
     });
@@ -49,7 +45,6 @@ export class DocumentBasedManager {
     // Listen for Item updates (Resources and Reputation)
     Hooks.on('updateItem', (item: any, data: any, _options: any, userId: string) => {
       if (item.type?.startsWith('guard-management.')) {
-        console.log(`DocumentBasedManager | Item updated: ${item.name} (${item.type})`);
         this.onDocumentUpdate('item', item, data, userId);
       }
     });
@@ -57,7 +52,6 @@ export class DocumentBasedManager {
     // Listen for Actor creation
     Hooks.on('createActor', (actor: any, _options: any, userId: string) => {
       if (actor.type?.startsWith('guard-management.')) {
-        console.log(`DocumentBasedManager | Actor created: ${actor.name} (${actor.type})`);
         this.onDocumentCreate('actor', actor, userId);
       }
     });
@@ -65,7 +59,6 @@ export class DocumentBasedManager {
     // Listen for Item creation
     Hooks.on('createItem', (item: any, _options: any, userId: string) => {
       if (item.type?.startsWith('guard-management.')) {
-        console.log(`DocumentBasedManager | Item created: ${item.name} (${item.type})`);
         this.onDocumentCreate('item', item, userId);
       }
     });
@@ -73,7 +66,6 @@ export class DocumentBasedManager {
     // Listen for Actor deletion
     Hooks.on('deleteActor', (actor: any, _options: any, userId: string) => {
       if (actor.type?.startsWith('guard-management.')) {
-        console.log(`DocumentBasedManager | Actor deleted: ${actor.name} (${actor.type})`);
         this.onDocumentDelete('actor', actor, userId);
       }
     });
@@ -81,7 +73,6 @@ export class DocumentBasedManager {
     // Listen for Item deletion
     Hooks.on('deleteItem', (item: any, _options: any, userId: string) => {
       if (item.type?.startsWith('guard-management.')) {
-        console.log(`DocumentBasedManager | Item deleted: ${item.name} (${item.type})`);
         this.onDocumentDelete('item', item, userId);
       }
     });
@@ -322,24 +313,7 @@ export class DocumentBasedManager {
     // Use the consolidated conversion function
     const updateData = convertResourceToFoundryFormat(data, 'update');
 
-    console.log('💾 About to update resource with:', {
-      resourceId: id,
-      inputData: data,
-      updateData,
-      currentSystemImage: resource.system?.image,
-      currentImg: resource.img,
-    });
-
     await resource.update(updateData);
-
-    // Debug: Check what was actually saved
-    const updatedResource = game?.items?.get(id);
-    console.log('🔍 After update, resource system:', {
-      resourceId: id,
-      systemImage: updatedResource?.system?.image,
-      imgField: updatedResource?.img,
-      wholeSystem: updatedResource?.system,
-    });
 
     return true;
   }
@@ -369,7 +343,6 @@ export class DocumentBasedManager {
 
       // Delete the resource document
       await resource.delete();
-      console.log(`✅ Resource ${resource.name} deleted permanently`);
       return true;
     } catch (error) {
       console.error('❌ Error deleting resource:', error);
@@ -443,8 +416,6 @@ export class DocumentBasedManager {
    * Create sample data for testing
    */
   async createSampleData(): Promise<void> {
-    console.log('DocumentBasedManager | Creating sample data...');
-
     // Create a sample organization
     const org = await this.createGuardOrganization({
       name: 'City Watch',
@@ -487,8 +458,6 @@ export class DocumentBasedManager {
       level: 5, // Amistosos
       organizationId: org.id,
     });
-
-    console.log('DocumentBasedManager | Sample data created successfully');
   }
 
   /**
@@ -496,8 +465,6 @@ export class DocumentBasedManager {
    * This function ensures all users can edit all Guard Management entities
    */
   async fixAllDocumentPermissions(): Promise<void> {
-    console.log('DocumentBasedManager | Fixing permissions for all Guard Management documents...');
-
     try {
       const newPermissions = {
         default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
@@ -507,31 +474,25 @@ export class DocumentBasedManager {
       const organizations = this.getGuardOrganizations();
       for (const org of organizations) {
         await org.update({ ownership: newPermissions });
-        console.log(`✅ Fixed permissions for organization: ${org.name}`);
       }
 
       // Fix permissions for Patrols (Actors)
       const patrols = this.getPatrols();
       for (const patrol of patrols) {
         await patrol.update({ ownership: newPermissions });
-        console.log(`✅ Fixed permissions for patrol: ${patrol.name}`);
       }
 
       // Fix permissions for Resources (Items)
       const resources = this.getGuardResources();
       for (const resource of resources) {
         await resource.update({ ownership: newPermissions });
-        console.log(`✅ Fixed permissions for resource: ${resource.name}`);
       }
 
       // Fix permissions for Reputation (Items)
       const reputations = this.getGuardReputations();
       for (const reputation of reputations) {
         await reputation.update({ ownership: newPermissions });
-        console.log(`✅ Fixed permissions for reputation: ${reputation.name}`);
       }
-
-      console.log('✅ All Guard Management document permissions have been fixed!');
 
       // Show notification to user
       if ((globalThis as any).ui?.notifications) {
@@ -551,7 +512,6 @@ export class DocumentBasedManager {
    * Cleanup when module is disabled
    */
   cleanup(): void {
-    console.log('DocumentBasedManager | Cleaning up...');
     // Remove hooks if needed
     this.initialized = false;
   }

@@ -93,7 +93,7 @@ export class ResourceErrorHandler {
   ): void {
     const message = `Campo "${field}": ${requirement}`;
 
-    console.warn(`ResourceErrorHandler | Validation error: ${message}`, {
+    console.error(`ResourceErrorHandler | Validation error: ${message}`, {
       field,
       value,
       requirement,
@@ -115,7 +115,7 @@ export class ResourceErrorHandler {
   static handlePermissionError(operation: string, resourceType: string = 'recurso'): void {
     const message = `No tienes permisos para ${operation} este ${resourceType}`;
 
-    console.warn(`ResourceErrorHandler | Permission error: ${message}`);
+    console.error(`ResourceErrorHandler | Permission error: ${message}`);
 
     if (ui?.notifications) {
       ui.notifications.warn(message);

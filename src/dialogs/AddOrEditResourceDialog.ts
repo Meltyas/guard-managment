@@ -32,8 +32,6 @@ export class AddOrEditResourceDialog {
     ) as HTMLTextAreaElement;
 
     if (filePickerBtn && imageInput && !filePickerBtn.hasAttribute('data-initialized')) {
-      console.log('Setting up file picker');
-
       // Set initial values for edit mode
       if (existingResource?.image) {
         imageInput.value = existingResource.image;
@@ -45,7 +43,6 @@ export class AddOrEditResourceDialog {
 
       filePickerBtn.setAttribute('data-initialized', 'true');
       filePickerBtn.addEventListener('click', function (event: Event) {
-        console.log('File picker button clicked');
         event.preventDefault();
         event.stopPropagation();
 
@@ -53,7 +50,6 @@ export class AddOrEditResourceDialog {
           type: 'imagevideo',
           current: imageInput.value || '',
           callback: (path: string) => {
-            console.log('File selected:', path);
             imageInput.value = path;
             imageInput.dispatchEvent(new Event('change', { bubbles: true }));
           },
@@ -80,7 +76,7 @@ export class AddOrEditResourceDialog {
       const DialogV2Class = foundry.applications.api.DialogV2;
 
       if (!DialogV2Class) {
-        console.warn('DialogV2 no está disponible, usando Dialog estándar como fallback');
+        console.error('DialogV2 no está disponible, usando Dialog estándar como fallback');
         return this.showWithStandardDialog(mode, organizationId, existingResource);
       }
 
@@ -107,15 +103,12 @@ export class AddOrEditResourceDialog {
             default: true,
             callback: (event: Event, button: any, dialog: any) => {
               try {
-                console.log('Resource Dialog callback triggered', { dialog, event, button });
-
                 // En DialogV2, acceder al formulario usando button.form (método oficial)
                 let form: HTMLFormElement | null = null;
 
                 // Método 1: Usar button.form (recomendado por la documentación)
                 if (button?.form) {
                   form = button.form as HTMLFormElement;
-                  console.log('Método 1 - Usando button.form:', { form });
                 }
 
                 // Método 2: Buscar en dialog.window.content (accessor oficial)
@@ -123,16 +116,11 @@ export class AddOrEditResourceDialog {
                   form = dialog.window.content.querySelector(
                     'form.resource-form'
                   ) as HTMLFormElement;
-                  console.log('Método 2 - En dialog.window.content:', {
-                    content: dialog.window.content,
-                    form,
-                  });
                 }
 
                 // Método 3: Buscar en dialog.element
                 if (!form && dialog?.element) {
                   form = dialog.element.querySelector('form.resource-form') as HTMLFormElement;
-                  console.log('Método 3 - En dialog.element:', { element: dialog.element, form });
                 }
 
                 // Método 4: Fallback - buscar por button hasta encontrar form padre
@@ -147,46 +135,15 @@ export class AddOrEditResourceDialog {
                     if (form) break;
                     parent = parent.parentElement;
                   }
-                  console.log('Método 4 - Navegando desde button:', { button, form });
                 }
 
                 if (!form) {
                   console.error('No se pudo encontrar el formulario del recurso');
-                  console.log('Debug completo:', {
-                    'button existe': !!button,
-                    'button.form existe': !!button?.form,
-                    'dialog.window existe': !!dialog?.window,
-                    'dialog.window.content existe': !!dialog?.window?.content,
-                    'dialog.element existe': !!dialog?.element,
-                    'event.target': event.target,
-                    'Todos los forms en documento': document.querySelectorAll('form'),
-                    'Forms con clase resource-form':
-                      document.querySelectorAll('form.resource-form'),
-                    'Dialog object completo': dialog,
-                    'Button object completo': button,
-                  });
-
-                  // Intentar obtener el HTML completo de diferentes elementos para debug
-                  if (dialog?.window?.content) {
-                    console.log(
-                      'Contenido de dialog.window.content:',
-                      dialog.window.content.innerHTML.substring(0, 500)
-                    );
-                  }
-                  if (dialog?.element) {
-                    console.log(
-                      'Contenido del dialog.element:',
-                      dialog.element.innerHTML.substring(0, 500)
-                    );
-                  }
-
                   if (ui?.notifications) {
                     ui.notifications.error('Error: No se pudo encontrar el formulario');
                   }
                   return 'cancel';
                 }
-
-                console.log('Formulario encontrado:', form);
 
                 // Extraer datos del formulario
                 const formData = new FormData(form);
@@ -197,8 +154,6 @@ export class AddOrEditResourceDialog {
                   image: formData.get('image') as string,
                   organizationId: formData.get('organizationId') as string,
                 };
-
-                console.log('Datos del formulario extraídos:', data);
 
                 // Validación básica
                 if (!data.name?.trim()) {
@@ -234,8 +189,6 @@ export class AddOrEditResourceDialog {
                   createdAt: existingResource?.createdAt || new Date(),
                   updatedAt: new Date(),
                 };
-
-                console.log('Recurso creado/editado:', resourceResult);
 
                 return 'save';
               } catch (error) {

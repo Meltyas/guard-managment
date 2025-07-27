@@ -187,7 +187,7 @@ export class DocumentEventManager {
       const stats = changes.system.baseStats;
       for (const [stat, value] of Object.entries(stats)) {
         if (typeof value === 'number' && (value < -99 || value > 99)) {
-          console.warn(`DocumentEventManager | Invalid stat value for ${stat}: ${value}`);
+          console.error(`DocumentEventManager | Invalid stat value for ${stat}: ${value}`);
           return false;
         }
       }
