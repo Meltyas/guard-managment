@@ -323,10 +323,31 @@ export class DocumentBasedManager {
     if (data.name) updateData.name = data.name;
     if (data.description) updateData['system.description'] = data.description;
     if (data.quantity !== undefined) updateData['system.quantity'] = data.quantity;
-    if (data.image !== undefined) updateData['system.image'] = data.image;
+    if (data.image !== undefined) {
+      updateData['system.image'] = data.image;
+      updateData.img = data.image; // También actualizar el campo img de Foundry
+    }
     if (data.version) updateData['system.version'] = data.version;
 
+    console.log('💾 About to update resource with:', {
+      resourceId: id,
+      inputData: data,
+      updateData,
+      currentSystemImage: resource.system?.image,
+      currentImg: resource.img,
+    });
+
     await resource.update(updateData);
+
+    // Debug: Check what was actually saved
+    const updatedResource = game?.items?.get(id);
+    console.log('🔍 After update, resource system:', {
+      resourceId: id,
+      systemImage: updatedResource?.system?.image,
+      imgField: updatedResource?.img,
+      wholeSystem: updatedResource?.system,
+    });
+
     return true;
   }
 

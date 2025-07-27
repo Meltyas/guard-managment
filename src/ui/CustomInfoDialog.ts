@@ -1116,9 +1116,16 @@ export class CustomInfoDialog implements FocusableDialog {
             name: resource.name || 'Recurso sin nombre',
             description: resource.system?.description || resource.description || '',
             quantity: resource.system?.quantity || resource.quantity || 0,
-            image: resource.system?.image || resource.image || '',
+            image: resource.system?.image || resource.img || resource.image || '',
           };
           console.log('✅ Found resource data:', resourceData);
+          console.log('🖼️ Info Guild Image Debug:', {
+            resourceId,
+            systemImage: resource.system?.image,
+            imgField: resource.img,
+            resourceImage: resource.image,
+            finalImage: resourceData.image,
+          });
           console.log('🔍 Description details:', {
             original: resource.system?.description || resource.description,
             cleaned: resourceData.description,

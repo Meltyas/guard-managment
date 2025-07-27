@@ -287,7 +287,16 @@ export class GMWarehouseDialog implements FocusableDialog {
    * Render individual resource template
    */
   private renderResourceTemplate(resource: any): TemplateResult {
-    const imageUrl = resource.system?.image || resource.image || '';
+    const imageUrl = resource.system?.image || resource.img || resource.image || '';
+
+    console.log('🖼️ Rendering resource template:', {
+      resourceId: resource.id,
+      resourceName: resource.name,
+      systemImage: resource.system?.image,
+      imgField: resource.img,
+      resourceImage: resource.image,
+      finalImageUrl: imageUrl,
+    });
 
     return html`
       <div

@@ -156,10 +156,10 @@
   border: 1px dashed #555;
   border-radius: 6px;
   padding: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: left;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-items: start;
 }
 
 .templates-list .empty-state {
@@ -250,14 +250,15 @@
 /* Template Items Styles */
 .template-item {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 12px;
   padding: 12px;
-  margin-bottom: 8px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
   border: 1px solid #555;
   border-radius: 6px;
   transition: all 0.3s ease;
+  height: auto;
+  min-height: 120px;
 }
 
 .template-item:hover {

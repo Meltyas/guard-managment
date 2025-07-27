@@ -93,10 +93,11 @@ export async function createGuardResource(data: any = {}) {
   const resourceData = {
     name: data.name || 'New Resource',
     type: 'guard-management.guard-resource',
+    img: data.image || '', // Campo img estándar de Foundry
     system: {
       description: data.description || '',
       quantity: data.quantity || 1,
-      image: data.image || '',
+      image: data.image || '', // También en system para compatibilidad
       organizationId: data.organizationId || '',
       version: 1,
     },
