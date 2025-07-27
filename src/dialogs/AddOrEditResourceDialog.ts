@@ -89,6 +89,18 @@ export class AddOrEditResourceDialog {
         5000
       );
 
+      // Setup textarea value after content is rendered
+      DOMEventSetup.observe(
+        '#resource-description',
+        () => {
+          const textarea = document.getElementById('resource-description') as HTMLTextAreaElement;
+          if (textarea && existingResource?.description) {
+            textarea.value = existingResource.description;
+          }
+        },
+        5000
+      );
+
       const result = await DialogV2Class.wait({
         window: {
           title,
@@ -101,7 +113,7 @@ export class AddOrEditResourceDialog {
             icon: 'fas fa-save',
             label: mode === 'create' ? 'Crear' : 'Guardar',
             default: true,
-            callback: (event: Event, button: any, dialog: any) => {
+            callback: async (_event: Event, button: any, dialog: any) => {
               try {
                 // En DialogV2, acceder al formulario usando button.form (método oficial)
                 let form: HTMLFormElement | null = null;
@@ -178,17 +190,76 @@ export class AddOrEditResourceDialog {
                 }
 
                 // Crear el objeto Resource
-                resourceResult = {
-                  id: existingResource?.id || foundry.utils.randomID(),
+                const resourceData: Partial<Resource> = {
+                  id: existingResource?.id,
                   name: data.name.trim(),
                   description: data.description?.trim() || '',
                   quantity: data.quantity,
                   image: data.image?.trim() || '',
                   organizationId: data.organizationId,
                   version: existingResource ? existingResource.version + 1 : 1,
-                  createdAt: existingResource?.createdAt || new Date(),
+                  createdAt: existingResource?.createdAt,
                   updatedAt: new Date(),
                 };
+
+                // Usar DocumentBasedManager para persistir el recurso
+                const gm = (window as any).GuardManagement;
+                if (!gm?.documentManager) {
+                  console.error('DocumentBasedManager not available');
+                  if (ui?.notifications) {
+                    ui.notifications.error('Sistema no disponible para guardar recursos');
+                  }
+                  return 'cancel';
+                }
+
+                try {
+                  if (mode === 'create') {
+                    // Crear nuevo recurso
+                    const newResource = await gm.documentManager.createGuardResource(resourceData);
+                    resourceResult = {
+                      id: newResource.id,
+                      name: data.name.trim(),
+                      description: data.description?.trim() || '',
+                      quantity: data.quantity,
+                      image: data.image?.trim() || '',
+                      organizationId: data.organizationId,
+                      version: 1,
+                      createdAt: new Date(),
+                      updatedAt: new Date(),
+                    };
+                  } else {
+                    // Actualizar recurso existente
+                    const updateSuccess = await gm.documentManager.updateGuardResource(
+                      existingResource!.id,
+                      resourceData
+                    );
+
+                    if (updateSuccess) {
+                      resourceResult = {
+                        id: existingResource!.id,
+                        name: data.name.trim(),
+                        description: data.description?.trim() || '',
+                        quantity: data.quantity,
+                        image: data.image?.trim() || '',
+                        organizationId: data.organizationId,
+                        version: existingResource!.version + 1,
+                        createdAt: existingResource!.createdAt || new Date(),
+                        updatedAt: new Date(),
+                      };
+                    } else {
+                      if (ui?.notifications) {
+                        ui.notifications.error('Error al actualizar el recurso');
+                      }
+                      return 'cancel';
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error al guardar recurso:', error);
+                  if (ui?.notifications) {
+                    ui.notifications.error('Error al guardar el recurso');
+                  }
+                  return 'cancel';
+                }
 
                 return 'save';
               } catch (error) {
@@ -264,9 +335,7 @@ export class AddOrEditResourceDialog {
             placeholder="Descripción del recurso..."
             rows="3"
             maxlength="500"
-          >
-${data.description}</textarea
-          >
+          ></textarea>
           <small class="form-hint">Opcional. Máximo 500 caracteres</small>
         </div>
 

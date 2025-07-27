@@ -817,6 +817,9 @@ export class GuardOrganizationDialog {
    * Setup event listeners for resource management using centralized handler
    */
   private setupResourceEventListeners(organizationId?: string): void {
+    // Clean up any existing handlers first
+    ResourceEventHandler.cleanup();
+
     const context: ResourceEventContext = {
       organizationId: organizationId || 'temp-org-id',
       onResourceAdded: (resource) => {
@@ -898,6 +901,9 @@ export class GuardOrganizationDialog {
       }
 
       // Setup event listeners for the new content using centralized handler
+      // Clean up any existing handlers first
+      ResourceEventHandler.cleanup();
+
       const context: ResourceEventContext = {
         organizationId,
         refreshUI: () => this.refreshResourcesList(organizationId),
