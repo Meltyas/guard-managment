@@ -335,6 +335,11 @@
   color: #ecf0f1;
 }
 
+.send-to-chat-template-btn:hover {
+  border-color: #2ecc71;
+  color: #2ecc71;
+}
+
 .edit-template-btn:hover {
   border-color: #3498db;
   color: #3498db;

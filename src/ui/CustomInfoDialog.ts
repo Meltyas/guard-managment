@@ -8,6 +8,7 @@ import type { GuardOrganization } from '../types/entities';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 import { renderTemplateToString, safeRender } from '../utils/template-renderer.js';
+import { ResourceTemplate } from './ResourceTemplate.js';
 
 export class CustomInfoDialog implements FocusableDialog {
   public element: HTMLElement | null = null;
@@ -542,6 +543,22 @@ export class CustomInfoDialog implements FocusableDialog {
     this.resourceEventHandler = (event: Event) => {
       const target = event.target as HTMLElement;
 
+      // Handle send to chat button
+      const sendToChatBtn = target.closest('.send-to-chat-btn') as HTMLElement;
+      if (sendToChatBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const resourceId = sendToChatBtn.getAttribute('data-resource-id');
+        const organizationId = sendToChatBtn.getAttribute('data-organization-id');
+
+        if (resourceId) {
+          console.log('💬 Send to chat button clicked for:', resourceId);
+          this.handleSendResourceToChat(resourceId, organizationId || undefined);
+        }
+        return;
+      }
+
       // Handle remove button
       const removeBtn = target.closest('.remove-resource-btn') as HTMLElement;
       if (removeBtn) {
@@ -768,6 +785,39 @@ export class CustomInfoDialog implements FocusableDialog {
       console.error('❌ Error editing resource:', error);
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.error('Error al editar el recurso');
+      }
+    }
+  }
+
+  /**
+   * Handle sending a resource to chat
+   */
+  private async handleSendResourceToChat(
+    resourceId: string,
+    _organizationId?: string
+  ): Promise<void> {
+    console.log('💬 Send resource to chat request:', resourceId);
+
+    try {
+      // Get organization name if available
+      let organizationName = '';
+      if (this.currentOrganization) {
+        organizationName = this.currentOrganization.name;
+      }
+
+      // Send to chat using ResourceTemplate
+      await ResourceTemplate.sendResourceToChat(resourceId, organizationName);
+
+      console.log('✅ Resource sent to chat successfully');
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info('Recurso enviado al chat');
+      }
+    } catch (error) {
+      console.error('❌ Error sending resource to chat:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al enviar recurso al chat');
       }
     }
   }
@@ -1110,85 +1160,11 @@ export class CustomInfoDialog implements FocusableDialog {
    * Render individual resource item as TemplateResult
    */
   private renderResourceItemTemplate(resourceId: string): TemplateResult | null {
-    console.log('🔧 Rendering resource item:', resourceId);
-
-    // Get the actual resource data
-    const gm = (window as any).GuardManagement;
-    let resourceData = null;
-
-    try {
-      if (gm?.documentManager) {
-        const resources = gm.documentManager.getGuardResources();
-        console.log('📦 Available resources in documentManager:', resources.length);
-
-        const resource = resources.find((r: any) => r.id === resourceId);
-        if (resource) {
-          // Use the unified conversion function
-          resourceData = convertFoundryDocumentToResource(resource);
-          console.log('✅ Found resource data:', resourceData);
-        } else {
-          console.log('❌ Resource not found in documentManager:', resourceId);
-          // Return null instead of rendering a placeholder for non-existent resources
-          return null;
-        }
-      } else {
-        console.log('❌ DocumentManager not available');
-        // Return null instead of rendering when DocumentManager is not available
-        return null;
-      }
-    } catch (error) {
-      console.error('Error getting resource data for', resourceId, error);
-      // Return null instead of rendering when there's an error
-      return null;
-    }
-
-    // Only render if we have valid resource data
-    if (!resourceData) {
-      return null;
-    }
-
-    return html`
-      <div class="resource-item" data-resource-id="${resourceId}">
-        ${resourceData.image
-          ? html`
-              <div class="resource-image">
-                <img
-                  src="${resourceData.image}"
-                  alt="${resourceData.name}"
-                  onerror="this.style.display='none'"
-                />
-              </div>
-            `
-          : ''}
-        <div class="resource-info">
-          <span class="resource-name">${resourceData.name}</span>
-          <span class="resource-quantity">Cantidad: ${resourceData.quantity}</span>
-          ${resourceData.description
-            ? html`<span class="resource-description">${resourceData.description.trim()}</span>`
-            : ''}
-        </div>
-        <div class="resource-actions">
-          <button
-            type="button"
-            class="edit-resource-btn btn-icon"
-            title="Editar recurso"
-            data-resource-id="${resourceId}"
-            data-resource-name="${resourceData.name}"
-          >
-            <i class="fas fa-edit"></i>
-          </button>
-          <button
-            type="button"
-            class="remove-resource-btn btn-icon"
-            title="Remover recurso"
-            data-resource-id="${resourceId}"
-            data-resource-name="${resourceData.name}"
-          >
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      </div>
-    `;
+    return ResourceTemplate.renderResourceItem(resourceId, {
+      showActions: true,
+      showSendToChat: true,
+      organizationId: this.currentOrganization?.id || '',
+    });
   }
 
   /**

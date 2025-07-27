@@ -1,4 +1,5 @@
 import { html, TemplateResult } from 'lit-html';
+import { ResourceTemplate } from '../ui/ResourceTemplate.js';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { DOMEventSetup } from '../utils/DOMEventSetup.js';
 import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
@@ -320,6 +321,14 @@ export class GMWarehouseDialog implements FocusableDialog {
           <div class="template-quantity">Cantidad: ${resourceData.quantity}</div>
         </div>
         <div class="template-actions">
+          <button
+            type="button"
+            class="send-to-chat-template-btn"
+            title="Enviar al chat"
+            data-resource-id="${resourceData.id}"
+          >
+            <i class="fas fa-comment"></i>
+          </button>
           <button type="button" class="edit-template-btn" title="Editar template">
             <i class="fas fa-edit"></i>
           </button>
@@ -745,6 +754,19 @@ export class GMWarehouseDialog implements FocusableDialog {
   private addTemplateEventListeners(): void {
     if (!this.element) return;
 
+    // Handle send to chat template buttons
+    const sendToChatButtons = this.element.querySelectorAll('.send-to-chat-template-btn');
+    sendToChatButtons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        const templateItem = button.closest('.template-item') as HTMLElement;
+        const resourceId = templateItem?.dataset.resourceId;
+        if (resourceId) {
+          this.handleSendTemplateToChat(resourceId);
+        }
+      });
+    });
+
     // Handle edit template buttons
     const editButtons = this.element.querySelectorAll('.edit-template-btn');
     editButtons.forEach((button) => {
@@ -849,6 +871,30 @@ export class GMWarehouseDialog implements FocusableDialog {
     if (resourceTemplate) {
       // Restore visual state
       resourceTemplate.style.opacity = '1';
+    }
+  }
+
+  /**
+   * Handle sending template to chat
+   */
+  private async handleSendTemplateToChat(resourceId: string): Promise<void> {
+    try {
+      console.log('💬 Send template to chat request:', resourceId);
+
+      // Send to chat using ResourceTemplate
+      await ResourceTemplate.sendResourceToChat(resourceId, 'GM Warehouse');
+
+      console.log('✅ Template sent to chat successfully');
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info('Recurso enviado al chat');
+      }
+    } catch (error) {
+      console.error('❌ Error sending template to chat:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al enviar recurso al chat');
+      }
     }
   }
 

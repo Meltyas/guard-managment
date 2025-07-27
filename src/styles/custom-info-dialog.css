@@ -375,6 +375,16 @@
   background: rgba(68, 136, 255, 0.4);
 }
 
+/* Send to Chat button specific styling */
+.send-to-chat-btn.btn-icon {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+}
+
+.send-to-chat-btn.btn-icon:hover {
+  background: rgba(46, 204, 113, 0.4);
+}
+
 .resources-list {
   min-height: 60px;
 }
@@ -420,4 +430,84 @@
 /* Floating Panel Z-Index Update */
 .floating-guard-panel {
   z-index: 40 !important;
+}
+
+/* ==== CHAT MESSAGE STYLES ==== */
+/* Resource Chat Message - Uses exact same styles as guild info */
+.guard-resource-chat {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  font-family: 'Roboto', sans-serif;
+  color: #f0f0e0;
+}
+
+.guard-resource-chat .resource-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.75rem;
+  min-height: 120px;
+}
+
+.guard-resource-chat .resource-image {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.guard-resource-chat .resource-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.guard-resource-chat .resource-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  text-align: center;
+}
+
+.guard-resource-chat .resource-name {
+  font-weight: bold;
+  color: #f0f0e0;
+  font-size: 13px;
+}
+
+.guard-resource-chat .resource-quantity {
+  color: #4a9eff;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.guard-resource-chat .resource-description {
+  color: #d0d0c0;
+  font-size: 10px;
+  font-style: italic;
+  margin-top: 0.25rem;
+  flex: 1;
+}
+
+.guard-resource-chat .resource-source {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  color: #bdc3c7;
+  text-align: center;
 }
