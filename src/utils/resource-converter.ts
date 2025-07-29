@@ -3,7 +3,7 @@
  * Provides consistent conversion between Foundry documents and our Resource type
  */
 
-import { Resource } from '../types/entities.js';
+import { Reputation, Resource } from '../types/entities.js';
 
 /**
  * Convert a Foundry document to our Resource type
@@ -129,4 +129,45 @@ export function isValidGuardResource(document: any): boolean {
  */
 export function convertFoundryDocumentsToResources(documents: any[]): Resource[] {
   return documents.filter(isValidGuardResource).map(convertFoundryDocumentToResource);
+}
+
+/**
+ * Convert Foundry document to our Reputation type with proper image handling
+ */
+export function convertFoundryDocumentToReputation(document: any): Reputation {
+  if (!document || document.type !== 'guard-management.guard-reputation') {
+    throw new Error('Invalid document type for reputation conversion');
+  }
+
+  return {
+    id: document.id,
+    name: document.name || '',
+    description: document.system?.description || '',
+    level: document.system?.level || 4, // Default to Neutrales
+    // Priority: document.img (Foundry standard) > system.image (legacy) > empty string
+    image: document.img || document.system?.image || '',
+    organizationId: document.system?.organizationId || '',
+    version: document.system?.version || 1,
+    createdAt: document.system?.createdAt || new Date(),
+    updatedAt: document.system?.updatedAt || new Date(),
+  };
+}
+
+/**
+ * Check if a document is a valid guard reputation
+ */
+export function isValidGuardReputation(document: any): boolean {
+  return (
+    document &&
+    document.type === 'guard-management.guard-reputation' &&
+    document.id &&
+    document.name
+  );
+}
+
+/**
+ * Get a list of reputations from Foundry documents with consistent conversion
+ */
+export function convertFoundryDocumentsToReputations(documents: any[]): Reputation[] {
+  return documents.filter(isValidGuardReputation).map(convertFoundryDocumentToReputation);
 }

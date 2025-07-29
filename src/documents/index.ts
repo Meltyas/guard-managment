@@ -125,6 +125,7 @@ export async function createGuardReputation(data: any = {}) {
   const reputationData = {
     name: data.name || 'New Reputation',
     type: 'guard-management.guard-reputation',
+    img: data.image || '', // Add the image field at the top level (Foundry standard)
     system: {
       description: data.description || '',
       level: data.level || 4, // Neutrales

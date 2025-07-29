@@ -1,5 +1,6 @@
 import { html, TemplateResult } from 'lit-html';
 import { Reputation, REPUTATION_LABELS } from '../types/entities';
+import { convertFoundryDocumentToReputation } from '../utils/resource-converter.js';
 
 export interface ReputationTemplateOptions {
   showActions?: boolean;
@@ -36,7 +37,8 @@ export class ReputationTemplate {
           .getGuardReputations()
           ?.find((r: any) => r.id === reputationId);
         if (reputation) {
-          reputationData = reputation;
+          // Convert Foundry document to our Reputation type for consistent image handling
+          reputationData = convertFoundryDocumentToReputation(reputation);
         }
       } else {
         console.log('❌ DocumentManager not available for reputation');
@@ -203,7 +205,8 @@ export class ReputationTemplate {
           .getGuardReputations()
           ?.find((r: any) => r.id === reputationId);
         if (reputation) {
-          reputationData = reputation;
+          // Convert Foundry document to our Reputation type for consistent image handling
+          reputationData = convertFoundryDocumentToReputation(reputation);
         }
       }
     } catch (error) {

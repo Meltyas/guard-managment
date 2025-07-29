@@ -426,7 +426,7 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
-   * Setup listeners for resource updates from warehouse
+   * Setup listeners for resource and reputation updates from warehouse
    */
   private setupResourceUpdateListeners(): void {
     // Listen for resource deletions
@@ -441,12 +441,30 @@ export class CustomInfoDialog implements FocusableDialog {
       this.handleResourceUpdated.bind(this) as EventListener
     );
 
+    // Listen for reputation updates
+    document.addEventListener(
+      'guard-reputation-updated',
+      this.handleReputationUpdated.bind(this) as EventListener
+    );
+
+    // NOTE: Temporarily disabled to prevent duplicate reputation entries
+    // Listen for reputation creation
+    // document.addEventListener(
+    //   'guard-reputation-created',
+    //   this.handleReputationCreated.bind(this) as EventListener
+    // );
+
     // Listen for general UI refresh events
     this.uiRefreshHandler = (event: Event) => {
       const detail = (event as CustomEvent).detail;
 
-      // Refresh if it's related to our current organization's resources
+      // Refresh if it's related to our current organization's resources or reputation
       if (detail.documentType === 'guard-management.guard-resource' && this.currentOrganization) {
+        this.refreshContent();
+      } else if (
+        detail.documentType === 'guard-management.guard-reputation' &&
+        this.currentOrganization
+      ) {
         this.refreshContent();
       } else if (
         detail.documentType === 'guard-management.guard-organization' &&
@@ -512,6 +530,48 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
+   * Handle reputation update events
+   */
+  private async handleReputationUpdated(event: Event): Promise<void> {
+    const customEvent = event as CustomEvent;
+    const { reputationId, oldName, newName } = customEvent.detail;
+    console.log('✏️ Reputation updated event received:', oldName, '->', newName, reputationId);
+
+    if (!this.currentOrganization) return;
+
+    // Check if this organization has the updated reputation
+    if (this.currentOrganization.reputation?.includes(reputationId)) {
+      console.log('📊 Organization has updated reputation - refreshing content');
+
+      // Get fresh organization data
+      await this.refreshContent();
+
+      // Show notification only if name changed
+      if (oldName !== newName && (globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Reputación actualizada: "${oldName}" → "${newName}"`
+        );
+      }
+    }
+  }
+
+  /**
+   * Handle reputation creation events
+   * NOTE: Temporarily disabled to prevent duplicate reputation entries
+   */
+  // private async handleReputationCreated(event: Event): Promise<void> {
+  //   const customEvent = event as CustomEvent;
+  //   const { organizationId } = customEvent.detail;
+  //   console.log('➕ Reputation created event received for organization:', organizationId);
+
+  //   // If this is for our current organization, refresh
+  //   if (this.currentOrganization && this.currentOrganization.id === organizationId) {
+  //     console.log('📊 Reputation created for current organization - refreshing content');
+  //     await this.refreshContent();
+  //   }
+  // }
+
+  /**
    * Remove event listeners
    */
   private removeEventListeners(): void {
@@ -535,6 +595,17 @@ export class CustomInfoDialog implements FocusableDialog {
       'guard-resource-updated',
       this.handleResourceUpdated.bind(this) as EventListener
     );
+
+    // Remove reputation update listeners
+    document.removeEventListener(
+      'guard-reputation-updated',
+      this.handleReputationUpdated.bind(this) as EventListener
+    );
+    // NOTE: Temporarily disabled to prevent duplicate reputation entries
+    // document.removeEventListener(
+    //   'guard-reputation-created',
+    //   this.handleReputationCreated.bind(this) as EventListener
+    // );
 
     // Remove UI refresh listener from window
     if (this.uiRefreshHandler) {
@@ -651,16 +722,17 @@ export class CustomInfoDialog implements FocusableDialog {
         return;
       }
 
-      // Delete Reputation button
-      const deleteReputationBtn = target.closest('.delete-reputation-btn') as HTMLElement;
-      if (deleteReputationBtn) {
+      // Remove Reputation button (changed from delete to remove to match template)
+      const removeReputationBtn = target.closest('.remove-reputation-btn') as HTMLElement;
+      if (removeReputationBtn) {
         event.preventDefault();
         event.stopPropagation();
 
-        const reputationId = deleteReputationBtn.getAttribute('data-reputation-id');
+        const reputationId = removeReputationBtn.getAttribute('data-reputation-id');
+        const reputationName = removeReputationBtn.getAttribute('data-reputation-name');
         if (reputationId) {
-          console.log('🗑️ Delete reputation button clicked for:', reputationId);
-          this.handleDeleteReputation(reputationId);
+          console.log('🗑️ Remove reputation button clicked for:', reputationName, reputationId);
+          this.handleRemoveReputation(reputationId, reputationName || 'Reputación');
         }
         return;
       }
@@ -901,9 +973,31 @@ export class CustomInfoDialog implements FocusableDialog {
    */
   private async handleAddReputation(organizationId: string): Promise<void> {
     console.log('➕ Add reputation request for organization:', organizationId);
+    console.log(
+      '📊 Current reputation count BEFORE create:',
+      this.currentOrganization?.reputation?.length || 0
+    );
 
     try {
       await AddOrEditReputationDialog.showCreateDialog(organizationId);
+
+      // The showCreateDialog already sends 'guard-organizations-updated' event
+      // but we need to wait a bit for the automatic assignment to complete
+      console.log('✅ Add reputation dialog closed, waiting for automatic assignment...');
+
+      // Wait a short time for the automatic reputation assignment to complete
+      setTimeout(async () => {
+        console.log('🔄 Refreshing content after reputation creation...');
+        console.log(
+          '📊 Current reputation count BEFORE refresh:',
+          this.currentOrganization?.reputation?.length || 0
+        );
+        await this.refreshContent();
+        console.log(
+          '📊 Current reputation count AFTER refresh:',
+          this.currentOrganization?.reputation?.length || 0
+        );
+      }, 200); // Increased delay from 100ms to 200ms
     } catch (error) {
       console.error('❌ Error showing add reputation dialog:', error);
       if ((globalThis as any).ui?.notifications) {
@@ -919,7 +1013,44 @@ export class CustomInfoDialog implements FocusableDialog {
     console.log('✏️ Edit reputation request:', reputationId);
 
     try {
+      // Get the reputation data first to have the old name for notifications
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        console.error('DocumentManager not available');
+        return;
+      }
+
+      const reputations = gm.documentManager.getGuardReputations();
+      const oldReputation = reputations.find((r: any) => r.id === reputationId);
+      const oldName = oldReputation?.name || 'Reputación Desconocida';
+
       await AddOrEditReputationDialog.showEditDialog(reputationId);
+
+      // Always refresh content after edit dialog closes
+      console.log('✅ Edit reputation dialog closed, refreshing content');
+      await this.refreshContent();
+
+      // Get updated reputation data for notification and event
+      const updatedReputations = gm.documentManager.getGuardReputations();
+      const updatedReputation = updatedReputations.find((r: any) => r.id === reputationId);
+      const newName = updatedReputation?.name || oldName;
+
+      // Show notification only if we can determine the name changed
+      if (oldName !== newName && (globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Reputación actualizada: "${oldName}" → "${newName}"`
+        );
+      }
+
+      // Dispatch event for other dialogs to update
+      const event = new CustomEvent('guard-reputation-updated', {
+        detail: {
+          reputationId: reputationId,
+          oldName: oldName,
+          newName: newName,
+        },
+      });
+      document.dispatchEvent(event);
     } catch (error) {
       console.error('❌ Error showing edit reputation dialog:', error);
       if ((globalThis as any).ui?.notifications) {
@@ -929,58 +1060,117 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
-   * Handle deleting a reputation entry
+   * Handle removing a reputation from the organization (not deleting from system)
    */
-  private async handleDeleteReputation(reputationId: string): Promise<void> {
-    console.log('🗑️ Delete reputation request:', reputationId);
+  private async handleRemoveReputation(
+    reputationId: string,
+    reputationName: string
+  ): Promise<void> {
+    console.log('🗑️ Remove reputation request:', reputationName, reputationId);
+
+    // Show confirmation dialog
+    const confirmed = await this.showRemoveReputationDialog(reputationName);
+    if (!confirmed) {
+      console.log('❌ Reputation removal cancelled by user');
+      return;
+    }
+
+    const gm = (window as any).GuardManagement;
+
+    if (!gm?.guardOrganizationManager || !this.currentOrganization) {
+      console.error('❌ GuardOrganizationManager or organization not available');
+      return;
+    }
 
     try {
-      // Get the reputation data first
-      const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) {
-        console.error('DocumentManager not available');
+      // Get current organization
+      const organization = gm.guardOrganizationManager.getOrganization();
+      if (!organization) {
+        console.error('❌ Organization not found');
         return;
       }
 
-      const reputations = gm.documentManager.getGuardReputations();
-      const reputation = reputations.find((r: any) => r.id === reputationId);
-      const reputationName = reputation?.name || 'Reputación Desconocida';
-
-      // Confirm deletion
-      const confirmed = await Dialog.confirm({
-        title: 'Eliminar Reputación',
-        content: `<p>¿Estás seguro de que quieres eliminar la entrada de reputación "<strong>${reputationName}</strong>"?</p>`,
-        defaultYes: false,
-      });
-
-      if (!confirmed) {
-        console.log('❌ Reputation deletion cancelled by user');
+      // Check if reputation is assigned
+      if (!organization.reputation || !organization.reputation.includes(reputationId)) {
+        console.log('ℹ️ Reputation not assigned - nothing to remove');
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.warn(
+            `La reputación "${reputationName}" no está asignada a esta organización`
+          );
+        }
         return;
       }
 
-      // Delete the reputation
-      await gm.documentManager.deleteGuardReputation(reputationId);
+      // Create a NEW array without the reputation to avoid mutation issues
+      const newReputation = organization.reputation.filter((id: string) => id !== reputationId);
+
+      // Create a completely new organization object to avoid reference issues
+      const updatedOrganization = {
+        ...organization,
+        reputation: newReputation,
+        updatedAt: new Date(),
+        version: (organization.version || 0) + 1,
+      };
+
+      // Update organization
+      await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
+
+      // Update current organization in memory with the NEW object
+      this.currentOrganization = updatedOrganization;
+
+      console.log('✅ Reputation removed successfully');
 
       // Show success notification
       if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info(`Reputación "${reputationName}" eliminada`);
+        (globalThis as any).ui.notifications.info(
+          `Reputación "${reputationName}" removida de la organización`
+        );
       }
 
-      // Trigger organization update
-      window.dispatchEvent(new CustomEvent('guard-organizations-updated'));
-
-      // Refresh this dialog's content
+      // Re-render the dialog to show the updated reputation list
       await this.refreshContent();
-
-      console.log('✅ Reputation deleted successfully');
     } catch (error) {
-      console.error('❌ Error deleting reputation:', error);
+      console.error('❌ Error removing reputation:', error);
       if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al eliminar la reputación');
+        (globalThis as any).ui.notifications.error(
+          'Error al remover la reputación de la organización'
+        );
       }
     }
   }
 
+  /**
+   * Show confirmation dialog for removing a reputation
+   */
+  private async showRemoveReputationDialog(reputationName: string): Promise<boolean> {
+    try {
+      // Use foundry's built-in confirmation dialog
+      const result = await Dialog.confirm({
+        title: 'Confirmar Remoción',
+        content: `
+          <div style="margin-bottom: 1rem;">
+            <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
+            <strong>¿Estás seguro?</strong>
+          </div>
+          <p>¿Deseas remover la reputación "<strong>${reputationName}</strong>" de esta organización?</p>
+          <p><small>Esta acción se puede deshacer asignando la reputación nuevamente.</small></p>
+        `,
+        yes: () => true,
+        no: () => false,
+        defaultYes: false,
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error showing confirmation dialog:', error);
+      // Fallback to browser confirm if Dialog fails
+      return confirm(`¿Deseas remover la reputación "${reputationName}" de esta organización?`);
+    }
+  }
+
+  /**
+   * Handle deleting a reputation entry
+   */
   /**
    * Setup drop zone listeners for the overlay
    */
@@ -1672,26 +1862,65 @@ export class CustomInfoDialog implements FocusableDialog {
     }
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.guardOrganizationManager) {
-      console.log('❌ No guardOrganizationManager for refresh');
+    if (!gm?.guardOrganizationManager || !gm?.documentManager) {
+      console.log('❌ No guardOrganizationManager or documentManager for refresh');
       return;
     }
 
     try {
-      // Get the FRESH organization data from the manager IMMEDIATELY
-      const freshOrganization = gm.guardOrganizationManager.getOrganization();
+      // First try to get from DocumentBasedManager which should be more up-to-date
+      let freshOrganization = null;
+
+      try {
+        const guardOrgs = gm.documentManager.getGuardOrganizations();
+        freshOrganization = guardOrgs.find((org: any) => org.id === this.currentOrganization!.id);
+
+        if (freshOrganization) {
+          // Convert Foundry document to our organization type
+          freshOrganization = {
+            id: freshOrganization.id,
+            name: freshOrganization.name || 'Organización Sin Nombre',
+            subtitle: freshOrganization.system?.subtitle || '',
+            baseStats: {
+              robustismo: freshOrganization.system?.baseStats?.robustismo || 0,
+              analitica: freshOrganization.system?.baseStats?.analitica || 0,
+              subterfugio: freshOrganization.system?.baseStats?.subterfugio || 0,
+              elocuencia: freshOrganization.system?.baseStats?.elocuencia || 0,
+            },
+            resources: freshOrganization.system?.resources || [],
+            reputation: freshOrganization.system?.reputation || [],
+            patrols: freshOrganization.system?.patrols || [],
+            version: freshOrganization.system?.version || 1,
+            createdAt: freshOrganization.system?.createdAt
+              ? new Date(freshOrganization.system.createdAt)
+              : new Date(),
+            updatedAt: new Date(),
+          };
+          console.log('📊 Using data from DocumentBasedManager');
+        }
+      } catch (error) {
+        console.log(
+          '⚠️ Could not get data from DocumentBasedManager, falling back to GuardOrganizationManager'
+        );
+      }
+
+      // Fallback to GuardOrganizationManager if DocumentBasedManager fails
       if (!freshOrganization) {
-        console.log('❌ No organization found in manager');
-        return;
+        freshOrganization = gm.guardOrganizationManager.getOrganization();
+        if (!freshOrganization) {
+          console.log('❌ No organization found in either manager');
+          return;
+        }
+        console.log('📊 Using data from GuardOrganizationManager (fallback)');
       }
 
       console.log(
-        '📊 Refreshing - Current resources count:',
-        this.currentOrganization.resources?.length || 0
+        '📊 Refreshing - Current reputation count:',
+        this.currentOrganization.reputation?.length || 0
       );
       console.log(
-        '📊 Refreshing - Fresh resources count:',
-        freshOrganization.resources?.length || 0
+        '📊 Refreshing - Fresh reputation count:',
+        freshOrganization.reputation?.length || 0
       );
 
       // IMPORTANT: Update our current organization reference to the fresh one

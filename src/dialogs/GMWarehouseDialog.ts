@@ -815,16 +815,8 @@ export class GMWarehouseDialog implements FocusableDialog {
       const newReputation = await AddOrEditReputationDialog.create(templateOrganizationId);
 
       if (newReputation) {
-        const gm = (window as any).GuardManagement;
-        if (!gm?.documentManager) {
-          throw new Error('DocumentBasedManager not available');
-        }
-
-        const createdReputation = await gm.documentManager.createGuardReputation(newReputation);
-        if (!createdReputation) {
-          throw new Error('Failed to create reputation via DocumentBasedManager');
-        }
-
+        // Reputation is already created by AddOrEditReputationDialog.create()
+        // No need to create it again - just refresh the UI
         await this.refreshReputationTab();
 
         // Show success notification
@@ -1496,6 +1488,18 @@ export class GMWarehouseDialog implements FocusableDialog {
             `Reputation template "${updatedReputation.name}" updated successfully`
           );
         }
+
+        // Emit custom event to notify other dialogs
+        document.dispatchEvent(
+          new CustomEvent('guard-reputation-updated', {
+            detail: {
+              reputationId: updatedReputation.id,
+              updatedReputation: updatedReputation,
+              oldName: reputationData.name,
+              newName: updatedReputation.name,
+            },
+          })
+        );
       }
     } catch (error) {
       console.error('Error editing reputation template:', error);

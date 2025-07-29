@@ -10,11 +10,14 @@ export { DOMEventSetup } from './DOMEventSetup.js';
 export { ResourceErrorHandler } from './ResourceErrorHandler.js';
 
 export {
+  convertFoundryDocumentToReputation,
   convertFoundryDocumentToResource,
+  convertFoundryDocumentsToReputations,
   convertFoundryDocumentsToResources,
   convertResourceToFoundryData,
   convertResourceToFoundryFormat,
   convertResourceToFoundryUpdateData,
+  isValidGuardReputation,
   isValidGuardResource,
 } from './resource-converter.js';
 
