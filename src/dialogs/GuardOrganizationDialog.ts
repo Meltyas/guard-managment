@@ -6,6 +6,10 @@ import { html, TemplateResult } from 'lit-html';
 import type { GuardOrganization, GuardStats } from '../types/entities';
 import { DEFAULT_GUARD_STATS } from '../types/entities';
 import { DOMEventSetup } from '../utils/DOMEventSetup.js';
+import {
+  ReputationEventHandler,
+  type ReputationEventContext,
+} from '../utils/ReputationEventHandler.js';
 import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 import { ResourceEventHandler, type ResourceEventContext } from '../utils/ResourceEventHandler.js';
 import { renderTemplateToString } from '../utils/template-renderer.js';
@@ -223,6 +227,20 @@ export class GuardOrganizationDialog {
         3
       );
 
+      // Setup reputation event listeners using the centralized handler
+      DOMEventSetup.setupOrRetry(
+        [
+          '.add-reputation-btn',
+          '.edit-reputation-btn',
+          '.remove-reputation-btn',
+          '.delete-reputation-btn',
+          '.send-to-chat-btn',
+          '.drop-zone',
+        ],
+        () => this.setupReputationEventListeners(existingOrganization?.id),
+        3
+      );
+
       if (result) {
         return this.createOrganizationFromData(result, mode, existingOrganization);
       }
@@ -264,7 +282,8 @@ export class GuardOrganizationDialog {
     return html`
       <form class="guard-organization-form">
         ${this.renderBasicInfoSection(data)} ${this.renderStatsSection(data)}
-        ${this.renderResourcesSection(data)} ${this.renderInfoSection()}
+        ${this.renderResourcesSection(data)} ${this.renderReputationsSection(data)}
+        ${this.renderInfoSection()}
       </form>
     `;
   }
@@ -403,6 +422,50 @@ export class GuardOrganizationDialog {
   }
 
   /**
+   * Render reputations management section
+   */
+  private renderReputationsSection(data: any): TemplateResult {
+    const organizationId = data.id || 'temp-org-id';
+    const reputations = data.reputation || [];
+
+    return html`
+      <div class="reputations-info-section" data-organization-id="${organizationId}">
+        <h4>Reputaciones de la Organización</h4>
+        <div class="reputations-list" data-organization-id="${organizationId}">
+          ${reputations.length > 0
+            ? reputations.map((reputationId: string) => this.renderReputationItem(reputationId))
+            : html`<p class="empty-state">
+                No hay reputaciones asignadas a esta organización.
+                <br />
+                <small>Asigna reputaciones desde el diálogo de información o</small>
+                <button
+                  type="button"
+                  class="add-reputation-btn link-button"
+                  data-organization-id="${organizationId}"
+                >
+                  Agregar la primera reputación
+                </button>
+              </p>`}
+        </div>
+        ${reputations.length > 0
+          ? html`
+              <div class="reputations-actions">
+                <button
+                  type="button"
+                  class="add-reputation-btn btn-small"
+                  data-organization-id="${organizationId}"
+                >
+                  <i class="fas fa-plus"></i>
+                  Agregar Reputación
+                </button>
+              </div>
+            `
+          : ''}
+      </div>
+    `;
+  }
+
+  /**
    * Render individual resource item
    */
   private renderResourceItem(resourceId: string): TemplateResult {
@@ -432,6 +495,93 @@ export class GuardOrganizationDialog {
             <i class="fas fa-edit"></i>
           </button>
           <button type="button" class="remove-resource-btn btn-icon" title="Remover recurso">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render a reputation item
+   */
+  private renderReputationItem(reputationId: string): TemplateResult {
+    // Get the actual reputation data
+    const gm = (window as any).GuardManagement;
+    let reputationData = null;
+
+    if (gm?.documentManager) {
+      const reputation = gm.documentManager
+        .getGuardReputations()
+        ?.find((r: any) => r.id === reputationId);
+      if (reputation) {
+        reputationData = reputation;
+      }
+    }
+
+    if (!reputationData) {
+      return html`
+        <div class="reputation-item error" data-reputation-id="${reputationId}">
+          <div class="reputation-info">
+            <span class="reputation-name">Reputación no encontrada</span>
+            <span class="reputation-level">ID: ${reputationId}</span>
+          </div>
+          <div class="reputation-actions">
+            <button type="button" class="remove-reputation-btn btn-icon" title="Remover reputación">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render reputation item directly with basic template
+    const { REPUTATION_LABELS } = require('../types/entities.js');
+    const levelLabel = REPUTATION_LABELS[reputationData.level] || `Level ${reputationData.level}`;
+
+    return html`
+      <div class="reputation-item" data-reputation-id="${reputationId}" draggable="true">
+        ${reputationData.image
+          ? html`
+              <div class="reputation-image">
+                <img
+                  src="${reputationData.image}"
+                  alt="${reputationData.name}"
+                  onerror="this.style.display='none'"
+                />
+              </div>
+            `
+          : ''}
+        <div class="reputation-info">
+          <span class="reputation-name">${reputationData.name}</span>
+          <span class="reputation-level">Nivel: ${levelLabel}</span>
+          ${reputationData.description
+            ? html`<span class="reputation-description">${reputationData.description.trim()}</span>`
+            : ''}
+        </div>
+        <div class="reputation-actions">
+          <button
+            type="button"
+            class="send-to-chat-btn btn-icon"
+            title="Enviar al chat"
+            data-reputation-id="${reputationId}"
+          >
+            <i class="fas fa-comment"></i>
+          </button>
+          <button
+            type="button"
+            class="edit-reputation-btn btn-icon"
+            title="Editar reputación"
+            data-reputation-id="${reputationId}"
+          >
+            <i class="fas fa-edit"></i>
+          </button>
+          <button
+            type="button"
+            class="remove-reputation-btn btn-icon"
+            title="Remover reputación"
+            data-reputation-id="${reputationId}"
+          >
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -672,6 +822,119 @@ export class GuardOrganizationDialog {
           border-radius: 4px;
           margin: 0;
         }
+
+        /* Reputations Section Styles */
+        .reputations-info-section {
+          margin-top: 1rem;
+          padding: 1rem;
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid #444;
+          border-radius: 4px;
+        }
+
+        .reputations-info-section h4 {
+          margin: 0 0 1rem 0;
+          color: #f0f0e0;
+          font-size: 1rem;
+          font-weight: bold;
+          border-bottom: 1px solid #555;
+          padding-bottom: 0.5rem;
+        }
+
+        .reputations-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .reputation-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid #555;
+          border-radius: 3px;
+          cursor: grab;
+        }
+
+        .reputation-item:hover {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: #777;
+        }
+
+        .reputation-item.dragging {
+          opacity: 0.5;
+          cursor: grabbing;
+        }
+
+        .reputation-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .reputation-name {
+          font-weight: bold;
+          color: #f0f0e0;
+          font-size: 0.9rem;
+        }
+
+        .reputation-level {
+          font-size: 0.8rem;
+          color: #bbb;
+        }
+
+        .reputation-description {
+          font-size: 0.75rem;
+          color: #999;
+          font-style: italic;
+        }
+
+        .reputation-actions {
+          display: flex;
+          gap: 0.25rem;
+        }
+
+        .reputations-actions {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 0.5rem;
+        }
+
+        .edit-reputation-btn:hover {
+          border-color: #007bff;
+          color: #007bff;
+        }
+
+        .remove-reputation-btn:hover,
+        .delete-reputation-btn:hover {
+          border-color: #dc3545;
+          color: #dc3545;
+        }
+
+        .send-to-chat-btn:hover {
+          border-color: #28a745;
+          color: #28a745;
+        }
+
+        /* Drop zone styles */
+        .drop-zone {
+          border: 2px dashed #666;
+          border-radius: 4px;
+          padding: 1rem;
+          margin: 0.5rem 0;
+          text-align: center;
+          color: #999;
+          transition: all 0.3s ease;
+        }
+
+        .drop-zone.drag-over {
+          border-color: #007bff;
+          background: rgba(0, 123, 255, 0.1);
+          color: #007bff;
+        }
       </style>
     `;
   }
@@ -843,6 +1106,38 @@ export class GuardOrganizationDialog {
   }
 
   /**
+   * Setup event listeners for reputation management using centralized handler
+   */
+  private setupReputationEventListeners(organizationId?: string): void {
+    console.log('🔧 Setting up reputation event listeners for organization:', organizationId);
+
+    // Clean up any existing handlers first
+    ReputationEventHandler.cleanup();
+
+    const context: ReputationEventContext = {
+      organizationId: organizationId || 'temp-org-id',
+      onReputationAdded: (reputation) => {
+        console.log('Reputation added to organization:', reputation);
+        this.refreshReputationsList(organizationId || 'temp-org-id');
+      },
+      onReputationEdited: (reputation) => {
+        console.log('Reputation edited:', reputation);
+        this.refreshReputationsList(organizationId || 'temp-org-id');
+      },
+      onReputationRemoved: (reputationId) => {
+        console.log('Reputation removed:', reputationId);
+        this.refreshReputationsList(organizationId || 'temp-org-id');
+      },
+      refreshUI: () => {
+        this.refreshReputationsList(organizationId || 'temp-org-id');
+      },
+    };
+
+    ReputationEventHandler.setup(context);
+    console.log('✅ Reputation event listeners setup completed');
+  }
+
+  /**
    * Refresh the resources list in the current dialog
    */
   private refreshResourcesList(organizationId: string): void {
@@ -911,6 +1206,78 @@ export class GuardOrganizationDialog {
       ResourceEventHandler.setup(context);
     } catch (error) {
       console.error('Error refreshing resources list:', error);
+    }
+  }
+
+  /**
+   * Refresh the reputations list in the current dialog
+   */
+  private refreshReputationsList(organizationId: string): void {
+    try {
+      const reputationsList = document.querySelector('.reputations-list');
+      if (!reputationsList) return;
+
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) return;
+
+      const organization = gm.documentManager.getGuardOrganization(organizationId);
+      if (!organization) return;
+
+      const reputations = organization.system?.reputation || [];
+
+      // Clear current content
+      reputationsList.innerHTML = '';
+
+      if (reputations.length > 0) {
+        // Add each reputation
+        reputations.forEach((reputationId: string) => {
+          const reputationElement = document.createElement('div');
+          const reputationContent = this.renderReputationItem(reputationId);
+          reputationElement.innerHTML = reputationContent.strings.join('');
+
+          if (reputationElement.firstElementChild) {
+            reputationsList.appendChild(reputationElement.firstElementChild);
+          }
+        });
+
+        // Show add button if not present
+        const reputationsActions = document.querySelector('.reputations-actions');
+        if (!reputationsActions) {
+          const actionsElement = document.createElement('div');
+          actionsElement.className = 'reputations-actions';
+          actionsElement.innerHTML = `
+            <button type="button" class="add-reputation-btn btn-small" data-organization-id="${organizationId}">
+              <i class="fas fa-plus"></i>
+              Agregar Reputación
+            </button>
+          `;
+          reputationsList.parentElement?.appendChild(actionsElement);
+        }
+      } else {
+        // Show empty state
+        reputationsList.innerHTML = `
+          <p class="empty-state">
+            No hay reputaciones asignadas a esta organización.
+            <br>
+            <small>Arrastra reputaciones desde el warehouse o</small>
+            <button type="button" class="add-reputation-btn link-button" data-organization-id="${organizationId}">
+              Agregar la primera reputación
+            </button>
+          </p>
+        `;
+      }
+
+      // Setup event listeners for the new content using centralized handler
+      // Clean up any existing handlers first
+      ReputationEventHandler.cleanup();
+
+      const context: ReputationEventContext = {
+        organizationId,
+        refreshUI: () => this.refreshReputationsList(organizationId),
+      };
+      ReputationEventHandler.setup(context);
+    } catch (error) {
+      console.error('Error refreshing reputations list:', error);
     }
   }
 

@@ -1,4 +1,5 @@
 import { html, TemplateResult } from 'lit-html';
+import { REPUTATION_LABELS, ReputationLevel } from '../types/entities.js';
 import { ResourceTemplate } from '../ui/ResourceTemplate.js';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { DOMEventSetup } from '../utils/DOMEventSetup.js';
@@ -281,11 +282,35 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Get reputation templates from DocumentBasedManager
+   */
+  private async getReputationTemplates(): Promise<any[]> {
+    try {
+      const gm = (window as any).GuardManagement;
+
+      if (!gm || !gm.isInitialized || !gm.documentManager) {
+        this.reputationTemplates = [];
+        return this.reputationTemplates;
+      }
+
+      // Get all reputations from DocumentBasedManager (these serve as templates in GM Warehouse)
+      this.reputationTemplates = await gm.documentManager.getGuardReputations();
+      return this.reputationTemplates;
+    } catch (error) {
+      console.error('Error loading reputation templates from DocumentBasedManager:', error);
+      this.reputationTemplates = [];
+      return this.reputationTemplates;
+    }
+  }
+
+  /**
    * Load initial content when dialog opens
    */
   private async loadInitialContent(): Promise<void> {
     // Load resources tab content
     await this.refreshResourcesTab();
+    // Load reputation tab content
+    await this.refreshReputationTab();
   }
 
   /**
@@ -344,6 +369,71 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Render individual reputation template
+   */
+  private renderReputationTemplate(reputation: any): TemplateResult {
+    // Convert to reputation data
+    const reputationData = {
+      id: reputation.id,
+      name: reputation.name,
+      description: reputation.system?.description || '',
+      level: reputation.system?.level || 4, // Default to Neutrales
+      image: reputation.img || '',
+      organizationId: reputation.system?.organizationId || '',
+    };
+
+    const levelLabel =
+      REPUTATION_LABELS[reputationData.level as ReputationLevel] || `Level ${reputationData.level}`;
+
+    return html`
+      <div
+        class="template-item reputation-template"
+        data-reputation-id="${reputationData.id}"
+        draggable="true"
+        title="Arrastra esta reputación a una organización para asignarla"
+      >
+        ${reputationData.image
+          ? html`
+              <div class="template-image">
+                <img
+                  src="${reputationData.image}"
+                  alt="${reputationData.name}"
+                  onerror="this.style.display='none'"
+                />
+              </div>
+            `
+          : ''}
+        <div class="template-info">
+          <div class="template-name">${reputationData.name}</div>
+          <div class="template-description">
+            ${(reputationData.description || 'Sin descripción').trim()}
+          </div>
+          <div class="template-level">Nivel: ${levelLabel}</div>
+        </div>
+        <div class="template-actions">
+          <button
+            type="button"
+            class="send-to-chat-template-btn"
+            title="Enviar al chat"
+            data-reputation-id="${reputationData.id}"
+          >
+            <i class="fas fa-comment"></i>
+          </button>
+          <button type="button" class="edit-template-btn" title="Editar template">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button type="button" class="duplicate-template-btn" title="Duplicar template">
+            <i class="fas fa-copy"></i>
+          </button>
+          <button type="button" class="delete-template-btn" title="Eliminar template">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Render reputation tab content
    */
   private renderReputationTab(): TemplateResult {
@@ -357,7 +447,7 @@ export class GMWarehouseDialog implements FocusableDialog {
           </button>
         </div>
         <div class="templates-list reputation-list">
-          <p class="empty-state">No reputation templates created yet</p>
+          <p class="empty-state">Loading reputation templates...</p>
         </div>
       </section>
     `;
@@ -456,6 +546,8 @@ export class GMWarehouseDialog implements FocusableDialog {
 
         if (templateType === 'resource') {
           await this.handleAddResource();
+        } else if (templateType === 'reputation') {
+          await this.handleAddReputation();
         } else if (templateType) {
           console.log(`Adding new ${templateType} template - functionality to be implemented`);
           if ((globalThis as any).ui?.notifications) {
@@ -712,6 +804,45 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Handle adding a new reputation template
+   */
+  private async handleAddReputation(): Promise<void> {
+    try {
+      // Import AddOrEditReputationDialog dynamically to avoid circular dependency
+      const { AddOrEditReputationDialog } = await import('./AddOrEditReputationDialog.js');
+
+      const templateOrganizationId = 'gm-warehouse-templates';
+      const newReputation = await AddOrEditReputationDialog.create(templateOrganizationId);
+
+      if (newReputation) {
+        const gm = (window as any).GuardManagement;
+        if (!gm?.documentManager) {
+          throw new Error('DocumentBasedManager not available');
+        }
+
+        const createdReputation = await gm.documentManager.createGuardReputation(newReputation);
+        if (!createdReputation) {
+          throw new Error('Failed to create reputation via DocumentBasedManager');
+        }
+
+        await this.refreshReputationTab();
+
+        // Show success notification
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Reputation template "${newReputation.name}" created successfully`
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error adding reputation template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error creating reputation template');
+      }
+    }
+  }
+
+  /**
    * Refresh the resources tab content
    */
   private async refreshResourcesTab(): Promise<void> {
@@ -749,6 +880,43 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Refresh the reputation tab content
+   */
+  private async refreshReputationTab(): Promise<void> {
+    if (!this.element) return;
+
+    const reputationsList = this.element.querySelector('.reputation-list');
+    if (reputationsList) {
+      const reputationTemplates = await this.getReputationTemplates();
+
+      // Clear current content
+      reputationsList.innerHTML = '';
+
+      if (reputationTemplates.length > 0) {
+        // Add each reputation template
+        reputationTemplates.forEach((reputation) => {
+          const templateElement = document.createElement('div');
+          const templateContent = this.renderReputationTemplate(reputation);
+          safeRender(templateContent, templateElement);
+
+          if (templateElement.firstElementChild) {
+            reputationsList.appendChild(templateElement.firstElementChild);
+          }
+        });
+      } else {
+        // Show empty state
+        const emptyStateElement = document.createElement('p');
+        emptyStateElement.className = 'empty-state';
+        emptyStateElement.textContent = 'No reputation templates created yet';
+        reputationsList.appendChild(emptyStateElement);
+      }
+
+      // Re-add event listeners only for the new template items
+      this.addTemplateEventListeners();
+    }
+  }
+
+  /**
    * Add event listeners specifically for template items
    */
   private addTemplateEventListeners(): void {
@@ -761,8 +929,12 @@ export class GMWarehouseDialog implements FocusableDialog {
         event.preventDefault();
         const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
+        const reputationId = templateItem?.dataset.reputationId;
+
         if (resourceId) {
           this.handleSendTemplateToChat(resourceId);
+        } else if (reputationId) {
+          this.handleSendReputationTemplateToChat(reputationId);
         }
       });
     });
@@ -774,8 +946,12 @@ export class GMWarehouseDialog implements FocusableDialog {
         event.preventDefault();
         const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
+        const reputationId = templateItem?.dataset.reputationId;
+
         if (resourceId) {
           this.handleEditTemplate(resourceId);
+        } else if (reputationId) {
+          this.handleEditReputationTemplate(reputationId);
         }
       });
     });
@@ -787,8 +963,12 @@ export class GMWarehouseDialog implements FocusableDialog {
         event.preventDefault();
         const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
+        const reputationId = templateItem?.dataset.reputationId;
+
         if (resourceId) {
           this.handleDuplicateTemplate(resourceId);
+        } else if (reputationId) {
+          this.handleDuplicateReputationTemplate(reputationId);
         }
       });
     });
@@ -800,8 +980,12 @@ export class GMWarehouseDialog implements FocusableDialog {
         event.preventDefault();
         const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
+        const reputationId = templateItem?.dataset.reputationId;
+
         if (resourceId) {
           this.handleDeleteTemplate(resourceId);
+        } else if (reputationId) {
+          this.handleDeleteReputationTemplate(reputationId);
         }
       });
     });
@@ -815,6 +999,21 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       template.addEventListener('dragend', (event) => {
         this.handleResourceDragEnd(event as DragEvent);
+      });
+    });
+
+    // Handle drag start for reputation templates
+    const reputationTemplates = this.element.querySelectorAll(
+      '.reputation-template[draggable="true"]'
+    );
+    console.log(`🔧 Setting up drag for ${reputationTemplates.length} reputation templates`);
+    reputationTemplates.forEach((template) => {
+      template.addEventListener('dragstart', (event) => {
+        this.handleReputationDragStart(event as DragEvent);
+      });
+
+      template.addEventListener('dragend', (event) => {
+        this.handleReputationDragEnd(event as DragEvent);
       });
     });
   }
@@ -872,6 +1071,92 @@ export class GMWarehouseDialog implements FocusableDialog {
       // Restore visual state
       resourceTemplate.style.opacity = '1';
     }
+  }
+
+  /**
+   * Handle drag start for reputation templates
+   */
+  private handleReputationDragStart(event: DragEvent): void {
+    const target = event.target as HTMLElement;
+    const reputationTemplate = target.closest('.reputation-template') as HTMLElement;
+
+    if (!reputationTemplate || !event.dataTransfer) return;
+
+    const reputationId = reputationTemplate.dataset.reputationId;
+    if (!reputationId) return;
+
+    console.log('🚀 Starting drag for reputation:', reputationId);
+
+    // Get the reputation data from the documentManager
+    const gm = (window as any).GuardManagement;
+    if (!gm?.documentManager) {
+      console.error('DocumentManager not available for reputation drag operation');
+      return;
+    }
+
+    const reputation = gm.documentManager
+      .getGuardReputations()
+      .find((r: any) => r.id === reputationId);
+    if (!reputation) {
+      console.error('Reputation not found for drag operation:', reputationId);
+      return;
+    }
+
+    // Convert to standard reputation format
+    const reputationData = {
+      id: reputation.id,
+      name: reputation.name || 'Unnamed Reputation',
+      level: reputation.system?.level || 4,
+      description: reputation.system?.description || '',
+      image: reputation.img || '',
+      organizationId: reputation.system?.organizationId || '',
+    };
+
+    // Set the drag data
+    const dragData = {
+      type: 'guard-reputation',
+      reputationId: reputationData.id,
+      reputationData: reputationData,
+    };
+
+    event.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+    event.dataTransfer.effectAllowed = 'copy';
+
+    // Visual feedback
+    reputationTemplate.style.opacity = '0.6';
+    reputationTemplate.classList.add('dragging');
+
+    console.log('✅ Drag data set for reputation:', dragData);
+
+    // Emit custom event for cross-component communication
+    document.dispatchEvent(
+      new CustomEvent('guard-reputation-drag-start', {
+        detail: { type: 'reputation', reputationId: reputationData.id, reputationData },
+      })
+    );
+  }
+
+  /**
+   * Handle drag end for reputation templates
+   */
+  private handleReputationDragEnd(event: DragEvent): void {
+    const target = event.target as HTMLElement;
+    const reputationTemplate = target.closest('.reputation-template') as HTMLElement;
+
+    if (reputationTemplate) {
+      // Restore visual state
+      reputationTemplate.style.opacity = '1';
+      reputationTemplate.classList.remove('dragging');
+    }
+
+    console.log('🏁 Reputation drag ended');
+
+    // Emit custom event for cross-component communication
+    document.dispatchEvent(
+      new CustomEvent('guard-reputation-drag-end', {
+        detail: { type: 'reputation' },
+      })
+    );
   }
 
   /**
@@ -1130,6 +1415,151 @@ export class GMWarehouseDialog implements FocusableDialog {
         }
       }
       throw error;
+    }
+  }
+
+  // ===== REPUTATION TEMPLATE HANDLERS =====
+
+  /**
+   * Handle sending a reputation template to chat
+   */
+  private async handleSendReputationTemplateToChat(reputationId: string): Promise<void> {
+    try {
+      // TODO: Implement reputation chat functionality
+      console.log('Send reputation template to chat:', reputationId);
+
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info('Sending reputation to chat - Coming soon!');
+      }
+    } catch (error) {
+      console.error('Error sending reputation template to chat:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error sending reputation to chat');
+      }
+    }
+  }
+
+  /**
+   * Handle editing a reputation template
+   */
+  private async handleEditReputationTemplate(reputationId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        throw new Error('DocumentBasedManager not available');
+      }
+
+      // Get the reputation to edit
+      const reputations = gm.documentManager.getGuardReputations();
+      const reputation = reputations.find((r: any) => r.id === reputationId);
+
+      if (!reputation) {
+        throw new Error('Reputation not found');
+      }
+
+      // Convert Foundry document to our Reputation type
+      const reputationData = {
+        id: reputation.id,
+        name: reputation.name,
+        description: reputation.system?.description || '',
+        level: reputation.system?.level || 4,
+        image: reputation.img || '',
+        organizationId: reputation.system?.organizationId || '',
+        version: reputation.system?.version || 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Import AddOrEditReputationDialog dynamically
+      const { AddOrEditReputationDialog } = await import('./AddOrEditReputationDialog.js');
+
+      // Show edit dialog
+      const updatedReputation = await AddOrEditReputationDialog.edit(reputationData);
+
+      if (updatedReputation) {
+        // Save the updated reputation to the database
+        const updateSuccess = await gm.documentManager.updateGuardReputation(
+          updatedReputation.id,
+          updatedReputation
+        );
+
+        if (!updateSuccess) {
+          throw new Error('Failed to save reputation to database');
+        }
+
+        // Refresh the warehouse dialog
+        await this.refreshReputationTab();
+
+        // Show success notification
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Reputation template "${updatedReputation.name}" updated successfully`
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error editing reputation template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error editing reputation template');
+      }
+    }
+  }
+
+  /**
+   * Handle duplicating a reputation template
+   */
+  private handleDuplicateReputationTemplate(reputationId: string): void {
+    console.log('Duplicate reputation template:', reputationId);
+    // TODO: Implement duplicate functionality for reputation
+    if ((globalThis as any).ui?.notifications) {
+      (globalThis as any).ui.notifications.info('Duplicate reputation template - Coming soon!');
+    }
+  }
+
+  /**
+   * Handle deleting a reputation template
+   */
+  private async handleDeleteReputationTemplate(reputationId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        throw new Error('DocumentBasedManager not available');
+      }
+
+      // Get the reputation to delete for confirmation
+      const reputations = gm.documentManager.getGuardReputations();
+      const reputation = reputations.find((r: any) => r.id === reputationId);
+      const reputationName = reputation?.name || 'Unknown Reputation';
+
+      // Confirm deletion
+      const confirmed = await Dialog.confirm({
+        title: 'Delete Reputation Template',
+        content: `<p>Are you sure you want to delete the reputation template "<strong>${reputationName}</strong>"?</p><p><em>This action cannot be undone.</em></p>`,
+        defaultYes: false,
+      });
+
+      if (!confirmed) return;
+
+      // Delete the reputation
+      const deleteSuccess = await gm.documentManager.deleteGuardReputation(reputationId);
+      if (!deleteSuccess) {
+        throw new Error('Failed to delete reputation from database');
+      }
+
+      // Refresh the warehouse dialog
+      await this.refreshReputationTab();
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Reputation template "${reputationName}" deleted successfully`
+        );
+      }
+    } catch (error) {
+      console.error('Error deleting reputation template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error deleting reputation template');
+      }
     }
   }
 }

@@ -4,10 +4,14 @@
 
 import { html, TemplateResult } from 'lit-html';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
+import { AddOrEditReputationDialog } from '../dialogs/AddOrEditReputationDialog.js';
 import type { GuardOrganization } from '../types/entities';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
+// Import CSS for drag & drop styling
+import '../styles/custom-info-dialog.css';
 import { renderTemplateToString, safeRender } from '../utils/template-renderer.js';
+import { ReputationTemplate } from './ReputationTemplate.js';
 import { ResourceTemplate } from './ResourceTemplate.js';
 
 export class CustomInfoDialog implements FocusableDialog {
@@ -196,7 +200,7 @@ export class CustomInfoDialog implements FocusableDialog {
 
       // Re-setup resource event listeners after content is rendered
       setTimeout(() => {
-        this.setupResourceEventListeners();
+        this.setupEventListeners();
       }, 50);
     }
   }
@@ -269,11 +273,18 @@ export class CustomInfoDialog implements FocusableDialog {
           </div>
         </div>
 
-        <div class="info-section">
+        <div class="info-section resources-section">
           <h3><i class="fas fa-handshake"></i> Reputación</h3>
-          <div class="reputation-count">
-            <span class="count">${organization.reputation?.length || 0}</span>
-            <span class="label">relaciones con facciones</span>
+          <div class="resources-list reputation-list" data-organization-id="${organization.id}">
+            ${organization.reputation && organization.reputation.length > 0
+              ? html`${organization.reputation
+                  .map((reputationId: string) => this.renderReputationItemTemplate(reputationId))
+                  .filter((template: any) => template !== null)}`
+              : html`<p class="empty-state">
+                  No hay entradas de reputación para esta organización.<br /><small
+                    >Arrastra reputaciones desde el warehouse</small
+                  >
+                </p>`}
           </div>
         </div>
       </div>
@@ -408,7 +419,7 @@ export class CustomInfoDialog implements FocusableDialog {
     document.addEventListener('click', this.handleGlobalClick);
 
     // Add event listeners for remove resource buttons
-    this.setupResourceEventListeners();
+    this.setupEventListeners();
 
     // Listen for resource updates and deletions from warehouse
     this.setupResourceUpdateListeners();
@@ -530,13 +541,25 @@ export class CustomInfoDialog implements FocusableDialog {
       window.removeEventListener('guard-ui-refresh', this.uiRefreshHandler);
     }
 
+    // Remove custom drag event listeners
+    document.removeEventListener(
+      'guard-reputation-drag-start',
+      this.handleCustomDragStart.bind(this) as EventListener
+    );
+    document.removeEventListener(
+      'guard-reputation-drag-end',
+      this.handleCustomDragEnd.bind(this) as EventListener
+    );
+    document.removeEventListener('dragstart', this.handleGlobalDragStart.bind(this));
+    document.removeEventListener('dragend', this.handleGlobalDragEnd.bind(this));
+
     console.log('🧹 Cleaned up resource update listeners');
   }
 
   /**
    * Setup event listeners for resource buttons
    */
-  private setupResourceEventListeners(): void {
+  private setupEventListeners(): void {
     if (!this.element) return;
 
     console.log('🔧 Setting up resource event listeners...');
@@ -595,6 +618,49 @@ export class CustomInfoDialog implements FocusableDialog {
         if (resourceId) {
           console.log('✏️ Edit button clicked for:', resourceName, resourceId);
           this.handleEditResource(resourceId, resourceName || 'Recurso');
+        }
+        return;
+      }
+
+      // Handle reputation buttons
+      // Add Reputation button
+      const addReputationBtn = target.closest('.add-reputation-btn') as HTMLElement;
+      if (addReputationBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const organizationId = addReputationBtn.getAttribute('data-organization-id');
+        if (organizationId) {
+          console.log('➕ Add reputation button clicked');
+          this.handleAddReputation(organizationId);
+        }
+        return;
+      }
+
+      // Edit Reputation button
+      const editReputationBtn = target.closest('.edit-reputation-btn') as HTMLElement;
+      if (editReputationBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const reputationId = editReputationBtn.getAttribute('data-reputation-id');
+        if (reputationId) {
+          console.log('✏️ Edit reputation button clicked for:', reputationId);
+          this.handleEditReputation(reputationId);
+        }
+        return;
+      }
+
+      // Delete Reputation button
+      const deleteReputationBtn = target.closest('.delete-reputation-btn') as HTMLElement;
+      if (deleteReputationBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const reputationId = deleteReputationBtn.getAttribute('data-reputation-id');
+        if (reputationId) {
+          console.log('🗑️ Delete reputation button clicked for:', reputationId);
+          this.handleDeleteReputation(reputationId);
         }
         return;
       }
@@ -831,6 +897,91 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
+   * Handle adding a new reputation entry
+   */
+  private async handleAddReputation(organizationId: string): Promise<void> {
+    console.log('➕ Add reputation request for organization:', organizationId);
+
+    try {
+      await AddOrEditReputationDialog.showCreateDialog(organizationId);
+    } catch (error) {
+      console.error('❌ Error showing add reputation dialog:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al abrir el diálogo de reputación');
+      }
+    }
+  }
+
+  /**
+   * Handle editing a reputation entry
+   */
+  private async handleEditReputation(reputationId: string): Promise<void> {
+    console.log('✏️ Edit reputation request:', reputationId);
+
+    try {
+      await AddOrEditReputationDialog.showEditDialog(reputationId);
+    } catch (error) {
+      console.error('❌ Error showing edit reputation dialog:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al editar la reputación');
+      }
+    }
+  }
+
+  /**
+   * Handle deleting a reputation entry
+   */
+  private async handleDeleteReputation(reputationId: string): Promise<void> {
+    console.log('🗑️ Delete reputation request:', reputationId);
+
+    try {
+      // Get the reputation data first
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        console.error('DocumentManager not available');
+        return;
+      }
+
+      const reputations = gm.documentManager.getGuardReputations();
+      const reputation = reputations.find((r: any) => r.id === reputationId);
+      const reputationName = reputation?.name || 'Reputación Desconocida';
+
+      // Confirm deletion
+      const confirmed = await Dialog.confirm({
+        title: 'Eliminar Reputación',
+        content: `<p>¿Estás seguro de que quieres eliminar la entrada de reputación "<strong>${reputationName}</strong>"?</p>`,
+        defaultYes: false,
+      });
+
+      if (!confirmed) {
+        console.log('❌ Reputation deletion cancelled by user');
+        return;
+      }
+
+      // Delete the reputation
+      await gm.documentManager.deleteGuardReputation(reputationId);
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(`Reputación "${reputationName}" eliminada`);
+      }
+
+      // Trigger organization update
+      window.dispatchEvent(new CustomEvent('guard-organizations-updated'));
+
+      // Refresh this dialog's content
+      await this.refreshContent();
+
+      console.log('✅ Reputation deleted successfully');
+    } catch (error) {
+      console.error('❌ Error deleting reputation:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al eliminar la reputación');
+      }
+    }
+  }
+
+  /**
    * Setup drop zone listeners for the overlay
    */
   private setupDropZoneListeners(): void {
@@ -861,8 +1012,37 @@ export class CustomInfoDialog implements FocusableDialog {
    * Setup global drag listeners to detect when dragging starts/ends
    */
   private setupGlobalDragListeners(): void {
+    // Listen for custom drag events from ReputationEventHandler
+    document.addEventListener(
+      'guard-reputation-drag-start',
+      this.handleCustomDragStart.bind(this) as EventListener
+    );
+    document.addEventListener(
+      'guard-reputation-drag-end',
+      this.handleCustomDragEnd.bind(this) as EventListener
+    );
+
+    // Keep existing listeners for resources
     document.addEventListener('dragstart', this.handleGlobalDragStart.bind(this));
     document.addEventListener('dragend', this.handleGlobalDragEnd.bind(this));
+  }
+
+  /**
+   * Handle custom drag start events from reputation system
+   */
+  private handleCustomDragStart(event: Event): void {
+    const customEvent = event as CustomEvent;
+    console.log('🎯 Custom drag start detected:', customEvent.detail);
+    this.showDropOverlay();
+  }
+
+  /**
+   * Handle custom drag end events from reputation system
+   */
+  private handleCustomDragEnd(event: Event): void {
+    const customEvent = event as CustomEvent;
+    console.log('🏁 Custom drag end detected:', customEvent.detail);
+    this.hideDropOverlay();
   }
 
   /**
@@ -1176,15 +1356,47 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
+   * Render a reputation item template
+   */
+  private renderReputationItemTemplate(reputationId: string): TemplateResult | null {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        console.error('DocumentManager not available');
+        return null;
+      }
+
+      const reputations = gm.documentManager.getGuardReputations();
+      const reputation = reputations.find((r: any) => r.id === reputationId);
+
+      if (!reputation) {
+        console.warn(`Reputation with ID ${reputationId} not found`);
+        return null;
+      }
+
+      // Use ReputationTemplate.renderReputationItem with same options as resources
+      return ReputationTemplate.renderReputationItem(reputationId, {
+        showActions: true,
+        showSendToChat: true,
+        organizationId: this.currentOrganization?.id || '',
+      });
+    } catch (error) {
+      console.error('Error rendering reputation item template:', error);
+      return null;
+    }
+  }
+
+  /**
    * Handle global drag start - show overlay
    */
   private handleGlobalDragStart(event: DragEvent): void {
-    // Only show overlay if this is a guard resource being dragged
+    // Show overlay if this is a guard resource or reputation being dragged
     const dragData = event.dataTransfer?.getData('text/plain');
     if (dragData) {
       try {
         const data = JSON.parse(dragData);
-        if (data.type === 'guard-resource') {
+        if (data.type === 'guard-resource' || data.type === 'reputation') {
+          console.log('🎯 Detected drag start for:', data.type);
           this.showDropOverlay();
         }
       } catch (error) {
@@ -1282,9 +1494,10 @@ export class CustomInfoDialog implements FocusableDialog {
 
     try {
       const data = JSON.parse(dragEvent.dataTransfer.getData('text/plain'));
-      console.log('🎯 Resource drop attempt:', data.resourceData.name);
+      console.log('🎯 Drop attempt:', data);
 
       if (data.type === 'guard-resource') {
+        console.log('📦 Resource drop:', data.resourceData.name);
         // Implement actual resource assignment
         await this.assignResourceToOrganization(data.resourceData);
 
@@ -1297,11 +1510,30 @@ export class CustomInfoDialog implements FocusableDialog {
 
         // Re-render the dialog to show the new resource
         await this.refreshContent();
+      } else if (data.type === 'reputation' || data.type === 'guard-reputation') {
+        console.log('🤝 Reputation drop:', data.reputation?.name || data.reputationData?.name);
+        // Handle both formats - from warehouse (reputationData) or from local (reputation)
+        const reputationData = data.reputationData || data.reputation;
+        await this.assignReputationToOrganization(reputationData);
+
+        // Show success notification
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Reputación "${reputationData.name}" asignada a la organización`
+          );
+        }
+
+        // Re-render the dialog to show the new reputation
+        await this.refreshContent();
+      } else {
+        console.warn('⚠️ Unknown drop type:', data.type);
       }
     } catch (error) {
       console.error('❌ Error parsing drop data:', error);
       if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al asignar el recurso a la organización');
+        (globalThis as any).ui.notifications.error(
+          'Error al asignar el elemento a la organización'
+        );
       }
     }
   }
@@ -1363,6 +1595,67 @@ export class CustomInfoDialog implements FocusableDialog {
       console.log('✅ Resource assigned successfully');
     } catch (error) {
       console.error('❌ Error assigning resource:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Assign a reputation to the current organization
+   */
+  private async assignReputationToOrganization(reputationData: any): Promise<void> {
+    console.log('🤝 Assigning reputation:', reputationData.name);
+
+    const gm = (window as any).GuardManagement;
+
+    if (!gm?.guardOrganizationManager || !this.currentOrganization) {
+      console.error('❌ GuardOrganizationManager or organization not available');
+      return;
+    }
+
+    try {
+      // Get current organization (GuardOrganizationManager manages only one organization)
+      const organization = gm.guardOrganizationManager.getOrganization();
+      if (!organization) {
+        console.error('❌ Organization not found');
+        return;
+      }
+
+      // Initialize reputation array if it doesn't exist
+      if (!organization.reputation) {
+        organization.reputation = [];
+      }
+
+      // Check if reputation is already assigned
+      if (organization.reputation.includes(reputationData.id)) {
+        console.log('ℹ️ Reputation already assigned - skipping');
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.warn(
+            `La reputación "${reputationData.name}" ya está asignada a esta organización`
+          );
+        }
+        return;
+      }
+
+      // Create a NEW array with the new reputation to avoid mutation issues
+      const newReputation = [...organization.reputation, reputationData.id];
+
+      // Create a completely new organization object to avoid reference issues
+      const updatedOrganization = {
+        ...organization,
+        reputation: newReputation,
+        updatedAt: new Date(),
+        version: (organization.version || 0) + 1,
+      };
+
+      // Update organization (GuardOrganizationManager has different update method)
+      await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
+
+      // Update current organization in memory with the NEW object
+      this.currentOrganization = updatedOrganization;
+
+      console.log('✅ Reputation assigned successfully');
+    } catch (error) {
+      console.error('❌ Error assigning reputation:', error);
       throw error;
     }
   }

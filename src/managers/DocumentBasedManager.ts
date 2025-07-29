@@ -387,6 +387,63 @@ export class DocumentBasedManager {
     return reputation;
   }
 
+  /**
+   * Update a Guard Reputation
+   */
+  async updateGuardReputation(id: string, data: Partial<Reputation>): Promise<boolean> {
+    const reputation = game?.items?.get(id);
+    if (!reputation || reputation.type !== 'guard-management.guard-reputation') return false;
+
+    // Convert the data to Foundry format
+    const updateData: any = {
+      name: data.name,
+      'system.description': data.description,
+      'system.level': data.level,
+      'system.version': data.version,
+    };
+
+    // Handle image field (both img and system.image)
+    if (data.image !== undefined) {
+      updateData.img = data.image;
+      updateData['system.image'] = data.image;
+    }
+
+    await reputation.update(updateData);
+    return true;
+  }
+
+  /**
+   * Delete a Guard Reputation permanently
+   */
+  async deleteGuardReputation(id: string): Promise<boolean> {
+    const reputation = game?.items?.get(id);
+    if (!reputation || reputation.type !== 'guard-management.guard-reputation') return false;
+
+    try {
+      // Remove reputation from all organizations that have it
+      const organizations = this.getGuardOrganizations();
+      for (const org of organizations) {
+        if (org.system?.reputation?.includes(id)) {
+          const newReputations = org.system.reputation.filter(
+            (reputationId: string) => reputationId !== id
+          );
+          await this.updateGuardOrganization(org.id, {
+            reputation: newReputations,
+            version: (org.system.version || 0) + 1,
+            updatedAt: new Date(),
+          });
+        }
+      }
+
+      // Delete the reputation document
+      await reputation.delete();
+      return true;
+    } catch (error) {
+      console.error('❌ Error deleting reputation:', error);
+      return false;
+    }
+  }
+
   // === UTILITY METHODS ===
 
   /**

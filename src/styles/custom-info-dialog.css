@@ -511,3 +511,39 @@
   color: #bdc3c7;
   text-align: center;
 }
+
+/* ==== DRAG & DROP STYLES FOR REPUTATIONS ==== */
+
+/* Draggable reputation items */
+.reputation-item[draggable='true'] {
+  cursor: grab !important;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.reputation-item[draggable='true']:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  cursor: grab !important;
+}
+
+.reputation-item[draggable='true']:active {
+  cursor: grabbing !important;
+}
+
+.reputation-item.dragging {
+  opacity: 0.7;
+  transform: scale(0.95);
+  cursor: grabbing !important;
+  border: 2px solid #4caf50 !important;
+}
+
+/* General draggable cursor styles */
+[draggable='true'] {
+  cursor: grab !important;
+}
+
+[draggable='true']:active {
+  cursor: grabbing !important;
+}

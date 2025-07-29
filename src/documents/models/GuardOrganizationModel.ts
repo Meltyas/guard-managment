@@ -190,6 +190,17 @@ export class GuardOrganizationModel extends foundry.abstract.TypeDataModel {
   }
 
   /**
+   * Remove a reputation from this organization
+   */
+  async removeReputation(reputationId: string) {
+    const updatedReputation = this.reputation.filter((id) => id !== reputationId);
+    await this.parent.update({
+      'system.reputation': updatedReputation,
+      'system.version': this.version + 1,
+    });
+  }
+
+  /**
    * Get all related patrol documents
    */
   getPatrols() {
