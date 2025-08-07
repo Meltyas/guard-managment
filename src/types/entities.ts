@@ -20,6 +20,8 @@ export interface GuardOrganization extends BaseEntity {
   resources: string[]; // IDs of associated Resources
   reputation: string[]; // IDs of associated Reputation entries
   patrols: string[]; // IDs of associated Patrols
+  /** Optional serialized patrol snapshots for persistence */
+  patrolSnapshots?: Patrol[]; // <-- added for persistence of patrol data
 }
 
 export interface GuardStats {
@@ -84,18 +86,76 @@ export const REPUTATION_LABELS: Record<ReputationLevel, string> = {
 
 // Patrols (Operational Units)
 export interface Patrol extends BaseEntity {
-  leaderId: string; // Reference to Foundry Actor ID
-  unitCount: number; // 1-12 members
+  // Core relational
   organizationId: string; // Reference to GuardOrganization
-  customModifiers: StatModification[];
-  activeEffects: string[]; // IDs of applied PatrolEffects
-  status: PatrolStatus;
-  calculatedStats?: GuardStats; // Derived stats (calculated)
+  subtitle?: string;
+
+  // Base & derived stats
+  baseStats: GuardStats; // Raw patrol stats (editable)
+  derivedStats?: GuardStats; // Calculated from base + organization + effects
+
+  // Officer & soldiers
+  officer: PatrolOfficer | null; // Single officer
+  soldiers: PatrolSoldier[]; // Members list (can contain duplicates)
+
+  // Effects applied directly to this patrol
+  patrolEffects: PatrolEffectInstance[]; // Replaces customModifiers/activeEffects
+
+  // Last order issued to patrol
+  lastOrder: PatrolLastOrder | null;
+
+  // Versioning & metadata already from BaseEntity (version, createdAt, updatedAt)
+
+  // ===================== Deprecated (kept for legacy example compatibility) =====================
+  /** @deprecated Use officer.actorId instead */
+  leaderId?: string;
+  /** @deprecated Use soldiers.length instead */
+  unitCount?: number;
+  /** @deprecated Use patrolEffects[].modifiers aggregation */
+  customModifiers?: StatModification[];
+  /** @deprecated Use patrolEffects */
+  activeEffects?: string[]; // legacy ids
+  /** @deprecated Future status system TBD */
+  status?: PatrolStatus;
+  /** @deprecated Use derivedStats */
+  calculatedStats?: GuardStats;
+}
+
+export interface PatrolOfficer {
+  actorId: string;
+  tokenId?: string;
+  name: string;
+  img?: string;
+  isLinked?: boolean;
+  sceneId?: string;
+}
+
+export interface PatrolSoldier {
+  actorId: string;
+  tokenId?: string;
+  name: string;
+  img?: string;
+  referenceType: 'linked' | 'unlinked';
+  addedAt: number; // epoch ms
+  sceneId?: string;
+}
+
+export interface PatrolEffectInstance {
+  id: string; // internal id or reference id
+  sourceType: 'temp' | 'organization' | 'manual';
+  label: string;
+  modifiers: Partial<GuardStats>;
+  expiresAt?: number; // epoch ms
+}
+
+export interface PatrolLastOrder {
+  text: string;
+  issuedAt: number; // epoch ms
 }
 
 export type PatrolStatus = 'idle' | 'deployed' | 'recalled';
 
-// Patrol Effects
+// Patrol Effects (template definitions for warehouse)
 export interface PatrolEffect extends BaseEntity {
   description: string;
   type: EffectType;

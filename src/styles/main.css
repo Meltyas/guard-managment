@@ -1225,3 +1225,96 @@
 .guard-org-tabs .tab-btn:active {
   transform: scale(0.96);
 }
+
+/* Patrol cards grid and elements */
+.patrol-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.patrol-card {
+  background: var(--color-bg-alt, #222);
+  border: 1px solid var(--color-border, #444);
+  border-radius: 6px;
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 160px;
+}
+.patrol-card .header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.35rem;
+}
+.patrol-card .name {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.patrol-card .subtitle {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+.patrol-card .stats-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.25rem 0 0.4rem;
+}
+.patrol-card .stats-mini .stat {
+  background: #333;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  letter-spacing: 0.5px;
+}
+.patrol-card .officer-slot {
+  width: 48px;
+  height: 48px;
+  border: 1px dashed #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 0.55rem;
+  color: #888;
+}
+.patrol-card .officer-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.patrol-card .soldiers-count {
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+.patrol-card .actions {
+  margin-top: auto;
+  display: flex;
+  gap: 0.4rem;
+}
+.patrol-card .actions button {
+  background: #2f2f2f;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.7rem;
+}
+.patrol-card .actions button:hover {
+  background: #3a3a3a;
+}
+
+/* State colors for last order meta (future) */
+.last-order-meta.normal {
+  color: #9acd32;
+}
+.last-order-meta.warning {
+  color: #ffae42;
+}
+.last-order-meta.danger {
+  color: #ff5a5a;
+}

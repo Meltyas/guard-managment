@@ -1,13 +1,17 @@
+import { AddOrEditPatrolDialog } from '../dialogs/AddOrEditPatrolDialog';
 import { GuardOrganizationDialog } from '../dialogs/GuardOrganizationDialog';
 import { createGuardReputation, createGuardResource } from '../documents/index';
-import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats } from '../types/entities';
+import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats, Patrol } from '../types/entities';
+import { PatrolManager } from './PatrolManager';
 
 export class GuardOrganizationManager {
   private organization: GuardOrganization | null = null; // Solo una organización
   private dialog: GuardOrganizationDialog;
+  private patrolManager: PatrolManager; // Integration
 
   constructor() {
     this.dialog = new GuardOrganizationDialog();
+    this.patrolManager = new PatrolManager();
   }
 
   public async initialize(): Promise<void> {
@@ -53,7 +57,8 @@ export class GuardOrganizationManager {
       resources: [],
       reputation: [],
       patrols: [],
-    };
+      patrolSnapshots: [], // ensure initialization
+    } as any;
 
     await this.saveOrganization(defaultOrg);
 
@@ -193,7 +198,8 @@ export class GuardOrganizationManager {
       resources: [],
       reputation: [],
       patrols: [],
-    };
+      patrolSnapshots: [],
+    } as any;
 
     await this.saveOrganization(newOrganization);
     return newOrganization;
@@ -269,15 +275,18 @@ export class GuardOrganizationManager {
   /**
    * Save the organization
    */
-  private async saveOrganization(organization: GuardOrganization): Promise<void> {
+  private async saveOrganization(
+    organization: GuardOrganization,
+    broadcast: boolean = true
+  ): Promise<void> {
     this.organization = organization;
-    await this.saveToSettings();
+    await this.saveToSettings(broadcast);
   }
 
   /**
    * Save organization to game settings
    */
-  private async saveToSettings(): Promise<void> {
+  private async saveToSettings(broadcast: boolean = true): Promise<void> {
     try {
       // Solo el GM guarda en settings como backup (usando duck typing para evitar problemas de tipos)
       const user = game?.user as any;
@@ -285,20 +294,17 @@ export class GuardOrganizationManager {
         await game?.settings?.set('guard-management', 'guardOrganization', this.organization);
         console.log('GuardOrganizationManager | Saved organization to settings (GM backup)');
       }
-
-      // Sincronizar con todos los clientes via socket
-      this.broadcastOrganization();
+      if (broadcast) this.broadcastOrganization();
     } catch (error) {
       // Si hay error de permisos con settings, simplemente continuar con la sincronización
       if (error instanceof Error && error.message?.includes('lacks permission')) {
         console.log(
           'GuardOrganizationManager | User lacks permission to save to settings, using socket sync only'
         );
-        this.broadcastOrganization();
+        if (broadcast) this.broadcastOrganization();
       } else {
         console.warn('GuardOrganizationManager | Could not save organization to settings:', error);
-        // Aún así, intentar sincronizar por socket
-        this.broadcastOrganization();
+        if (broadcast) this.broadcastOrganization();
       }
     }
   }
@@ -328,7 +334,13 @@ export class GuardOrganizationManager {
       this.organization = data.data;
       console.log('GuardOrganizationManager | Received organization update via socket');
 
-      // Si no somos GM, no podemos guardar en settings, solo mantener en memoria
+      const isGM = (game as any)?.user?.isGM;
+      if (isGM) {
+        // Persist without rebroadcast to avoid loops
+        await game?.settings?.set('guard-management', 'guardOrganization', this.organization);
+        console.log('GuardOrganizationManager | GM persisted received organization to settings');
+      }
+
       if (!(game as any)?.user?.isGM) {
         console.log(
           'GuardOrganizationManager | Non-GM received organization data, stored in memory'
@@ -376,6 +388,14 @@ export class GuardOrganizationManager {
 
       this.organization = savedOrganization;
 
+      // hydrate patrol manager from snapshots if present
+      if (this.organization?.patrolSnapshots && Array.isArray(this.organization.patrolSnapshots)) {
+        for (const snap of this.organization.patrolSnapshots) {
+          // recreate minimal patrols inside patrolManager map
+          this.patrolManager['patrols']?.set?.(snap.id, { ...snap });
+        }
+      }
+
       if (savedOrganization) {
         console.log(`GuardOrganizationManager | Loaded organization: ${savedOrganization.name}`);
       } else {
@@ -392,5 +412,87 @@ export class GuardOrganizationManager {
   public cleanup(): void {
     this.organization = null;
     console.log('GuardOrganizationManager | Cleaned up');
+  }
+
+  public getPatrolManager(): PatrolManager {
+    return this.patrolManager;
+  }
+
+  /** Upsert a patrol snapshot and ensure organization arrays updated & persisted */
+  public upsertPatrolSnapshot(patrol: Patrol): void {
+    if (!this.organization) return;
+    // ensure id in patrols list
+    if (!this.organization.patrols.includes(patrol.id)) {
+      this.organization.patrols.push(patrol.id);
+    }
+    // ensure snapshots array exists
+    this.organization.patrolSnapshots = this.organization.patrolSnapshots || [];
+    const idx = this.organization.patrolSnapshots.findIndex((p) => p.id === patrol.id);
+    if (idx >= 0) {
+      this.organization.patrolSnapshots[idx] = patrol;
+    } else {
+      this.organization.patrolSnapshots.push(patrol);
+    }
+    this.organization.updatedAt = new Date();
+    this.organization.version += 1;
+    // Persist (broadcast handled inside)
+    this.saveOrganization(this.organization);
+  }
+
+  // Helper: create patrol and attach to organization
+  public createPatrolForOrganization(data: { name: string; baseStats: GuardStats }): Patrol | null {
+    if (!this.organization) {
+      console.warn('GuardOrganizationManager | No organization for patrol creation');
+      return null;
+    }
+    const patrol = this.patrolManager.createPatrol({
+      name: data.name,
+      organizationId: this.organization.id,
+      baseStats: data.baseStats,
+    } as any);
+    this.upsertPatrolSnapshot(patrol);
+    return patrol;
+  }
+
+  public listOrganizationPatrols(): Patrol[] {
+    if (!this.organization) return [];
+    return this.organization.patrols
+      .map((id) => this.patrolManager.getPatrol(id))
+      .filter((p): p is Patrol => !!p);
+  }
+
+  public removePatrol(patrolId: string): boolean {
+    if (!this.organization) return false;
+    const idx = this.organization.patrols.indexOf(patrolId);
+    if (idx === -1) return false;
+    this.organization.patrols.splice(idx, 1);
+    if (this.organization.patrolSnapshots) {
+      this.organization.patrolSnapshots = this.organization.patrolSnapshots.filter(
+        (p) => p.id !== patrolId
+      );
+    }
+    this.organization.updatedAt = new Date();
+    this.organization.version += 1;
+    this.saveOrganization(this.organization);
+    return true;
+  }
+
+  public recalcAllPatrols(orgModifiers?: Partial<GuardStats>) {
+    if (!this.organization) return;
+    for (const pid of this.organization.patrols) {
+      this.patrolManager.recalcDerived(pid, orgModifiers);
+    }
+  }
+
+  public async openCreatePatrolDialog(): Promise<Patrol | null> {
+    if (!this.organization) return null;
+    return AddOrEditPatrolDialog.create(this.organization.id);
+  }
+
+  public async openEditPatrolDialog(patrolId: string): Promise<Patrol | null> {
+    if (!this.organization) return null;
+    const patrol = this.patrolManager.getPatrol(patrolId);
+    if (!patrol) return null;
+    return AddOrEditPatrolDialog.edit(this.organization.id, patrol);
   }
 }

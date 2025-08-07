@@ -10,6 +10,7 @@ import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-
 import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 // Import CSS for drag & drop styling
 import '../styles/custom-info-dialog.css';
+import { classifyLastOrderAge } from '../utils/patrol-helpers.js';
 import { ConfirmService } from '../utils/services/ConfirmService.js';
 import { NotificationService } from '../utils/services/NotificationService.js';
 import { renderTemplateToString, safeRender } from '../utils/template-renderer.js';
@@ -305,20 +306,21 @@ export class CustomInfoDialog implements FocusableDialog {
 
   /** Patrols placeholder panel */
   private renderOrganizationPatrolsPlaceholder(): TemplateResult {
-    return html`
-      <div class="patrols-placeholder">
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    const organization = orgMgr?.getOrganization();
+    const patrols = orgMgr ? orgMgr.listOrganizationPatrols() : [];
+    return html` <div class="patrols-panel">
+      <div class="panel-header">
         <h3><i class="fas fa-users"></i> Patrullas</h3>
-        <p class="muted">
-          Sección en construcción. Aquí gestionaremos patrullas derivadas de la organización.
-        </p>
-        <ul class="placeholder-list">
-          <li><i class="fas fa-plus-circle"></i> Crear / listar patrullas</li>
-          <li><i class="fas fa-user-shield"></i> Asignar líderes</li>
-          <li><i class="fas fa-bolt"></i> Aplicar efectos</li>
-        </ul>
-        <div class="coming-soon-pill">PRÓXIMAMENTE</div>
+        <button type="button" class="btn create-patrol" data-action="create-patrol">
+          <i class="fas fa-plus"></i> Nueva Patrulla
+        </button>
       </div>
-    `;
+      ${patrols.length === 0
+        ? html`<p class="empty-state">No hay patrullas. Crea la primera.</p>`
+        : this.renderPatrolCards(patrols)}
+    </div>`;
   }
 
   private renderOrganizationResourcesPanel(organization: GuardOrganization): TemplateResult {
@@ -809,6 +811,97 @@ export class CustomInfoDialog implements FocusableDialog {
     // Add the new event listener
     this.element.addEventListener('click', this.resourceEventHandler);
     console.log('✅ Resource event listeners set up');
+
+    const root = this.element;
+    if (!root) return;
+    root.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const actionBtn = target.closest('button[data-action]') as HTMLButtonElement | null;
+      if (actionBtn) {
+        const action = actionBtn.dataset.action;
+        if (action === 'create-patrol') {
+          e.preventDefault();
+          this.handleCreatePatrol();
+          return;
+        }
+        if (action === 'edit') {
+          this.handleEditPatrol(actionBtn.dataset.patrolId!);
+          return;
+        }
+        if (action === 'delete') {
+          this.handleDeletePatrol(actionBtn.dataset.patrolId!);
+          return;
+        }
+      }
+      const lastOrderEl = target.closest('[data-action="edit-last-order"]') as HTMLElement | null;
+      if (lastOrderEl) {
+        const pid = lastOrderEl.dataset.patrolId!;
+        this.handleEditLastOrder(pid);
+      }
+    });
+  }
+
+  private async handleCreatePatrol() {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const org = orgMgr.getOrganization();
+    if (!org) return;
+    const created = await orgMgr.openCreatePatrolDialog();
+    if (created) {
+      ui?.notifications?.info('Patrulla creada');
+      this.refreshPatrolsPanel();
+    }
+  }
+  private async handleEditPatrol(patrolId: string) {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const updated = await orgMgr.openEditPatrolDialog(patrolId);
+    if (updated) {
+      ui?.notifications?.info('Patrulla actualizada');
+      this.refreshPatrolsPanel();
+    }
+  }
+  private async handleDeletePatrol(patrolId: string) {
+    const confirm = await Dialog.confirm({
+      title: 'Eliminar Patrulla',
+      content: `<p>¿Seguro que deseas eliminar esta patrulla?</p>`,
+    });
+    if (!confirm) return;
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const org = orgMgr.getOrganization();
+    if (!org) return;
+    orgMgr.removePatrol(patrolId);
+    const pMgr = orgMgr.getPatrolManager();
+    pMgr.deletePatrol(patrolId);
+    ui?.notifications?.warn('Patrulla eliminada');
+    this.refreshPatrolsPanel();
+  }
+
+  private refreshPatrolsPanel() {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const org = orgMgr.getOrganization();
+    if (!org) return;
+    const panel = this.element?.querySelector('[data-tab-panel="patrols"]') as HTMLElement | null;
+    if (!panel) return;
+    const tpl = this.renderOrganizationPatrolsPlaceholder();
+    try {
+      // Use safeRender (lit-html helper) for efficient updates
+      safeRender(tpl, panel);
+    } catch (err) {
+      console.warn('Fallback patrol panel render due to error:', err);
+      try {
+        panel.innerHTML = renderTemplateToString(tpl as any);
+      } catch {
+        // last resort clear
+        panel.textContent = 'Error renderizando patrullas';
+      }
+    }
   }
 
   /**
@@ -1816,6 +1909,7 @@ export class CustomInfoDialog implements FocusableDialog {
       };
 
       // Update organization (GuardOrganizationManager has different update method)
+      // Update organization (GuardOrganizationManager has different update method)
       await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
 
       // Update current organization in memory with the NEW object
@@ -1914,6 +2008,49 @@ export class CustomInfoDialog implements FocusableDialog {
     }
   }
 
+  private async handleEditLastOrder(patrolId: string) {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const pMgr = orgMgr.getPatrolManager();
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+    const current = patrol.lastOrder?.text || '';
+    const result = await (foundry as any).applications.api.DialogV2.wait({
+      window: { title: 'Editar Última Orden', resizable: true },
+      content: `<form class='last-order-edit'><textarea name='order' rows='4' style='width:100%;'>${current}</textarea><p class='hint'>Actualiza la última orden de la patrulla.</p></form>`,
+      buttons: [
+        {
+          action: 'save',
+          label: 'Guardar',
+          icon: 'fas fa-save',
+          default: true,
+          callback: (_ev: any, btn: any, dlg: any) => {
+            const form = btn?.form || dlg?.window?.content?.querySelector('form.last-order-edit');
+            if (!form) return 'cancel';
+            const fd = new FormData(form);
+            const text = (fd.get('order') as string) || '';
+            if (!text.trim()) {
+              ui?.notifications?.warn('Orden vacía');
+              return 'cancel';
+            }
+            pMgr.updateLastOrder(patrolId, text.trim());
+            const updated = pMgr.getPatrol(patrolId);
+            if (updated) {
+              orgMgr.upsertPatrolSnapshot(updated);
+            }
+            return 'save';
+          },
+        },
+        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times', callback: () => 'cancel' },
+      ],
+    });
+    if (result === 'save') {
+      ui?.notifications?.info('Orden actualizada');
+      this.refreshPatrolsPanel();
+    }
+  }
+
   private initTabs(root: HTMLElement): void {
     if (this.tabsInitialized) return; // prevent duplicate listeners
     const layout = root.querySelector('.org-tabs-layout') as HTMLElement;
@@ -1948,22 +2085,106 @@ export class CustomInfoDialog implements FocusableDialog {
     buttons.forEach((b) => b.addEventListener('click', () => activate(b.dataset.tab!)));
 
     // Keyboard navigation
-    layout.addEventListener('keydown', (ev) => {
+    const keyNavHandler = (ev: KeyboardEvent) => {
       if (!['ArrowUp', 'ArrowDown', 'w', 's', 'W', 'S'].includes(ev.key)) return;
       const idx = buttons.findIndex((b) => b.classList.contains('active'));
       if (idx === -1) return;
-      let next = idx + (ev.key === 'ArrowUp' || ev.key === 'w' || ev.key === 'W' ? -1 : 1);
+      let next = idx + (ev.key === 'ArrowUp' || ev.key.toLowerCase() === 'w' ? -1 : 1);
       if (next < 0) next = buttons.length - 1;
       if (next >= buttons.length) next = 0;
       activate(buttons[next].dataset.tab!);
       buttons[next].focus();
       ev.preventDefault();
-    });
+    };
+    layout.addEventListener('keydown', keyNavHandler);
 
     // Initial activation
     activate(stored);
     requestAnimationFrame(() => positionBar(buttons.find((b) => b.classList.contains('active'))));
 
     this.tabsInitialized = true;
+  }
+
+  private computePatrolStatBreakdown(patrol: any) {
+    try {
+      const derived = patrol.derivedStats || patrol.baseStats || {};
+      const effectTotals: Record<string, number> = {};
+      for (const eff of patrol.patrolEffects || []) {
+        for (const [k, v] of Object.entries(eff.modifiers || {})) {
+          effectTotals[k] = (effectTotals[k] || 0) + ((v as number) || 0);
+        }
+      }
+      const breakdown: Record<
+        string,
+        { base: number; effects: number; org: number; total: number }
+      > = {};
+      for (const key of Object.keys(derived)) {
+        const base = patrol.baseStats?.[key] ?? 0;
+        const effects = effectTotals[key] || 0;
+        const total = derived[key] || 0;
+        const org = total - base - effects; // whatever isn't base or effects we attribute to organization modifiers
+        breakdown[key] = { base, effects, org, total };
+      }
+      return breakdown;
+    } catch {
+      return {};
+    }
+  }
+
+  private renderPatrolCards(patrols: any[]): TemplateResult {
+    return html`<div class="patrol-cards-grid">
+      ${patrols.map((p) => {
+        const lastOrder = p.lastOrder;
+        const ageClass = lastOrder
+          ? classifyLastOrderAge({ issuedAt: lastOrder.issuedAt })
+          : 'normal';
+        const bd = this.computePatrolStatBreakdown(p);
+        return html`<div class="patrol-card" data-patrol-id="${p.id}">
+          <div class="header">
+            <span class="name">${p.name}</span>${p.subtitle
+              ? html`<span class="subtitle">${p.subtitle}</span>`
+              : ''}
+          </div>
+          <div class="stats-mini">
+            ${Object.entries(p.derivedStats || p.baseStats || {}).map(([k, v]) => {
+              const b = (bd as any)[k] || { base: 0, effects: 0, org: 0, total: v };
+              const tip = `Base: ${b.base}\nEfectos: ${b.effects}\nOrganización: ${b.org >= 0 ? '+' : ''}${b.org}\nTotal: ${b.total}`;
+              return html`<span class="stat" data-stat="${k}" title="${tip}"
+                >${k.slice(0, 3)}: ${v}</span
+              >`;
+            })}
+          </div>
+          <div class="officer-slot">
+            ${p.officer
+              ? html`<img src="${p.officer.img || ''}" alt="oficial" />`
+              : html`<span class="empty">Sin Oficial</span>`}
+          </div>
+          <div class="soldiers-count">Soldados: ${p.soldiers?.length || 0}</div>
+          <div
+            class="last-order-line ${ageClass}"
+            data-action="edit-last-order"
+            data-patrol-id="${p.id}"
+            title="Click para editar la última orden"
+          >
+            <i class="fas fa-scroll"></i>
+            <span class="last-order-label">Orden:</span>
+            <span class="last-order-text">${lastOrder ? lastOrder.text : '— (sin orden)'}</span>
+            ${lastOrder ? html`<span class="age-indicator ${ageClass}"></span>` : ''}
+          </div>
+          <div class="actions">
+            <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="${p.id}">
+              <i class="fas fa-edit"></i></button
+            ><button
+              type="button"
+              class="delete-patrol"
+              data-action="delete"
+              data-patrol-id="${p.id}"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>`;
+      })}
+    </div>`;
   }
 }

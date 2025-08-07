@@ -24,13 +24,6 @@ interface GuardOrganizationFormRenderData {
 }
 
 export class GuardOrganizationDialog {
-  // LocalStorage keys
-  private static readonly STORAGE_PREFIX = 'guard-management.orgDialog.';
-  private static readonly KEY_SELECTED_TAB = GuardOrganizationDialog.STORAGE_PREFIX + 'selectedTab';
-  private static readonly KEY_WAS_OPEN = GuardOrganizationDialog.STORAGE_PREFIX + 'wasOpen';
-  private static readonly KEY_POS_X = GuardOrganizationDialog.STORAGE_PREFIX + 'posX';
-  private static readonly KEY_POS_Y = GuardOrganizationDialog.STORAGE_PREFIX + 'posY';
-
   constructor() {
     // Constructor
   }
@@ -227,11 +220,11 @@ export class GuardOrganizationDialog {
         ],
       });
 
-      if (result) {
-        return this.createOrganizationFromData(result, mode, existingOrganization);
+      // If user cancelled or callback returned false, just return null
+      if (!result || typeof result !== 'object') {
+        return null;
       }
-
-      return null;
+      return this.createOrganizationFromData(result as any, mode, existingOrganization);
     } catch (error) {
       console.error('GuardOrganizationDialog | Error showing dialog:', error);
       ui?.notifications?.error('Error al mostrar el diálogo de organización');
@@ -251,90 +244,15 @@ export class GuardOrganizationDialog {
         }
       : { name: '', subtitle: '', baseStats: { ...DEFAULT_GUARD_STATS } };
 
-    const selectedTab =
-      window.localStorage.getItem(GuardOrganizationDialog.KEY_SELECTED_TAB) || 'general';
-
     const template = this.renderOrganizationForm(data);
     const formHtml = renderTemplateToString(template);
 
-    // Left tabs enhanced UI
-    const tabsHtml = `
-      <div class="guard-org-dialog-layout" data-current-tab="${selectedTab}">
-        <nav class="guard-org-tabs" data-initial-tab="${selectedTab}" role="tablist" aria-orientation="vertical">
-          <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="general">
-            <i class="fas fa-info-circle"></i><span>General</span>
-          </button>
-          <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="patrols">
-            <i class="fas fa-users"></i><span>Patrullas</span>
-          </button>
-          <div class="active-bar" aria-hidden="true"></div>
-        </nav>
-        <div class="guard-org-tab-content">
-          <header class="tab-dynamic-header"><h2 data-tab-title></h2></header>
-          <section class="tab-panel" role="tabpanel" data-tab-panel="general">${formHtml}</section>
-          <section class="tab-panel" role="tabpanel" data-tab-panel="patrols">
-            <div class="patrols-placeholder">
-              <h3><i class='fas fa-users'></i> Patrullas</h3>
-              <p class="muted">Interfaz de gestión de patrullas próximamente.</p>
-              <ul class="placeholder-list">
-                <li><i class="fas fa-plus-circle"></i> Crear patrulla</li>
-                <li><i class="fas fa-sync"></i> Sincronización en tiempo real</li>
-                <li><i class="fas fa-bolt"></i> Efectos y modificadores</li>
-              </ul>
-              <div class="coming-soon-pill">EN CONSTRUCCIÓN</div>
-            </div>
-          </section>
-        </div>
-      </div>
-      <script>(function(){
-        const LS_TAB='${GuardOrganizationDialog.KEY_SELECTED_TAB}';
-        const LS_OPEN='${GuardOrganizationDialog.KEY_WAS_OPEN}';
-        const LS_X='${GuardOrganizationDialog.KEY_POS_X}';
-        const LS_Y='${GuardOrganizationDialog.KEY_POS_Y}';
-        try{localStorage.setItem(LS_OPEN,'true');}catch(e){}
-        const dialogEl=document.querySelector('.dialog.window-app:last-of-type');
-        // Restore position
-        try{ if(dialogEl){ const x=parseInt(localStorage.getItem(LS_X)||''); const y=parseInt(localStorage.getItem(LS_Y)||''); if(!isNaN(x)&&!isNaN(y)){ dialogEl.style.left=x+'px'; dialogEl.style.top=y+'px'; }
-          const header=dialogEl.querySelector('.window-header'); if(header){ header.addEventListener('mouseup',()=>{ requestAnimationFrame(()=>{ const r=dialogEl.getBoundingClientRect(); try{localStorage.setItem(LS_X,String(r.left));localStorage.setItem(LS_Y,String(r.top));}catch(e){} }); }); }
-        }}catch(e){}
-
-        const tabsRoot=document.querySelector('.guard-org-tabs');
-        const buttons=[...document.querySelectorAll('.guard-org-tabs .tab-btn')];
-        const panels=[...document.querySelectorAll('.guard-org-tab-content .tab-panel')];
-        const activeBar=tabsRoot?.querySelector('.active-bar');
-        const titleEl=document.querySelector('[data-tab-title]');
-        const tabTitles={general:'Organización', patrols:'Patrullas'};
-
-        function positionActiveBar(btn){ if(!activeBar||!btn) return; const rect=btn.getBoundingClientRect(); const parentRect=tabsRoot.getBoundingClientRect(); activeBar.style.top=(btn.offsetTop)+'px'; activeBar.style.height=btn.offsetHeight+'px'; }
-
-        function activate(tab){ buttons.forEach(b=>{ const on=b.dataset.tab===tab; b.classList.toggle('active',on); b.setAttribute('aria-selected', on? 'true':'false'); });
-          panels.forEach(p=> p.classList.toggle('active', p.dataset.tabPanel===tab));
-          document.querySelector('.guard-org-dialog-layout')?.setAttribute('data-current-tab',tab);
-          try{localStorage.setItem(LS_TAB,tab);}catch(e){}
-          const activeBtn=buttons.find(b=>b.dataset.tab===tab); positionActiveBar(activeBtn); if(titleEl) titleEl.textContent=tabTitles[tab]||'';
-        }
-
-        const initial=tabsRoot?.getAttribute('data-initial-tab')||'general';
-        activate(initial);
-        window.requestAnimationFrame(()=>{ const activeBtn=buttons.find(b=>b.classList.contains('active')); positionActiveBar(activeBtn); });
-
-        // Click handlers
-        buttons.forEach(b=> b.addEventListener('click', ()=> activate(b.dataset.tab)));
-
-        // Keyboard navigation (Up/Down / W/S)
-        document.addEventListener('keydown', (ev)=>{
-          if(!dialogEl || !document.body.contains(dialogEl)) return; // dialog closed
-          if(['ArrowUp','ArrowDown','w','s','W','S'].includes(ev.key)){
-            const idx=buttons.findIndex(b=> b.classList.contains('active'));
-            if(idx>-1){ let nextIdx=idx + (ev.key==='ArrowUp' || ev.key==='w' || ev.key==='W'? -1: 1); if(nextIdx<0) nextIdx=buttons.length-1; if(nextIdx>=buttons.length) nextIdx=0; activate(buttons[nextIdx].dataset.tab); buttons[nextIdx].focus(); ev.preventDefault(); }
-          }
-        });
-
-        // Cleanup
-        const observer=new MutationObserver(()=>{ if(dialogEl && !document.body.contains(dialogEl)){ try{localStorage.setItem(LS_OPEN,'false');}catch(e){} observer.disconnect(); }});
-        if(dialogEl) observer.observe(document.body,{childList:true,subtree:true});
-      })();</script>`;
-    return tabsHtml;
+    // Simplified single-panel dialog (tabs removed)
+    return `
+      <div class="guard-org-dialog-single">
+        <header class="single-header"><h2>Organización</h2></header>
+        <section class="single-panel" data-panel="general">${formHtml}</section>
+      </div>`;
   }
 
   /**
