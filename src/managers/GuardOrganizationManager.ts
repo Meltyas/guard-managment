@@ -1,4 +1,5 @@
 import { GuardOrganizationDialog } from '../dialogs/GuardOrganizationDialog';
+import { createGuardReputation, createGuardResource } from '../documents/index';
 import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats } from '../types/entities';
 
 export class GuardOrganizationManager {
@@ -55,7 +56,98 @@ export class GuardOrganizationManager {
     };
 
     await this.saveOrganization(defaultOrg);
+
+    // Semillas iniciales de recursos y reputación (solo GM, y solo si no existen aún)
+    await this.seedInitialResourcesAndReputation(defaultOrg.id);
+
     console.log('GuardOrganizationManager | Default organization created');
+  }
+
+  /**
+   * Crear recursos y reputaciones iniciales si no existen (idempotente)
+   */
+  private async seedInitialResourcesAndReputation(orgId: string): Promise<void> {
+    try {
+      const user = (game as any)?.user;
+      if (!user?.isGM) return; // Solo el GM siembra
+      if (!game?.items) return;
+
+      const existingForOrg = game.items.filter(
+        (i: any) =>
+          i.system?.organizationId === orgId && i.type?.startsWith('guard-management.guard-')
+      );
+      const hasSeedResource = existingForOrg.some(
+        (i: any) => i.type === 'guard-management.guard-resource'
+      );
+      const hasSeedReputation = existingForOrg.some(
+        (i: any) => i.type === 'guard-management.guard-reputation'
+      );
+
+      // Si ya hay al menos un recurso y una reputación, asumimos que ya se sembró
+      if (hasSeedResource && hasSeedReputation) return;
+
+      const createdResourceIds: string[] = [];
+      const createdReputationIds: string[] = [];
+
+      // Recursos solicitados
+      const resourceSeeds = [
+        {
+          name: 'Presupuesto',
+          description: 'Cada unidad sostiene la operativa de una patrulla estándar',
+          quantity: 10,
+        },
+        {
+          name: 'Equipamiento',
+          description: 'Cada unidad equipa a una patrulla estándar',
+          quantity: 5,
+        },
+      ];
+
+      for (const r of resourceSeeds) {
+        const doc: any = await createGuardResource({
+          ...r,
+          organizationId: orgId,
+        });
+        if (doc?.id) createdResourceIds.push(doc.id);
+      }
+
+      // Reputaciones solicitadas (Neutral = nivel 4)
+      const reputationSeeds = [
+        {
+          name: 'Luparanos',
+          description: 'La población luparana',
+          level: 4,
+        },
+        {
+          name: 'Platas Doradas',
+          description: 'La guardia más conocida del Árbol',
+          level: 4,
+        },
+      ];
+
+      for (const rep of reputationSeeds) {
+        const doc: any = await createGuardReputation({
+          ...rep,
+          organizationId: orgId,
+        });
+        if (doc?.id) createdReputationIds.push(doc.id);
+      }
+
+      if (!this.organization || this.organization.id !== orgId) return;
+
+      if (createdResourceIds.length || createdReputationIds.length) {
+        const updated: Partial<GuardOrganization> = {
+          resources: [...(this.organization.resources || []), ...createdResourceIds],
+          reputation: [...(this.organization.reputation || []), ...createdReputationIds],
+          updatedAt: new Date(),
+        } as any;
+
+        // Usar updateOrganization para incrementar versión
+        await this.updateOrganization(updated);
+      }
+    } catch (error) {
+      console.error('GuardOrganizationManager | Error seeding initial data:', error);
+    }
   }
 
   /**
