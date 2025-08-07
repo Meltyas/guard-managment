@@ -16,6 +16,13 @@ export interface GuardOrganizationDialogData {
   elocuencia: number;
 }
 
+// New internal type for rendering instead of using any
+interface GuardOrganizationFormRenderData {
+  name: string;
+  subtitle: string;
+  baseStats: GuardStats;
+}
+
 export class GuardOrganizationDialog {
   constructor() {
     // Constructor
@@ -229,30 +236,35 @@ export class GuardOrganizationDialog {
    * Generate the HTML content for the dialog
    */
   public generateContent(_mode: 'create' | 'edit', organization?: GuardOrganization): string {
-    const data = organization || {
-      name: '',
-      subtitle: '',
-      baseStats: { ...DEFAULT_GUARD_STATS },
-    };
+    const data: GuardOrganizationFormRenderData = organization
+      ? {
+          name: organization.name ?? '',
+          subtitle: organization.subtitle ?? '',
+          baseStats: { ...organization.baseStats },
+        }
+      : {
+          name: '',
+          subtitle: '',
+          baseStats: { ...DEFAULT_GUARD_STATS },
+        };
 
     const template = this.renderOrganizationForm(data);
-    // Convert TemplateResult to string for DialogV2
     return renderTemplateToString(template);
   }
 
   /**
    * Render the complete organization form
    */
-  private renderOrganizationForm(data: any): TemplateResult {
-    return html` ${this.renderFormContent(data)} ${this.renderFormStyles()} `;
+  private renderOrganizationForm(data: GuardOrganizationFormRenderData): TemplateResult {
+    return html`${this.renderFormContent(data)}`; // styles moved to external CSS file
   }
 
   /**
    * Render form content section
    */
-  private renderFormContent(data: any): TemplateResult {
+  private renderFormContent(data: GuardOrganizationFormRenderData): TemplateResult {
     return html`
-      <form class="guard-organization-form">
+      <form class="guard-organization-form" data-form-scope="guard-organization">
         ${this.renderBasicInfoSection(data)} ${this.renderStatsSection(data)}
         ${this.renderInfoSection()}
       </form>
@@ -262,7 +274,7 @@ export class GuardOrganizationDialog {
   /**
    * Render basic information section
    */
-  private renderBasicInfoSection(data: any): TemplateResult {
+  private renderBasicInfoSection(data: GuardOrganizationFormRenderData): TemplateResult {
     return html`
       <div class="form-group">
         <label for="name">Nombre de la Organización *</label>
@@ -292,15 +304,19 @@ export class GuardOrganizationDialog {
   /**
    * Render stats section
    */
-  private renderStatsSection(data: any): TemplateResult {
+  private renderStatsSection(data: GuardOrganizationFormRenderData): TemplateResult {
+    const stats: Array<{ key: keyof GuardStats; label: string }> = [
+      { key: 'robustismo', label: 'Robustismo' },
+      { key: 'analitica', label: 'Analítica' },
+      { key: 'subterfugio', label: 'Subterfugio' },
+      { key: 'elocuencia', label: 'Elocuencia' },
+    ];
+
     return html`
       <div class="stats-section">
         <h3>Estadísticas Base</h3>
         <div class="stats-grid">
-          ${this.renderStatInput('robustismo', 'Robustismo', data)}
-          ${this.renderStatInput('analitica', 'Analítica', data)}
-          ${this.renderStatInput('subterfugio', 'Subterfugio', data)}
-          ${this.renderStatInput('elocuencia', 'Elocuencia', data)}
+          ${stats.map((s) => this.renderStatInput(s.key, s.label, data))}
         </div>
       </div>
     `;
@@ -309,7 +325,11 @@ export class GuardOrganizationDialog {
   /**
    * Render individual stat input
    */
-  private renderStatInput(statName: string, label: string, data: any): TemplateResult {
+  private renderStatInput(
+    statName: keyof GuardStats,
+    label: string,
+    data: GuardOrganizationFormRenderData
+  ): TemplateResult {
     const value =
       data.baseStats?.[statName] !== undefined
         ? data.baseStats[statName]
@@ -339,115 +359,12 @@ export class GuardOrganizationDialog {
       <div class="dialog-info">
         <p><small>* Campos requeridos</small></p>
         <p>
-          <small
-            >Las estadísticas pueden ser de -99 a 99 y modificadas más tarde mediante modificadores
-            de organización.</small
-          >
+          <small>
+            Las estadísticas pueden ser de -99 a 99 y modificadas más tarde mediante modificadores
+            de organización.
+          </small>
         </p>
       </div>
-    `;
-  }
-
-  /**
-   * Render form styles
-   */
-  private renderFormStyles(): TemplateResult {
-    return html`
-      <style>
-        .guard-organization-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          padding: 1rem;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .form-group label {
-          font-weight: bold;
-          color: #f0f0e0;
-        }
-
-        .form-group input {
-          padding: 0.5rem;
-          border: 1px solid #666;
-          border-radius: 4px;
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
-        }
-
-        .stats-section h3 {
-          margin: 1rem 0 0.5rem 0;
-          color: #f0f0e0;
-          border-bottom: 2px solid #444;
-          padding-bottom: 0.5rem;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
-        }
-
-        .stat-input {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .stat-input label {
-          font-size: 0.9rem;
-          font-weight: bold;
-          color: #d0d0c0;
-        }
-
-        .stat-input input {
-          padding: 0.5rem;
-          border: 1px solid #666;
-          border-radius: 4px;
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
-          text-align: center;
-          transition:
-            border-color 0.3s ease,
-            background-color 0.3s ease;
-        }
-
-        .stat-input input.error,
-        .form-group input.error {
-          border-color: #ff4444 !important;
-          background-color: rgba(255, 68, 68, 0.1) !important;
-          animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes shake {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-          25% {
-            transform: translateX(-5px);
-          }
-          75% {
-            transform: translateX(5px);
-          }
-        }
-
-        .dialog-info {
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 1px solid #444;
-        }
-
-        .dialog-info p {
-          margin: 0.25rem 0;
-          color: #bbb;
-        }
-      </style>
     `;
   }
 
