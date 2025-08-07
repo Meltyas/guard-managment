@@ -190,10 +190,7 @@ export class ResourceTemplate {
   /**
    * Send a resource to chat
    */
-  static async sendResourceToChat(
-    resourceId: string,
-    whisperTo?: string[]
-  ): Promise<void> {
+  static async sendResourceToChat(resourceId: string, whisperTo?: string[]): Promise<void> {
     const chatHTML = ResourceTemplate.generateResourceChatHTML(resourceId);
 
     if (!chatHTML) {

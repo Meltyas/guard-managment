@@ -248,10 +248,7 @@ export class ReputationTemplate {
   /**
    * Send a reputation to chat
    */
-  static async sendReputationToChat(
-    reputationId: string,
-    whisperTo?: string[]
-  ): Promise<void> {
+  static async sendReputationToChat(reputationId: string, whisperTo?: string[]): Promise<void> {
     const chatHTML = ReputationTemplate.generateReputationChatHTML(reputationId);
 
     if (!chatHTML) {

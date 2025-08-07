@@ -10,6 +10,8 @@ import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-
 import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 // Import CSS for drag & drop styling
 import '../styles/custom-info-dialog.css';
+import { ConfirmService } from '../utils/services/ConfirmService.js';
+import { NotificationService } from '../utils/services/NotificationService.js';
 import { renderTemplateToString, safeRender } from '../utils/template-renderer.js';
 import { ReputationTemplate } from './ReputationTemplate.js';
 import { ResourceTemplate } from './ResourceTemplate.js';
@@ -495,11 +497,7 @@ export class CustomInfoDialog implements FocusableDialog {
       await this.refreshContent();
 
       // Show notification with the proper resource name from the event
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info(
-          `El recurso "${resourceName}" fue eliminado del sistema`
-        );
-      }
+      NotificationService.info(`El recurso "${resourceName}" fue eliminado del sistema`);
     }
   }
 
@@ -521,10 +519,8 @@ export class CustomInfoDialog implements FocusableDialog {
       await this.refreshContent();
 
       // Show notification only if name changed
-      if (oldName !== newName && (globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info(
-          `Recurso actualizado: "${oldName}" → "${newName}"`
-        );
+      if (oldName !== newName) {
+        NotificationService.info(`Recurso actualizado: "${oldName}" → "${newName}"`);
       }
     }
   }
@@ -547,10 +543,8 @@ export class CustomInfoDialog implements FocusableDialog {
       await this.refreshContent();
 
       // Show notification only if name changed
-      if (oldName !== newName && (globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info(
-          `Reputación actualizada: "${oldName}" → "${newName}"`
-        );
+      if (oldName !== newName) {
+        NotificationService.info(`Reputación actualizada: "${oldName}" → "${newName}"`);
       }
     }
   }
@@ -752,8 +746,6 @@ export class CustomInfoDialog implements FocusableDialog {
    */
   private async handleRemoveResource(resourceId: string, resourceName: string): Promise<void> {
     console.log('🗑️ Remove resource request:', resourceName, resourceId);
-
-    // Show confirmation dialog
     const confirmed = await this.showRemoveResourceDialog(resourceName);
     if (!confirmed) {
       console.log('❌ Resource removal cancelled by user');
@@ -778,11 +770,9 @@ export class CustomInfoDialog implements FocusableDialog {
       // Check if resource is assigned
       if (!organization.resources || !organization.resources.includes(resourceId)) {
         console.log('ℹ️ Resource not assigned - nothing to remove');
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.warn(
-            `El recurso "${resourceName}" no está asignado a esta organización`
-          );
-        }
+        NotificationService.warn(
+          `El recurso "${resourceName}" no está asignado a esta organización`
+        );
         return;
       }
 
@@ -806,21 +796,13 @@ export class CustomInfoDialog implements FocusableDialog {
       console.log('✅ Resource removed successfully');
 
       // Show success notification
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info(
-          `Recurso "${resourceName}" removido de la organización`
-        );
-      }
+      NotificationService.info(`Recurso "${resourceName}" removido de la organización`);
 
       // Re-render the dialog to show the updated resources
       await this.refreshContent();
     } catch (error) {
       console.error('❌ Error removing resource:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error(
-          'Error al remover el recurso de la organización'
-        );
-      }
+      NotificationService.error('Error al remover el recurso de la organización');
     }
   }
 
@@ -828,29 +810,15 @@ export class CustomInfoDialog implements FocusableDialog {
    * Show confirmation dialog for removing a resource
    */
   private async showRemoveResourceDialog(resourceName: string): Promise<boolean> {
-    try {
-      // Use foundry's built-in confirmation dialog
-      const result = await Dialog.confirm({
-        title: 'Confirmar Remoción',
-        content: `
+    const html = `
           <div style="margin-bottom: 1rem;">
             <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
             <strong>¿Estás seguro?</strong>
           </div>
           <p>¿Deseas remover el recurso "<strong>${resourceName}</strong>" de esta organización?</p>
           <p><small>Esta acción se puede deshacer asignando el recurso nuevamente.</small></p>
-        `,
-        yes: () => true,
-        no: () => false,
-        defaultYes: false,
-      });
-
-      return result;
-    } catch (error) {
-      console.error('Error showing confirmation dialog:', error);
-      // Fallback to browser confirm if Dialog fails
-      return confirm(`¿Deseas remover el recurso "${resourceName}" de esta organización?`);
-    }
+        `;
+    return await ConfirmService.confirm({ title: 'Confirmar Remoción', html });
   }
 
   /**
@@ -862,9 +830,7 @@ export class CustomInfoDialog implements FocusableDialog {
     const gm = (window as any).GuardManagement;
     if (!gm?.documentManager) {
       console.error('❌ DocumentBasedManager not available');
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('No se pudo acceder al gestor de documentos');
-      }
+      NotificationService.error('No se pudo acceder al gestor de documentos');
       return;
     }
 
@@ -875,9 +841,7 @@ export class CustomInfoDialog implements FocusableDialog {
 
       if (!resource) {
         console.error('❌ Resource not found:', resourceId);
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.error('Recurso no encontrado');
-        }
+        NotificationService.error('Recurso no encontrado');
         return;
       }
 
@@ -903,11 +867,7 @@ export class CustomInfoDialog implements FocusableDialog {
           console.log('✅ Resource saved to database');
 
           // Notify success
-          if ((globalThis as any).ui?.notifications) {
-            (globalThis as any).ui.notifications.info(
-              `Recurso "${editedResource.name}" actualizado exitosamente`
-            );
-          }
+          NotificationService.info(`Recurso "${editedResource.name}" actualizado exitosamente`);
 
           // Dispatch event for other dialogs to update (like warehouse)
           const event = new CustomEvent('guard-resource-updated', {
@@ -924,18 +884,12 @@ export class CustomInfoDialog implements FocusableDialog {
           await this.refreshContent();
         } else {
           console.error('❌ Failed to save resource to database');
-          if ((globalThis as any).ui?.notifications) {
-            (globalThis as any).ui.notifications.error(
-              'Error al guardar el recurso en la base de datos'
-            );
-          }
+          NotificationService.error('Error al guardar el recurso en la base de datos');
         }
       }
     } catch (error) {
       console.error('❌ Error editing resource:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al editar el recurso');
-      }
+      NotificationService.error('Error al editar el recurso');
     }
   }
 
@@ -955,14 +909,10 @@ export class CustomInfoDialog implements FocusableDialog {
       console.log('✅ Resource sent to chat successfully');
 
       // Show success notification
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info('Recurso enviado al chat');
-      }
+      NotificationService.info('Recurso enviado al chat');
     } catch (error) {
       console.error('❌ Error sending resource to chat:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al enviar recurso al chat');
-      }
+      NotificationService.error('Error al enviar recurso al chat');
     }
   }
 
@@ -982,14 +932,10 @@ export class CustomInfoDialog implements FocusableDialog {
       console.log('✅ Reputation sent to chat successfully');
 
       // Show success notification
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info('Reputación enviada al chat');
-      }
+      NotificationService.info('Reputación enviada al chat');
     } catch (error) {
       console.error('❌ Error sending reputation to chat:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al enviar reputación al chat');
-      }
+      NotificationService.error('Error al enviar reputación al chat');
     }
   }
 
@@ -1025,9 +971,7 @@ export class CustomInfoDialog implements FocusableDialog {
       }, 200); // Increased delay from 100ms to 200ms
     } catch (error) {
       console.error('❌ Error showing add reputation dialog:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al abrir el diálogo de reputación');
-      }
+      NotificationService.error('Error al abrir el diálogo de reputación');
     }
   }
 
@@ -1061,10 +1005,8 @@ export class CustomInfoDialog implements FocusableDialog {
       const newName = updatedReputation?.name || oldName;
 
       // Show notification only if we can determine the name changed
-      if (oldName !== newName && (globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info(
-          `Reputación actualizada: "${oldName}" → "${newName}"`
-        );
+      if (oldName !== newName) {
+        NotificationService.info(`Reputación actualizada: "${oldName}" → "${newName}"`);
       }
 
       // Dispatch event for other dialogs to update
@@ -1078,9 +1020,7 @@ export class CustomInfoDialog implements FocusableDialog {
       document.dispatchEvent(event);
     } catch (error) {
       console.error('❌ Error showing edit reputation dialog:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al editar la reputación');
-      }
+      NotificationService.error('Error al editar la reputación');
     }
   }
 
@@ -1092,8 +1032,6 @@ export class CustomInfoDialog implements FocusableDialog {
     reputationName: string
   ): Promise<void> {
     console.log('🗑️ Remove reputation request:', reputationName, reputationId);
-
-    // Show confirmation dialog
     const confirmed = await this.showRemoveReputationDialog(reputationName);
     if (!confirmed) {
       console.log('❌ Reputation removal cancelled by user');
@@ -1118,11 +1056,9 @@ export class CustomInfoDialog implements FocusableDialog {
       // Check if reputation is assigned
       if (!organization.reputation || !organization.reputation.includes(reputationId)) {
         console.log('ℹ️ Reputation not assigned - nothing to remove');
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.warn(
-            `La reputación "${reputationName}" no está asignada a esta organización`
-          );
-        }
+        NotificationService.warn(
+          `La reputación "${reputationName}" no está asignada a esta organización`
+        );
         return;
       }
 
@@ -1146,21 +1082,13 @@ export class CustomInfoDialog implements FocusableDialog {
       console.log('✅ Reputation removed successfully');
 
       // Show success notification
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info(
-          `Reputación "${reputationName}" removida de la organización`
-        );
-      }
+      NotificationService.info(`Reputación "${reputationName}" removida de la organización`);
 
       // Re-render the dialog to show the updated reputation list
       await this.refreshContent();
     } catch (error) {
       console.error('❌ Error removing reputation:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error(
-          'Error al remover la reputación de la organización'
-        );
-      }
+      NotificationService.error('Error al remover la reputación de la organización');
     }
   }
 
@@ -1168,29 +1096,15 @@ export class CustomInfoDialog implements FocusableDialog {
    * Show confirmation dialog for removing a reputation
    */
   private async showRemoveReputationDialog(reputationName: string): Promise<boolean> {
-    try {
-      // Use foundry's built-in confirmation dialog
-      const result = await Dialog.confirm({
-        title: 'Confirmar Remoción',
-        content: `
+    const html = `
           <div style="margin-bottom: 1rem;">
             <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
             <strong>¿Estás seguro?</strong>
           </div>
           <p>¿Deseas remover la reputación "<strong>${reputationName}</strong>" de esta organización?</p>
           <p><small>Esta acción se puede deshacer asignando la reputación nuevamente.</small></p>
-        `,
-        yes: () => true,
-        no: () => false,
-        defaultYes: false,
-      });
-
-      return result;
-    } catch (error) {
-      console.error('Error showing confirmation dialog:', error);
-      // Fallback to browser confirm if Dialog fails
-      return confirm(`¿Deseas remover la reputación "${reputationName}" de esta organización?`);
-    }
+        `;
+    return await ConfirmService.confirm({ title: 'Confirmar Remoción', html });
   }
 
   /**
@@ -1346,31 +1260,8 @@ export class CustomInfoDialog implements FocusableDialog {
    * Load external CSS styles for the custom dialog
    */
   private loadExternalStyles(): void {
-    const styleId = 'custom-info-dialog-styles';
-
-    // Check if styles already exist
-    if (document.getElementById(styleId)) {
-      console.log('🎨 CSS styles already loaded');
-      return;
-    }
-
-    // Create link element for external CSS
-    const link = document.createElement('link');
-    link.id = styleId;
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = 'modules/guard-management/styles/custom-info-dialog.css';
-
-    link.onload = () => {
-      console.log('🎨 CSS styles loaded successfully');
-    };
-
-    link.onerror = () => {
-      console.error('❌ Error loading CSS styles');
-    };
-
-    document.head.appendChild(link);
-    console.log('🎨 CSS link added to document head');
+    // Dynamic loading removed; styles are imported statically via ES modules.
+    return;
   }
 
   /**
@@ -1717,11 +1608,7 @@ export class CustomInfoDialog implements FocusableDialog {
         await this.assignResourceToOrganization(data.resourceData);
 
         // Show success notification
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.info(
-            `Recurso "${data.resourceData.name}" asignado a la organización`
-          );
-        }
+        NotificationService.info(`Recurso "${data.resourceData.name}" asignado a la organización`);
 
         // Re-render the dialog to show the new resource
         await this.refreshContent();
@@ -1732,11 +1619,7 @@ export class CustomInfoDialog implements FocusableDialog {
         await this.assignReputationToOrganization(reputationData);
 
         // Show success notification
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.info(
-            `Reputación "${reputationData.name}" asignada a la organización`
-          );
-        }
+        NotificationService.info(`Reputación "${reputationData.name}" asignada a la organización`);
 
         // Re-render the dialog to show the new reputation
         await this.refreshContent();
@@ -1745,11 +1628,7 @@ export class CustomInfoDialog implements FocusableDialog {
       }
     } catch (error) {
       console.error('❌ Error parsing drop data:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error(
-          'Error al asignar el elemento a la organización'
-        );
-      }
+      NotificationService.error('Error al asignar el elemento a la organización');
     }
   }
 
@@ -1782,11 +1661,9 @@ export class CustomInfoDialog implements FocusableDialog {
       // Check if resource is already assigned
       if (organization.resources.includes(resourceData.id)) {
         console.log('ℹ️ Resource already assigned - skipping');
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.warn(
-            `El recurso "${resourceData.name}" ya está asignado a esta organización`
-          );
-        }
+        NotificationService.warn(
+          `El recurso "${resourceData.name}" ya está asignado a esta organización`
+        );
         return;
       }
 
@@ -1810,6 +1687,7 @@ export class CustomInfoDialog implements FocusableDialog {
       console.log('✅ Resource assigned successfully');
     } catch (error) {
       console.error('❌ Error assigning resource:', error);
+      NotificationService.error('Error al asignar el recurso');
       throw error;
     }
   }
@@ -1843,11 +1721,9 @@ export class CustomInfoDialog implements FocusableDialog {
       // Check if reputation is already assigned
       if (organization.reputation.includes(reputationData.id)) {
         console.log('ℹ️ Reputation already assigned - skipping');
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.warn(
-            `La reputación "${reputationData.name}" ya está asignada a esta organización`
-          );
-        }
+        NotificationService.warn(
+          `La reputación "${reputationData.name}" ya está asignada a esta organización`
+        );
         return;
       }
 
@@ -1871,6 +1747,7 @@ export class CustomInfoDialog implements FocusableDialog {
       console.log('✅ Reputation assigned successfully');
     } catch (error) {
       console.error('❌ Error assigning reputation:', error);
+      NotificationService.error('Error al asignar la reputación');
       throw error;
     }
   }
