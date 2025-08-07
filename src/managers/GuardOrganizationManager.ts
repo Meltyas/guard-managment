@@ -294,6 +294,8 @@ export class GuardOrganizationManager {
         await game?.settings?.set('guard-management', 'guardOrganization', this.organization);
         console.log('GuardOrganizationManager | Saved organization to settings (GM backup)');
       }
+      // Siempre intentar persistir en un Actor compartido para que jugadores puedan editar
+      await this.saveToActor();
       if (broadcast) this.broadcastOrganization();
     } catch (error) {
       // Si hay error de permisos con settings, simplemente continuar con la sincronización
@@ -301,12 +303,112 @@ export class GuardOrganizationManager {
         console.log(
           'GuardOrganizationManager | User lacks permission to save to settings, using socket sync only'
         );
+        await this.saveToActor();
         if (broadcast) this.broadcastOrganization();
       } else {
         console.warn('GuardOrganizationManager | Could not save organization to settings:', error);
+        await this.saveToActor();
         if (broadcast) this.broadcastOrganization();
       }
     }
+  }
+
+  /** Persist organization into a dedicated Actor so players (with permissions) can modify */
+  private async saveToActor(): Promise<void> {
+    try {
+      if (!this.organization) return;
+      if (!game?.actors) return;
+      // Buscar actor existente por flag
+      const candidates = game.actors.filter(
+        (a: any) => a?.flags?.['guard-management']?.orgStore === true
+      );
+      let actor: any = candidates[0];
+      if (!actor) {
+        // Crear actor si GM; si no, abortar silenciosamente
+        if (!(game as any).user?.isGM) return;
+        const fallbackType = (CONFIG as any).Actor?.type || 'character';
+        // Asegurar carpeta
+        let folder: any = null;
+        try {
+          const allFolders: any[] = (game as any).folders?.contents || [];
+          folder =
+            allFolders.find((f) => f.type === 'Actor' && f.name === 'Guard Management') || null;
+          if (!folder) {
+            folder = await (Folder as any).create({
+              name: 'Guard Management',
+              type: 'Actor',
+              parent: null,
+            });
+            console.log('GuardOrganizationManager | Created folder Guard Management');
+          }
+        } catch {
+          /* ignore */
+        }
+        actor = await (Actor as any).create({
+          name: 'Guard Organization Store',
+          type: fallbackType,
+          flags: { 'guard-management': { orgStore: true } },
+          ownership: { default: 3 }, // OBSERVER por defecto
+          folder: folder?.id || null,
+        });
+        console.log('GuardOrganizationManager | Created organization actor store');
+      }
+      // Ensure actor in folder if GM
+      if ((game as any).user?.isGM) {
+        try {
+          const allFolders: any[] = (game as any).folders?.contents || [];
+          const targetFolder =
+            allFolders.find((f) => f.type === 'Actor' && f.name === 'Guard Management') || null;
+          if (targetFolder && actor.folder?.id !== targetFolder.id) {
+            await actor.update({ folder: targetFolder.id });
+            console.log(
+              'GuardOrganizationManager | Moved organization actor to Guard Management folder'
+            );
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      const current = actor?.getFlag('guard-management', 'organization');
+      // Solo actualizar si versión nueva para evitar writes innecesarios
+      if (!current || current.version !== this.organization.version) {
+        await actor.setFlag('guard-management', 'organization', this.organization);
+        // Guardar una copia ligera también en notas (opcional) para fácil inspección
+        try {
+          const summary = `${this.organization.name} v${this.organization.version} | Patrols: ${this.organization.patrols?.length || 0}`;
+          // No sobreescribir bio largo existente
+          if (!actor.system?.details?.biography || actor.system.details.biography === '') {
+            await actor.update({ 'system.details.biography': { value: summary } });
+          }
+        } catch {
+          /* ignore */
+        }
+        console.log('GuardOrganizationManager | Saved organization to actor flags');
+      }
+    } catch (e) {
+      console.warn('GuardOrganizationManager | saveToActor failed:', e);
+    }
+  }
+
+  /** Load from actor if available; used mainly for players */
+  private async loadFromActor(): Promise<boolean> {
+    try {
+      if (!game?.actors) return false;
+      const matches = game.actors.filter(
+        (a: any) => a?.flags?.['guard-management']?.orgStore === true
+      );
+      const actor: any = matches[0];
+      if (!actor) return false;
+      const data = await actor.getFlag('guard-management', 'organization');
+      if (data) {
+        this.organization = data as any;
+        console.log('GuardOrganizationManager | Loaded organization from actor flags');
+        return true;
+      }
+    } catch (e) {
+      console.warn('GuardOrganizationManager | loadFromActor failed:', e);
+    }
+    return false;
   }
 
   /**
@@ -381,12 +483,16 @@ export class GuardOrganizationManager {
    */
   private async loadOrganization(): Promise<void> {
     try {
-      const savedOrganization = game?.settings?.get(
-        'guard-management',
-        'guardOrganization'
-      ) as GuardOrganization | null;
-
-      this.organization = savedOrganization;
+      // Intentar primero actor (para que jugadores reciban datos actualizados si GM ya los puso allí)
+      const actorLoaded = await this.loadFromActor();
+      let savedOrganization: GuardOrganization | null = null;
+      if (!actorLoaded) {
+        savedOrganization = game?.settings?.get(
+          'guard-management',
+          'guardOrganization'
+        ) as GuardOrganization | null;
+        this.organization = savedOrganization;
+      }
 
       // hydrate patrol manager from snapshots if present
       if (this.organization?.patrolSnapshots && Array.isArray(this.organization.patrolSnapshots)) {
@@ -396,8 +502,8 @@ export class GuardOrganizationManager {
         }
       }
 
-      if (savedOrganization) {
-        console.log(`GuardOrganizationManager | Loaded organization: ${savedOrganization.name}`);
+      if (this.organization) {
+        console.log(`GuardOrganizationManager | Loaded organization: ${this.organization.name}`);
       } else {
         console.log('GuardOrganizationManager | No saved organization found');
       }

@@ -308,18 +308,20 @@ export class CustomInfoDialog implements FocusableDialog {
   private renderOrganizationPatrolsPlaceholder(): TemplateResult {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
-    const organization = orgMgr?.getOrganization();
     const patrols = orgMgr ? orgMgr.listOrganizationPatrols() : [];
-    return html` <div class="patrols-panel">
+    // Shell never replaced after first render; dynamic section updated separately to prevent duplication
+    return html`<div class="patrols-panel" data-patrols-panel>
       <div class="panel-header">
         <h3><i class="fas fa-users"></i> Patrullas</h3>
         <button type="button" class="btn create-patrol" data-action="create-patrol">
           <i class="fas fa-plus"></i> Nueva Patrulla
         </button>
       </div>
-      ${patrols.length === 0
-        ? html`<p class="empty-state">No hay patrullas. Crea la primera.</p>`
-        : this.renderPatrolCards(patrols)}
+      <div class="patrols-dynamic" data-patrols-container>
+        ${patrols.length === 0
+          ? html`<p class="empty-state">No hay patrullas. Crea la primera.</p>`
+          : this.renderPatrolCards(patrols)}
+      </div>
     </div>`;
   }
 
@@ -887,19 +889,89 @@ export class CustomInfoDialog implements FocusableDialog {
     if (!orgMgr) return;
     const org = orgMgr.getOrganization();
     if (!org) return;
-    const panel = this.element?.querySelector('[data-tab-panel="patrols"]') as HTMLElement | null;
-    if (!panel) return;
-    const tpl = this.renderOrganizationPatrolsPlaceholder();
+    // Simple debounce: if a refresh was scheduled in the same tick, skip
+    if ((this as any)._patrolsRefreshScheduled) {
+      (this as any)._patrolsRefreshPending = true;
+      return;
+    }
+    (this as any)._patrolsRefreshScheduled = true;
+    queueMicrotask(() => {
+      (this as any)._patrolsRefreshScheduled = false;
+      if ((this as any)._patrolsRefreshPending) {
+        (this as any)._patrolsRefreshPending = false;
+        this.refreshPatrolsPanel();
+        return;
+      }
+    });
+    const tabPanel = this.element?.querySelector(
+      '[data-tab-panel="patrols"]'
+    ) as HTMLElement | null;
+    if (!tabPanel) return;
+    // Remove duplicate patrols-panel wrappers if any (keep first)
+    const wrappers = Array.from(tabPanel.querySelectorAll('[data-patrols-panel]')) as HTMLElement[];
+    if (wrappers.length > 1) {
+      wrappers.slice(1).forEach((w) => w.remove());
+    }
+    let wrapper: HTMLElement | null = wrappers[0] || null;
+    if (!wrapper) {
+      // First time: create wrapper fresh
+      safeRender(this.renderOrganizationPatrolsPlaceholder(), tabPanel);
+      wrapper = tabPanel.querySelector('[data-patrols-panel]') as HTMLElement | null;
+    }
+    if (!wrapper) return; // still missing
+    const container = wrapper.querySelector('[data-patrols-container]') as HTMLElement | null;
+    if (!container) {
+      // Rebuild wrapper completely if container missing / corrupted
+      safeRender(this.renderOrganizationPatrolsPlaceholder(), tabPanel);
+      return;
+    }
+    let patrols = orgMgr.listOrganizationPatrols();
+    // Diagnostic + de-dup safeguard (root cause may be data layer emitting duplicates)
+    const seen = new Set<string>();
+    const dups: string[] = [];
+    patrols = patrols.filter((p: any) => {
+      if (!p?.id) return false;
+      if (seen.has(p.id)) {
+        dups.push(p.id);
+        return false; // drop duplicate
+      }
+      seen.add(p.id);
+      return true;
+    });
+    if (dups.length) {
+      console.warn('[PatrolsPanel] Duplicados filtrados en render:', dups);
+    }
+    console.debug('[PatrolsPanel] Render patrol IDs:', Array.from(seen));
+    const dynamicTpl =
+      patrols.length === 0
+        ? html`<p class="empty-state">No hay patrullas. Crea la primera.</p>`
+        : this.renderPatrolCards(patrols);
     try {
-      // Use safeRender (lit-html helper) for efficient updates
-      safeRender(tpl, panel);
+      // Render version guard to prevent interleaving older renders
+      const versionKey = 'data-render-version';
+      const currentVersion = ((this as any)._patrolsRenderVersion =
+        ((this as any)._patrolsRenderVersion || 0) + 1);
+      // Hard clear to avoid any lingering duplicated nodes before lit-html patching
+      while (container.firstChild) container.removeChild(container.firstChild);
+      safeRender(dynamicTpl, container);
+      container.setAttribute(versionKey, String(currentVersion));
+      // Final safety: ensure only one header exists
+      const headers = wrapper.querySelectorAll('.panel-header');
+      if (headers.length > 1) {
+        headers.forEach((h, i) => {
+          if (i > 0) h.remove();
+        });
+      }
     } catch (err) {
-      console.warn('Fallback patrol panel render due to error:', err);
+      console.warn('Patrols dynamic render fallback:', err);
       try {
-        panel.innerHTML = renderTemplateToString(tpl as any);
+        container.innerHTML = '';
+        // naive conversion fallback
+        const temp = document.createElement('div');
+        temp.innerHTML = (dynamicTpl as any).getHTML?.() || '';
+        while (temp.firstChild) container.appendChild(temp.firstChild);
       } catch {
-        // last resort clear
-        panel.textContent = 'Error renderizando patrullas';
+        container.textContent = 'Error actualizando patrullas';
       }
     }
   }
