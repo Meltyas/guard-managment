@@ -2,12 +2,15 @@
  * Register custom document types and data models
  */
 
+import type {} from '../types/foundry';
 import {
   GuardOrganizationModel,
   GuardReputationModel,
   GuardResourceModel,
   PatrolModel,
 } from './models/index.js';
+
+const MODULE_FOLDER_NAME = 'Guard Management';
 
 /**
  * Register all custom DataModels with Foundry
@@ -56,11 +59,13 @@ export async function createGuardOrganization(data: any = {}) {
       patrols: [],
       version: 1,
     },
-    // Establecer permisos para que todos los usuarios puedan editar
     ownership: {
-      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
     },
-  };
+  } as any;
+
+  const folder = await getOrCreateModuleFolder('Actor');
+  if (folder) organizationData.folder = (folder as any).id;
 
   return await Actor.create(organizationData);
 }
@@ -80,17 +85,15 @@ export async function createPatrol(data: any = {}) {
       status: data.status || 'idle',
       version: 1,
     },
-    // Establecer permisos para que todos los usuarios puedan editar
     ownership: {
-      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
     },
   };
-
-  // Only add leaderId if provided and not empty
   if (data.leaderId && data.leaderId.trim() !== '') {
     patrolData.system.leaderId = data.leaderId;
   }
-
+  const folder = await getOrCreateModuleFolder('Actor');
+  if (folder) patrolData.folder = (folder as any).id;
   return await Actor.create(patrolData);
 }
 
@@ -98,23 +101,23 @@ export async function createPatrol(data: any = {}) {
  * Create a Guard Resource item
  */
 export async function createGuardResource(data: any = {}) {
-  const resourceData = {
+  const resourceData: any = {
     name: data.name || 'New Resource',
     type: 'guard-management.guard-resource',
-    img: data.image || '', // Campo img estándar de Foundry
+    img: data.image || '',
     system: {
       description: data.description || '',
       quantity: data.quantity || 1,
-      image: data.image || '', // También en system para compatibilidad
+      image: data.image || '',
       organizationId: data.organizationId || '',
       version: 1,
     },
-    // Establecer permisos para que todos los usuarios puedan editar
     ownership: {
-      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
     },
   };
-
+  const folder = await getOrCreateModuleFolder('Item');
+  if (folder) resourceData.folder = (folder as any).id;
   return await Item.create(resourceData);
 }
 
@@ -122,21 +125,44 @@ export async function createGuardResource(data: any = {}) {
  * Create a Guard Reputation item
  */
 export async function createGuardReputation(data: any = {}) {
-  const reputationData = {
+  const reputationData: any = {
     name: data.name || 'New Reputation',
     type: 'guard-management.guard-reputation',
-    img: data.image || '', // Add the image field at the top level (Foundry standard)
+    img: data.image || '',
     system: {
       description: data.description || '',
-      level: data.level || 4, // Neutrales
+      level: data.level || 4,
       organizationId: data.organizationId || '',
       version: 1,
     },
-    // Establecer permisos para que todos los usuarios puedan editar
     ownership: {
-      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER, // Todos los usuarios tienen permisos de propietario
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
     },
   };
-
+  const folder = await getOrCreateModuleFolder('Item');
+  if (folder) reputationData.folder = (folder as any).id;
   return await Item.create(reputationData);
+}
+
+/**
+ * Get or create the module folder for Actors or Items
+ */
+async function getOrCreateModuleFolder(type: 'Actor' | 'Item'): Promise<Folder | null> {
+  try {
+    // @ts-ignore Foundry global
+    const collection = game?.folders;
+    if (!collection) return null;
+    // @ts-ignore
+    let folder: Folder | undefined = game.folders?.find?.(
+      (f: any) => f.name === MODULE_FOLDER_NAME && f.type === type
+    );
+    if (!folder) {
+      // @ts-ignore
+      folder = await Folder.create({ name: MODULE_FOLDER_NAME, type, sorting: 'a' });
+    }
+    return folder ?? null;
+  } catch (e) {
+    console.error('GuardManagement | Failed to get/create module folder', type, e);
+    return null;
+  }
 }

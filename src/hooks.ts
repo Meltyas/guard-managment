@@ -31,77 +31,141 @@ export function registerHooks(): void {
   });
 
   // Hook for when a user connects
-  Hooks.on('userConnected', (user: User, connected: boolean) => {
+  Hooks.on('userConnected', (user: any, connected: boolean) => {
     if (connected) {
-      console.log(`GuardManagement | User connected: ${user.name}`);
-      // Trigger a sync to the newly connected user
-      if (game?.user?.isGM) {
-        // GM can send current state to the new user
-        Hooks.call('guard-management.userConnected', user);
+      console.log(`GuardManagement | User connected: ${user?.name}`);
+      if ((game as any)?.user?.isGM) {
+        (Hooks as any).call?.('guard-management.userConnected', user);
       }
     }
   });
 
   // Hook for when the canvas is ready
-  Hooks.on('canvasReady', (canvas: Canvas) => {
+  Hooks.on('canvasReady', (canvas: any) => {
     console.log('GuardManagement | Canvas is ready');
-    // Initialize any canvas-related features
-    Hooks.call('guard-management.canvasReady', canvas);
+    (Hooks as any).call?.('guard-management.canvasReady', canvas);
   });
 
   // Hook for token updates (useful for guard position tracking)
-  Hooks.on(
-    'updateToken',
-    (token: TokenDocument, updateData: any, _options: any, userId: string) => {
-      // Check if this token represents a guard
-      if (token.name?.toLowerCase().includes('guard')) {
-        console.log(`GuardManagement | Guard token updated: ${token.name}`);
-        Hooks.call('guard-management.guardTokenUpdated', token, updateData, userId);
+  Hooks.on('updateToken', (token: any, updateData: any, _options: any, userId: string) => {
+    try {
+      const tName = token?.name || token?.document?.name || '';
+      if (tName.toLowerCase().includes('guard')) {
+        console.log(`GuardManagement | Guard token updated: ${tName}`);
+        (Hooks as any).call?.('guard-management.guardTokenUpdated', token, updateData, userId);
       }
+    } catch (err) {
+      console.error('GuardManagement | Token update handling error', err);
     }
-  );
+  });
 
   // Hook for combat tracker updates (guards might react to combat)
-  Hooks.on('updateCombat', (combat: Combat, updateData: any, _options: any, userId: string) => {
+  Hooks.on('updateCombat', (combat: any, updateData: any, _options: any, userId: string) => {
     console.log('GuardManagement | Combat updated');
-    Hooks.call('guard-management.combatUpdated', combat, updateData, userId);
-  });
-
-  // Custom hook for testing sync scenarios
-  Hooks.on('guard-management.testSync', (data: any) => {
-    console.log('GuardManagement | Test sync triggered:', data);
-  });
-
-  // Custom hook for when sync data is applied
-  Hooks.on('guard-management.syncDataApplied', (syncData: any) => {
-    console.log('GuardManagement | Sync data applied:', syncData);
+    (Hooks as any).call?.('guard-management.combatUpdated', combat, updateData, userId);
   });
 
   // Custom hook for user connection events
-  Hooks.on('guard-management.userConnected', (user: User) => {
-    console.log('GuardManagement | Processing new user connection:', user.name);
-  });
-
-  // Custom hook for canvas ready events
-  Hooks.on('guard-management.canvasReady', (_canvas: Canvas) => {
-    console.log('GuardManagement | Processing canvas ready');
+  Hooks.on('guard-management.userConnected', (user: any) => {
+    console.log('GuardManagement | Processing new user connection:', user?.name);
   });
 
   // Custom hook for guard token updates
   Hooks.on(
     'guard-management.guardTokenUpdated',
-    (token: TokenDocument, _updateData: any, _userId: string) => {
-      console.log('GuardManagement | Processing guard token update:', token.name);
+    (token: any, _updateData: any, _userId: string) => {
+      const tName = token?.name || token?.document?.name || '';
+      console.log('GuardManagement | Processing guard token update:', tName);
     }
   );
 
-  // Custom hook for combat updates
-  Hooks.on(
-    'guard-management.combatUpdated',
-    (_combat: Combat, _updateData: any, _userId: string) => {
-      console.log('GuardManagement | Processing combat update');
+  // Hide Guard Management Actors & Items from their directories
+  const hideGuardDocs = () => {
+    const showDebug = (game as any)?.settings?.get?.('guard-management', 'debugMode');
+    if (showDebug) return;
+
+    // Inject CSS (idempotent)
+    if (!document.getElementById('gm-hide-docs-css')) {
+      const style = document.createElement('style');
+      style.id = 'gm-hide-docs-css';
+      style.textContent = `
+        /* Extra hardening: hide any list items we mark */
+        li.gm-hidden-doc { display:none !important; }
+      `;
+      document.head.appendChild(style);
     }
-  );
+
+    const removeGuardEntries = (root: any) => {
+      try {
+        if (!root) return;
+        const collectNodes = (sel: string): Element[] => {
+          if (root instanceof HTMLElement) return Array.from(root.querySelectorAll(sel));
+          if (typeof root.find === 'function') return Array.from(root.find(sel).toArray());
+          if (root[0] instanceof HTMLElement) return Array.from(root[0].querySelectorAll(sel));
+          return [];
+        };
+        const nodes = collectNodes('li.document.item, li.document.actor');
+        for (const el of nodes) {
+          const id = (el as HTMLElement).dataset.documentId;
+          if (!id) continue;
+          const item = (game as any)?.items?.get?.(id);
+          if (item?.type?.startsWith?.('guard-management.')) {
+            el.classList.add('gm-hidden-doc');
+            el.remove();
+            continue;
+          }
+          const actor = (game as any)?.actors?.get?.(id);
+          if (actor?.type?.startsWith?.('guard-management.')) {
+            el.classList.add('gm-hidden-doc');
+            el.remove();
+          }
+        }
+      } catch (e) {
+        console.error('GuardManagement | removeGuardEntries error', e);
+      }
+    };
+
+    // Render hooks (every re-render)
+    Hooks.on('renderActorDirectory', (_app: any, html: any) => removeGuardEntries(html));
+    Hooks.on('renderItemDirectory', (_app: any, html: any) => removeGuardEntries(html));
+
+    // Post-ready one-shot pruning (in case initial render already happened before our hooks)
+    Hooks.once('ready', () => {
+      setTimeout(() => {
+        const actorDir = document.querySelector('#actors-directory, #sidebar #actors');
+        const itemDir = document.querySelector('#items-directory, #sidebar #items');
+        removeGuardEntries(actorDir);
+        removeGuardEntries(itemDir);
+      }, 800);
+    });
+
+    // MutationObserver for dynamic additions
+    const observe = (selector: string) => {
+      const container = document.querySelector(selector);
+      if (!container) return;
+      const obs = new MutationObserver((muts) => {
+        for (const m of muts) {
+          if (m.addedNodes?.length) {
+            m.addedNodes.forEach((n) => {
+              if (n instanceof HTMLElement) removeGuardEntries(n);
+            });
+          }
+        }
+      });
+      obs.observe(container, { childList: true, subtree: true });
+      (window as any)._gmDirObservers = (window as any)._gmDirObservers || [];
+      (window as any)._gmDirObservers.push(obs);
+    };
+
+    const setupObservers = () => {
+      observe('#actors-directory, #sidebar #actors');
+      observe('#items-directory, #sidebar #items');
+    };
+
+    if (document.readyState === 'complete') setTimeout(setupObservers, 1000);
+    else window.addEventListener('load', () => setTimeout(setupObservers, 1000));
+  };
+  hideGuardDocs();
 
   console.log('GuardManagement | Hooks registered successfully');
 }
@@ -176,7 +240,7 @@ function registerChatCommands(guardManagement: any): void {
           break;
         case 'help':
         case 'ayuda':
-          ChatMessage.create({
+          (ChatMessage as any).create({
             content: `
               <h3>Comandos de Gestión de Guardias</h3>
               <ul>
