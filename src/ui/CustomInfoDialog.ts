@@ -25,6 +25,9 @@ export class CustomInfoDialog implements FocusableDialog {
   private onCloseCallback?: () => void;
   private isFocused = false;
   private currentOrganization: GuardOrganization | null = null;
+  // Tab state keys
+  private static readonly TAB_LS_KEY = 'guard-management.infoDialog.selectedTab';
+  private tabsInitialized = false;
   private resourceEventHandler: ((event: Event) => void) | null = null;
   private uiRefreshHandler?: (event: Event) => void;
 
@@ -146,6 +149,7 @@ export class CustomInfoDialog implements FocusableDialog {
     // Render using lit-html templates directly
     const dialogTemplate = this.renderOrganizationDialogTemplate(organization);
     safeRender(dialogTemplate, dialog);
+    this.initTabs(dialog);
 
     // Load external CSS styles
     this.loadExternalStyles();
@@ -185,22 +189,16 @@ export class CustomInfoDialog implements FocusableDialog {
     // Update content
     const contentElement = this.element.querySelector('.custom-dialog-content');
     if (contentElement) {
-      // IMPORTANT: Instead of clearing innerHTML, create a new container for lit-html
-      // This prevents lit-html from losing track of its DOM nodes
-
-      // Create a new container element
       const newContainer = document.createElement('div');
       newContainer.className = 'organization-content';
-
-      // Clear the parent and add the new container
       contentElement.innerHTML = '';
       contentElement.appendChild(newContainer);
-
       const organizationTemplate = this.renderOrganizationContent(organization);
       safeRender(organizationTemplate, newContainer);
+      // allow tabs to re-bind after each refresh
+      this.tabsInitialized = false;
+      this.initTabs(this.element!);
       console.log('✅ Dialog updated with', organization.resources?.length || 0, 'resources');
-
-      // Re-setup resource event listeners after content is rendered
       setTimeout(() => {
         this.setupEventListeners();
       }, 50);
@@ -214,6 +212,48 @@ export class CustomInfoDialog implements FocusableDialog {
     console.log('🔍 Rendering organization content:', organization.name);
     console.log('🔍 Organization resources:', organization.resources);
 
+    return html`
+      <div class="org-tabs-layout" data-current-tab="general">
+        <nav
+          class="org-tabs"
+          role="tablist"
+          aria-orientation="vertical"
+          data-initial-tab="${localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general'}"
+        >
+          <button type="button" class="org-tab-btn" role="tab" data-tab="general">
+            <i class="fas fa-info-circle"></i><span>General</span>
+          </button>
+          <button type="button" class="org-tab-btn" role="tab" data-tab="patrols">
+            <i class="fas fa-users"></i><span>Patrullas</span>
+          </button>
+          <button type="button" class="org-tab-btn" role="tab" data-tab="resources">
+            <i class="fas fa-coins"></i><span>Recursos</span>
+          </button>
+          <button type="button" class="org-tab-btn" role="tab" data-tab="reputation">
+            <i class="fas fa-handshake"></i><span>Reputación</span>
+          </button>
+          <div class="active-bar" aria-hidden="true"></div>
+        </nav>
+        <div class="org-tab-panels">
+          <section class="org-tab-panel" role="tabpanel" data-tab-panel="general">
+            ${this.renderOrganizationGeneralPanel(organization)}
+          </section>
+          <section class="org-tab-panel" role="tabpanel" data-tab-panel="patrols">
+            ${this.renderOrganizationPatrolsPlaceholder()}
+          </section>
+          <section class="org-tab-panel" role="tabpanel" data-tab-panel="resources">
+            ${this.renderOrganizationResourcesPanel(organization)}
+          </section>
+          <section class="org-tab-panel" role="tabpanel" data-tab-panel="reputation">
+            ${this.renderOrganizationReputationPanel(organization)}
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
+  /** Render previous general info (extracted) */
+  private renderOrganizationGeneralPanel(organization: GuardOrganization): TemplateResult {
     return html`
       <div class="organization-info">
         <div class="info-section">
@@ -259,7 +299,31 @@ export class CustomInfoDialog implements FocusableDialog {
             <span class="label">patrullas activas</span>
           </div>
         </div>
+      </div>
+    `;
+  }
 
+  /** Patrols placeholder panel */
+  private renderOrganizationPatrolsPlaceholder(): TemplateResult {
+    return html`
+      <div class="patrols-placeholder">
+        <h3><i class="fas fa-users"></i> Patrullas</h3>
+        <p class="muted">
+          Sección en construcción. Aquí gestionaremos patrullas derivadas de la organización.
+        </p>
+        <ul class="placeholder-list">
+          <li><i class="fas fa-plus-circle"></i> Crear / listar patrullas</li>
+          <li><i class="fas fa-user-shield"></i> Asignar líderes</li>
+          <li><i class="fas fa-bolt"></i> Aplicar efectos</li>
+        </ul>
+        <div class="coming-soon-pill">PRÓXIMAMENTE</div>
+      </div>
+    `;
+  }
+
+  private renderOrganizationResourcesPanel(organization: GuardOrganization): TemplateResult {
+    return html`
+      <div class="organization-info">
         <div class="info-section resources-section">
           <h3><i class="fas fa-coins"></i> Recursos</h3>
           <div class="resources-list" data-organization-id="${organization.id}">
@@ -274,7 +338,13 @@ export class CustomInfoDialog implements FocusableDialog {
                 </p>`}
           </div>
         </div>
+      </div>
+    `;
+  }
 
+  private renderOrganizationReputationPanel(organization: GuardOrganization): TemplateResult {
+    return html`
+      <div class="organization-info">
         <div class="info-section resources-section">
           <h3><i class="fas fa-handshake"></i> Reputación</h3>
           <div class="resources-list reputation-list" data-organization-id="${organization.id}">
@@ -1329,11 +1399,18 @@ export class CustomInfoDialog implements FocusableDialog {
           </div>
         </div>
 
-        <div class="info-section">
+        <div class="info-section resources-section">
           <h3><i class="fas fa-handshake"></i> Reputación</h3>
-          <div class="reputation-count">
-            <span class="count">${organization.reputation?.length || 0}</span>
-            <span class="label">relaciones con facciones</span>
+          <div class="resources-list reputation-list" data-organization-id="${organization.id}">
+            ${organization.reputation && organization.reputation.length > 0
+              ? html`${organization.reputation
+                  .map((reputationId: string) => this.renderReputationItemTemplate(reputationId))
+                  .filter((template: any) => template !== null)}`
+              : html`<p class="empty-state">
+                  No hay entradas de reputación para esta organización.<br /><small
+                    >Arrastra reputaciones desde el warehouse</small
+                  >
+                </p>`}
           </div>
         </div>
       </div>
@@ -1835,5 +1912,58 @@ export class CustomInfoDialog implements FocusableDialog {
     } catch (error) {
       console.error('❌ Error refreshing dialog content:', error);
     }
+  }
+
+  private initTabs(root: HTMLElement): void {
+    if (this.tabsInitialized) return; // prevent duplicate listeners
+    const layout = root.querySelector('.org-tabs-layout') as HTMLElement;
+    if (!layout) return;
+    const tabsContainer = layout.querySelector('.org-tabs') as HTMLElement;
+    const buttons = Array.from(layout.querySelectorAll('.org-tab-btn')) as HTMLButtonElement[];
+    const panels = Array.from(layout.querySelectorAll('.org-tab-panel')) as HTMLElement[];
+    const activeBar = tabsContainer?.querySelector('.active-bar') as HTMLElement | null;
+
+    const stored = localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general';
+
+    const positionBar = (btn: HTMLButtonElement | undefined) => {
+      if (!btn || !activeBar) return;
+      activeBar.style.top = btn.offsetTop + 'px';
+      activeBar.style.height = btn.offsetHeight + 'px';
+    };
+
+    const activate = (tab: string) => {
+      buttons.forEach((b) => {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      panels.forEach((p) => p.classList.toggle('active', p.dataset.tabPanel === tab));
+      layout.setAttribute('data-current-tab', tab);
+      try {
+        localStorage.setItem(CustomInfoDialog.TAB_LS_KEY, tab);
+      } catch {}
+      positionBar(buttons.find((b) => b.dataset.tab === tab));
+    };
+
+    buttons.forEach((b) => b.addEventListener('click', () => activate(b.dataset.tab!)));
+
+    // Keyboard navigation
+    layout.addEventListener('keydown', (ev) => {
+      if (!['ArrowUp', 'ArrowDown', 'w', 's', 'W', 'S'].includes(ev.key)) return;
+      const idx = buttons.findIndex((b) => b.classList.contains('active'));
+      if (idx === -1) return;
+      let next = idx + (ev.key === 'ArrowUp' || ev.key === 'w' || ev.key === 'W' ? -1 : 1);
+      if (next < 0) next = buttons.length - 1;
+      if (next >= buttons.length) next = 0;
+      activate(buttons[next].dataset.tab!);
+      buttons[next].focus();
+      ev.preventDefault();
+    });
+
+    // Initial activation
+    activate(stored);
+    requestAnimationFrame(() => positionBar(buttons.find((b) => b.classList.contains('active'))));
+
+    this.tabsInitialized = true;
   }
 }
