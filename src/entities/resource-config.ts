@@ -76,7 +76,7 @@ function generateResourceChatTemplate(entity: Resource, context: ChatContext): s
           }
         </div>
       </div>
-      ${context.organizationName ? `<div class="resource-source">Desde: <strong>${context.organizationName}</strong></div>` : ''}
+      ${context.organizationName ? `<div class="resource-source"><strong>${context.organizationName}</strong></div>` : ''}
     </div>
   `;
 }

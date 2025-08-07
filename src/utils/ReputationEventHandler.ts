@@ -94,9 +94,8 @@ export class ReputationEventHandler {
         event.preventDefault();
         event.stopPropagation();
         const reputationId = btn.getAttribute('data-reputation-id');
-        const organizationId = btn.getAttribute('data-organization-id');
         if (reputationId) {
-          await this.handleSendToChat(context, reputationId, organizationId);
+          await this.handleSendToChat(context, reputationId);
         }
       });
     });
@@ -262,28 +261,13 @@ export class ReputationEventHandler {
    */
   private static async handleSendToChat(
     context: ReputationEventContext,
-    reputationId: string,
-    organizationId?: string | null
+    reputationId: string
   ): Promise<void> {
     try {
       // Import ReputationTemplate dynamically to avoid circular dependencies
       const { ReputationTemplate } = await import('../ui/ReputationTemplate.js');
 
-      // Get organization name if available
-      let organizationName = undefined;
-      if (organizationId) {
-        const gm = (window as any).GuardManagement;
-        if (gm?.documentManager) {
-          const organization = gm.documentManager
-            .getGuardOrganizations()
-            ?.find((org: any) => org.id === organizationId);
-          if (organization) {
-            organizationName = organization.name;
-          }
-        }
-      }
-
-      await ReputationTemplate.sendReputationToChat(reputationId, organizationName);
+      await ReputationTemplate.sendReputationToChat(reputationId);
 
       if (ui?.notifications) {
         ui.notifications.info('Reputación enviada al chat');

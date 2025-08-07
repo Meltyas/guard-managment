@@ -195,7 +195,7 @@ export class ReputationTemplate {
   /**
    * Generate HTML string for chat messages
    */
-  static generateReputationChatHTML(reputationId: string, organizationName?: string): string {
+  static generateReputationChatHTML(reputationId: string): string {
     let reputationData: Reputation | null = null;
 
     try {
@@ -241,7 +241,6 @@ export class ReputationTemplate {
             }
           </div>
         </div>
-        ${organizationName ? `<div class="reputation-source">Desde: <strong>${organizationName}</strong></div>` : ''}
       </div>
     `;
   }
@@ -251,10 +250,9 @@ export class ReputationTemplate {
    */
   static async sendReputationToChat(
     reputationId: string,
-    organizationName?: string,
     whisperTo?: string[]
   ): Promise<void> {
-    const chatHTML = ReputationTemplate.generateReputationChatHTML(reputationId, organizationName);
+    const chatHTML = ReputationTemplate.generateReputationChatHTML(reputationId);
 
     if (!chatHTML) {
       console.error('Failed to generate chat HTML for reputation:', reputationId);
@@ -269,7 +267,6 @@ export class ReputationTemplate {
           'guard-management': {
             type: 'reputation',
             reputationId,
-            organizationName,
           },
         },
       });

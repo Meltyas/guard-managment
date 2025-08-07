@@ -1,5 +1,6 @@
 import { html, TemplateResult } from 'lit-html';
 import { REPUTATION_LABELS, ReputationLevel } from '../types/entities.js';
+import { ReputationTemplate } from '../ui/ReputationTemplate.js';
 import { ResourceTemplate } from '../ui/ResourceTemplate.js';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { DOMEventSetup } from '../utils/DOMEventSetup.js';
@@ -1158,8 +1159,8 @@ export class GMWarehouseDialog implements FocusableDialog {
     try {
       console.log('💬 Send template to chat request:', resourceId);
 
-      // Send to chat using ResourceTemplate
-      await ResourceTemplate.sendResourceToChat(resourceId, 'GM Warehouse');
+      // Send to chat using ResourceTemplate (without organization name)
+      await ResourceTemplate.sendResourceToChat(resourceId);
 
       console.log('✅ Template sent to chat successfully');
 
@@ -1417,16 +1418,21 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private async handleSendReputationTemplateToChat(reputationId: string): Promise<void> {
     try {
-      // TODO: Implement reputation chat functionality
-      console.log('Send reputation template to chat:', reputationId);
+      console.log('💬 Send reputation template to chat request:', reputationId);
 
+      // Send to chat using ReputationTemplate (without organization name)
+      await ReputationTemplate.sendReputationToChat(reputationId);
+
+      console.log('✅ Reputation template sent to chat successfully');
+
+      // Show success notification
       if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info('Sending reputation to chat - Coming soon!');
+        (globalThis as any).ui.notifications.info('Reputación enviada al chat');
       }
     } catch (error) {
-      console.error('Error sending reputation template to chat:', error);
+      console.error('❌ Error sending reputation template to chat:', error);
       if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error sending reputation to chat');
+        (globalThis as any).ui.notifications.error('Error al enviar reputación al chat');
       }
     }
   }

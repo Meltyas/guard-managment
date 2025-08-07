@@ -140,7 +140,7 @@ export class ResourceTemplate {
   /**
    * Generate HTML string for chat messages
    */
-  static generateResourceChatHTML(resourceId: string, organizationName?: string): string {
+  static generateResourceChatHTML(resourceId: string): string {
     let resourceData: Resource | null = null;
 
     try {
@@ -183,7 +183,6 @@ export class ResourceTemplate {
             }
           </div>
         </div>
-        ${organizationName ? `<div class="resource-source">Desde: <strong>${organizationName}</strong></div>` : ''}
       </div>
     `;
   }
@@ -193,10 +192,9 @@ export class ResourceTemplate {
    */
   static async sendResourceToChat(
     resourceId: string,
-    organizationName?: string,
     whisperTo?: string[]
   ): Promise<void> {
-    const chatHTML = ResourceTemplate.generateResourceChatHTML(resourceId, organizationName);
+    const chatHTML = ResourceTemplate.generateResourceChatHTML(resourceId);
 
     if (!chatHTML) {
       console.error('Failed to generate chat HTML for resource:', resourceId);
@@ -211,7 +209,6 @@ export class ResourceTemplate {
           'guard-management': {
             type: 'resource',
             resourceId,
-            organizationName,
           },
         },
       });

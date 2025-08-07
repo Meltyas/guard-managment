@@ -78,6 +78,7 @@ El HTML generado para el chat es **idéntico** al usado en Guild Info:
 - Mismas clases CSS
 - Misma información mostrada
 - Mismo diseño visual
+- Nombre de organización sin prefijo "Desde:"
 
 ### CSS Unificado
 
@@ -122,7 +123,7 @@ Los estilos CSS están en `custom-info-dialog.css` bajo la sección `/* ==== CHA
 
 1. Usuario hace clic en botón "Enviar al Chat" 🔘
 2. Se ejecuta `handleSendTemplateToChat()`
-3. Se llama a `ResourceTemplate.sendResourceToChat()` con "GM Warehouse" como origen
+3. Se llama a `ResourceTemplate.sendResourceToChat()` sin organización de origen
 4. Mismo proceso de generación y envío 💬
 
 ## Ventajas del Sistema Unificado

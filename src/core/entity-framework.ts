@@ -231,7 +231,15 @@ export class EntityChatIntegration<T extends Identifiable> implements Chattable<
             <span class="${entityType}-name">${entity.name}</span>
           </div>
         </div>
-        ${context.organizationName ? `<div class="${entityType}-source">Desde: <strong>${context.organizationName}</strong></div>` : ''}
+        ${
+          context.organizationName
+            ? `        </div>
+      </div>
+      </div>
+        ${context.organizationName ? `<div class="${entityType}-source"><strong>${context.organizationName}</strong></div>` : ''}
+    </div>`
+            : ''
+        }
       </div>
     `;
   }

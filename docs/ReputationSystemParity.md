@@ -85,6 +85,15 @@ He realizado una auditoría completa línea por línea del sistema de Resources 
 - Event handlers para focus/blur
 - Cleanup apropiado en cierre de dialogs
 
+### ✅ Chat Integration
+
+- **ReputationTemplate.sendReputationToChat()**: Implementado completamente
+- **CustomInfoDialog**: Handler para botón "Enviar al Chat" de reputaciones
+- **GMWarehouseDialog**: Handler para botón "Enviar al Chat" de reputation templates
+- **CSS Styles**: `.guard-reputation-chat` con diseño idéntico a resources
+- **Event Handling**: Soporte completo para send-to-chat de reputaciones
+- **Organization Context**: Mensaje incluye organización de origen
+
 ### ✅ Validation
 
 - Validación en múltiples niveles:
@@ -171,7 +180,8 @@ export const REPUTATION_TYPE: WarehouseItemType<EnhancedReputation> = {
 - ✅ Templates responsivos y consistentes
 - ✅ Event handling robusto
 - ✅ Drag & drop completamente funcional
-- ✅ Integración de chat con styling
+- ✅ Integración de chat con styling idéntico a resources
+- ✅ Send to chat desde CustomInfoDialog y GMWarehouseDialog
 - ✅ File picker para imágenes
 - ✅ Validación en tiempo real
 

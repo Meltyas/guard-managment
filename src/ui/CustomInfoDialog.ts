@@ -652,11 +652,15 @@ export class CustomInfoDialog implements FocusableDialog {
         event.stopPropagation();
 
         const resourceId = sendToChatBtn.getAttribute('data-resource-id');
+        const reputationId = sendToChatBtn.getAttribute('data-reputation-id');
         const organizationId = sendToChatBtn.getAttribute('data-organization-id');
 
         if (resourceId) {
-          console.log('💬 Send to chat button clicked for:', resourceId);
+          console.log('💬 Send resource to chat button clicked for:', resourceId);
           this.handleSendResourceToChat(resourceId, organizationId || undefined);
+        } else if (reputationId) {
+          console.log('💬 Send reputation to chat button clicked for:', reputationId);
+          this.handleSendReputationToChat(reputationId, organizationId || undefined);
         }
         return;
       }
@@ -945,14 +949,8 @@ export class CustomInfoDialog implements FocusableDialog {
     console.log('💬 Send resource to chat request:', resourceId);
 
     try {
-      // Get organization name if available
-      let organizationName = '';
-      if (this.currentOrganization) {
-        organizationName = this.currentOrganization.name;
-      }
-
       // Send to chat using ResourceTemplate
-      await ResourceTemplate.sendResourceToChat(resourceId, organizationName);
+      await ResourceTemplate.sendResourceToChat(resourceId);
 
       console.log('✅ Resource sent to chat successfully');
 
@@ -964,6 +962,33 @@ export class CustomInfoDialog implements FocusableDialog {
       console.error('❌ Error sending resource to chat:', error);
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.error('Error al enviar recurso al chat');
+      }
+    }
+  }
+
+  /**
+   * Handle sending a reputation to chat
+   */
+  private async handleSendReputationToChat(
+    reputationId: string,
+    _organizationId?: string
+  ): Promise<void> {
+    console.log('💬 Send reputation to chat request:', reputationId);
+
+    try {
+      // Send to chat using ReputationTemplate
+      await ReputationTemplate.sendReputationToChat(reputationId);
+
+      console.log('✅ Reputation sent to chat successfully');
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info('Reputación enviada al chat');
+      }
+    } catch (error) {
+      console.error('❌ Error sending reputation to chat:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al enviar reputación al chat');
       }
     }
   }

@@ -512,6 +512,85 @@
   text-align: center;
 }
 
+/* Reputation Chat Message - Uses exact same styles as resource chat with reputation-specific classes */
+.guard-reputation-chat {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  font-family: 'Roboto', sans-serif;
+  color: #f0f0e0;
+}
+
+.guard-reputation-chat .reputation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.75rem;
+  min-height: 120px;
+}
+
+.guard-reputation-chat .reputation-image {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.guard-reputation-chat .reputation-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.guard-reputation-chat .reputation-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  text-align: center;
+}
+
+.guard-reputation-chat .reputation-name {
+  font-weight: bold;
+  color: #f0f0e0;
+  font-size: 13px;
+}
+
+.guard-reputation-chat .reputation-level {
+  color: #e67e22;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.guard-reputation-chat .reputation-description {
+  color: #d0d0c0;
+  font-size: 10px;
+  font-style: italic;
+  margin-top: 0.25rem;
+  flex: 1;
+}
+
+.guard-reputation-chat .reputation-source {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  color: #bdc3c7;
+  text-align: center;
+}
+
 /* ==== DRAG & DROP STYLES FOR REPUTATIONS ==== */
 
 /* Draggable reputation items */
