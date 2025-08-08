@@ -2,7 +2,7 @@ import { AddOrEditPatrolDialog } from '../dialogs/AddOrEditPatrolDialog';
 import { GuardOrganizationDialog } from '../dialogs/GuardOrganizationDialog';
 import { createGuardReputation, createGuardResource } from '../documents/index';
 import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats, Patrol } from '../types/entities';
-import { PatrolManager } from './PatrolManager';
+import { PatrolChangeOp, PatrolManager } from './PatrolManager';
 
 export class GuardOrganizationManager {
   private organization: GuardOrganization | null = null; // Solo una organización
@@ -11,11 +11,42 @@ export class GuardOrganizationManager {
 
   constructor() {
     this.dialog = new GuardOrganizationDialog();
-    this.patrolManager = new PatrolManager();
+    this.patrolManager = new PatrolManager((patrol, op: PatrolChangeOp, ctx) => {
+      // Sin snapshots: solo mantenemos la lista de IDs y actualizamos versión
+      try {
+        if (!this.organization) return;
+        if (patrol.organizationId !== this.organization.id) return;
+        if (op === 'delete') {
+          const idx = this.organization.patrols.indexOf(patrol.id);
+          if (idx >= 0) this.organization.patrols.splice(idx, 1);
+          this.organization.updatedAt = new Date();
+          this.organization.version += 1;
+          this.saveOrganization(this.organization);
+          return;
+        }
+        if (!this.organization.patrols.includes(patrol.id)) {
+          this.organization.patrols.push(patrol.id);
+        }
+        if (ctx?.field === 'patrolEffects' || ctx?.field === 'baseStats') {
+          this.patrolManager.recalcDerived(patrol.id, {});
+        }
+        this.organization.updatedAt = new Date();
+        this.organization.version += 1;
+        this.saveOrganization(this.organization);
+      } catch (e) {
+        console.warn('GuardOrganizationManager | patrol onChange sync failed', e);
+      }
+    });
   }
 
   public async initialize(): Promise<void> {
     console.log('GuardOrganizationManager | Initializing...');
+    // Asegurar carga de patrullas persistidas en flags antes de cargar organización
+    try {
+      await this.patrolManager.initialize();
+    } catch (e) {
+      console.warn('GuardOrganizationManager | patrolManager initialize failed', e);
+    }
     await this.loadOrganization();
 
     // Si no hay organización, intentar obtenerla del GM o crear una por defecto
@@ -57,7 +88,7 @@ export class GuardOrganizationManager {
       resources: [],
       reputation: [],
       patrols: [],
-      patrolSnapshots: [], // ensure initialization
+      // patrolSnapshots eliminado: datos de patrulla se guardan centralizados en PatrolManager / flags
     } as any;
 
     await this.saveOrganization(defaultOrg);
@@ -198,7 +229,7 @@ export class GuardOrganizationManager {
       resources: [],
       reputation: [],
       patrols: [],
-      patrolSnapshots: [],
+      // patrolSnapshots removido (se centraliza en PatrolManager)
     } as any;
 
     await this.saveOrganization(newOrganization);
@@ -348,7 +379,7 @@ export class GuardOrganizationManager {
           name: 'Guard Organization Store',
           type: fallbackType,
           flags: { 'guard-management': { orgStore: true } },
-          ownership: { default: 3 }, // OBSERVER por defecto
+          ownership: { default: 3 }, // OWNER para que todos puedan editar (nivel 3)
           folder: folder?.id || null,
         });
         console.log('GuardOrganizationManager | Created organization actor store');
@@ -495,15 +526,45 @@ export class GuardOrganizationManager {
       }
 
       // hydrate patrol manager from snapshots if present
-      if (this.organization?.patrolSnapshots && Array.isArray(this.organization.patrolSnapshots)) {
-        for (const snap of this.organization.patrolSnapshots) {
-          // recreate minimal patrols inside patrolManager map
-          this.patrolManager['patrols']?.set?.(snap.id, { ...snap });
-        }
-      }
+      // Ya no hidratamos desde patrolSnapshots; PatrolManager carga desde su propio flag
 
       if (this.organization) {
         console.log(`GuardOrganizationManager | Loaded organization: ${this.organization.name}`);
+        // Fallback: si hay IDs de patrullas pero PatrolManager aún no tiene objetos (ej: actor no disponible al inicio), re-hidratar ahora.
+        if (this.organization.patrols?.length) {
+          const anyPatrol = this.organization.patrols.some(
+            (id) => !!this.patrolManager.getPatrol(id)
+          );
+          if (!anyPatrol) {
+            await this.patrolManager.hydrateFromActor();
+          }
+          // Migración legacy: si todavía existe una propiedad antigua patrolSnapshots en los datos persistidos
+          const legacy: any = this.organization as any;
+          if (Array.isArray(legacy.patrolSnapshots) && legacy.patrolSnapshots.length) {
+            let migrated = 0;
+            for (const snap of legacy.patrolSnapshots) {
+              if (!snap?.id) continue;
+              if (!this.patrolManager.getPatrol(snap.id)) {
+                // Insertar directamente en el map interno (uso interno controlado)
+                (this.patrolManager as any).patrols?.set?.(snap.id, { ...snap });
+                migrated++;
+              }
+            }
+            if (migrated) {
+              console.log(`GuardOrganizationManager | Migrated ${migrated} legacy patrolSnapshots`);
+              // Persistir a flags para que quede guardado en el nuevo formato
+              try {
+                await (this.patrolManager as any).persistToActor?.();
+              } catch {
+                /* ignore */
+              }
+              // Eliminar la propiedad legacy para no re-migrar
+              delete legacy.patrolSnapshots;
+              // Guardar organización sin la propiedad obsoleta
+              await this.saveOrganization(this.organization, false);
+            }
+          }
+        }
       } else {
         console.log('GuardOrganizationManager | No saved organization found');
       }
@@ -525,24 +586,9 @@ export class GuardOrganizationManager {
   }
 
   /** Upsert a patrol snapshot and ensure organization arrays updated & persisted */
-  public upsertPatrolSnapshot(patrol: Patrol): void {
-    if (!this.organization) return;
-    // ensure id in patrols list
-    if (!this.organization.patrols.includes(patrol.id)) {
-      this.organization.patrols.push(patrol.id);
-    }
-    // ensure snapshots array exists
-    this.organization.patrolSnapshots = this.organization.patrolSnapshots || [];
-    const idx = this.organization.patrolSnapshots.findIndex((p) => p.id === patrol.id);
-    if (idx >= 0) {
-      this.organization.patrolSnapshots[idx] = patrol;
-    } else {
-      this.organization.patrolSnapshots.push(patrol);
-    }
-    this.organization.updatedAt = new Date();
-    this.organization.version += 1;
-    // Persist (broadcast handled inside)
-    this.saveOrganization(this.organization);
+  /** @deprecated snapshots eliminados */
+  public upsertPatrolSnapshot(_patrol: Patrol): void {
+    /* no-op */
   }
 
   // Helper: create patrol and attach to organization
@@ -556,15 +602,45 @@ export class GuardOrganizationManager {
       organizationId: this.organization.id,
       baseStats: data.baseStats,
     } as any);
-    this.upsertPatrolSnapshot(patrol);
+    // Solo guardar ID y actualizar organización
+    if (!this.organization.patrols.includes(patrol.id)) this.organization.patrols.push(patrol.id);
+    this.organization.updatedAt = new Date();
+    this.organization.version += 1;
+    this.saveOrganization(this.organization);
     return patrol;
   }
 
   public listOrganizationPatrols(): Patrol[] {
     if (!this.organization) return [];
-    return this.organization.patrols
-      .map((id) => this.patrolManager.getPatrol(id))
-      .filter((p): p is Patrol => !!p);
+    const result: Patrol[] = [];
+    let changed = false;
+    for (const id of [...this.organization.patrols]) {
+      let p = this.patrolManager.getPatrol(id);
+      if (!p) {
+        // Intento tardío de hidratación (por si actor llegó después)
+        // Nota: hidratación rápida no await para no bloquear UI; si se requiere forzar, se puede llamar hydrateFromActor manualmente.
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        this.patrolManager.hydrateFromActor();
+        p = this.patrolManager.getPatrol(id);
+      }
+      if (p) result.push(p);
+      else {
+        // ID huérfano: limpiar para mantener consistencia
+        const idx = this.organization.patrols.indexOf(id);
+        if (idx >= 0) {
+          this.organization.patrols.splice(idx, 1);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      this.organization.updatedAt = new Date();
+      this.organization.version += 1;
+      // Guardar silenciosamente (sin broadcast redundante)
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.saveOrganization(this.organization, false);
+    }
+    return result;
   }
 
   public removePatrol(patrolId: string): boolean {
@@ -572,11 +648,7 @@ export class GuardOrganizationManager {
     const idx = this.organization.patrols.indexOf(patrolId);
     if (idx === -1) return false;
     this.organization.patrols.splice(idx, 1);
-    if (this.organization.patrolSnapshots) {
-      this.organization.patrolSnapshots = this.organization.patrolSnapshots.filter(
-        (p) => p.id !== patrolId
-      );
-    }
+    // Sin snapshots; nada que eliminar adicional
     this.organization.updatedAt = new Date();
     this.organization.version += 1;
     this.saveOrganization(this.organization);

@@ -40,6 +40,17 @@ export class CustomInfoDialog implements FocusableDialog {
     this.handleFocus = this.handleFocus.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
     this.handleGlobalClick = this.handleGlobalClick.bind(this);
+    // Auto-refresh patrols when data layer updates (hydrate / persist)
+    window.addEventListener('guard-patrols-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        // Solo refrescar si la pestaña de patrullas está montada
+        const activeTab = this.element.querySelector('[data-tab-panel="patrols"]');
+        if (activeTab) this.refreshPatrolsPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | patrols auto-refresh failed', e);
+      }
+    });
   }
 
   /**

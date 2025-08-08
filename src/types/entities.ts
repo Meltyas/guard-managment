@@ -20,8 +20,7 @@ export interface GuardOrganization extends BaseEntity {
   resources: string[]; // IDs of associated Resources
   reputation: string[]; // IDs of associated Reputation entries
   patrols: string[]; // IDs of associated Patrols
-  /** Optional serialized patrol snapshots for persistence */
-  patrolSnapshots?: Patrol[]; // <-- added for persistence of patrol data
+  // patrolSnapshots eliminado: PatrolManager centraliza el estado
 }
 
 export interface GuardStats {
