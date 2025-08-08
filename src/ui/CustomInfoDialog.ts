@@ -973,6 +973,12 @@ export class CustomInfoDialog implements FocusableDialog {
           if (i > 0) h.remove();
         });
       }
+      // Setup DnD zones (officer + soldiers) after render
+      try {
+        this.setupPatrolZonesDnD(container);
+      } catch (e) {
+        console.warn('CustomInfoDialog | setupPatrolZonesDnD failed', e);
+      }
     } catch (err) {
       console.warn('Patrols dynamic render fallback:', err);
       try {
@@ -2214,6 +2220,164 @@ export class CustomInfoDialog implements FocusableDialog {
     }
   }
 
+  /** Attach drag & drop to officer and soldier zones inside the patrols container */
+  private setupPatrolZonesDnD(container: HTMLElement) {
+    const gm: any = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    const pMgr = orgMgr?.getPatrolManager?.();
+    if (!pMgr) return;
+    const zones = Array.from(
+      container.querySelectorAll(
+        '.patrol-card .officer-slot[data-drop], .patrol-card .soldiers-zone[data-drop]'
+      )
+    ) as HTMLElement[];
+
+    // Heurística simple: si hay tipos comunes usados por Foundry asumimos que es arrastre válido
+    const isActorDrag = (ev: DragEvent) => {
+      const types = Array.from(ev.dataTransfer?.types || []);
+      if (!types.length) return false;
+      if (types.includes('text/plain')) return true;
+      if (types.includes('text/uuid')) return true;
+      if (types.includes('text/x-foundry-entity')) return true;
+      if (types.some((t) => t.includes('application/json'))) return true;
+      return false;
+    };
+
+    const pullAllDataStrings = (ev: DragEvent): string[] => {
+      const out: string[] = [];
+      if (!ev.dataTransfer) return out;
+      const tryGet = (t: string) => {
+        try {
+          const v = ev.dataTransfer!.getData(t);
+          if (v) out.push(v);
+        } catch {}
+      };
+      tryGet('text/plain');
+      tryGet('text/uuid');
+      tryGet('text/x-foundry-entity');
+      for (const t of ev.dataTransfer.types || []) {
+        if (t.startsWith('application/json')) tryGet(t);
+      }
+      return out.filter(Boolean);
+    };
+
+    const parseCandidate = (raw: string): any | null => {
+      if (!raw) return null;
+      const trimmed = raw.trim();
+      if (!trimmed.startsWith('{')) {
+        if (/^Actor\.[A-Za-z0-9]{5,}$/.test(trimmed)) return { uuid: trimmed };
+      }
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return null;
+      }
+    };
+
+    const resolveActor = async (data: any): Promise<any | null> => {
+      const g: any = (globalThis as any).game;
+      if (!g) return null;
+      const directId = data.id || data.actorId || data._id;
+      if (directId) {
+        const byId =
+          g.actors?.get?.(directId) || g.actors?.contents?.find?.((a: any) => a.id === directId);
+        if (byId) return byId;
+      }
+      const uuid =
+        data.uuid ||
+        data.documentId ||
+        (typeof data === 'string' && data.startsWith('Actor.') ? data : null);
+      if (uuid && typeof (globalThis as any).fromUuid === 'function') {
+        try {
+          const doc = await (globalThis as any).fromUuid(uuid);
+          if (doc?.documentName === 'Actor') return doc;
+        } catch {}
+      }
+      // Fallback: scan by name maybe (not ideal)
+      if (data.name && g.actors) {
+        const byName = g.actors.find?.((a: any) => a.name === data.name);
+        if (byName) return byName;
+      }
+      return null;
+    };
+
+    const obtainActor = async (ev: DragEvent) => {
+      for (const raw of pullAllDataStrings(ev)) {
+        const data = parseCandidate(raw) || raw;
+        const actor = await resolveActor(data);
+        if (actor) return actor;
+      }
+      return null;
+    };
+
+    zones.forEach((zone) => {
+      if ((zone as any)._gmDnD) return;
+      (zone as any)._gmDnD = true;
+      const mode: 'officer' | 'soldier' =
+        (zone.dataset.drop as any) === 'officer' ? 'officer' : 'soldier';
+      const card = zone.closest('.patrol-card') as HTMLElement | null;
+      const pid = card?.dataset.patrolId || '';
+      if (!pid) return;
+      zone.addEventListener('dragenter', (ev) => {
+        if (!isActorDrag(ev)) return;
+        ev.preventDefault();
+        zone.classList.add('dnd-hover');
+        card?.classList.add('dnd-active');
+      });
+      zone.addEventListener('dragover', (ev) => {
+        if (!isActorDrag(ev)) return;
+        ev.preventDefault();
+        ev.dataTransfer!.dropEffect = 'copy';
+        zone.classList.add('dnd-hover');
+        card?.classList.add('dnd-active');
+      });
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dnd-hover');
+        card?.classList.remove('dnd-active');
+      });
+      zone.addEventListener('drop', async (ev) => {
+        if (!isActorDrag(ev)) return;
+        ev.preventDefault();
+        zone.classList.remove('dnd-hover');
+        card?.classList.remove('dnd-active');
+        const actor = await obtainActor(ev);
+        if (!actor) {
+          console.warn(
+            'CustomInfoDialog | Actor no resuelto desde drag data',
+            ev.dataTransfer?.types
+          );
+          return ui?.notifications?.warn?.('Actor no encontrado');
+        }
+        try {
+          const patrol = pMgr.getPatrol(pid);
+          if (!patrol) return;
+          if (mode === 'officer') {
+            pMgr.assignOfficer(pid, {
+              actorId: actor.id,
+              name: actor.name,
+              img: actor.img,
+              isLinked: actor.isOwner ?? true,
+            });
+            ui?.notifications?.info?.(`Oficial asignado: ${actor.name}`);
+          } else {
+            pMgr.addSoldier(pid, {
+              actorId: actor.id,
+              name: actor.name,
+              img: actor.img,
+              referenceType: 'linked',
+              addedAt: Date.now(),
+            });
+            ui?.notifications?.info?.(`Soldado añadido: ${actor.name}`);
+          }
+          this.refreshPatrolsPanel();
+        } catch (e) {
+          console.warn('CustomInfoDialog | drop error', e);
+          ui?.notifications?.error?.('Error al asignar actor');
+        }
+      });
+    });
+  }
+
   private renderPatrolCards(patrols: any[]): TemplateResult {
     return html`<div class="patrol-cards-grid">
       ${patrols.map((p) => {
@@ -2237,12 +2401,39 @@ export class CustomInfoDialog implements FocusableDialog {
               >`;
             })}
           </div>
-          <div class="officer-slot">
+          <div
+            class="officer-slot"
+            data-drop="officer"
+            title="Arrastra un Actor aquí para asignarlo como Oficial"
+          >
             ${p.officer
               ? html`<img src="${p.officer.img || ''}" alt="oficial" />`
               : html`<span class="empty">Sin Oficial</span>`}
           </div>
-          <div class="soldiers-count">Soldados: ${p.soldiers?.length || 0}</div>
+          <div
+            class="soldiers-zone"
+            data-drop="soldier"
+            title="Arrastra Actores aquí para añadir Soldados"
+          >
+            ${p.soldiers?.length
+              ? html`${p.soldiers
+                  .slice(0, 12)
+                  .map(
+                    (s: any) =>
+                      html`<img
+                        class="soldier-avatar"
+                        src="${s.img || ''}"
+                        alt="${s.name || 'Soldado'}"
+                        title="${s.name || ''}"
+                      />`
+                  )}
+                ${p.soldiers.length > 12
+                  ? html`<span class="more" title="${p.soldiers.length - 12} más"
+                      >+${p.soldiers.length - 12}</span
+                    >`
+                  : ''}`
+              : html`<span class="placeholder">Arrastra Soldados aquí</span>`}
+          </div>
           <div
             class="last-order-line ${ageClass}"
             data-action="edit-last-order"

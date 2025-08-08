@@ -56,6 +56,127 @@ export class PatrolsComponent extends ComponentBase<PatrolsComponentState> {
     `;
   }
 
+  /** After render attach drag & drop handlers (separate officer + soldiers zones) */
+  override afterRender(): void {
+    const cards = Array.from(this.root.querySelectorAll('.patrol-card')) as HTMLElement[];
+    cards.forEach((card) => this.setupCardZoneDnD(card));
+  }
+
+  private setupCardZoneDnD(card: HTMLElement): void {
+    if ((card as any)._zonesReady) return;
+    (card as any)._zonesReady = true;
+    card.setAttribute('tabindex', '0');
+    const pid = card.dataset.patrolId || '';
+
+    const officerSlot = card.querySelector('.officer-slot') as HTMLElement | null;
+    const soldiersZone = card.querySelector('.soldiers-zone') as HTMLElement | null;
+
+    const bind = (el: HTMLElement, mode: 'officer' | 'soldier') => {
+      const enter = (ev: DragEvent) => {
+        if (!this.isActorDrag(ev)) return;
+        ev.preventDefault();
+        el.classList.add('dnd-hover');
+        card.classList.add('dnd-active');
+      };
+      const over = (ev: DragEvent) => {
+        if (!this.isActorDrag(ev)) return;
+        ev.preventDefault();
+        ev.dataTransfer!.dropEffect = 'copy';
+        el.classList.add('dnd-hover');
+        card.classList.add('dnd-active');
+      };
+      const leave = () => {
+        el.classList.remove('dnd-hover');
+        card.classList.remove('dnd-active');
+      };
+      const drop = (ev: DragEvent) => {
+        if (!this.isActorDrag(ev)) return;
+        ev.preventDefault();
+        el.classList.remove('dnd-hover');
+        card.classList.remove('dnd-active');
+        try {
+          const raw = ev.dataTransfer?.getData('text/plain');
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          const g: any = (globalThis as any).game;
+          const actorId = data.id || data.actorId;
+          if (!actorId) return;
+          const actor = g?.actors?.get?.(actorId);
+          if (!actor) return ui?.notifications?.warn?.('Actor no encontrado');
+          if (mode === 'officer') this.assignOfficer(pid, actor);
+          else this.addSoldier(pid, actor);
+        } catch (e) {
+          console.warn('[PatrolsComponent] Drop error', e);
+          ui?.notifications?.error?.('Error al procesar drop');
+        }
+      };
+      el.addEventListener('dragenter', enter);
+      el.addEventListener('dragover', over);
+      el.addEventListener('dragleave', leave);
+      el.addEventListener('drop', drop);
+    };
+
+    if (officerSlot) bind(officerSlot, 'officer');
+    if (soldiersZone) bind(soldiersZone, 'soldier');
+  }
+
+  /** Detect if current drag event likely contains a Foundry Actor */
+  private isActorDrag(ev: DragEvent): boolean {
+    try {
+      const raw = ev.dataTransfer?.getData('text/plain');
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      return data?.type === 'Actor' || !!data?.actorId;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Assign only officer (replace if already exists) */
+  private assignOfficer(patrolId: string, actor: any): void {
+    try {
+      const gm: any = (window as any).GuardManagement;
+      const orgMgr = gm?.guardOrganizationManager;
+      const pMgr = orgMgr?.getPatrolManager?.();
+      if (!pMgr) return;
+      const patrol = pMgr.getPatrol(patrolId);
+      if (!patrol) return;
+      pMgr.assignOfficer(patrolId, {
+        actorId: actor.id,
+        name: actor.name,
+        img: actor.img,
+        isLinked: actor.isOwner ?? true,
+      });
+      ui?.notifications?.info?.(`Oficial asignado: ${actor.name}`);
+      this.forceUpdate();
+    } catch (e) {
+      console.warn('[PatrolsComponent] assignOfficer error', e);
+    }
+  }
+
+  /** Add soldier */
+  private addSoldier(patrolId: string, actor: any): void {
+    try {
+      const gm: any = (window as any).GuardManagement;
+      const orgMgr = gm?.guardOrganizationManager;
+      const pMgr = orgMgr?.getPatrolManager?.();
+      if (!pMgr) return;
+      const patrol = pMgr.getPatrol(patrolId);
+      if (!patrol) return;
+      pMgr.addSoldier(patrolId, {
+        actorId: actor.id,
+        name: actor.name,
+        img: actor.img,
+        referenceType: 'linked',
+        addedAt: Date.now(),
+      });
+      ui?.notifications?.info?.(`Soldado añadido: ${actor.name}`);
+      this.forceUpdate();
+    } catch (e) {
+      console.warn('[PatrolsComponent] addSoldier error', e);
+    }
+  }
+
   private renderCard(p: any): string {
     const name = escapeHtml(p.name);
     const subtitle = p.subtitle ? `<span class="subtitle">${escapeHtml(p.subtitle)}</span>` : '';
@@ -82,8 +203,25 @@ export class PatrolsComponent extends ComponentBase<PatrolsComponentState> {
       <div class="patrol-card" data-patrol-id="${p.id}">
         <div class="header"><span class="name">${name}</span>${subtitle}</div>
         <div class="stats-mini">${stats}</div>
-        <div class="officer-slot">${officer}</div>
-        <div class="soldiers-count">Soldados: ${p.soldiers?.length || 0}</div>
+        <div class="officer-slot" data-drop="officer" title="Arrastra un Actor aquí para asignarlo como Oficial">${officer}</div>
+        <div class="soldiers-zone" data-drop="soldier" title="Arrastra Actores aquí para añadir Soldados">
+          ${
+            p.soldiers?.length
+              ? p.soldiers
+                  .slice(0, 12)
+                  .map(
+                    (s: any) =>
+                      `<img class="soldier-avatar" src="${escapeHtml(
+                        s.img || ''
+                      )}" alt="${escapeHtml(s.name || 'Soldado')}" title="${escapeHtml(s.name || '')}" />`
+                  )
+                  .join('') +
+                (p.soldiers.length > 12
+                  ? `<span class="more" title="${p.soldiers.length - 12} más">+${p.soldiers.length - 12}</span>`
+                  : '')
+              : `<span class="placeholder">Arrastra Soldados aquí</span>`
+          }
+        </div>
         ${lastOrderHtml}
         <div class="actions">
           <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="${p.id}"><i class="fas fa-edit"></i></button>
