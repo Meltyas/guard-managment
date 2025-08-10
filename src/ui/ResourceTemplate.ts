@@ -162,26 +162,28 @@ export class ResourceTemplate {
       return '';
     }
 
-    // Use exact same structure as the template but as static HTML
+    // Use Daggerheart structure but with our resource content
     return `
-      <div class="guard-resource-chat">
-        <div class="resource-item">
-          ${
-            resourceData.image
-              ? `<div class="resource-image">
-                  <img src="${resourceData.image}" alt="${resourceData.name}" onerror="this.style.display='none'" />
-                </div>`
-              : ''
-          }
-          <div class="resource-info">
-            <span class="resource-name">${resourceData.name}</span>
-            <span class="resource-quantity">Cantidad: ${resourceData.quantity}</span>
-            ${
-              resourceData.description
-                ? `<span class="resource-description">${resourceData.description.trim()}</span>`
-                : ''
-            }
-          </div>
+      <div class="message-content">
+        <div class="daggerheart chat domain-card">
+          <img class="card-img" src="${resourceData.image || 'icons/commodities/metal/ingot-stack-silver.webp'}">
+          <details class="domain-card-move" open>
+            <summary class="domain-card-header">
+              <div class="domain-label">
+                <h2 class="title">${resourceData.name}</h2>
+              </div>
+              <i class="fa-solid fa-chevron-down"></i>
+            </summary>
+            <div class="description">
+              ${resourceData.description ? `<p>${resourceData.description.trim()}</p>` : ''}
+            </div>
+          </details>
+          <footer class="ability-card-footer">
+            <ul class="tags">
+              <li class="tag">Recurso</li>
+              <li class="tag">Cantidad: ${resourceData.quantity}</li>
+            </ul>
+          </footer>
         </div>
       </div>
     `;

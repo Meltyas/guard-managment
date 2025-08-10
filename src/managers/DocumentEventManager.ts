@@ -3,6 +3,12 @@
  * Replaces socket-based SyncManager since Foundry handles document sync automatically
  */
 
+import { GUARD_STAT_MAX, GUARD_STAT_MIN } from '../types/entities.js';
+
+/**
+ * Document Event Manager - Handles document-based synchronization events
+ * Replaces socket-based SyncManager since Foundry handles document sync automatically
+ */
 import { DocumentBasedManager } from './DocumentBasedManager.js';
 
 export interface DocumentEventHandlers {
@@ -186,7 +192,7 @@ export class DocumentEventManager {
     if (changes.system?.baseStats) {
       const stats = changes.system.baseStats;
       for (const [stat, value] of Object.entries(stats)) {
-        if (typeof value === 'number' && (value < -99 || value > 99)) {
+        if (typeof value === 'number' && (value < GUARD_STAT_MIN || value > GUARD_STAT_MAX)) {
           console.error(`DocumentEventManager | Invalid stat value for ${stat}: ${value}`);
           return false;
         }

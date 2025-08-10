@@ -31,6 +31,10 @@ export interface GuardStats {
   [key: string]: number; // Support for future stats
 }
 
+// Global guard stat bounds (used across dialogs & models)
+export const GUARD_STAT_MIN = -99;
+export const GUARD_STAT_MAX = 99;
+
 // Guard Modifiers (Organizational Effects)
 export interface GuardModifier extends BaseEntity {
   description: string;

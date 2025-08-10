@@ -26,19 +26,19 @@ const patrolStatsRenderer: FieldRenderer<Patrol> = {
       <div class="patrol-stats">
         <div class="stat-row">
           <span class="stat-label">Robustismo:</span>
-          <span class="stat-value">${value.robustismo || 0}</span>
+          <span class="stat-value">${value.robustismo ?? 0}</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Analítica:</span>
-          <span class="stat-value">${value.analitica || 0}</span>
+          <span class="stat-value">${value.analitica ?? 0}</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Subterfugio:</span>
-          <span class="stat-value">${value.subterfugio || 0}</span>
+          <span class="stat-value">${value.subterfugio ?? 0}</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Elocuencia:</span>
-          <span class="stat-value">${value.elocuencia || 0}</span>
+          <span class="stat-value">${value.elocuencia ?? 0}</span>
         </div>
       </div>
     `;
@@ -140,10 +140,10 @@ function generatePatrolChatTemplate(entity: Patrol, context: ChatContext): strin
         <div class="patrol-stats">
           <h4>Estadísticas:</h4>
           <ul>
-            <li>Robustismo: ${entity.derivedStats?.robustismo || 0}</li>
-            <li>Analítica: ${entity.derivedStats?.analitica || 0}</li>
-            <li>Subterfugio: ${entity.derivedStats?.subterfugio || 0}</li>
-            <li>Elocuencia: ${entity.derivedStats?.elocuencia || 0}</li>
+            <li>Robustismo: ${entity.derivedStats?.robustismo ?? 0}</li>
+            <li>Analítica: ${entity.derivedStats?.analitica ?? 0}</li>
+            <li>Subterfugio: ${entity.derivedStats?.subterfugio ?? 0}</li>
+            <li>Elocuencia: ${entity.derivedStats?.elocuencia ?? 0}</li>
           </ul>
         </div>
 

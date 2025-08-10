@@ -4,7 +4,7 @@
 
 import { html, TemplateResult } from 'lit-html';
 import type { GuardOrganization, GuardStats } from '../types/entities';
-import { DEFAULT_GUARD_STATS } from '../types/entities';
+import { DEFAULT_GUARD_STATS, GUARD_STAT_MAX, GUARD_STAT_MIN } from '../types/entities';
 import { renderTemplateToString } from '../utils/template-renderer.js';
 
 export interface GuardOrganizationDialogData {
@@ -346,8 +346,8 @@ export class GuardOrganizationDialog {
           name="${statName}"
           id="${statName}"
           value="${value}"
-          min="-99"
-          max="99"
+          min="${GUARD_STAT_MIN}"
+          max="${GUARD_STAT_MAX}"
           required
         />
       </div>
@@ -363,8 +363,8 @@ export class GuardOrganizationDialog {
         <p><small>* Campos requeridos</small></p>
         <p>
           <small>
-            Las estadísticas pueden ser de -99 a 99 y modificadas más tarde mediante modificadores
-            de organización.
+            Las estadísticas pueden ser de ${GUARD_STAT_MIN} a ${GUARD_STAT_MAX} y modificadas más
+            tarde mediante modificadores de organización.
           </small>
         </p>
       </div>
@@ -435,9 +435,9 @@ export class GuardOrganizationDialog {
     ];
 
     for (const stat of statChecks) {
-      if (stat.value < -99 || stat.value > 99 || isNaN(stat.value)) {
+      if (stat.value < GUARD_STAT_MIN || stat.value > GUARD_STAT_MAX || isNaN(stat.value)) {
         errorFields.push(stat.name);
-        errors.push(`${stat.label} debe estar entre -99 y 99`);
+        errors.push(`${stat.label} debe estar entre ${GUARD_STAT_MIN} y ${GUARD_STAT_MAX}`);
       }
     }
 

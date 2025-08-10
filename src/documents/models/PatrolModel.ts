@@ -122,12 +122,13 @@ export class PatrolModel extends foundry.abstract.TypeDataModel {
     // TODO: Apply active effects
     // This would require looking up the actual effect documents
 
-    // Ensure no negative stats
-    Object.keys(stats).forEach((key) => {
-      if (stats[key as keyof GuardStats] < 0) {
-        stats[key as keyof GuardStats] = 0;
-      }
-    });
+    // Allow stats to go negative (design change): no clamping here.
+    // If in future we want soft warnings, we could log when below some threshold.
+    // Object.keys(stats).forEach((key) => {
+    //   if (stats[key as keyof GuardStats] < -99) {
+    //     stats[key as keyof GuardStats] = -99; // (Optional lower bound)
+    //   }
+    // });
 
     return stats;
   }

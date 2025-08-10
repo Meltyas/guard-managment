@@ -2044,10 +2044,10 @@ export class CustomInfoDialog implements FocusableDialog {
             name: freshOrganization.name || 'Organización Sin Nombre',
             subtitle: freshOrganization.system?.subtitle || '',
             baseStats: {
-              robustismo: freshOrganization.system?.baseStats?.robustismo || 0,
-              analitica: freshOrganization.system?.baseStats?.analitica || 0,
-              subterfugio: freshOrganization.system?.baseStats?.subterfugio || 0,
-              elocuencia: freshOrganization.system?.baseStats?.elocuencia || 0,
+              robustismo: freshOrganization.system?.baseStats?.robustismo ?? 0,
+              analitica: freshOrganization.system?.baseStats?.analitica ?? 0,
+              subterfugio: freshOrganization.system?.baseStats?.subterfugio ?? 0,
+              elocuencia: freshOrganization.system?.baseStats?.elocuencia ?? 0,
             },
             resources: freshOrganization.system?.resources || [],
             reputation: freshOrganization.system?.reputation || [],
@@ -2210,7 +2210,7 @@ export class CustomInfoDialog implements FocusableDialog {
       for (const key of Object.keys(derived)) {
         const base = patrol.baseStats?.[key] ?? 0;
         const effects = effectTotals[key] || 0;
-        const total = derived[key] || 0;
+        const total = derived[key] ?? 0; // preserve negatives
         const org = total - base - effects; // whatever isn't base or effects we attribute to organization modifiers
         breakdown[key] = { base, effects, org, total };
       }

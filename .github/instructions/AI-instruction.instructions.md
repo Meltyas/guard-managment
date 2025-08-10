@@ -2,6 +2,8 @@
 applyTo: '**'
 ---
 
+NEVER TOUCH THE DAGGERHEART WORKSPACE, IS JUST READ ONLY.
+
 # AI Assistant Context: Guard Management Module
 
 ## 📋 Project Overview

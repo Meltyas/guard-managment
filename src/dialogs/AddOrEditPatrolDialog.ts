@@ -1,5 +1,6 @@
 import { html } from 'lit-html';
-import { GuardStats, Patrol } from '../types/entities';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
+import { GUARD_STAT_MAX, GUARD_STAT_MIN, GuardStats, Patrol } from '../types/entities';
 import { classifyLastOrderAge } from '../utils/patrol-helpers';
 import { renderTemplateToString } from '../utils/template-renderer.js';
 
@@ -48,10 +49,22 @@ export class AddOrEditPatrolDialog {
                 organizationId: fd.get('organizationId') as string,
                 lastOrderText: (fd.get('lastOrderText') as string) || '',
                 baseStats: {
-                  robustismo: parseInt(fd.get('stat_robustismo') as string) || 0,
-                  analitica: parseInt(fd.get('stat_analitica') as string) || 0,
-                  subterfugio: parseInt(fd.get('stat_subterfugio') as string) || 0,
-                  elocuencia: parseInt(fd.get('stat_elocuencia') as string) || 0,
+                  robustismo: (() => {
+                    const v = parseInt(fd.get('stat_robustismo') as string);
+                    return Number.isNaN(v) ? 0 : v;
+                  })(),
+                  analitica: (() => {
+                    const v = parseInt(fd.get('stat_analitica') as string);
+                    return Number.isNaN(v) ? 0 : v;
+                  })(),
+                  subterfugio: (() => {
+                    const v = parseInt(fd.get('stat_subterfugio') as string);
+                    return Number.isNaN(v) ? 0 : v;
+                  })(),
+                  elocuencia: (() => {
+                    const v = parseInt(fd.get('stat_elocuencia') as string);
+                    return Number.isNaN(v) ? 0 : v;
+                  })(),
                 },
               };
 
@@ -128,9 +141,26 @@ export class AddOrEditPatrolDialog {
       lastOrderText: existing?.lastOrder?.text || '',
     };
 
+    // Remove lit-html artifact comments that can appear encoded inside textareas when serialised
+    const cleanArtifacts = (s: string) =>
+      (s || '')
+        .replace(/<!---->/g, '')
+        .replace(/&lt;!----&gt;/g, '')
+        .trim();
+    data.lastOrderText = cleanArtifacts(data.lastOrderText);
+
     const orderAgeClass = existing?.lastOrder
       ? classifyLastOrderAge({ issuedAt: existing.lastOrder.issuedAt })
       : 'normal';
+
+    // Sanitize potentially stored HTML for preview (very basic, strips script tags)
+    const sanitizeHtml = (raw: string) =>
+      (raw || '')
+        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+        .replace(/on[a-zA-Z]+="[^"]*"/g, '')
+        .replace(/on[a-zA-Z]+='[^']*'/g, '');
+
+    const safeLastOrderPreview = sanitizeHtml(data.lastOrderText);
 
     const template = html`<form class="patrol-form guard-dialog">
       <div class="section identity">
@@ -150,14 +180,28 @@ export class AddOrEditPatrolDialog {
 
       <div class="section last-order">
         <h4>Última Orden</h4>
-        <textarea name="lastOrderText" rows="2" placeholder="Orden reciente...">
+        <textarea
+          name="lastOrderText"
+          rows="3"
+          placeholder="Orden reciente (puede contener HTML para formato)"
+        >
 ${data.lastOrderText}</textarea
         >
+        <div class="last-order-preview-wrapper">
+          <label style="margin-top:4px; font-weight:bold;">Vista Previa:</label>
+          <div class="last-order-preview" data-preview="lastOrder">
+            ${unsafeHTML(safeLastOrderPreview || '<em>(sin contenido)</em>')}
+          </div>
+        </div>
         ${existing?.lastOrder
           ? html`<div class="last-order-meta ${orderAgeClass}">
               Emitida: ${new Date(existing.lastOrder.issuedAt).toLocaleString()}
             </div>`
           : ''}
+        <p class="hint small">
+          El contenido HTML se renderiza en la vista previa. Se eliminan scripts y eventos
+          inseguros.
+        </p>
       </div>
 
       <input type="hidden" name="organizationId" value="${organizationId}" />
@@ -166,13 +210,23 @@ ${data.lastOrderText}</textarea
       </p>
     </form>`;
 
-    return renderTemplateToString(template);
+    let htmlString = renderTemplateToString(template);
+    // Remove lit-html placeholder comment artifacts which appear when serializing templates
+    // These show up especially inside <textarea> contents as `<!---->` or encoded variants
+    htmlString = htmlString.replace(/<!---->/g, '').replace(/&lt;!----&gt;/g, '');
+    return htmlString;
   }
 
   private renderStatInput(label: string, key: string, value: number) {
     return html`<div class="stat-input">
       <label>${label}</label
-      ><input type="number" name="stat_${key}" value="${value}" min="0" max="50" />
+      ><input
+        type="number"
+        name="stat_${key}"
+        value="${value}"
+        min="${GUARD_STAT_MIN}"
+        max="${GUARD_STAT_MAX}"
+      />
     </div>`;
   }
 

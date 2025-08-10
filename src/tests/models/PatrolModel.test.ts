@@ -4,9 +4,9 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import '../setup/foundryMocks';
 import { PatrolModel } from '../../documents/models/PatrolModel';
 import { PatrolStatus } from '../../types/entities';
+import '../setup/foundryMocks';
 
 describe('PatrolModel', () => {
   let model: PatrolModel;
@@ -249,16 +249,17 @@ describe('PatrolModel', () => {
       expect(stats.elocuencia).toBe(4); // unchanged
     });
 
-    it('should prevent negative stats', () => {
+    it('should allow negative stats (no clamp)', () => {
       model.customModifiers = [
         { statName: 'robustismo', value: -10 },
         { statName: 'analitica', value: -5 },
       ];
 
       const stats = (model as any)._calculatePatrolStats();
-
-      expect(stats.robustismo).toBe(0); // Would be -5, but clamped to 0
-      expect(stats.analitica).toBe(0); // Would be -2, but clamped to 0
+      // Organization base robustismo 5 + (-10) = -5
+      // Organization base analitica 3 + (-5) = -2
+      expect(stats.robustismo).toBe(-5);
+      expect(stats.analitica).toBe(-2);
     });
   });
 

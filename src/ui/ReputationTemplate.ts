@@ -220,26 +220,28 @@ export class ReputationTemplate {
 
     const levelLabel = REPUTATION_LABELS[reputationData.level] || `Level ${reputationData.level}`;
 
-    // Use exact same structure as the template but as static HTML
+    // Use Daggerheart structure but with our reputation content
     return `
-      <div class="guard-reputation-chat">
-        <div class="reputation-item">
-          ${
-            reputationData.image
-              ? `<div class="reputation-image">
-                  <img src="${reputationData.image}" alt="${reputationData.name}" onerror="this.style.display='none'" />
-                </div>`
-              : ''
-          }
-          <div class="reputation-info">
-            <span class="reputation-name">${reputationData.name}</span>
-            <span class="reputation-level">Nivel: ${levelLabel}</span>
-            ${
-              reputationData.description
-                ? `<span class="reputation-description">${reputationData.description.trim()}</span>`
-                : ''
-            }
-          </div>
+      <div class="message-content">
+        <div class="daggerheart chat domain-card">
+          <img class="card-img" src="${reputationData.image || 'icons/skills/social/diplomacy-handshake-yellow.webp'}">
+          <details class="domain-card-move" open>
+            <summary class="domain-card-header">
+              <div class="domain-label">
+                <h2 class="title">${reputationData.name}</h2>
+              </div>
+              <i class="fa-solid fa-chevron-down"></i>
+            </summary>
+            <div class="description">
+              ${reputationData.description ? `<p>${reputationData.description.trim()}</p>` : ''}
+            </div>
+          </details>
+          <footer class="ability-card-footer">
+            <ul class="tags">
+              <li class="tag">Reputación</li>
+              <li class="tag">Nivel: ${levelLabel}</li>
+            </ul>
+          </footer>
         </div>
       </div>
     `;
