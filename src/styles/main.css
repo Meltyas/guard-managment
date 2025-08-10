@@ -6,6 +6,9 @@
 /* Import resource dialog styles */
 @import url('./resource-dialog.css');
 
+/* Import Daggerheart-style chat items */
+@import url('./daggerheart-chat.css');
+
 .guard-management {
   font-family: 'Signika', sans-serif;
 }

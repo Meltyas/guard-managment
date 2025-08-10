@@ -1,0 +1,226 @@
+/* 
+ * Guard Management Module - Daggerheart-style Resource & Reputation items 
+ * This CSS provides styling for resource and reputation items that matches
+ * Daggerheart's chat aesthetic
+ */
+
+/* Base styling for both resource and reputation items */
+.resource-item, .reputation-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(24, 22, 46, 0.8); /* Daggerheart dark blue background */
+    border: 1px solid #f3c267; /* Daggerheart gold border */
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    min-height: 140px;
+    font-family: 'Signika', sans-serif;
+    color: #efe6d8; /* Daggerheart light text color */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Hover effect */
+.resource-item:hover, .reputation-item:hover {
+    box-shadow: 0 4px 12px rgba(243, 194, 103, 0.3); /* Subtle gold glow */
+    background: rgba(24, 22, 46, 0.9);
+}
+
+/* Image container for both resources and reputation */
+.resource-image, .reputation-image {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(24, 22, 46, 0.5);
+    border: 1px solid #f3c267;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+.resource-image img, .reputation-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+/* Information section for both resources and reputation */
+.resource-info, .reputation-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    text-align: center;
+}
+
+/* Title styling for both resources and reputation */
+.resource-name, .reputation-name {
+    font-weight: bold;
+    color: #f3c267; /* Daggerheart gold */
+    font-size: 16px;
+    font-family: 'Cinzel', serif; /* Daggerheart title font */
+    margin: 6px 0;
+    letter-spacing: 0.5px;
+}
+
+/* Quantity/level styling */
+.resource-quantity, .reputation-level {
+    color: #efe6d8; /* Light text color */
+    font-size: 14px;
+    font-weight: 600;
+    padding: 3px 8px;
+    background: rgba(243, 194, 103, 0.2); /* Semi-transparent gold */
+    border-radius: 4px;
+    display: inline-block;
+    margin: 4px auto;
+    width: fit-content;
+    border: 1px solid rgba(243, 194, 103, 0.3);
+}
+
+/* Description text */
+.resource-description, .reputation-description {
+    color: #efe6d8;
+    font-size: 13px;
+    font-style: italic;
+    margin-top: 0.5rem;
+    flex: 1;
+    line-height: 1.4;
+    line-height: 1.3;
+}
+
+/* Action buttons section */
+.resource-actions, .reputation-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: auto;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(243, 194, 103, 0.3);
+}
+
+/* Styling for action buttons */
+.edit-resource-btn,
+.delete-resource-btn,
+.send-to-chat-btn,
+.edit-reputation-btn,
+.delete-reputation-btn,
+.send-reputation-to-chat-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #f3c267;
+    border-radius: 4px;
+    background: rgba(24, 22, 46, 0.7);
+    color: #f3c267;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+/* Button hover effects */
+.edit-resource-btn:hover,
+.edit-reputation-btn:hover,
+.send-to-chat-btn:hover,
+.send-reputation-to-chat-btn:hover {
+    background: rgba(243, 194, 103, 0.3);
+    transform: scale(1.05);
+}
+
+.delete-resource-btn:hover,
+.delete-reputation-btn:hover {
+    background: rgba(244, 67, 54, 0.3);
+    color: #f44336;
+    border-color: #f44336;
+    transform: scale(1.05);
+}
+
+/* Draggable elements styling */
+.resource-item[draggable='true'],
+.reputation-item[draggable='true'] {
+    cursor: grab;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.resource-item[draggable='true']:hover,
+.reputation-item[draggable='true']:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(243, 194, 103, 0.4);
+}
+
+.resource-item[draggable='true']:active,
+.reputation-item[draggable='true']:active {
+    cursor: grabbing;
+}
+
+.resource-item.dragging,
+.reputation-item.dragging {
+    opacity: 0.7;
+    transform: scale(0.95);
+    cursor: grabbing;
+    border: 2px dashed #f3c267;
+    box-shadow: 0 8px 20px rgba(243, 194, 103, 0.5);
+}
+
+/* Empty state styling */
+.empty-state {
+    text-align: center;
+    color: rgba(239, 230, 216, 0.6);
+    font-style: italic;
+    padding: 1rem;
+    border: 2px dashed rgba(243, 194, 103, 0.4);
+    border-radius: 6px;
+    background: rgba(24, 22, 46, 0.4);
+    margin: 0.5rem 0;
+}
+
+/* Chat message specific styling - wrapping container */
+.guard-resource-chat, .guard-reputation-chat {
+    background: rgba(24, 22, 46, 0.9);
+    border: 1px solid #f3c267;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 8px 0;
+    font-family: 'Signika', sans-serif;
+    color: #efe6d8;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Special styling for chat message items */
+.guard-resource-chat .resource-item,
+.guard-reputation-chat .reputation-item {
+    background: rgba(24, 22, 46, 0.6);
+}
+
+/* Source citation in chat messages */
+.guard-resource-chat .resource-source,
+.guard-reputation-chat .reputation-source {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(243, 194, 103, 0.3);
+    font-size: 11px;
+    color: rgba(239, 230, 216, 0.7);
+    text-align: center;
+}
+
+/* Header for chat messages */
+.guard-resource-chat .chat-header,
+.guard-reputation-chat .chat-header {
+    font-family: 'Cinzel', serif;
+    color: #f3c267;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(243, 194, 103, 0.3);
+    padding-bottom: 5px;
+}
