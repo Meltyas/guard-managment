@@ -1,42 +1,51 @@
 /**
  * Styles for AddOrEditResourceDialog
  * These styles extend the main Guard Management theme
+ * Styled to match Daggerheart's aesthetic
  */
 
 /* Resource Dialog Form Styles */
 .resource-form.guard-dialog {
   min-width: 400px;
   max-width: 600px;
+  background: rgba(24, 22, 46, 0.9); /* Daggerheart background color */
+  color: #efe6d8; /* Daggerheart text color */
+  font-family: 'Signika', sans-serif; /* Daggerheart font */
+  border: 1px solid #f3c267; /* Daggerheart border color */
 }
 
 .resource-form .form-group {
   margin-bottom: 1rem;
+  padding: 8px;
+  border-radius: 4px;
+  background: rgba(24, 22, 46, 0.3); /* Daggerheart darker background */
 }
 
 .resource-form .form-group label {
   display: block;
   font-weight: bold;
-  margin-bottom: 0.25rem;
-  color: var(--color-text-dark-primary, #1c1c1c);
+  margin-bottom: 0.5rem;
+  color: #f3c267; /* Daggerheart gold color */
+  font-family: 'Cinzel', serif; /* Daggerheart header font */
 }
 
 .resource-form .form-group input,
 .resource-form .form-group textarea {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--color-border-dark-primary, #ccc);
+  border: 1px solid #f3c267; /* Daggerheart gold border */
   border-radius: 4px;
-  font-family: inherit;
+  font-family: 'Signika', sans-serif; /* Daggerheart font */
   font-size: 0.9rem;
-  background: var(--color-bg-option, #ffffff);
-  color: var(--color-text-dark-primary, #1c1c1c);
+  background: rgba(24, 22, 46, 0.3); /* Daggerheart darker background */
+  color: #efe6d8; /* Daggerheart text color */
 }
 
 .resource-form .form-group input:focus,
 .resource-form .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-border-highlight, #007bff);
-  box-shadow: 0 0 0 2px var(--color-border-highlight-box-shadow, rgba(0, 123, 255, 0.25));
+  border-color: #f3c267; /* Daggerheart gold border */
+  box-shadow: 0 0 5px #f3c267; /* Daggerheart gold glow */
 }
 
 .resource-form .form-group input[type='number'] {
@@ -171,7 +180,42 @@
   }
 }
 
-/* File Picker Styles */
+/* Form Actions - Styled like Daggerheart */
+.resource-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.resource-form .form-actions button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #f3c267; /* Daggerheart gold border */
+  border-radius: 4px;
+  background: rgba(24, 22, 46, 0.7); /* Daggerheart background */
+  color: #f3c267; /* Daggerheart gold color */
+  cursor: pointer;
+  font-weight: bold;
+  font-family: 'Cinzel', serif; /* Daggerheart header font */
+  transition: all 0.2s ease;
+}
+
+.resource-form .form-actions button:hover {
+  background: #f3c267; /* Daggerheart gold */
+  color: #18162e; /* Daggerheart dark background */
+}
+
+.resource-form .form-actions button:active {
+  transform: translateY(1px);
+}
+
+.resource-form .form-actions button.primary {
+  background: rgba(243, 194, 103, 0.3); /* Daggerheart gold with transparency */
+  border-color: #f3c267; /* Daggerheart gold border */
+  color: #efe6d8; /* Daggerheart text color */
+}
+
+/* File Picker Styles - Styled like Daggerheart */
 .file-picker-wrapper {
   display: flex;
   gap: 8px;
@@ -184,22 +228,23 @@
 }
 
 .file-picker-btn {
-  background: var(--color-button-bg, #495057);
-  color: var(--color-button-text, #ffffff);
-  border: 1px solid var(--color-button-border, #6c757d);
+  background: rgba(24, 22, 46, 0.7); /* Daggerheart background */
+  color: #f3c267; /* Daggerheart gold color */
+  border: 1px solid #f3c267; /* Daggerheart gold border */
   padding: 6px 12px;
   border-radius: 3px;
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
+  font-family: 'Cinzel', serif; /* Daggerheart header font */
   white-space: nowrap;
   transition: all 0.15s ease;
   min-width: 80px;
 }
 
 .file-picker-btn:hover {
-  background: var(--color-button-hover-bg, #5a6268);
-  border-color: var(--color-button-hover-border, #7d848a);
+  background: #f3c267; /* Daggerheart gold */
+  color: #18162e; /* Daggerheart dark background */
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

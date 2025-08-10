@@ -1,13 +1,14 @@
-/* GM Warehouse Dialog Styles */
+/* GM Warehouse Dialog Styles - Styled like Daggerheart */
 .gm-warehouse-dialog {
-  background: linear-gradient(135deg, rgba(15, 15, 15, 0.98), rgba(30, 30, 30, 0.98));
-  border: 2px solid #5e5e5e;
+  background: rgba(24, 22, 46, 0.9); /* Daggerheart background color */
+  border: 1px solid #f3c267; /* Daggerheart gold border */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
 }
 
 .gm-warehouse-dialog .window-title {
-  background: linear-gradient(135deg, #2c3e50, #34495e);
-  color: #ecf0f1;
+  background: #18162e; /* Daggerheart header background */
+  color: #f3c267; /* Daggerheart gold color */
+  font-family: 'Cinzel', serif; /* Daggerheart header font */
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
@@ -16,12 +17,13 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  font-family: 'Signika', sans-serif;
+  font-family: 'Signika', sans-serif; /* Daggerheart font */
+  color: #efe6d8; /* Daggerheart text color */
 }
 
 .warehouse-tabs {
-  background: linear-gradient(135deg, #34495e, #2c3e50);
-  border-bottom: 2px solid #5e5e5e;
+  background: #18162e; /* Daggerheart header background */
+  border-bottom: 1px solid #f3c267; /* Daggerheart gold border */
   padding: 0;
 }
 
@@ -35,11 +37,11 @@
 .warehouse-tabs .tab {
   flex: 1;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #444, #555);
-  color: #ddd;
+  background: rgba(24, 22, 46, 0.7); /* Daggerheart background */
+  color: #efe6d8; /* Daggerheart text color */
   text-decoration: none;
   border: none;
-  border-right: 1px solid #666;
+  border-right: 1px solid rgba(243, 194, 103, 0.3); /* Daggerheart gold with transparency */
   transition: all 0.3s ease;
   cursor: pointer;
   display: flex;
@@ -48,6 +50,8 @@
   gap: 8px;
   font-size: 0.9rem;
   font-weight: 500;
+  text-transform: uppercase; /* Daggerheart style */
+  font-family: 'Cinzel', serif; /* Daggerheart header font */
 }
 
 .warehouse-tabs .tab:last-child {
@@ -61,9 +65,9 @@
 }
 
 .warehouse-tabs .tab.active {
-  background: linear-gradient(135deg, #2c3e50, #34495e);
-  color: #ecf0f1;
-  box-shadow: inset 0 -3px 0 #3498db;
+  background: rgba(243, 194, 103, 0.1); /* Daggerheart gold with high transparency */
+  color: #f3c267; /* Daggerheart gold color */
+  box-shadow: inset 0 -3px 0 #f3c267; /* Daggerheart gold border */
 }
 
 .warehouse-tabs .tab i {

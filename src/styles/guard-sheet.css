@@ -1,0 +1,602 @@
+/* Guard Management Module - Guard Sheet Styles
+ * This file contains styles for the Guard Organization sheet
+ * All selectors are namespaced with 'guard-management' to prevent conflicts with Daggerheart
+ */
+
+/* Core Layout */
+.guard-management-sheet {
+  display: flex;
+  flex-direction: column;
+  font-family: 'Signika', sans-serif;
+  height: 100%;
+  color: #f0f0e0;
+  background: rgba(24, 22, 46, 0.9);
+}
+
+/* Prevent any styles from leaking into Daggerheart system */
+.guard-management-sheet * {
+  box-sizing: border-box;
+}
+
+/* Sheet Layout - similar to Daggerheart but with our own namespace */
+.guard-management-sheet .window-content {
+  display: flex;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* Sidebar Section */
+.guard-management-sheet .guard-sidebar {
+  width: 260px;
+  background: rgba(10, 10, 15, 0.7);
+  border-right: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 0 0 260px;
+}
+
+/* Guard Portrait Section */
+.guard-management-sheet .guard-portrait {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  overflow: hidden;
+  cursor: pointer;
+  border-bottom: 1px solid #444;
+}
+
+.guard-management-sheet .guard-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+}
+
+/* Resources Section similar to Daggerheart's HP/Stress */
+.guard-management-sheet .resources-section {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guard-management-sheet .status-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+}
+
+.guard-management-sheet .status-value {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  z-index: 2;
+}
+
+.guard-management-sheet .bar-input {
+  width: 40px;
+  text-align: center;
+  background: transparent;
+  border: none;
+  color: #f0f0e0;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.guard-management-sheet .progress-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  background-color: rgba(40, 40, 50, 0.5);
+  border-radius: 4px;
+  z-index: 1;
+}
+
+.guard-management-sheet .progress-bar::-webkit-progress-bar {
+  background-color: rgba(40, 40, 50, 0.5);
+  border-radius: 4px;
+}
+
+.guard-management-sheet .progress-bar::-webkit-progress-value {
+  background-color: #4a74e8;
+  border-radius: 4px;
+}
+
+.guard-management-sheet .progress-bar.resources-color::-webkit-progress-value {
+  background-color: #e8a44a;
+}
+
+.guard-management-sheet .progress-bar.reputation-color::-webkit-progress-value {
+  background-color: #4ae89a;
+}
+
+.guard-management-sheet .status-label {
+  position: absolute;
+  right: 10px;
+  z-index: 2;
+}
+
+.guard-management-sheet .status-label h4 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #f0f0e0;
+}
+
+/* Guard Stats Section */
+.guard-management-sheet .status-section {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  gap: 10px;
+}
+
+.guard-management-sheet .status-number {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(40, 40, 50, 0.5);
+  padding: 8px;
+  border-radius: 4px;
+  flex: 1;
+}
+
+.guard-management-sheet .status-number .status-value p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.guard-management-sheet .status-number .status-label h4 {
+  margin: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+/* Guard Patrol List Section */
+.guard-management-sheet .patrols-section {
+  padding: 10px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.guard-management-sheet .title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.guard-management-sheet .title h3 {
+  margin: 0;
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  text-transform: uppercase;
+  color: #e8a44a;
+}
+
+.guard-management-sheet .side-line-div {
+  height: 1px;
+  background: #444;
+  flex: 1;
+}
+
+.guard-management-sheet .side-line-div.invert {
+  background: linear-gradient(90deg, transparent, #444);
+}
+
+.guard-management-sheet .side-line-div:not(.invert) {
+  background: linear-gradient(90deg, #444, transparent);
+}
+
+.guard-management-sheet .patrols-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.guard-management-sheet .patrol-item {
+  background: rgba(40, 40, 50, 0.5);
+  border: 1px solid #444;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guard-management-sheet .patrol-item:hover {
+  background: rgba(50, 50, 60, 0.7);
+}
+
+.guard-management-sheet .patrol-item .img-portrait {
+  width: 36px;
+  height: 36px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.guard-management-sheet .patrol-item .img-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+}
+
+.guard-management-sheet .patrol-item .item-label {
+  flex: 1;
+  overflow: hidden;
+}
+
+.guard-management-sheet .patrol-item .item-name {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.guard-management-sheet .patrol-item .item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.guard-management-sheet .patrol-item .tag {
+  background: rgba(80, 80, 100, 0.5);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+}
+
+.guard-management-sheet .patrol-item .controls {
+  display: flex;
+  gap: 5px;
+}
+
+.guard-management-sheet .patrol-item .controls a {
+  color: #aaa;
+  transition: color 0.2s ease;
+}
+
+.guard-management-sheet .patrol-item .controls a:hover {
+  color: #f0f0e0;
+}
+
+/* Header Section */
+.guard-management-sheet .guard-header {
+  background: rgba(30, 30, 40, 0.7);
+  padding: 10px 15px;
+  border-bottom: 1px solid #444;
+}
+
+.guard-management-sheet .line-div {
+  height: 1px;
+  background: #444;
+  width: 100%;
+  margin: 10px 0;
+}
+
+.guard-management-sheet .name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.guard-management-sheet .actor-name {
+  margin: 0;
+  flex: 1;
+}
+
+.guard-management-sheet .actor-name input {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #f0f0e0;
+  font-size: 24px;
+  font-weight: bold;
+  width: 100%;
+  transition: border 0.2s ease;
+}
+
+.guard-management-sheet .actor-name input:hover,
+.guard-management-sheet .actor-name input:focus {
+  border: 1px solid #aaa;
+}
+
+.guard-management-sheet .status-div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.guard-management-sheet .status-div .label {
+  font-size: 14px;
+  margin-right: 5px;
+}
+
+.guard-management-sheet .guard-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 5px 0;
+  color: #ccc;
+}
+
+.guard-management-sheet .dot {
+  color: #aaa;
+  margin: 0 3px;
+}
+
+/* Guard Traits (Base Stats) */
+.guard-management-sheet .guard-traits {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.guard-management-sheet .trait {
+  background: rgba(40, 40, 50, 0.7);
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guard-management-sheet .trait:hover {
+  background: rgba(50, 50, 60, 0.9);
+}
+
+.guard-management-sheet .trait-name {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.guard-management-sheet .trait-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #f0f0e0;
+}
+
+/* Tab Navigation */
+.guard-management-sheet .tab-navigation {
+  background: rgba(20, 20, 30, 0.7);
+  border-bottom: 1px solid #444;
+}
+
+.guard-management-sheet .navigation-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 15px;
+}
+
+.guard-management-sheet .navigation-inner-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.guard-management-sheet .sheet-tabs {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin: 5px 0;
+}
+
+.guard-management-sheet .sheet-tabs a {
+  color: #aaa;
+  text-transform: uppercase;
+  font-size: 14px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.guard-management-sheet .sheet-tabs a.active {
+  color: #e8a44a;
+  background: rgba(232, 164, 74, 0.1);
+}
+
+.guard-management-sheet .sheet-tabs a:hover:not(.active) {
+  color: #f0f0e0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Tab Content */
+.guard-management-sheet .tab {
+  display: none;
+  padding: 15px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.guard-management-sheet .tab.active {
+  display: block;
+}
+
+/* Resources Tab */
+.guard-management-sheet .resources-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.guard-management-sheet fieldset {
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 0;
+}
+
+.guard-management-sheet legend {
+  padding: 0 10px;
+  color: #e8a44a;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.guard-management-sheet .items-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Resource Item */
+.guard-management-sheet .inventory-item {
+  background: rgba(40, 40, 50, 0.5);
+  border: 1px solid #444;
+  border-radius: 4px;
+}
+
+.guard-management-sheet .inventory-item-header {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.guard-management-sheet .img-portrait {
+  width: 36px;
+  height: 36px;
+  border-radius: 3px;
+  overflow: hidden;
+  flex: 0 0 36px;
+}
+
+.guard-management-sheet .img-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+}
+
+.guard-management-sheet .item-label {
+  flex: 1;
+  overflow: hidden;
+}
+
+.guard-management-sheet .item-name {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.guard-management-sheet .item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.guard-management-sheet .tag {
+  background: rgba(80, 80, 100, 0.5);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+}
+
+.guard-management-sheet .item-resource {
+  width: 50px;
+}
+
+.guard-management-sheet .inventory-item-quantity {
+  width: 100%;
+  text-align: center;
+  background: transparent;
+  border: 1px solid #555;
+  color: #f0f0e0;
+  border-radius: 3px;
+  padding: 2px;
+}
+
+.guard-management-sheet .controls {
+  display: flex;
+  gap: 5px;
+}
+
+.guard-management-sheet .controls a {
+  color: #aaa;
+  transition: color 0.2s ease;
+}
+
+.guard-management-sheet .controls a:hover {
+  color: #f0f0e0;
+}
+
+/* Drag and Drop */
+.guard-management-sheet .drop-section {
+  position: relative;
+}
+
+.guard-management-sheet .drop-section.drag-over {
+  border: 1px dashed #e8a44a;
+}
+
+/* Make sure these styles only apply to our module */
+.guard-management-sheet .drop-section * {
+  pointer-events: inherit;
+}
+
+/* Dialog buttons and actions */
+.guard-management-sheet .item-buttons {
+  padding: 5px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.guard-management-sheet button {
+  background: rgba(80, 80, 100, 0.5);
+  border: 1px solid #555;
+  color: #f0f0e0;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guard-management-sheet button:hover {
+  background: rgba(100, 100, 120, 0.7);
+}
+
+.guard-management-sheet button.primary {
+  background: rgba(74, 116, 232, 0.5);
+  border-color: #4a74e8;
+}
+
+.guard-management-sheet button.primary:hover {
+  background: rgba(74, 116, 232, 0.7);
+}
+
+/* Ensure we don't leak any styles outside our module */
+:not(.guard-management-sheet) > * {
+  /* Explicitly do not apply any styles from this stylesheet */
+}

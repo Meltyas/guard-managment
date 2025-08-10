@@ -1,0 +1,797 @@
+<section class="window-content guard-management-sheet">
+  <aside class="guard-sidebar" data-application-part="sidebar">
+    <div class="guard-portrait">
+      <img
+        src="icons/svg/mystery-man.svg"
+        alt="Guard Organization"
+        data-action="editImage"
+        data-edit="img"
+      />
+      <div class="icons-list">
+        <span class="spellcast-icon">
+          <span class="spellcast-label"> Guard Organization </span>
+          <i class="fa-solid fa-shield-halved"></i>
+        </span>
+      </div>
+    </div>
+    <div class="info-section">
+      <div class="resources-section">
+        <div class="status-bar">
+          <div class="status-value">
+            <p>
+              <input
+                class="bar-input"
+                name="resources.value"
+                min="0"
+                max="10"
+                value="5"
+                type="number"
+              />
+            </p>
+            <p>/</p>
+            <p class="bar-label">10</p>
+          </div>
+          <progress class="progress-bar resources-color" max="10" value="5"></progress>
+          <div class="status-label">
+            <h4>Resources</h4>
+          </div>
+        </div>
+        <div class="status-bar">
+          <div class="status-value">
+            <p>
+              <input
+                class="bar-input"
+                name="reputation.value"
+                min="0"
+                max="10"
+                value="7"
+                type="number"
+              />
+            </p>
+            <p>/</p>
+            <p class="bar-label">10</p>
+          </div>
+          <progress class="progress-bar reputation-color" value="7" min="0" max="10"></progress>
+          <div class="status-label">
+            <h4>Reputation</h4>
+          </div>
+        </div>
+      </div>
+      <div class="status-section">
+        <div class="status-number">
+          <div class="status-value">
+            <p>12</p>
+          </div>
+          <div class="status-label">
+            <h4>Members</h4>
+          </div>
+        </div>
+        <div class="status-number">
+          <div class="status-value">
+            <p>3</p>
+          </div>
+          <div class="status-label">
+            <h4>Patrols</h4>
+          </div>
+        </div>
+        <div class="status-number">
+          <div class="status-value">
+            <p>+2</p>
+          </div>
+          <div class="status-label">
+            <h4>Modifier</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="patrols-section">
+      <div class="title">
+        <div class="side-line-div invert"></div>
+        <h3>Patrols</h3>
+        <div class="side-line-div"></div>
+      </div>
+      <ul class="patrols-list">
+        <li class="patrol-item" data-patrol-id="patrol1" draggable="true">
+          <div class="img-portrait">
+            <img src="icons/svg/mystery-man.svg" alt="Patrol" />
+          </div>
+          <div class="item-label">
+            <div class="item-name">City Watch</div>
+            <div class="item-tags">
+              <div class="tag">5 Members</div>
+              <div class="tag">Active</div>
+            </div>
+          </div>
+          <div class="controls">
+            <a data-action="editPatrol" data-tooltip="Edit Patrol">
+              <i class="fa-solid fa-edit"></i>
+            </a>
+            <a data-action="toChat" data-tooltip="Send to Chat">
+              <i class="fa-regular fa-message"></i>
+            </a>
+          </div>
+        </li>
+        <li class="patrol-item" data-patrol-id="patrol2" draggable="true">
+          <div class="img-portrait">
+            <img src="icons/svg/mystery-man.svg" alt="Patrol" />
+          </div>
+          <div class="item-label">
+            <div class="item-name">Gate Guards</div>
+            <div class="item-tags">
+              <div class="tag">3 Members</div>
+              <div class="tag">Standby</div>
+            </div>
+          </div>
+          <div class="controls">
+            <a data-action="editPatrol" data-tooltip="Edit Patrol">
+              <i class="fa-solid fa-edit"></i>
+            </a>
+            <a data-action="toChat" data-tooltip="Send to Chat">
+              <i class="fa-regular fa-message"></i>
+            </a>
+          </div>
+        </li>
+        <li class="patrol-item" data-patrol-id="patrol3" draggable="true">
+          <div class="img-portrait">
+            <img src="icons/svg/mystery-man.svg" alt="Patrol" />
+          </div>
+          <div class="item-label">
+            <div class="item-name">Special Ops</div>
+            <div class="item-tags">
+              <div class="tag">4 Members</div>
+              <div class="tag">On Mission</div>
+            </div>
+          </div>
+          <div class="controls">
+            <a data-action="editPatrol" data-tooltip="Edit Patrol">
+              <i class="fa-solid fa-edit"></i>
+            </a>
+            <a data-action="toChat" data-tooltip="Send to Chat">
+              <i class="fa-regular fa-message"></i>
+            </a>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <header class="guard-header" data-application-part="header">
+    <div class="line-div"></div>
+    <div class="name-row">
+      <h1 class="actor-name">
+        <input type="text" name="name" value="City Guard" placeholder="Guard Organization Name" />
+      </h1>
+      <div class="status-div">
+        <h3 class="label">
+          Status:
+          <span class="status-value">Active</span>
+        </h3>
+      </div>
+    </div>
+    <div class="guard-details">
+      <div>
+        <span data-action="editLocation">Castle District</span>
+        <span class="dot">•</span>
+        <span data-action="editAlignment">Lawful Neutral</span>
+        <span class="dot">•</span>
+        <span data-action="editFaction">Royal Authority</span>
+      </div>
+    </div>
+
+    <div class="guard-traits">
+      <div
+        class="trait"
+        data-tooltip="Robustismo: Fuerza física y resistencia"
+        data-action="rollStat"
+        data-stat="robustismo"
+        data-value="2"
+      >
+        <div class="trait-name">
+          <span>ROB</span>
+        </div>
+        <div class="trait-value">
+          <span>+2</span>
+        </div>
+      </div>
+      <div
+        class="trait"
+        data-tooltip="Analítica: Observación e inteligencia"
+        data-action="rollStat"
+        data-stat="analitica"
+        data-value="1"
+      >
+        <div class="trait-name">
+          <span>ANA</span>
+        </div>
+        <div class="trait-value">
+          <span>+1</span>
+        </div>
+      </div>
+      <div
+        class="trait"
+        data-tooltip="Subterfugio: Sigilo y engaño"
+        data-action="rollStat"
+        data-stat="subterfugio"
+        data-value="0"
+      >
+        <div class="trait-name">
+          <span>SUB</span>
+        </div>
+        <div class="trait-value">
+          <span>0</span>
+        </div>
+      </div>
+      <div
+        class="trait"
+        data-tooltip="Elocuencia: Comunicación y carisma"
+        data-action="rollStat"
+        data-stat="elocuencia"
+        data-value="-1"
+      >
+        <div class="trait-name">
+          <span>ELO</span>
+        </div>
+        <div class="trait-value">
+          <span>-1</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="tab-navigation">
+      <div class="navigation-container">
+        <div class="navigation-inner-container">
+          <div class="line-div"></div>
+          <nav class="sheet-tabs tabs" data-group="primary">
+            <a class="overview active" data-action="tab" data-group="primary" data-tab="overview">
+              Overview
+            </a>
+            <a class="resources" data-action="tab" data-group="primary" data-tab="resources">
+              Resources
+            </a>
+            <a class="reputation" data-action="tab" data-group="primary" data-tab="reputation">
+              Reputation
+            </a>
+            <a class="patrols" data-action="tab" data-group="primary" data-tab="patrols">
+              Patrols
+            </a>
+            <a class="effects" data-action="tab" data-group="primary" data-tab="effects">
+              Effects
+            </a>
+          </nav>
+          <div class="line-div"></div>
+        </div>
+        <button type="button" data-action="openSettings" data-tooltip-text="Open Settings">
+          <i class="fa-solid fa-wrench"></i>
+        </button>
+      </div>
+    </section>
+  </header>
+
+  <section
+    class="tab active overview"
+    data-tab="overview"
+    data-group="primary"
+    data-application-part="overview"
+  >
+    <div class="overview-sections">
+      <fieldset class="drop-section">
+        <legend>Organization Details</legend>
+        <div class="organization-details">
+          <div class="input-group">
+            <label>Headquarters</label>
+            <input type="text" name="details.headquarters" value="North Tower, Castle District" />
+          </div>
+          <div class="input-group">
+            <label>Commander</label>
+            <input type="text" name="details.commander" value="Captain Hargrave" />
+          </div>
+          <div class="input-group">
+            <label>Founded</label>
+            <input type="text" name="details.founded" value="235 DR" />
+          </div>
+          <div class="input-group textarea">
+            <label>Description</label>
+            <textarea name="details.description">
+The City Guard is responsible for maintaining law and order within the city walls. They report directly to the Royal Authority and work closely with the local magistrates.</textarea
+            >
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="drop-section">
+        <legend>Statistics</legend>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Members</div>
+            <div class="stat-value">12</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Budget</div>
+            <div class="stat-value">200 gold/month</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Active Patrols</div>
+            <div class="stat-value">2</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Reserve</div>
+            <div class="stat-value">1</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Area Coverage</div>
+            <div class="stat-value">75%</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Response Time</div>
+            <div class="stat-value">10 minutes</div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="drop-section">
+        <legend>Current Activities</legend>
+        <ul class="items-list">
+          <li class="inventory-item">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/svg/book.svg" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Investigate Dockside Thefts</div>
+                <div class="item-tags">
+                  <div class="tag">Ongoing</div>
+                  <div class="tag">Priority: High</div>
+                </div>
+              </div>
+              <div class="controls">
+                <a data-action="editActivity" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="deleteActivity" data-tooltip="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="inventory-item">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/svg/book.svg" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Royal Visit Security</div>
+                <div class="item-tags">
+                  <div class="tag">Planning</div>
+                  <div class="tag">Priority: Critical</div>
+                </div>
+              </div>
+              <div class="controls">
+                <a data-action="editActivity" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="deleteActivity" data-tooltip="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </fieldset>
+    </div>
+  </section>
+
+  <section
+    class="tab resources"
+    data-tab="resources"
+    data-group="primary"
+    data-application-part="resources"
+  >
+    <div class="resources-sections">
+      <fieldset class="drop-section">
+        <legend>
+          Available Resources
+          <a data-action="addResource" data-tooltip="Add Resource">
+            <i class="fa-solid fa-plus icon-button"></i>
+          </a>
+        </legend>
+        <ul class="items-list">
+          <li class="inventory-item" data-item-id="resource1" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/containers/chest/chest-worn-brown-steel.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Weapons Cache</div>
+                <div class="item-tags">
+                  <div class="tag">Equipment</div>
+                </div>
+              </div>
+              <div class="item-resource">
+                <input type="number" class="inventory-item-quantity" value="15" min="0" />
+              </div>
+              <div class="controls">
+                <a data-action="editResource" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="inventory-item" data-item-id="resource2" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img
+                  src="icons/commodities/currency/coins-assorted-gold-silver-copper.webp"
+                  class="item-img"
+                />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Treasury</div>
+                <div class="item-tags">
+                  <div class="tag">Currency</div>
+                </div>
+              </div>
+              <div class="item-resource">
+                <input type="number" class="inventory-item-quantity" value="350" min="0" />
+              </div>
+              <div class="controls">
+                <a data-action="editResource" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="inventory-item" data-item-id="resource3" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/sundries/foodstuffs/meat-steak-cooked.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Rations</div>
+                <div class="item-tags">
+                  <div class="tag">Supplies</div>
+                </div>
+              </div>
+              <div class="item-resource">
+                <input type="number" class="inventory-item-quantity" value="25" min="0" />
+              </div>
+              <div class="controls">
+                <a data-action="editResource" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </fieldset>
+    </div>
+  </section>
+
+  <section
+    class="tab reputation"
+    data-tab="reputation"
+    data-group="primary"
+    data-application-part="reputation"
+  >
+    <div class="reputation-sections">
+      <fieldset class="drop-section">
+        <legend>
+          Faction Relations
+          <a data-action="addReputation" data-tooltip="Add Faction">
+            <i class="fa-solid fa-plus icon-button"></i>
+          </a>
+        </legend>
+        <ul class="items-list">
+          <li class="inventory-item" data-item-id="reputation1" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/environment/people/group.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Merchants Guild</div>
+                <div class="item-tags">
+                  <div class="tag">Commercial</div>
+                </div>
+              </div>
+              <div class="reputation-level tier-5">
+                <span>Respected</span>
+              </div>
+              <div class="controls">
+                <a data-action="editReputation" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="inventory-item" data-item-id="reputation2" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/environment/people/noble.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Noble Houses</div>
+                <div class="item-tags">
+                  <div class="tag">Political</div>
+                </div>
+              </div>
+              <div class="reputation-level tier-6">
+                <span>Allied</span>
+              </div>
+              <div class="controls">
+                <a data-action="editReputation" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="inventory-item" data-item-id="reputation3" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/environment/people/commoner.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Common Folk</div>
+                <div class="item-tags">
+                  <div class="tag">Civilian</div>
+                </div>
+              </div>
+              <div class="reputation-level tier-3">
+                <span>Neutral</span>
+              </div>
+              <div class="controls">
+                <a data-action="editReputation" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="inventory-item" data-item-id="reputation4" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/environment/people/thief.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Thieves Guild</div>
+                <div class="item-tags">
+                  <div class="tag">Criminal</div>
+                </div>
+              </div>
+              <div class="reputation-level tier-1">
+                <span>Hostile</span>
+              </div>
+              <div class="controls">
+                <a data-action="editReputation" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </fieldset>
+    </div>
+  </section>
+
+  <section
+    class="tab patrols"
+    data-tab="patrols"
+    data-group="primary"
+    data-application-part="patrols"
+  >
+    <div class="patrols-sections">
+      <fieldset class="drop-section">
+        <legend>
+          Active Patrols
+          <a data-action="addPatrol" data-tooltip="Add Patrol">
+            <i class="fa-solid fa-plus icon-button"></i>
+          </a>
+        </legend>
+        <ul class="items-list">
+          <li class="inventory-item" data-item-id="patrol1" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/svg/mystery-man.svg" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">City Watch</div>
+                <div class="item-tags">
+                  <div class="tag">5 Members</div>
+                  <div class="tag">Active</div>
+                </div>
+              </div>
+              <div class="controls">
+                <a data-action="editPatrol" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+                <a data-action="deletePatrol" data-tooltip="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </a>
+              </div>
+            </div>
+            <div class="inventory-item-content extensible">
+              <div class="patrol-stats">
+                <div class="stat-row">
+                  <div class="stat-label">ROB</div>
+                  <div class="stat-value">+2</div>
+                  <div class="stat-label">ANA</div>
+                  <div class="stat-value">+1</div>
+                </div>
+                <div class="stat-row">
+                  <div class="stat-label">SUB</div>
+                  <div class="stat-value">+0</div>
+                  <div class="stat-label">ELO</div>
+                  <div class="stat-value">-1</div>
+                </div>
+              </div>
+              <div class="patrol-leader"><strong>Leader:</strong> Sergeant Vimes</div>
+              <div class="patrol-area"><strong>Area:</strong> Market District</div>
+            </div>
+          </li>
+          <li class="inventory-item" data-item-id="patrol2" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/svg/mystery-man.svg" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Gate Guards</div>
+                <div class="item-tags">
+                  <div class="tag">3 Members</div>
+                  <div class="tag">Standby</div>
+                </div>
+              </div>
+              <div class="controls">
+                <a data-action="editPatrol" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="toChat" data-tooltip="Send to Chat">
+                  <i class="fa-regular fa-message"></i>
+                </a>
+                <a data-action="deletePatrol" data-tooltip="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </fieldset>
+    </div>
+  </section>
+
+  <section
+    class="tab effects"
+    data-tab="effects"
+    data-group="primary"
+    data-application-part="effects"
+  >
+    <div class="effects-sections">
+      <fieldset class="drop-section">
+        <legend>
+          Active Effects
+          <a data-action="addEffect" data-tooltip="Add Effect">
+            <i class="fa-solid fa-plus icon-button"></i>
+          </a>
+        </legend>
+        <ul class="items-list">
+          <li class="inventory-item" data-item-id="effect1" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/magic/fire/flame-burning-orange.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">High Morale</div>
+                <div class="item-tags">
+                  <div class="tag">Organization</div>
+                  <div class="tag">Temporary</div>
+                </div>
+              </div>
+              <div class="effect-duration">
+                <span>3 days</span>
+              </div>
+              <div class="controls">
+                <a data-action="toggleEffect" data-tooltip="Disable">
+                  <i class="fa-solid fa-toggle-on"></i>
+                </a>
+                <a data-action="editEffect" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="deleteEffect" data-tooltip="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </a>
+              </div>
+            </div>
+            <div class="inventory-item-content extensible">
+              <div class="effect-description">
+                <p>+1 to all stat rolls due to increased morale after successful mission.</p>
+              </div>
+            </div>
+          </li>
+          <li class="inventory-item" data-item-id="effect2" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/magic/defensive/shield-barrier-blue.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Enhanced Training</div>
+                <div class="item-tags">
+                  <div class="tag">Organization</div>
+                  <div class="tag">Permanent</div>
+                </div>
+              </div>
+              <div class="effect-duration">
+                <span>Permanent</span>
+              </div>
+              <div class="controls">
+                <a data-action="toggleEffect" data-tooltip="Disable">
+                  <i class="fa-solid fa-toggle-on"></i>
+                </a>
+                <a data-action="editEffect" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="deleteEffect" data-tooltip="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </fieldset>
+
+      <fieldset class="drop-section">
+        <legend>Inactive Effects</legend>
+        <ul class="items-list">
+          <li class="inventory-item" data-item-id="effect3" draggable="true">
+            <div class="inventory-item-header" data-action="toggleExtended">
+              <div class="img-portrait">
+                <img src="icons/magic/water/water-drop-blue.webp" class="item-img" />
+              </div>
+              <div class="item-label">
+                <div class="item-name">Resource Shortage</div>
+                <div class="item-tags">
+                  <div class="tag">Organization</div>
+                  <div class="tag">Negative</div>
+                </div>
+              </div>
+              <div class="effect-duration">
+                <span>Expired</span>
+              </div>
+              <div class="controls">
+                <a data-action="toggleEffect" data-tooltip="Enable">
+                  <i class="fa-solid fa-toggle-off"></i>
+                </a>
+                <a data-action="editEffect" data-tooltip="Edit">
+                  <i class="fa-solid fa-edit"></i>
+                </a>
+                <a data-action="deleteEffect" data-tooltip="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </fieldset>
+    </div>
+  </section>
+</section>
