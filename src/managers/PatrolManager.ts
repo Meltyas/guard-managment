@@ -78,10 +78,19 @@ export class PatrolManager {
   public updateLastOrder(patrolId: string, text: string): Patrol | undefined {
     const patrol = this.patrols.get(patrolId);
     if (!patrol) return undefined;
+    
+    if (text.includes('[object Object]')) {
+        console.warn('PatrolManager | updateLastOrder received [object Object], ignoring update');
+        return patrol;
+    }
+
     patrol.lastOrder = { text: text.trim(), issuedAt: Date.now() } as PatrolLastOrder;
     patrol.version += 1;
     patrol.updatedAt = new Date();
     this.onChange?.(patrol, 'update', { field: 'lastOrder' });
+    // Persist immediately to avoid data loss on refresh
+    this.persistToActor().catch(() => this.queueSave());
+    this.queueSave();
     return patrol;
   }
 
@@ -293,6 +302,15 @@ export class PatrolManager {
           // Asegurar fechas
           if (p.createdAt && typeof p.createdAt === 'string') p.createdAt = new Date(p.createdAt);
           if (p.updatedAt && typeof p.updatedAt === 'string') p.updatedAt = new Date(p.updatedAt);
+          
+          // SANITIZE: Check for corrupted lastOrder
+          if (p.lastOrder && typeof p.lastOrder.text === 'string') {
+             if (p.lastOrder.text.includes('[object ')) {
+                 console.warn(`PatrolManager | Sanitizing corrupted lastOrder for patrol ${p.id}`);
+                 p.lastOrder = null;
+             }
+          }
+
           this.patrols.set(p.id, p);
         }
         console.log('PatrolManager | Loaded patrols from actor flag');

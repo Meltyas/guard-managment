@@ -1,0 +1,78 @@
+<div class="patrols-panel" data-patrols-panel>
+    <div class="panel-header">
+        <h3><i class="fas fa-users"></i> Patrullas</h3>
+        <button type="button" class="btn create-patrol" data-action="create-patrol">
+            <i class="fas fa-plus"></i> Nueva Patrulla
+        </button>
+    </div>
+    <div class="patrols-dynamic" data-patrols-container>
+        {{#if patrols.length}}
+            <div class="patrol-cards-grid">
+                {{#each patrols}}
+                <div class="patrol-card" data-patrol-id="{{this.id}}">
+                    <div class="header">
+                        <span class="name">{{this.name}}</span>
+                        {{#if this.subtitle}}<span class="subtitle">{{this.subtitle}}</span>{{/if}}
+                    </div>
+                    <div class="stats-mini">
+                        {{#each this.statsBreakdown as |stat key|}}
+                        <span class="stat" data-stat="{{key}}" title="Base: {{stat.base}}&#10;Efectos: {{stat.effects}}&#10;Organización: {{#if (gte stat.org 0)}}+{{/if}}{{stat.org}}&#10;Total: {{stat.total}}">
+                            {{key}}: {{stat.total}}
+                        </span>
+                        {{/each}}
+                    </div>
+                    <div class="officer-slot" data-drop="officer" title="Arrastra un Actor aquí para asignarlo como Oficial">
+                        {{#if this.officer}}
+                        <div class="clickable-actor" data-action="open-sheet" data-actor-id="{{this.officer.actorId}}" style="cursor: pointer;">
+                            <img src="{{this.officer.img}}" alt="oficial" />
+                        </div>
+                        {{else}}
+                        <span class="empty">Sin Oficial</span>
+                        {{/if}}
+                    </div>
+                    <div class="soldiers-zone" data-drop="soldier" title="Arrastra Actores aquí para añadir Soldados">
+                        {{#if this.soldiers.length}}
+                            {{#each this.soldiers}}
+                                {{#if (lt @index 12)}}
+                                <div class="clickable-actor soldier-wrapper" data-action="open-sheet" data-actor-id="{{this.actorId}}" style="display: inline-block; cursor: pointer;">
+                                    <img class="soldier-avatar" src="{{this.img}}" alt="{{this.name}}" title="{{this.name}}" />
+                                </div>
+                                {{/if}}
+                            {{/each}}
+                            {{#if (gt this.soldiers.length 12)}}
+                            <span class="more" title="{{subtract this.soldiers.length 12}} más">+{{subtract this.soldiers.length 12}}</span>
+                            {{/if}}
+                        {{else}}
+                        <span class="placeholder">Arrastra Soldados aquí</span>
+                        {{/if}}
+                    </div>
+                    <div class="last-order-line {{this.ageClass}}" data-action="edit-last-order" data-patrol-id="{{this.id}}" title="Click para editar la última orden">
+                        <i class="fas fa-scroll"></i>
+                        <div class="last-order-content">
+                            <span class="last-order-label">Última Orden:</span>
+                            <div class="last-order-text">
+                                {{#if this.lastOrder}}
+                                    {{{this.lastOrder.text}}}
+                                {{else}}
+                                    — (sin orden)
+                                {{/if}}
+                            </div>
+                        </div>
+                        {{#if this.lastOrder}}<span class="age-indicator {{this.ageClass}}"></span>{{/if}}
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="delete-patrol" data-action="delete" data-patrol-id="{{this.id}}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+        {{else}}
+            <p class="empty-state">No hay patrullas. Crea la primera.</p>
+        {{/if}}
+    </div>
+</div>

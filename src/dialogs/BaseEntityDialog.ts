@@ -3,10 +3,8 @@
  * Provides consistent dialog behavior using DialogV2 across all entities
  */
 
-import { html, TemplateResult } from 'lit-html';
 import { EntityConfig, Identifiable } from '../core/traits';
 import { DOMEventSetup } from '../utils/DOMEventSetup';
-import { renderTemplateToString } from '../utils/template-renderer';
 
 export interface BaseDialogOptions {
   title?: string;
@@ -48,7 +46,7 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
     existingEntity?: T,
     options: BaseDialogOptions = {}
   ): Promise<T | null> {
-    const content = this.generateContent(mode, contextId, existingEntity);
+    const content = await this.generateContent(mode, contextId, existingEntity);
     const title =
       options.title ||
       (mode === 'create'
@@ -61,7 +59,7 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
 
       if (!DialogV2Class) {
         console.error('DialogV2 no está disponible, usando Dialog estándar como fallback');
-        return this.showWithStandardDialog(mode, contextId, existingEntity, options);
+        return this.showWithStandardDialog(mode, contextId, existingEntity, options, content);
       }
 
       let entityResult: T | null = null;
@@ -114,139 +112,45 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
   /**
    * Generate dialog content using field configuration
    */
-  protected generateContent(
+  protected async generateContent(
     mode: 'create' | 'edit',
     contextId: string,
     existingEntity?: T
-  ): string {
+  ): Promise<string> {
     const fields = this.getFieldConfiguration();
-    const template = html`
-      <form class="${this.config.entityType}-dialog-form">
-        ${fields.map((field) => this.renderField(field, existingEntity))}
-        <input type="hidden" name="contextId" value="${contextId}" />
-        ${mode === 'edit'
-          ? html`<input type="hidden" name="entityId" value="${existingEntity?.id || ''}" />`
-          : ''}
-      </form>
-    `;
+    
+    // Prepare fields data for Handlebars
+    const processedFields = fields.map(field => {
+      const value = existingEntity ? (existingEntity as any)[field.name] : undefined;
+      
+      // Handle specific field types
+      if (field.type === 'select' && field.options) {
+        return {
+          ...field,
+          value: value || '',
+          options: field.options.map(opt => ({
+            ...opt,
+            selected: value === opt.value
+          }))
+        };
+      }
+      
+      return {
+        ...field,
+        value: value !== undefined ? value : '',
+        rows: field.rows || 3,
+        fileType: field.fileType || 'image'
+      };
+    });
 
-    return renderTemplateToString(template);
-  }
+    const templateData = {
+      entityType: this.config.entityType,
+      fields: processedFields,
+      contextId,
+      entityId: mode === 'edit' ? existingEntity?.id : ''
+    };
 
-  /**
-   * Render individual field based on configuration
-   */
-  protected renderField(field: FieldConfig, existingEntity?: T): TemplateResult {
-    const value = existingEntity ? (existingEntity as any)[field.name] || '' : '';
-    const fieldId = `${this.config.entityType}-${field.name}`;
-
-    switch (field.type) {
-      case 'text':
-        return html`
-          <div class="form-group">
-            <label for="${fieldId}">${field.label}${field.required ? ' *' : ''}</label>
-            <input
-              type="text"
-              id="${fieldId}"
-              name="${field.name}"
-              value="${value}"
-              placeholder="${field.placeholder || ''}"
-              ${field.required ? 'required' : ''}
-            />
-          </div>
-        `;
-
-      case 'textarea':
-        return html`
-          <div class="form-group">
-            <label for="${fieldId}">${field.label}${field.required ? ' *' : ''}</label>
-            <textarea
-              id="${fieldId}"
-              name="${field.name}"
-              placeholder="${field.placeholder || ''}"
-              rows="${field.rows || 3}"
-              ${field.required ? 'required' : ''}
-            >
-${value}</textarea
-            >
-          </div>
-        `;
-
-      case 'number':
-        return html`
-          <div class="form-group">
-            <label for="${fieldId}">${field.label}${field.required ? ' *' : ''}</label>
-            <input
-              type="number"
-              id="${fieldId}"
-              name="${field.name}"
-              value="${value}"
-              min="${field.min || 0}"
-              max="${field.max || ''}"
-              ${field.required ? 'required' : ''}
-            />
-          </div>
-        `;
-
-      case 'file':
-        return html`
-          <div class="form-group">
-            <label for="${fieldId}">${field.label}${field.required ? ' *' : ''}</label>
-            <div class="file-picker-container">
-              <input
-                type="text"
-                id="${fieldId}"
-                name="${field.name}"
-                value="${value}"
-                placeholder="${field.placeholder || 'Seleccionar archivo...'}"
-                ${field.required ? 'required' : ''}
-              />
-              <button
-                type="button"
-                class="file-picker-btn"
-                data-target="${fieldId}"
-                data-file-type="${field.fileType || 'image'}"
-              >
-                <i class="fas fa-folder"></i>
-              </button>
-            </div>
-          </div>
-        `;
-
-      case 'select':
-        return html`
-          <div class="form-group">
-            <label for="${fieldId}">${field.label}${field.required ? ' *' : ''}</label>
-            <select id="${fieldId}" name="${field.name}" ${field.required ? 'required' : ''}>
-              ${field.options?.map(
-                (option) => html`
-                  <option value="${option.value}" ${value === option.value ? 'selected' : ''}>
-                    ${option.label}
-                  </option>
-                `
-              )}
-            </select>
-          </div>
-        `;
-
-      case 'checkbox':
-        return html`
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                id="${fieldId}"
-                name="${field.name}"
-                ${value ? 'checked' : ''}
-              />
-              ${field.label}
-            </label>
-          </div>
-        `;
-
-      default:
-        return html``;
-    }
+    return renderTemplate('modules/guard-management/templates/dialogs/base-entity.hbs', templateData);
   }
 
   /**
@@ -339,20 +243,21 @@ ${value}</textarea
     mode: 'create' | 'edit',
     contextId: string,
     existingEntity?: T,
-    options: BaseDialogOptions = {}
+    options: BaseDialogOptions = {},
+    content?: string
   ): Promise<T | null> {
     console.warn(`Usando Dialog estándar para ${this.config.displayName}`);
+    
+    const dialogContent = content || await this.generateContent(mode, contextId, existingEntity);
 
     return new Promise((resolve) => {
-      const content = this.generateContent(mode, contextId, existingEntity);
-
       new Dialog({
         title:
           options.title ||
           (mode === 'create'
             ? `Nuevo ${this.config.displayName}`
             : `Editar ${this.config.displayName}`),
-        content,
+        content: dialogContent,
         buttons: {
           save: {
             icon: '<i class="fas fa-save"></i>',

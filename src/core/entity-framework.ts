@@ -3,7 +3,6 @@
  * Provides composable traits and extensible architecture
  */
 
-import { html, TemplateResult } from 'lit-html';
 import {
   ActionButton,
   ChatContext,
@@ -23,7 +22,7 @@ import {
 export class EntityTemplateRenderer<T extends Identifiable> implements Renderable<T> {
   constructor(private config: EntityConfig<T>) {}
 
-  renderItem(entity: T, options: RenderOptions = {}): TemplateResult | null {
+  renderItem(entity: T, options: RenderOptions = {}): string | null {
     const {
       showActions = false,
       showSendToChat = false,
@@ -49,25 +48,27 @@ export class EntityTemplateRenderer<T extends Identifiable> implements Renderabl
     // Render main content using configured field renderers
     const mainContent = this.renderMainContent(entity, options);
 
-    return html`
+    return `
       <div class="${itemClasses}" data-entity-id="${entity.id}" data-entity-type="${entityType}">
         ${mainContent}
-        ${showActions || showSendToChat || allActions.length > 0
-          ? this.renderActions(entity, {
-              showSendToChat,
-              customActions: allActions,
-              contextId,
-            })
-          : ''}
+        ${
+          showActions || showSendToChat || allActions.length > 0
+            ? this.renderActions(entity, {
+                showSendToChat,
+                customActions: allActions,
+                contextId,
+              })
+            : ''
+        }
       </div>
     `;
   }
 
-  renderCompact(entity: T, options: RenderOptions = {}): TemplateResult | null {
+  renderCompact(entity: T, options: RenderOptions = {}): string | null {
     return this.renderItem(entity, { ...options, compact: true });
   }
 
-  private renderMainContent(entity: T, options: RenderOptions): TemplateResult {
+  private renderMainContent(entity: T, options: RenderOptions): string {
     const renderer = this.config.renderer;
 
     // Check for template overrides first
@@ -77,33 +78,33 @@ export class EntityTemplateRenderer<T extends Identifiable> implements Renderabl
     }
 
     // Default rendering logic
-    return html`
+    return `
       ${this.renderImage(entity)}
       <div class="${this.config.entityType}-info">${this.renderFields(entity, options)}</div>
     `;
   }
 
-  private renderImage(entity: T): TemplateResult {
+  private renderImage(entity: T): string {
     const imageField = 'image' as keyof T;
     const image = entity[imageField];
 
     if (!image || typeof image !== 'string') {
-      return html``;
+      return '';
     }
 
-    return html`
+    return `
       <div class="${this.config.entityType}-image">
         <img src="${image}" alt="${entity.name}" onerror="this.style.display='none'" />
       </div>
     `;
   }
 
-  private renderFields(entity: T, _options: RenderOptions): TemplateResult[] {
+  private renderFields(entity: T, _options: RenderOptions): string {
     const renderer = this.config.renderer;
-    const fields: TemplateResult[] = [];
+    const fields: string[] = [];
 
     // Always render name first
-    fields.push(html` <span class="${this.config.entityType}-name">${entity.name}</span> `);
+    fields.push(` <span class="${this.config.entityType}-name">${entity.name}</span> `);
 
     // Render other fields using configured renderers
     if (renderer?.fieldRenderers) {
@@ -114,7 +115,7 @@ export class EntityTemplateRenderer<T extends Identifiable> implements Renderabl
       }
     }
 
-    return fields;
+    return fields.join('');
   }
 
   private renderActions(
@@ -124,13 +125,13 @@ export class EntityTemplateRenderer<T extends Identifiable> implements Renderabl
       customActions?: ActionButton[];
       contextId?: string;
     }
-  ): TemplateResult {
+  ): string {
     const { showSendToChat = false, customActions = [], contextId = '' } = options;
-    const actions: TemplateResult[] = [];
+    const actions: string[] = [];
 
     // Send to chat action
     if (showSendToChat) {
-      actions.push(html`
+      actions.push(`
         <button
           type="button"
           class="send-to-chat-btn btn-icon"
@@ -151,7 +152,7 @@ export class EntityTemplateRenderer<T extends Identifiable> implements Renderabl
         .map(([key, value]) => `data-${key}="${value}"`)
         .join(' ');
 
-      actions.push(html`
+      actions.push(`
         <button
           type="button"
           class="${action.cssClass || 'btn-icon'}"
@@ -167,7 +168,7 @@ export class EntityTemplateRenderer<T extends Identifiable> implements Renderabl
       `);
     }
 
-    return html` <div class="${this.config.entityType}-actions">${actions}</div> `;
+    return ` <div class="${this.config.entityType}-actions">${actions.join('')}</div> `;
   }
 }
 

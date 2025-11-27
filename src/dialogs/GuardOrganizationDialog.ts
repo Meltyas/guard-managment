@@ -2,10 +2,8 @@
  * Guard Organization Dialog - Create/Edit Guard Organizations using DialogV2
  */
 
-import { html, TemplateResult } from 'lit-html';
 import type { GuardOrganization, GuardStats } from '../types/entities';
 import { DEFAULT_GUARD_STATS, GUARD_STAT_MAX, GUARD_STAT_MIN } from '../types/entities';
-import { renderTemplateToString } from '../utils/template-renderer.js';
 
 export interface GuardOrganizationDialogData {
   name: string;
@@ -21,6 +19,8 @@ interface GuardOrganizationFormRenderData {
   name: string;
   subtitle: string;
   baseStats: GuardStats;
+  minStat: number;
+  maxStat: number;
 }
 
 export class GuardOrganizationDialog {
@@ -35,7 +35,7 @@ export class GuardOrganizationDialog {
     mode: 'create' | 'edit',
     existingOrganization?: GuardOrganization
   ): Promise<GuardOrganization | null> {
-    const content = this.generateContent(mode, existingOrganization);
+    const content = await this.generateContent(mode, existingOrganization);
     const title =
       mode === 'create' ? 'Nueva Organización de Guardias' : 'Editar Organización de Guardias';
 
@@ -45,7 +45,7 @@ export class GuardOrganizationDialog {
 
       if (!DialogV2Class) {
         console.warn('DialogV2 no está disponible, usando Dialog estándar como fallback');
-        return this.showWithStandardDialog(mode, existingOrganization);
+        return this.showWithStandardDialog(mode, existingOrganization, content);
       }
 
       const result = await DialogV2Class.wait({
@@ -235,140 +235,24 @@ export class GuardOrganizationDialog {
   /**
    * Generate the HTML content for the dialog
    */
-  public generateContent(_mode: 'create' | 'edit', organization?: GuardOrganization): string {
+  public async generateContent(_mode: 'create' | 'edit', organization?: GuardOrganization): Promise<string> {
     const data: GuardOrganizationFormRenderData = organization
       ? {
           name: organization.name ?? '',
           subtitle: organization.subtitle ?? '',
           baseStats: { ...organization.baseStats },
+          minStat: GUARD_STAT_MIN,
+          maxStat: GUARD_STAT_MAX
         }
-      : { name: '', subtitle: '', baseStats: { ...DEFAULT_GUARD_STATS } };
+      : { 
+          name: '', 
+          subtitle: '', 
+          baseStats: { ...DEFAULT_GUARD_STATS },
+          minStat: GUARD_STAT_MIN,
+          maxStat: GUARD_STAT_MAX
+        };
 
-    const template = this.renderOrganizationForm(data);
-    const formHtml = renderTemplateToString(template);
-
-    // Simplified single-panel dialog (tabs removed)
-    return `
-      <div class="guard-org-dialog-single">
-        <header class="single-header"><h2>Organización</h2></header>
-        <section class="single-panel" data-panel="general">${formHtml}</section>
-      </div>`;
-  }
-
-  /**
-   * Render the complete organization form
-   */
-  private renderOrganizationForm(data: GuardOrganizationFormRenderData): TemplateResult {
-    return html`${this.renderFormContent(data)}`; // styles moved to external CSS file
-  }
-
-  /**
-   * Render form content section
-   */
-  private renderFormContent(data: GuardOrganizationFormRenderData): TemplateResult {
-    return html`
-      <form class="guard-organization-form" data-form-scope="guard-organization">
-        ${this.renderBasicInfoSection(data)} ${this.renderStatsSection(data)}
-        ${this.renderInfoSection()}
-      </form>
-    `;
-  }
-
-  /**
-   * Render basic information section
-   */
-  private renderBasicInfoSection(data: GuardOrganizationFormRenderData): TemplateResult {
-    return html`
-      <div class="form-group">
-        <label for="name">Nombre de la Organización *</label>
-        <input
-          type="text"
-          name="name"
-          id="name"
-          value="${data.name}"
-          placeholder="ej: Guardia de la Ciudad"
-          required
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="subtitle">Subtítulo</label>
-        <input
-          type="text"
-          name="subtitle"
-          id="subtitle"
-          value="${data.subtitle}"
-          placeholder="ej: Protectores del Reino"
-        />
-      </div>
-    `;
-  }
-
-  /**
-   * Render stats section
-   */
-  private renderStatsSection(data: GuardOrganizationFormRenderData): TemplateResult {
-    const stats: Array<{ key: keyof GuardStats; label: string }> = [
-      { key: 'robustismo', label: 'Robustismo' },
-      { key: 'analitica', label: 'Analítica' },
-      { key: 'subterfugio', label: 'Subterfugio' },
-      { key: 'elocuencia', label: 'Elocuencia' },
-    ];
-
-    return html`
-      <div class="stats-section">
-        <h3>Estadísticas Base</h3>
-        <div class="stats-grid">
-          ${stats.map((s) => this.renderStatInput(s.key, s.label, data))}
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Render individual stat input
-   */
-  private renderStatInput(
-    statName: keyof GuardStats,
-    label: string,
-    data: GuardOrganizationFormRenderData
-  ): TemplateResult {
-    const value =
-      data.baseStats?.[statName] !== undefined
-        ? data.baseStats[statName]
-        : (DEFAULT_GUARD_STATS as any)[statName];
-
-    return html`
-      <div class="stat-input">
-        <label for="${statName}">${label}</label>
-        <input
-          type="number"
-          name="${statName}"
-          id="${statName}"
-          value="${value}"
-          min="${GUARD_STAT_MIN}"
-          max="${GUARD_STAT_MAX}"
-          required
-        />
-      </div>
-    `;
-  }
-
-  /**
-   * Render information section
-   */
-  private renderInfoSection(): TemplateResult {
-    return html`
-      <div class="dialog-info">
-        <p><small>* Campos requeridos</small></p>
-        <p>
-          <small>
-            Las estadísticas pueden ser de ${GUARD_STAT_MIN} a ${GUARD_STAT_MAX} y modificadas más
-            tarde mediante modificadores de organización.
-          </small>
-        </p>
-      </div>
-    `;
+    return renderTemplate('modules/guard-management/templates/dialogs/guard-organization.hbs', data);
   }
 
   /**
@@ -513,16 +397,17 @@ export class GuardOrganizationDialog {
    */
   private async showWithStandardDialog(
     mode: 'create' | 'edit',
-    existingOrganization?: GuardOrganization
+    existingOrganization?: GuardOrganization,
+    content?: string
   ): Promise<GuardOrganization | null> {
-    const content = this.generateContent(mode, existingOrganization);
+    const dialogContent = content || await this.generateContent(mode, existingOrganization);
     const title =
       mode === 'create' ? 'Nueva Organización de Guardias' : 'Editar Organización de Guardias';
 
     return new Promise((resolve) => {
       const dialog = new Dialog({
         title,
-        content,
+        content: dialogContent,
         buttons: {
           save: {
             icon: 'fas fa-save',
@@ -542,7 +427,7 @@ export class GuardOrganizationDialog {
 
                 // No cerrar el diálogo - crear uno nuevo
                 setTimeout(() => {
-                  this.showWithStandardDialog(mode, existingOrganization).then(resolve);
+                  this.showWithStandardDialog(mode, existingOrganization, dialogContent).then(resolve);
                 }, 100);
                 return;
               }

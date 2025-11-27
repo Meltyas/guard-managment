@@ -3,8 +3,6 @@
  * These traits can be mixed and matched for different entity types
  */
 
-import { TemplateResult } from 'lit-html';
-
 // ============================================================================
 // Base Trait Interfaces
 // ============================================================================
@@ -16,8 +14,8 @@ export interface Identifiable {
 }
 
 export interface Renderable<T> {
-  renderItem(entity: T, options?: RenderOptions): TemplateResult | null;
-  renderCompact?(entity: T, options?: RenderOptions): TemplateResult | null;
+  renderItem(entity: T, options?: RenderOptions): string | null;
+  renderCompact?(entity: T, options?: RenderOptions): string | null;
 }
 
 export interface Chattable<T> {
@@ -121,12 +119,12 @@ export interface EntityConfig<T> {
 
 export interface EntityRenderer<T> {
   fieldRenderers: Map<keyof T, FieldRenderer<T>>;
-  templateOverrides?: Map<string, (entity: T, options: RenderOptions) => TemplateResult>;
+  templateOverrides?: Map<string, (entity: T, options: RenderOptions) => string>;
   defaultActions?: ActionButton[];
 }
 
 export interface FieldRenderer<T> {
-  render(value: any, entity: T, field: keyof T): TemplateResult;
+  render(value: any, entity: T, field: keyof T): string;
   validate?(value: any): boolean;
 }
 

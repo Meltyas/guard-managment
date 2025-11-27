@@ -1,0 +1,42 @@
+<div
+  class="template-item reputation-template"
+  data-reputation-id="{{id}}"
+  draggable="true"
+  title="Arrastra esta reputación a una organización para asignarla"
+>
+  {{#if image}}
+    <div class="template-image">
+      <img
+        src="{{image}}"
+        alt="{{name}}"
+        onerror="this.style.display='none'"
+      />
+    </div>
+  {{/if}}
+  <div class="template-info">
+    <div class="template-name">{{name}}</div>
+    <div class="template-description">
+      {{description}}
+    </div>
+    <div class="template-level">Nivel: {{levelLabel}}</div>
+  </div>
+  <div class="template-actions">
+    <button
+      type="button"
+      class="send-to-chat-template-btn"
+      title="Enviar al chat"
+      data-reputation-id="{{id}}"
+    >
+      <i class="fas fa-comment"></i>
+    </button>
+    <button type="button" class="edit-template-btn" title="Editar template">
+      <i class="fas fa-edit"></i>
+    </button>
+    <button type="button" class="duplicate-template-btn" title="Duplicar template">
+      <i class="fas fa-copy"></i>
+    </button>
+    <button type="button" class="delete-template-btn" title="Eliminar template">
+      <i class="fas fa-trash"></i>
+    </button>
+  </div>
+</div>

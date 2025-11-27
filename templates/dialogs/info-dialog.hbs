@@ -1,0 +1,54 @@
+<div class="custom-dialog-header">
+    <div class="custom-dialog-title">
+        <i class="fas fa-info-circle"></i>
+        <span class="custom-dialog-title-text">Información: {{organization.name}}</span>
+    </div>
+    <div class="custom-dialog-controls">
+        <button class="custom-dialog-btn custom-dialog-edit" title="Editar">
+            <i class="fas fa-edit"></i>
+        </button>
+        <button class="custom-dialog-btn custom-dialog-close" title="Cerrar">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+</div>
+
+<div class="custom-dialog-content">
+    <div class="organization-content">
+        <div class="org-tabs-layout" data-current-tab="{{activeTab}}">
+            <nav class="org-tabs" role="tablist" aria-orientation="vertical">
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'general')}}active{{/if}}" role="tab" data-tab="general">
+                    <i class="fas fa-info-circle"></i><span>General</span>
+                </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'patrols')}}active{{/if}}" role="tab" data-tab="patrols">
+                    <i class="fas fa-users"></i><span>Patrullas</span>
+                </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'resources')}}active{{/if}}" role="tab" data-tab="resources">
+                    <i class="fas fa-coins"></i><span>Recursos</span>
+                </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'reputation')}}active{{/if}}" role="tab" data-tab="reputation">
+                    <i class="fas fa-handshake"></i><span>Reputación</span>
+                </button>
+                <div class="active-bar" aria-hidden="true"></div>
+            </nav>
+            
+            <div class="org-tab-panels">
+                <section class="org-tab-panel {{#if (eq activeTab 'general')}}active{{/if}}" role="tabpanel" data-tab-panel="general">
+                    {{> "modules/guard-management/templates/panels/general.hbs" organization=organization}}
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'patrols')}}active{{/if}}" role="tabpanel" data-tab-panel="patrols">
+                    {{> "modules/guard-management/templates/panels/patrols.hbs" patrols=patrols}}
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'resources')}}active{{/if}}" role="tabpanel" data-tab-panel="resources">
+                    {{> "modules/guard-management/templates/panels/resources.hbs" organization=organization}}
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'reputation')}}active{{/if}}" role="tabpanel" data-tab-panel="reputation">
+                    {{> "modules/guard-management/templates/panels/reputation.hbs" organization=organization}}
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="custom-dialog-resize-handle"></div>
+<div class="drop-overlay" style="display: none;"></div>

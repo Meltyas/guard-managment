@@ -1,4 +1,3 @@
-import { html, TemplateResult } from 'lit-html';
 import { REPUTATION_LABELS, ReputationLevel } from '../types/entities.js';
 import { ReputationTemplate } from '../ui/ReputationTemplate.js';
 import { ResourceTemplate } from '../ui/ResourceTemplate.js';
@@ -7,7 +6,6 @@ import { DOMEventSetup } from '../utils/DOMEventSetup.js';
 import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 import { ResourceErrorHandler } from '../utils/ResourceErrorHandler.js';
 import { ResourceEventHandler, type ResourceEventContext } from '../utils/ResourceEventHandler.js';
-import { safeRender } from '../utils/template-renderer.js';
 
 /**
  * GM Warehouse Dialog
@@ -49,14 +47,14 @@ export class GMWarehouseDialog implements FocusableDialog {
   /**
    * Show the GM Warehouse dialog
    */
-  public show(
+  public async show(
     options: {
       width?: number;
       height?: number;
       x?: number;
       y?: number;
     } = {}
-  ): void {
+  ): Promise<void> {
     // Verify that the module is available before showing
     const gm = (window as any).GuardManagement;
 
@@ -88,7 +86,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     }
 
     // Create the dialog element
-    this.element = this.createElement(options);
+    this.element = await this.createElement(options);
 
     // Add to document
     document.body.appendChild(this.element);
@@ -140,12 +138,12 @@ export class GMWarehouseDialog implements FocusableDialog {
   /**
    * Create the dialog HTML element
    */
-  private createElement(options: {
+  private async createElement(options: {
     width?: number;
     height?: number;
     x?: number;
     y?: number;
-  }): HTMLElement {
+  }): Promise<HTMLElement> {
     const dialog = document.createElement('div');
     dialog.className = 'gm-warehouse-dialog custom-dialog';
 
@@ -164,100 +162,11 @@ export class GMWarehouseDialog implements FocusableDialog {
 
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
-    dialog.innerHTML = '';
-
-    // Render using lit-html templates
-    const dialogTemplate = this.renderDialogTemplate();
-    safeRender(dialogTemplate, dialog);
+    // Render using Handlebars template
+    const content = await renderTemplate('modules/guard-management/templates/dialogs/gm-warehouse.hbs', {});
+    dialog.innerHTML = content;
 
     return dialog;
-  }
-
-  /**
-   * Render the complete dialog template
-   */
-  private renderDialogTemplate(): TemplateResult {
-    return html`
-      <div class="custom-dialog-header">
-        <h2 class="custom-dialog-title-text">GM Warehouse - Template Storage</h2>
-        <button class="custom-dialog-close" type="button" aria-label="Close">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="custom-dialog-body">${this.renderWarehouseContent()}</div>
-    `;
-  }
-
-  /**
-   * Render warehouse content using lit-html
-   */
-  private renderWarehouseContent(): TemplateResult {
-    return html`
-      <div class="gm-warehouse-container">
-        ${this.renderWarehouseTabs()} ${this.renderWarehouseMainContent()}
-      </div>
-    `;
-  }
-
-  /**
-   * Render warehouse navigation tabs
-   */
-  private renderWarehouseTabs(): TemplateResult {
-    return html`
-      <div class="warehouse-tabs">
-        <nav class="tabs" data-group="warehouse-tabs">
-          <a class="item tab active" data-tab="resources">
-            <i class="fas fa-boxes"></i>
-            Resources
-          </a>
-          <a class="item tab" data-tab="reputation">
-            <i class="fas fa-handshake"></i>
-            Reputation
-          </a>
-          <a class="item tab" data-tab="patrol-effects">
-            <i class="fas fa-magic"></i>
-            Patrol Effects
-          </a>
-          <a class="item tab" data-tab="guard-modifiers">
-            <i class="fas fa-shield-alt"></i>
-            Guard Modifiers
-          </a>
-        </nav>
-      </div>
-    `;
-  }
-
-  /**
-   * Render warehouse main content area
-   */
-  private renderWarehouseMainContent(): TemplateResult {
-    return html`
-      <div class="warehouse-content">
-        ${this.renderResourcesTab()} ${this.renderReputationTab()} ${this.renderPatrolEffectsTab()}
-        ${this.renderGuardModifiersTab()}
-      </div>
-    `;
-  }
-
-  /**
-   * Render resources tab content
-   */
-  private renderResourcesTab(): TemplateResult {
-    // Initialize with empty state, will be populated async
-    return html`
-      <section class="tab-content active" data-tab="resources">
-        <div class="content-header">
-          <h3>Resources Templates</h3>
-          <button type="button" class="add-resource-btn">
-            <i class="fas fa-plus"></i>
-            Add Resource Template
-          </button>
-        </div>
-        <div class="templates-list resources-list">
-          <p class="loading-state">Loading resources...</p>
-        </div>
-      </section>
-    `;
   }
 
   /**
@@ -317,62 +226,16 @@ export class GMWarehouseDialog implements FocusableDialog {
   /**
    * Render individual resource template
    */
-  private renderResourceTemplate(resource: any): TemplateResult {
+  private async renderResourceTemplate(resource: any): Promise<string> {
     // Use the unified conversion function to ensure consistency
     const resourceData = convertFoundryDocumentToResource(resource);
-
-    return html`
-      <div
-        class="template-item resource-template"
-        data-resource-id="${resourceData.id}"
-        draggable="true"
-        title="Arrastra este recurso a una organización para asignarlo"
-      >
-        ${resourceData.image
-          ? html`
-              <div class="template-image">
-                <img
-                  src="${resourceData.image}"
-                  alt="${resourceData.name}"
-                  onerror="this.style.display='none'"
-                />
-              </div>
-            `
-          : ''}
-        <div class="template-info">
-          <div class="template-name">${resourceData.name}</div>
-          <div class="template-description">
-            ${(resourceData.description || 'Sin descripción').trim()}
-          </div>
-          <div class="template-quantity">Cantidad: ${resourceData.quantity}</div>
-        </div>
-        <div class="template-actions">
-          <button
-            type="button"
-            class="send-to-chat-template-btn"
-            title="Enviar al chat"
-            data-resource-id="${resourceData.id}"
-          >
-            <i class="fas fa-comment"></i>
-          </button>
-          <button type="button" class="edit-template-btn" title="Editar template">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button type="button" class="duplicate-template-btn" title="Duplicar template">
-            <i class="fas fa-copy"></i>
-          </button>
-          <button type="button" class="delete-template-btn" title="Eliminar template">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      </div>
-    `;
+    return renderTemplate('modules/guard-management/templates/partials/warehouse-resource-item.hbs', resourceData);
   }
 
   /**
    * Render individual reputation template
    */
-  private renderReputationTemplate(reputation: any): TemplateResult {
+  private async renderReputationTemplate(reputation: any): Promise<string> {
     // Convert to reputation data
     const reputationData = {
       id: reputation.id,
@@ -381,117 +244,10 @@ export class GMWarehouseDialog implements FocusableDialog {
       level: reputation.system?.level || 4, // Default to Neutrales
       image: reputation.img || '',
       organizationId: reputation.system?.organizationId || '',
+      levelLabel: REPUTATION_LABELS[(reputation.system?.level || 4) as ReputationLevel] || `Level ${reputation.system?.level || 4}`
     };
 
-    const levelLabel =
-      REPUTATION_LABELS[reputationData.level as ReputationLevel] || `Level ${reputationData.level}`;
-
-    return html`
-      <div
-        class="template-item reputation-template"
-        data-reputation-id="${reputationData.id}"
-        draggable="true"
-        title="Arrastra esta reputación a una organización para asignarla"
-      >
-        ${reputationData.image
-          ? html`
-              <div class="template-image">
-                <img
-                  src="${reputationData.image}"
-                  alt="${reputationData.name}"
-                  onerror="this.style.display='none'"
-                />
-              </div>
-            `
-          : ''}
-        <div class="template-info">
-          <div class="template-name">${reputationData.name}</div>
-          <div class="template-description">
-            ${(reputationData.description || 'Sin descripción').trim()}
-          </div>
-          <div class="template-level">Nivel: ${levelLabel}</div>
-        </div>
-        <div class="template-actions">
-          <button
-            type="button"
-            class="send-to-chat-template-btn"
-            title="Enviar al chat"
-            data-reputation-id="${reputationData.id}"
-          >
-            <i class="fas fa-comment"></i>
-          </button>
-          <button type="button" class="edit-template-btn" title="Editar template">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button type="button" class="duplicate-template-btn" title="Duplicar template">
-            <i class="fas fa-copy"></i>
-          </button>
-          <button type="button" class="delete-template-btn" title="Eliminar template">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Render reputation tab content
-   */
-  private renderReputationTab(): TemplateResult {
-    return html`
-      <section class="tab-content" data-tab="reputation">
-        <div class="content-header">
-          <h3>Reputation Templates</h3>
-          <button type="button" class="add-reputation-btn">
-            <i class="fas fa-plus"></i>
-            Add Reputation Template
-          </button>
-        </div>
-        <div class="templates-list reputation-list">
-          <p class="empty-state">Loading reputation templates...</p>
-        </div>
-      </section>
-    `;
-  }
-
-  /**
-   * Render patrol effects tab content
-   */
-  private renderPatrolEffectsTab(): TemplateResult {
-    return html`
-      <section class="tab-content" data-tab="patrol-effects">
-        <div class="content-header">
-          <h3>Patrol Effects Templates</h3>
-          <button type="button" class="add-patrol-effect-btn">
-            <i class="fas fa-plus"></i>
-            Add Patrol Effect Template
-          </button>
-        </div>
-        <div class="templates-list patrol-effects-list">
-          <p class="empty-state">No patrol effect templates created yet</p>
-        </div>
-      </section>
-    `;
-  }
-
-  /**
-   * Render guard modifiers tab content
-   */
-  private renderGuardModifiersTab(): TemplateResult {
-    return html`
-      <section class="tab-content" data-tab="guard-modifiers">
-        <div class="content-header">
-          <h3>Guard Modifiers Templates</h3>
-          <button type="button" class="add-guard-modifier-btn">
-            <i class="fas fa-plus"></i>
-            Add Guard Modifier Template
-          </button>
-        </div>
-        <div class="templates-list guard-modifiers-list">
-          <p class="empty-state">No guard modifier templates created yet</p>
-        </div>
-      </section>
-    `;
+    return renderTemplate('modules/guard-management/templates/partials/warehouse-reputation-item.hbs', reputationData);
   }
 
   /**
@@ -850,15 +606,11 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (resourceTemplates.length > 0) {
         // Add each resource template
-        resourceTemplates.forEach((resource) => {
-          const templateElement = document.createElement('div');
-          const templateContent = this.renderResourceTemplate(resource);
-          safeRender(templateContent, templateElement);
-
-          if (templateElement.firstElementChild) {
-            resourcesList.appendChild(templateElement.firstElementChild);
-          }
-        });
+        for (const resource of resourceTemplates) {
+          const templateContent = await this.renderResourceTemplate(resource);
+          // Append HTML string directly
+          resourcesList.insertAdjacentHTML('beforeend', templateContent);
+        }
       } else {
         // Show empty state
         const emptyStateElement = document.createElement('p');
@@ -887,15 +639,10 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (reputationTemplates.length > 0) {
         // Add each reputation template
-        reputationTemplates.forEach((reputation) => {
-          const templateElement = document.createElement('div');
-          const templateContent = this.renderReputationTemplate(reputation);
-          safeRender(templateContent, templateElement);
-
-          if (templateElement.firstElementChild) {
-            reputationsList.appendChild(templateElement.firstElementChild);
-          }
-        });
+        for (const reputation of reputationTemplates) {
+          const templateContent = await this.renderReputationTemplate(reputation);
+          reputationsList.insertAdjacentHTML('beforeend', templateContent);
+        }
       } else {
         // Show empty state
         const emptyStateElement = document.createElement('p');

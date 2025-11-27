@@ -3,7 +3,6 @@
  * Shows how to create a complex entity with unique features using the framework
  */
 
-import { html } from 'lit-html';
 import {
   ActionButton,
   ChatContext,
@@ -14,15 +13,22 @@ import {
 } from '../core/traits';
 import type { Patrol } from '../types/entities';
 
+// Define an extended interface for this specific configuration example
+// This demonstrates how to add custom fields to the base entity type
+interface ExtendedPatrol extends Patrol {
+  currentLocation?: string;
+  memberCount?: number; // In this example, we track count explicitly
+}
+
 // ============================================================================
 // Patrol-specific Field Renderers (Complex Fields)
 // ============================================================================
 
-const patrolStatsRenderer: FieldRenderer<Patrol> = {
-  render: (value: any, _entity: Patrol) => {
-    if (!value || typeof value !== 'object') return html``;
+const patrolStatsRenderer: FieldRenderer<ExtendedPatrol> = {
+  render: (value: any, _entity: ExtendedPatrol) => {
+    if (!value || typeof value !== 'object') return '';
 
-    return html`
+    return `
       <div class="patrol-stats">
         <div class="stat-row">
           <span class="stat-label">Robustismo:</span>
@@ -46,8 +52,8 @@ const patrolStatsRenderer: FieldRenderer<Patrol> = {
   validate: (value: any) => value && typeof value === 'object',
 };
 
-const patrolMembersRenderer: FieldRenderer<Patrol> = {
-  render: (value: number, _entity: Patrol) => html`
+const patrolMembersRenderer: FieldRenderer<ExtendedPatrol> = {
+  render: (value: number, _entity: ExtendedPatrol) => `
     <div class="patrol-members">
       <i class="fas fa-users"></i>
       <span>${value} miembros</span>
@@ -56,11 +62,11 @@ const patrolMembersRenderer: FieldRenderer<Patrol> = {
   validate: (value: any) => typeof value === 'number' && value >= 1 && value <= 12,
 };
 
-const patrolLeaderRenderer: FieldRenderer<Patrol> = {
-  render: (value: string, _entity: Patrol) => {
-    if (!value) return html`<span class="no-leader">Sin líder asignado</span>`;
+const patrolLeaderRenderer: FieldRenderer<ExtendedPatrol> = {
+  render: (value: string, _entity: ExtendedPatrol) => {
+    if (!value) return `<span class="no-leader">Sin líder asignado</span>`;
 
-    return html`
+    return `
       <div class="patrol-leader">
         <i class="fas fa-crown"></i>
         <span class="leader-name">${value}</span>
@@ -119,7 +125,7 @@ const patrolActions: ActionButton[] = [
 // Complex Chat Integration
 // ============================================================================
 
-function generatePatrolChatTemplate(entity: Patrol, context: ChatContext): string {
+function generatePatrolChatTemplate(entity: ExtendedPatrol, context: ChatContext): string {
   const effectsList = entity.activeEffects?.length
     ? entity.activeEffects.map((effect) => `<li>${effect}</li>`).join('')
     : '<li><em>Sin efectos activos</em></li>';
@@ -162,7 +168,7 @@ function generatePatrolChatTemplate(entity: Patrol, context: ChatContext): strin
 // Advanced Validation Rules
 // ============================================================================
 
-const patrolValidationRules: ValidationRule<Patrol>[] = [
+const patrolValidationRules: ValidationRule<ExtendedPatrol>[] = [
   {
     field: 'name',
     required: true,
@@ -197,11 +203,11 @@ const patrolValidationRules: ValidationRule<Patrol>[] = [
 // Entity Extensions (Unique Complex Behaviors)
 // ============================================================================
 
-const statCalculationExtension: EntityExtension<Patrol> = {
+const statCalculationExtension: EntityExtension<ExtendedPatrol> = {
   name: 'statCalculation',
   priority: 1,
-  canHandle: (entity: Patrol) => !!entity.organizationId && !!entity.memberCount,
-  extend: async (entity: Patrol, context?: any) => {
+  canHandle: (entity: ExtendedPatrol) => !!entity.organizationId && !!entity.memberCount,
+  extend: async (entity: ExtendedPatrol, _context?: any) => {
     // Complex logic to calculate derived stats from organization base stats
     const gm = (window as any).GuardManagement;
     if (!gm?.documentManager) return entity;
@@ -211,7 +217,7 @@ const statCalculationExtension: EntityExtension<Patrol> = {
       if (!organization) return entity;
 
       // Calculate derived stats (simplified example)
-      const memberBonus = Math.floor(entity.memberCount / 3); // Every 3 members add +1
+      const memberBonus = Math.floor((entity.memberCount || 0) / 3); // Every 3 members add +1
       const leaderBonus = entity.leaderId ? 2 : 0;
 
       entity.derivedStats = {
@@ -229,11 +235,11 @@ const statCalculationExtension: EntityExtension<Patrol> = {
   },
 };
 
-const effectApplicationExtension: EntityExtension<Patrol> = {
+const effectApplicationExtension: EntityExtension<ExtendedPatrol> = {
   name: 'effectApplication',
   priority: 2,
-  canHandle: (entity: Patrol) => !!entity.activeEffects?.length,
-  extend: async (entity: Patrol) => {
+  canHandle: (entity: ExtendedPatrol) => !!entity.activeEffects?.length,
+  extend: async (entity: ExtendedPatrol) => {
     // Apply active effects to modify derived stats
     // This is where complex effect logic would go
     if (!entity.derivedStats || !entity.activeEffects?.length) return entity;
@@ -252,13 +258,13 @@ const effectApplicationExtension: EntityExtension<Patrol> = {
 // Complete Patrol Configuration
 // ============================================================================
 
-export const patrolConfig: EntityConfig<Patrol> = {
+export const patrolConfig: EntityConfig<ExtendedPatrol> = {
   entityType: 'patrol',
   displayName: 'Patrulla',
   pluralName: 'Patrullas',
 
   renderer: {
-    fieldRenderers: new Map([
+    fieldRenderers: new Map<keyof ExtendedPatrol, FieldRenderer<ExtendedPatrol>>([
       ['derivedStats', patrolStatsRenderer],
       ['memberCount', patrolMembersRenderer],
       ['leaderId', patrolLeaderRenderer],
@@ -268,10 +274,10 @@ export const patrolConfig: EntityConfig<Patrol> = {
       // Custom main template for patrols
       [
         'main',
-        (entity: Patrol, options) => html`
+        (entity: ExtendedPatrol, _options) => `
           <div class="patrol-main-content">
             ${entity.currentLocation
-              ? html`
+              ? `
                   <div class="patrol-location">
                     <i class="fas fa-map-marker-alt"></i>
                     <span>${entity.currentLocation}</span>
@@ -280,7 +286,7 @@ export const patrolConfig: EntityConfig<Patrol> = {
               : ''}
             <div class="patrol-info">
               <span class="patrol-name">${entity.name}</span>
-              ${patrolMembersRenderer.render(entity.memberCount, entity, 'memberCount')}
+              ${patrolMembersRenderer.render(entity.memberCount || 0, entity, 'memberCount')}
               ${entity.leaderId
                 ? patrolLeaderRenderer.render(entity.leaderId, entity, 'leaderId')
                 : ''}
@@ -296,14 +302,14 @@ export const patrolConfig: EntityConfig<Patrol> = {
 
   chatIntegration: {
     chatTemplate: generatePatrolChatTemplate,
-    chatFlags: (entity: Patrol) => ({
+    chatFlags: (entity: ExtendedPatrol) => ({
       patrolId: entity.id,
       patrolName: entity.name,
       organizationId: entity.organizationId,
       memberCount: entity.memberCount,
       hasLeader: !!entity.leaderId,
     }),
-    beforeSend: (entity: Patrol, context: ChatContext) => {
+    beforeSend: (_entity: ExtendedPatrol, context: ChatContext) => {
       // Add patrol-specific context
       return {
         ...context,
@@ -321,7 +327,7 @@ export const patrolConfig: EntityConfig<Patrol> = {
     customValidators: new Map([
       [
         'memberCount',
-        (value: number, entity: Patrol) => {
+        (value: number, _entity: ExtendedPatrol) => {
           // Custom validation: member count should be reasonable for organization size
           if (value > 12) {
             return {
@@ -366,7 +372,7 @@ export class PatrolTemplate {
   private static chatIntegration = EntityFactory.createChatIntegration(patrolConfig);
   private static validator = EntityFactory.createValidator(patrolConfig);
 
-  static async renderPatrol(patrolData: Patrol, options: RenderOptions = {}) {
+  static async renderPatrol(patrolData: ExtendedPatrol, options: RenderOptions = {}) {
     // Apply extensions before rendering
     let processedPatrol = patrolData;
     for (const extension of patrolConfig.extensions || []) {
@@ -378,11 +384,11 @@ export class PatrolTemplate {
     return this.renderer.renderItem(processedPatrol, options);
   }
 
-  static validatePatrol(patrolData: Patrol) {
+  static validatePatrol(patrolData: ExtendedPatrol) {
     return this.validator.validate(patrolData);
   }
 
-  static async sendToChat(patrolData: Patrol, context: ChatContext = {}) {
+  static async sendToChat(patrolData: ExtendedPatrol, context: ChatContext = {}) {
     return this.chatIntegration.sendToChat(patrolData, context);
   }
 }

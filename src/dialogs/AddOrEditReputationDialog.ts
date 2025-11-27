@@ -73,7 +73,7 @@ export class AddOrEditReputationDialog {
     organizationId: string,
     existingReputation?: Reputation
   ): Promise<Reputation | null> {
-    const content = this.generateContent(mode, organizationId, existingReputation);
+    const content = await this.generateContent(mode, organizationId, existingReputation);
     const title = mode === 'create' ? 'Nueva Reputación' : 'Editar Reputación';
 
     try {
@@ -306,90 +306,27 @@ export class AddOrEditReputationDialog {
   /**
    * Generate the HTML content for the dialog
    */
-  private generateContent(
+  private async generateContent(
     _mode: 'create' | 'edit',
     organizationId: string,
     existingReputation?: Reputation
-  ): string {
-    const reputationLevelOptions = Object.entries(REPUTATION_LABELS)
-      .map(([value, label]) => {
-        const isSelected = existingReputation?.level === parseInt(value);
-        return `<option value="${value}" ${isSelected ? 'selected' : ''}>${label}</option>`;
-      })
-      .join('');
+  ): Promise<string> {
+    const reputationLevels = Object.entries(REPUTATION_LABELS)
+      .map(([value, label]) => ({
+        value,
+        label,
+        selected: existingReputation?.level === parseInt(value)
+      }));
 
-    return `
-      <form class="reputation-form" style="padding: 10px;">
-        <input type="hidden" name="organizationId" value="${organizationId}" />
+    const data = {
+      name: existingReputation?.name || '',
+      description: existingReputation?.description || '',
+      image: existingReputation?.image || '',
+      organizationId,
+      reputationLevels
+    };
 
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label for="reputation-name" style="display: block; margin-bottom: 5px; font-weight: bold;">
-            <i class="fas fa-tag"></i> Nombre:
-          </label>
-          <input
-            type="text"
-            id="reputation-name"
-            name="name"
-            value="${existingReputation?.name || ''}"
-            placeholder="Ej: Guía de los Vientos"
-            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
-            required
-          />
-        </div>
-
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label for="reputation-level" style="display: block; margin-bottom: 5px; font-weight: bold;">
-            <i class="fas fa-heart"></i> Nivel de Reputación:
-          </label>
-          <select
-            id="reputation-level"
-            name="level"
-            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
-            required
-          >
-            ${reputationLevelOptions}
-          </select>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label for="reputation-description" style="display: block; margin-bottom: 5px; font-weight: bold;">
-            <i class="fas fa-align-left"></i> Descripción:
-          </label>
-          <textarea
-            id="reputation-description"
-            name="description"
-            rows="4"
-            placeholder="Describe esta relación de reputación..."
-            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; min-height: 80px;"
-          ></textarea>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 15px;">
-          <label for="reputation-image" style="display: block; margin-bottom: 5px; font-weight: bold;">
-            <i class="fas fa-image"></i> Imagen:
-          </label>
-          <div style="display: flex; gap: 8px;">
-            <input
-              type="text"
-              id="reputation-image"
-              name="image"
-              value="${existingReputation?.image || ''}"
-              placeholder="Ruta de la imagen (opcional)"
-              style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
-            />
-            <button
-              type="button"
-              class="file-picker-btn"
-              data-target="reputation-image"
-              style="padding: 8px 12px; background: #4b9e44; color: white; border: none; border-radius: 4px; cursor: pointer;"
-              title="Seleccionar imagen"
-            >
-              <i class="fas fa-folder-open"></i>
-            </button>
-          </div>
-        </div>
-      </form>
-    `;
+    return renderTemplate('modules/guard-management/templates/dialogs/add-edit-reputation.hbs', data);
   }
 
   /**
@@ -402,8 +339,8 @@ export class AddOrEditReputationDialog {
   ): Promise<Reputation | null> {
     console.warn('Using standard Dialog fallback for reputation dialog');
 
-    return new Promise((resolve) => {
-      const content = this.generateContent(mode, organizationId, existingReputation);
+    return new Promise(async (resolve) => {
+      const content = await this.generateContent(mode, organizationId, existingReputation);
 
       const dialog = new Dialog({
         title: mode === 'create' ? 'Nueva Reputación' : 'Editar Reputación',

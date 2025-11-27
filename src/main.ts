@@ -222,6 +222,14 @@ class GuardManagementModule {
 // Foundry VTT Hooks
 Hooks.once('init', async () => {
   try {
+    // Preload Handlebars templates
+    await loadTemplates([
+      'modules/guard-management/templates/panels/general.hbs',
+      'modules/guard-management/templates/panels/patrols.hbs',
+      'modules/guard-management/templates/panels/resources.hbs',
+      'modules/guard-management/templates/panels/reputation.hbs'
+    ]);
+
     guardManagementModule = new GuardManagementModule();
     await guardManagementModule.initialize();
 

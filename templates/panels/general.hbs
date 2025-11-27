@@ -1,0 +1,45 @@
+<div class="organization-info">
+    <div class="info-section">
+        <h3><i class="fas fa-shield-alt"></i> Información General</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Nombre:</label>
+                <span>{{organization.name}}</span>
+            </div>
+            <div class="info-item">
+                <label>Subtítulo:</label>
+                <span>{{#if organization.subtitle}}{{organization.subtitle}}{{else}}Sin subtítulo{{/if}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h3><i class="fas fa-chart-bar"></i> Estadísticas Base</h3>
+        <div class="stats-display">
+            <div class="stat-box">
+                <div class="stat-value">{{organization.baseStats.robustismo}}</div>
+                <div class="stat-label">Robustismo</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{organization.baseStats.analitica}}</div>
+                <div class="stat-label">Analítica</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{organization.baseStats.subterfugio}}</div>
+                <div class="stat-label">Subterfugio</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{organization.baseStats.elocuencia}}</div>
+                <div class="stat-label">Elocuencia</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h3><i class="fas fa-users"></i> Patrullas</h3>
+        <div class="patrol-count">
+            <span class="count">{{organization.patrols.length}}</span>
+            <span class="label">patrullas activas</span>
+        </div>
+    </div>
+</div>

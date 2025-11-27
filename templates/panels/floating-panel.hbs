@@ -1,0 +1,54 @@
+<div class="panel-header">
+    <div class="panel-title">
+        <i class="fas fa-shield-alt"></i>
+        <span>Gestión de Guardias</span>
+    </div>
+    <div class="panel-controls">
+        <button class="panel-minimize" title="Minimizar">
+            <i class="{{minimizeIcon}}"></i>
+        </button>
+        <button class="panel-close" title="Cerrar">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+</div>
+
+<div class="panel-content" style="{{#if isMinimized}}display: none;{{/if}}">
+    <div class="quick-actions">
+        <button class="action-btn primary" data-action="manage-organizations">
+            <i class="fas fa-info-circle"></i>
+            <span>Ver Organización</span>
+        </button>
+        
+        {{#if isGM}}
+        <button class="action-btn secondary" data-action="open-warehouse">
+            <i class="fas fa-warehouse"></i>
+            <span>GM Warehouse</span>
+        </button>
+        {{/if}}
+        
+        <button class="action-btn secondary" data-action="debug-info">
+            <i class="fas fa-bug"></i>
+            <span>Debug Info</span>
+        </button>
+    </div>
+
+    <div class="organization-summary">
+        <div class="summary-header">Organización de Guardias</div>
+        <div class="organization-list" id="organization-quick-list">
+            {{#each organizations}}
+            <div class="organization-item" data-org-id="{{this.id}}">
+                <div>
+                    <div class="organization-name">{{this.name}}</div>
+                    <div class="organization-subtitle">{{this.subtitle}}</div>
+                </div>
+                <div style="color: #888; font-size: 0.7rem;">{{this.patrols.length}} patrullas</div>
+            </div>
+            {{else}}
+            <div style="color: #999; font-size: 0.75rem; text-align: center; padding: 8px;">
+                No hay organizaciones
+            </div>
+            {{/each}}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,42 @@
+<div class="organization-info">
+  <div class="info-section reputation-section">
+    <h3><i class="fas fa-handshake"></i> Reputación</h3>
+    <div class="reputation-list" data-organization-id="{{organizationId}}">
+      {{#if reputation.length}}
+        {{#each reputation}}
+          <div class="reputation-item" data-reputation-id="{{this.id}}">
+            <div class="reputation-header">
+              <span class="reputation-name">{{this.name}}</span>
+              <span class="reputation-value {{this.statusClass}}">{{this.value}}</span>
+            </div>
+            {{#if this.description}}
+              <div class="reputation-description">{{this.description}}</div>
+            {{/if}}
+            <div class="reputation-actions">
+               <button type="button" class="send-to-chat-btn btn-icon" title="Enviar al chat"
+                data-reputation-id="{{this.id}}" data-reputation-name="{{this.name}}"
+                data-organization-id="{{../organizationId}}">
+                <i class="fas fa-comment"></i>
+              </button>
+              <button type="button" class="edit-reputation-btn btn-icon" title="Editar reputación"
+                data-reputation-id="{{this.id}}">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button type="button" class="remove-reputation-btn btn-icon" title="Remover reputación"
+                data-reputation-id="{{this.id}}" data-reputation-name="{{this.name}}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        {{/each}}
+      {{else}}
+        <p class="empty-state">
+          No hay reputación registrada.<br /><small>Arrastra reputaciones desde el warehouse o crea una nueva.</small>
+        </p>
+      {{/if}}
+      <button type="button" class="add-reputation-btn" data-organization-id="{{organizationId}}">
+        <i class="fas fa-plus"></i> Añadir Reputación
+      </button>
+    </div>
+  </div>
+</div>

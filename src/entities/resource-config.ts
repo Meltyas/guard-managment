@@ -3,7 +3,6 @@
  * Defines how Resources should be rendered, validated, and managed
  */
 
-import { html } from 'lit-html';
 import {
   ActionButton,
   ChatContext,
@@ -18,7 +17,7 @@ import type { Resource } from '../types/entities';
 // ============================================================================
 
 const quantityRenderer: FieldRenderer<Resource> = {
-  render: (value: number, _entity: Resource) => html`
+  render: (value: number, _entity: Resource) => `
     <span class="resource-quantity">Cantidad: ${value}</span>
   `,
   validate: (value: any) => typeof value === 'number' && value >= 0,
@@ -26,8 +25,8 @@ const quantityRenderer: FieldRenderer<Resource> = {
 
 const descriptionRenderer: FieldRenderer<Resource> = {
   render: (value: string, _entity: Resource) => {
-    if (!value || !value.trim()) return html``;
-    return html` <span class="resource-description">${value.trim()}</span> `;
+    if (!value || !value.trim()) return '';
+    return ` <span class="resource-description">${value.trim()}</span> `;
   },
   validate: (value: any) => typeof value === 'string',
 };

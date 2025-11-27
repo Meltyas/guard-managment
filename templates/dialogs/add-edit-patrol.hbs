@@ -1,0 +1,27 @@
+<form class="patrol-form guard-dialog">
+    <div class="section identity">
+        <label>Nombre</label>
+        <input type="text" name="name" value="{{name}}" required maxlength="50" />
+        <label>Subtítulo</label>
+        <input type="text" name="subtitle" value="{{subtitle}}" maxlength="80" />
+    </div>
+
+    <div class="section stats">
+        <h4>Estadísticas Base</h4>
+        {{#each stats}}
+        <div class="stat-input">
+            <label>{{this.label}}</label>
+            <input type="number" name="stat_{{this.key}}" value="{{this.value}}" min="{{../minStat}}" max="{{../maxStat}}" />
+        </div>
+        {{/each}}
+    </div>
+
+    <input type="hidden" name="organizationId" value="{{organizationId}}" />
+    <p class="hint">
+        {{#if isCreate}}
+        Crear nueva patrulla para organización.
+        {{else}}
+        Actualizar patrulla.
+        {{/if}}
+    </p>
+</form>

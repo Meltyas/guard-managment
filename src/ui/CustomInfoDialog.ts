@@ -2,20 +2,15 @@
  * Custom Info Dialog - Movable and resizable HTML dialog without using Foundry's Dialog system
  */
 
-import { html, TemplateResult } from 'lit-html';
-import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
-import { AddOrEditReputationDialog } from '../dialogs/AddOrEditReputationDialog.js';
 import type { GuardOrganization } from '../types/entities';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
-import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 // Import CSS for drag & drop styling
 import '../styles/custom-info-dialog.css';
-import { classifyLastOrderAge } from '../utils/patrol-helpers.js';
-import { ConfirmService } from '../utils/services/ConfirmService.js';
 import { NotificationService } from '../utils/services/NotificationService.js';
-import { renderTemplateToString, safeRender } from '../utils/template-renderer.js';
-import { ReputationTemplate } from './ReputationTemplate.js';
-import { ResourceTemplate } from './ResourceTemplate.js';
+import { GeneralPanel } from './panels/GeneralPanel.js';
+import { PatrolsPanel } from './panels/PatrolsPanel.js';
+import { ResourcesPanel } from './panels/ResourcesPanel.js';
+import { ReputationPanel } from './panels/ReputationPanel.js';
 
 export class CustomInfoDialog implements FocusableDialog {
   public element: HTMLElement | null = null;
@@ -54,48 +49,9 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
-   * Show the custom info dialog
-   */
-  public show(
-    title: string,
-    content: string,
-    options: {
-      onEdit?: () => void;
-      onClose?: () => void;
-      width?: number;
-      height?: number;
-      x?: number;
-      y?: number;
-    } = {}
-  ): void {
-    this.onEditCallback = options.onEdit;
-    this.onCloseCallback = options.onClose;
-
-    // Create the dialog element
-    this.element = this.createElement(title, content, options);
-
-    // Add to document
-    document.body.appendChild(this.element);
-
-    // Register with focus manager
-    DialogFocusManager.getInstance().registerDialog(this);
-
-    // Add event listeners
-    this.addEventListeners();
-
-    // Give this dialog focus immediately
-    DialogFocusManager.getInstance().setFocus(this);
-
-    // Center on screen if no position specified
-    if (!options.x && !options.y) {
-      this.centerOnScreen();
-    }
-  }
-
-  /**
    * Show organization info dialog
    */
-  public showOrganizationInfo(
+  public async showOrganizationInfo(
     organization: GuardOrganization,
     options: {
       onEdit?: () => void;
@@ -105,14 +61,14 @@ export class CustomInfoDialog implements FocusableDialog {
       x?: number;
       y?: number;
     } = {}
-  ): void {
+  ): Promise<void> {
     console.log('🏛️ Setting current organization:', organization.name, organization.id);
     this.currentOrganization = organization;
     this.onEditCallback = options.onEdit;
     this.onCloseCallback = options.onClose;
 
     // Create the dialog element directly with organization content
-    this.element = this.createOrganizationDialogElement(organization, options);
+    this.element = await this.createOrganizationDialogElement(organization, options);
 
     // Add to document
     document.body.appendChild(this.element);
@@ -130,15 +86,18 @@ export class CustomInfoDialog implements FocusableDialog {
     if (!options.x && !options.y) {
       this.centerOnScreen();
     }
+
+    // Initial content render
+    await this.refreshContent();
   }
 
   /**
    * Create the dialog HTML element specifically for organization info
    */
-  private createOrganizationDialogElement(
+  private async createOrganizationDialogElement(
     organization: GuardOrganization,
     options: { width?: number; height?: number; x?: number; y?: number }
-  ): HTMLElement {
+  ): Promise<HTMLElement> {
     const dialog = document.createElement('div');
     dialog.className = 'custom-info-dialog custom-dialog';
 
@@ -156,37 +115,23 @@ export class CustomInfoDialog implements FocusableDialog {
 
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
-    dialog.innerHTML = '';
-
-    // Render using lit-html templates directly
-    const dialogTemplate = this.renderOrganizationDialogTemplate(organization);
-    safeRender(dialogTemplate, dialog);
+    const templatePath = 'modules/guard-management/templates/dialogs/info-dialog.hbs';
+    const content = await renderTemplate(templatePath, {
+        title: `Información: ${organization.name}`,
+        initialTab: localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general'
+    });
+    
+    dialog.innerHTML = content;
+    
     this.initTabs(dialog);
-
-    // Load external CSS styles
-    this.loadExternalStyles();
 
     return dialog;
   }
 
   /**
-   * Render the complete organization dialog template
-   */
-  private renderOrganizationDialogTemplate(organization: GuardOrganization): TemplateResult {
-    const title = `Información: ${organization.name}`;
-
-    return html`
-      ${this.renderDialogHeader(title)}
-      <div class="custom-dialog-content">${this.renderOrganizationContent(organization)}</div>
-      ${this.renderDialogResizeHandle()}
-      <div class="drop-overlay" style="display: none;"></div>
-    `;
-  }
-
-  /**
    * Update the organization and refresh the dialog content
    */
-  public updateOrganization(organization: GuardOrganization): void {
+  public async updateOrganization(organization: GuardOrganization): Promise<void> {
     console.log('🔄 Updating dialog content...');
     this.currentOrganization = organization;
 
@@ -198,185 +143,98 @@ export class CustomInfoDialog implements FocusableDialog {
       titleElement.textContent = `Información: ${organization.name}`;
     }
 
-    // Update content
-    const contentElement = this.element.querySelector('.custom-dialog-content');
-    if (contentElement) {
-      const newContainer = document.createElement('div');
-      newContainer.className = 'organization-content';
-      contentElement.innerHTML = '';
-      contentElement.appendChild(newContainer);
-      const organizationTemplate = this.renderOrganizationContent(organization);
-      safeRender(organizationTemplate, newContainer);
-      // allow tabs to re-bind after each refresh
-      this.tabsInitialized = false;
-      this.initTabs(this.element!);
-      console.log('✅ Dialog updated with', organization.resources?.length || 0, 'resources');
-      setTimeout(() => {
-        this.setupEventListeners();
-      }, 50);
-    }
+    await this.refreshContent();
   }
 
   /**
-   * Render just the organization content (without dialog wrapper)
+   * Refresh dialog content with updated data
    */
-  private renderOrganizationContent(organization: GuardOrganization): TemplateResult {
-    console.log('🔍 Rendering organization content:', organization.name);
-    console.log('🔍 Organization resources:', organization.resources);
+  private async refreshContent(): Promise<void> {
+    console.log('🔄 RefreshContent called...');
 
-    return html`
-      <div class="org-tabs-layout" data-current-tab="general">
-        <nav
-          class="org-tabs"
-          role="tablist"
-          aria-orientation="vertical"
-          data-initial-tab="${localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general'}"
-        >
-          <button type="button" class="org-tab-btn" role="tab" data-tab="general">
-            <i class="fas fa-info-circle"></i><span>General</span>
-          </button>
-          <button type="button" class="org-tab-btn" role="tab" data-tab="patrols">
-            <i class="fas fa-users"></i><span>Patrullas</span>
-          </button>
-          <button type="button" class="org-tab-btn" role="tab" data-tab="resources">
-            <i class="fas fa-coins"></i><span>Recursos</span>
-          </button>
-          <button type="button" class="org-tab-btn" role="tab" data-tab="reputation">
-            <i class="fas fa-handshake"></i><span>Reputación</span>
-          </button>
-          <div class="active-bar" aria-hidden="true"></div>
-        </nav>
-        <div class="org-tab-panels">
-          <section class="org-tab-panel" role="tabpanel" data-tab-panel="general">
-            ${this.renderOrganizationGeneralPanel(organization)}
-          </section>
-          <section class="org-tab-panel" role="tabpanel" data-tab-panel="patrols">
-            ${this.renderOrganizationPatrolsPlaceholder()}
-          </section>
-          <section class="org-tab-panel" role="tabpanel" data-tab-panel="resources">
-            ${this.renderOrganizationResourcesPanel(organization)}
-          </section>
-          <section class="org-tab-panel" role="tabpanel" data-tab-panel="reputation">
-            ${this.renderOrganizationReputationPanel(organization)}
-          </section>
-        </div>
-      </div>
-    `;
-  }
+    if (!this.currentOrganization) {
+      console.log('❌ No current organization for refresh');
+      return;
+    }
 
-  /** Render previous general info (extracted) */
-  private renderOrganizationGeneralPanel(organization: GuardOrganization): TemplateResult {
-    return html`
-      <div class="organization-info">
-        <div class="info-section">
-          <h3><i class="fas fa-shield-alt"></i> Información General</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <label>Nombre:</label>
-              <span>${organization.name}</span>
-            </div>
-            <div class="info-item">
-              <label>Subtítulo:</label>
-              <span>${organization.subtitle || 'Sin subtítulo'}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <h3><i class="fas fa-chart-bar"></i> Estadísticas Base</h3>
-          <div class="stats-display">
-            <div class="stat-box">
-              <div class="stat-value">${organization.baseStats.robustismo}</div>
-              <div class="stat-label">Robustismo</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${organization.baseStats.analitica}</div>
-              <div class="stat-label">Analítica</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${organization.baseStats.subterfugio}</div>
-              <div class="stat-label">Subterfugio</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${organization.baseStats.elocuencia}</div>
-              <div class="stat-label">Elocuencia</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <h3><i class="fas fa-users"></i> Patrullas</h3>
-          <div class="patrol-count">
-            <span class="count">${organization.patrols?.length || 0}</span>
-            <span class="label">patrullas activas</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  /** Patrols placeholder panel */
-  private renderOrganizationPatrolsPlaceholder(): TemplateResult {
     const gm = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    const patrols = orgMgr ? orgMgr.listOrganizationPatrols() : [];
-    // Shell never replaced after first render; dynamic section updated separately to prevent duplication
-    return html`<div class="patrols-panel" data-patrols-panel>
-      <div class="panel-header">
-        <h3><i class="fas fa-users"></i> Patrullas</h3>
-        <button type="button" class="btn create-patrol" data-action="create-patrol">
-          <i class="fas fa-plus"></i> Nueva Patrulla
-        </button>
-      </div>
-      <div class="patrols-dynamic" data-patrols-container>
-        ${patrols.length === 0
-          ? html`<p class="empty-state">No hay patrullas. Crea la primera.</p>`
-          : this.renderPatrolCards(patrols)}
-      </div>
-    </div>`;
+    if (!gm?.guardOrganizationManager || !gm?.documentManager) {
+      console.log('❌ No guardOrganizationManager or documentManager for refresh');
+      return;
+    }
+
+    try {
+      // First try to get from DocumentBasedManager which should be more up-to-date
+      let freshOrganization = null;
+
+      try {
+        const guardOrgs = gm.documentManager.getGuardOrganizations();
+        freshOrganization = guardOrgs.find((org: any) => org.id === this.currentOrganization!.id);
+
+        if (freshOrganization) {
+          // Convert Foundry document to our organization type
+          freshOrganization = {
+            id: freshOrganization.id,
+            name: freshOrganization.name || 'Organización Sin Nombre',
+            subtitle: freshOrganization.system?.subtitle || '',
+            baseStats: {
+              robustismo: freshOrganization.system?.baseStats?.robustismo ?? 0,
+              analitica: freshOrganization.system?.baseStats?.analitica ?? 0,
+              subterfugio: freshOrganization.system?.baseStats?.subterfugio ?? 0,
+              elocuencia: freshOrganization.system?.baseStats?.elocuencia ?? 0,
+            },
+            resources: freshOrganization.system?.resources || [],
+            reputation: freshOrganization.system?.reputation || [],
+            patrols: freshOrganization.system?.patrols || [],
+            version: freshOrganization.system?.version || 1,
+            createdAt: freshOrganization.system?.createdAt
+              ? new Date(freshOrganization.system.createdAt)
+              : new Date(),
+            updatedAt: new Date(),
+          };
+          console.log('📊 Using data from DocumentBasedManager');
+        }
+      } catch (error) {
+        console.log(
+          '⚠️ Could not get data from DocumentBasedManager, falling back to GuardOrganizationManager'
+        );
+      }
+
+      // Fallback to GuardOrganizationManager if DocumentBasedManager fails
+      if (!freshOrganization) {
+        freshOrganization = gm.guardOrganizationManager.getOrganization();
+        if (!freshOrganization) {
+          console.log('❌ No organization found in either manager');
+          return;
+        }
+        console.log('📊 Using data from GuardOrganizationManager (fallback)');
+      }
+
+      // IMPORTANT: Update our current organization reference to the fresh one
+      this.currentOrganization = freshOrganization;
+
+      // Render panels
+      if (this.element) {
+          const generalContainer = this.element.querySelector('[data-tab-panel="general"]') as HTMLElement;
+          if (generalContainer) await GeneralPanel.render(generalContainer, freshOrganization);
+
+          const patrolsContainer = this.element.querySelector('[data-tab-panel="patrols"]') as HTMLElement;
+          if (patrolsContainer) await PatrolsPanel.render(patrolsContainer);
+
+          const resourcesContainer = this.element.querySelector('[data-tab-panel="resources"]') as HTMLElement;
+          if (resourcesContainer) await ResourcesPanel.render(resourcesContainer, freshOrganization);
+
+          const reputationContainer = this.element.querySelector('[data-tab-panel="reputation"]') as HTMLElement;
+          if (reputationContainer) await ReputationPanel.render(reputationContainer, freshOrganization);
+      }
+
+      console.log('✅ Refresh completed immediately');
+    } catch (error) {
+      console.error('❌ Error refreshing dialog content:', error);
+    }
   }
 
-  private renderOrganizationResourcesPanel(organization: GuardOrganization): TemplateResult {
-    return html`
-      <div class="organization-info">
-        <div class="info-section resources-section">
-          <h3><i class="fas fa-coins"></i> Recursos</h3>
-          <div class="resources-list" data-organization-id="${organization.id}">
-            ${organization.resources && organization.resources.length > 0
-              ? html`${organization.resources
-                  .map((resourceId: string) => this.renderResourceItemTemplate(resourceId))
-                  .filter((template) => template !== null)}`
-              : html`<p class="empty-state">
-                  No hay recursos asignados a esta organización.<br /><small
-                    >Arrastra recursos desde el warehouse</small
-                  >
-                </p>`}
-          </div>
-        </div>
-      </div>
-    `;
-  }
 
-  private renderOrganizationReputationPanel(organization: GuardOrganization): TemplateResult {
-    return html`
-      <div class="organization-info">
-        <div class="info-section resources-section">
-          <h3><i class="fas fa-handshake"></i> Reputación</h3>
-          <div class="resources-list reputation-list" data-organization-id="${organization.id}">
-            ${organization.reputation && organization.reputation.length > 0
-              ? html`${organization.reputation
-                  .map((reputationId: string) => this.renderReputationItemTemplate(reputationId))
-                  .filter((template: any) => template !== null)}`
-              : html`<p class="empty-state">
-                  No hay entradas de reputación para esta organización.<br /><small
-                    >Arrastra reputaciones desde el warehouse</small
-                  >
-                </p>`}
-          </div>
-        </div>
-      </div>
-    `;
-  }
 
   /**
    * Update the title of the dialog
@@ -415,42 +273,7 @@ export class CustomInfoDialog implements FocusableDialog {
     return this.element !== null && document.body.contains(this.element);
   }
 
-  /**
-   * Create the dialog HTML element
-   */
-  private createElement(
-    title: string,
-    content: string,
-    options: { width?: number; height?: number; x?: number; y?: number }
-  ): HTMLElement {
-    const dialog = document.createElement('div');
-    dialog.className = 'custom-info-dialog custom-dialog';
 
-    // Set initial size and position
-    const width = options.width || 500;
-    const height = options.height || 400;
-    const x = options.x || (window.innerWidth - width) / 2;
-    const y = options.y || (window.innerHeight - height) / 2;
-
-    // Only set position and size, all other styles come from CSS
-    dialog.style.left = `${x}px`;
-    dialog.style.top = `${y}px`;
-    dialog.style.width = `${width}px`;
-    dialog.style.height = `${height}px`;
-
-    dialog.tabIndex = -1; // Make focusable for keyboard events
-
-    dialog.innerHTML = '';
-
-    // Render using lit-html templates
-    const dialogTemplate = this.renderDialogTemplate(title, content);
-    safeRender(dialogTemplate, dialog);
-
-    // Load external CSS styles
-    this.loadExternalStyles();
-
-    return dialog;
-  }
 
   /**
    * Add event listeners
@@ -504,6 +327,43 @@ export class CustomInfoDialog implements FocusableDialog {
     this.element.addEventListener('focus', this.handleFocus);
     this.element.addEventListener('click', this.handleGlobalClick);
     document.addEventListener('click', this.handleGlobalClick);
+
+    // Patrol and Actor event listeners (Delegated)
+    this.element.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+
+      // Handle actor sheet opening
+      const actorEl = target.closest('[data-action="open-sheet"]') as HTMLElement | null;
+      if (actorEl && actorEl.dataset.actorId) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleOpenActorSheet(actorEl.dataset.actorId);
+        return;
+      }
+
+      const actionBtn = target.closest('button[data-action]') as HTMLButtonElement | null;
+      if (actionBtn) {
+        const action = actionBtn.dataset.action;
+        if (action === 'create-patrol') {
+          e.preventDefault();
+          this.handleCreatePatrol();
+          return;
+        }
+        if (action === 'edit') {
+          this.handleEditPatrol(actionBtn.dataset.patrolId!);
+          return;
+        }
+        if (action === 'delete') {
+          this.handleDeletePatrol(actionBtn.dataset.patrolId!);
+          return;
+        }
+      }
+      const lastOrderEl = target.closest('[data-action="edit-last-order"]') as HTMLElement | null;
+      if (lastOrderEl) {
+        const pid = lastOrderEl.dataset.patrolId!;
+        this.handleEditLastOrder(pid);
+      }
+    });
 
     // Add event listeners for remove resource buttons
     this.setupEventListeners();
@@ -824,335 +684,47 @@ export class CustomInfoDialog implements FocusableDialog {
     // Add the new event listener
     this.element.addEventListener('click', this.resourceEventHandler);
     console.log('✅ Resource event listeners set up');
-
-    const root = this.element;
-    if (!root) return;
-    root.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-
-      // Handle actor sheet opening
-      const actorEl = target.closest('[data-action="open-sheet"]') as HTMLElement | null;
-      if (actorEl && actorEl.dataset.actorId) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.handleOpenActorSheet(actorEl.dataset.actorId);
-        return;
-      }
-
-      const actionBtn = target.closest('button[data-action]') as HTMLButtonElement | null;
-      if (actionBtn) {
-        const action = actionBtn.dataset.action;
-        if (action === 'create-patrol') {
-          e.preventDefault();
-          this.handleCreatePatrol();
-          return;
-        }
-        if (action === 'edit') {
-          this.handleEditPatrol(actionBtn.dataset.patrolId!);
-          return;
-        }
-        if (action === 'delete') {
-          this.handleDeletePatrol(actionBtn.dataset.patrolId!);
-          return;
-        }
-      }
-      const lastOrderEl = target.closest('[data-action="edit-last-order"]') as HTMLElement | null;
-      if (lastOrderEl) {
-        const pid = lastOrderEl.dataset.patrolId!;
-        this.handleEditLastOrder(pid);
-      }
-    });
   }
 
   private async handleCreatePatrol() {
-    const gm = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    if (!orgMgr) return;
-    const org = orgMgr.getOrganization();
-    if (!org) return;
-    const created = await orgMgr.openCreatePatrolDialog();
-    if (created) {
-      ui?.notifications?.info('Patrulla creada');
-      this.refreshPatrolsPanel();
-    }
+    await PatrolsPanel.handleCreatePatrol(() => this.refreshPatrolsPanel());
   }
   private async handleEditPatrol(patrolId: string) {
-    const gm = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    if (!orgMgr) return;
-    const updated = await orgMgr.openEditPatrolDialog(patrolId);
-    if (updated) {
-      ui?.notifications?.info('Patrulla actualizada');
-      this.refreshPatrolsPanel();
-    }
+    await PatrolsPanel.handleEditPatrol(patrolId, () => this.refreshPatrolsPanel());
   }
   private async handleDeletePatrol(patrolId: string) {
-    const confirm = await Dialog.confirm({
-      title: 'Eliminar Patrulla',
-      content: `<p>¿Seguro que deseas eliminar esta patrulla?</p>`,
-    });
-    if (!confirm) return;
-    const gm = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    if (!orgMgr) return;
-    const org = orgMgr.getOrganization();
-    if (!org) return;
-    orgMgr.removePatrol(patrolId);
-    const pMgr = orgMgr.getPatrolManager();
-    pMgr.deletePatrol(patrolId);
-    ui?.notifications?.warn('Patrulla eliminada');
-    this.refreshPatrolsPanel();
+    await PatrolsPanel.handleDeletePatrol(patrolId, () => this.refreshPatrolsPanel());
   }
 
   private refreshPatrolsPanel() {
-    const gm = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    if (!orgMgr) return;
-    const org = orgMgr.getOrganization();
-    if (!org) return;
-    // Simple debounce: if a refresh was scheduled in the same tick, skip
-    if ((this as any)._patrolsRefreshScheduled) {
-      (this as any)._patrolsRefreshPending = true;
-      return;
-    }
-    (this as any)._patrolsRefreshScheduled = true;
-    queueMicrotask(() => {
-      (this as any)._patrolsRefreshScheduled = false;
-      if ((this as any)._patrolsRefreshPending) {
-        (this as any)._patrolsRefreshPending = false;
-        this.refreshPatrolsPanel();
-        return;
-      }
-    });
     const tabPanel = this.element?.querySelector(
       '[data-tab-panel="patrols"]'
     ) as HTMLElement | null;
     if (!tabPanel) return;
-    // Remove duplicate patrols-panel wrappers if any (keep first)
-    const wrappers = Array.from(tabPanel.querySelectorAll('[data-patrols-panel]')) as HTMLElement[];
-    if (wrappers.length > 1) {
-      wrappers.slice(1).forEach((w) => w.remove());
-    }
-    let wrapper: HTMLElement | null = wrappers[0] || null;
-    if (!wrapper) {
-      // First time: create wrapper fresh
-      safeRender(this.renderOrganizationPatrolsPlaceholder(), tabPanel);
-      wrapper = tabPanel.querySelector('[data-patrols-panel]') as HTMLElement | null;
-    }
-    if (!wrapper) return; // still missing
-    const container = wrapper.querySelector('[data-patrols-container]') as HTMLElement | null;
-    if (!container) {
-      // Rebuild wrapper completely if container missing / corrupted
-      safeRender(this.renderOrganizationPatrolsPlaceholder(), tabPanel);
-      return;
-    }
-    let patrols = orgMgr.listOrganizationPatrols();
-    // Diagnostic + de-dup safeguard (root cause may be data layer emitting duplicates)
-    const seen = new Set<string>();
-    const dups: string[] = [];
-    patrols = patrols.filter((p: any) => {
-      if (!p?.id) return false;
-      if (seen.has(p.id)) {
-        dups.push(p.id);
-        return false; // drop duplicate
-      }
-      seen.add(p.id);
-      return true;
-    });
-    if (dups.length) {
-      console.warn('[PatrolsPanel] Duplicados filtrados en render:', dups);
-    }
-    console.debug('[PatrolsPanel] Render patrol IDs:', Array.from(seen));
-    const dynamicTpl =
-      patrols.length === 0
-        ? html`<p class="empty-state">No hay patrullas. Crea la primera.</p>`
-        : this.renderPatrolCards(patrols);
-    try {
-      // Render version guard to prevent interleaving older renders
-      const versionKey = 'data-render-version';
-      const currentVersion = ((this as any)._patrolsRenderVersion =
-        ((this as any)._patrolsRenderVersion || 0) + 1);
-      // Hard clear to avoid any lingering duplicated nodes before lit-html patching
-      while (container.firstChild) container.removeChild(container.firstChild);
-      safeRender(dynamicTpl, container);
-      container.setAttribute(versionKey, String(currentVersion));
-      // Final safety: ensure only one header exists
-      const headers = wrapper.querySelectorAll('.panel-header');
-      if (headers.length > 1) {
-        headers.forEach((h, i) => {
-          if (i > 0) h.remove();
-        });
-      }
-      // Setup DnD zones (officer + soldiers) after render
-      try {
-        this.setupPatrolZonesDnD(container);
-      } catch (e) {
-        console.warn('CustomInfoDialog | setupPatrolZonesDnD failed', e);
-      }
-    } catch (err) {
-      console.warn('Patrols dynamic render fallback:', err);
-      try {
-        container.innerHTML = '';
-        // naive conversion fallback
-        const temp = document.createElement('div');
-        temp.innerHTML = (dynamicTpl as any).getHTML?.() || '';
-        while (temp.firstChild) container.appendChild(temp.firstChild);
-      } catch {
-        container.textContent = 'Error actualizando patrullas';
-      }
-    }
+    
+    PatrolsPanel.render(tabPanel);
   }
 
   /**
    * Handle removing a resource from the organization
    */
   private async handleRemoveResource(resourceId: string, resourceName: string): Promise<void> {
-    console.log('🗑️ Remove resource request:', resourceName, resourceId);
-    const confirmed = await this.showRemoveResourceDialog(resourceName);
-    if (!confirmed) {
-      console.log('❌ Resource removal cancelled by user');
-      return;
-    }
-
-    const gm = (window as any).GuardManagement;
-
-    if (!gm?.guardOrganizationManager || !this.currentOrganization) {
-      console.error('❌ GuardOrganizationManager or organization not available');
-      return;
-    }
-
-    try {
-      // Get current organization
-      const organization = gm.guardOrganizationManager.getOrganization();
-      if (!organization) {
-        console.error('❌ Organization not found');
-        return;
-      }
-
-      // Check if resource is assigned
-      if (!organization.resources || !organization.resources.includes(resourceId)) {
-        console.log('ℹ️ Resource not assigned - nothing to remove');
-        NotificationService.warn(
-          `El recurso "${resourceName}" no está asignado a esta organización`
-        );
-        return;
-      }
-
-      // Create a NEW array without the resource to avoid mutation issues
-      const newResources = organization.resources.filter((id: string) => id !== resourceId);
-
-      // Create a completely new organization object to avoid reference issues
-      const updatedOrganization = {
-        ...organization,
-        resources: newResources,
-        updatedAt: new Date(),
-        version: (organization.version || 0) + 1,
-      };
-
-      // Update organization
-      await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
-
-      // Update current organization in memory with the NEW object
-      this.currentOrganization = updatedOrganization;
-
-      console.log('✅ Resource removed successfully');
-
-      // Show success notification
-      NotificationService.info(`Recurso "${resourceName}" removido de la organización`);
-
-      // Re-render the dialog to show the updated resources
-      await this.refreshContent();
-    } catch (error) {
-      console.error('❌ Error removing resource:', error);
-      NotificationService.error('Error al remover el recurso de la organización');
-    }
+    if (!this.currentOrganization) return;
+    await ResourcesPanel.handleRemoveResource(
+      resourceId, 
+      resourceName, 
+      this.currentOrganization, 
+      () => this.refreshContent()
+    );
   }
 
-  /**
-   * Show confirmation dialog for removing a resource
-   */
-  private async showRemoveResourceDialog(resourceName: string): Promise<boolean> {
-    const html = `
-          <div style="margin-bottom: 1rem;">
-            <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
-            <strong>¿Estás seguro?</strong>
-          </div>
-          <p>¿Deseas remover el recurso "<strong>${resourceName}</strong>" de esta organización?</p>
-          <p><small>Esta acción se puede deshacer asignando el recurso nuevamente.</small></p>
-        `;
-    return await ConfirmService.confirm({ title: 'Confirmar Remoción', html });
-  }
+
 
   /**
    * Handle editing a resource
    */
   private async handleEditResource(resourceId: string, resourceName: string): Promise<void> {
-    console.log('✏️ Edit resource request:', resourceName, resourceId);
-
-    const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) {
-      console.error('❌ DocumentBasedManager not available');
-      NotificationService.error('No se pudo acceder al gestor de documentos');
-      return;
-    }
-
-    try {
-      // Get the resource from the document manager
-      const resources = gm.documentManager.getGuardResources();
-      const resource = resources.find((r: any) => r.id === resourceId);
-
-      if (!resource) {
-        console.error('❌ Resource not found:', resourceId);
-        NotificationService.error('Recurso no encontrado');
-        return;
-      }
-
-      // Convert Foundry document to our Resource type using the utility function
-      const resourceData = convertFoundryDocumentToResource(resource);
-
-      // Import AddOrEditResourceDialog dynamically to avoid circular imports
-      const { AddOrEditResourceDialog } = await import('../dialogs/AddOrEditResourceDialog.js');
-
-      // Show the edit dialog
-      const editedResource = await AddOrEditResourceDialog.edit(resourceData);
-
-      if (editedResource) {
-        console.log('💾 Resource edited successfully, saving to database:', editedResource);
-
-        // Save the edited resource using DocumentBasedManager
-        const updateSuccess = await gm.documentManager.updateGuardResource(
-          editedResource.id,
-          editedResource
-        );
-
-        if (updateSuccess) {
-          console.log('✅ Resource saved to database');
-
-          // Notify success
-          NotificationService.info(`Recurso "${editedResource.name}" actualizado exitosamente`);
-
-          // Dispatch event for other dialogs to update (like warehouse)
-          const event = new CustomEvent('guard-resource-updated', {
-            detail: {
-              resourceId: editedResource.id,
-              updatedResource: editedResource,
-              oldName: resourceData.name,
-              newName: editedResource.name,
-            },
-          });
-          document.dispatchEvent(event);
-
-          // Refresh this dialog's content to show the updated resource
-          await this.refreshContent();
-        } else {
-          console.error('❌ Failed to save resource to database');
-          NotificationService.error('Error al guardar el recurso en la base de datos');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error editing resource:', error);
-      NotificationService.error('Error al editar el recurso');
-    }
+    await ResourcesPanel.handleEditResource(resourceId, resourceName, () => this.refreshContent());
   }
 
   /**
@@ -1162,20 +734,7 @@ export class CustomInfoDialog implements FocusableDialog {
     resourceId: string,
     _organizationId?: string
   ): Promise<void> {
-    console.log('💬 Send resource to chat request:', resourceId);
-
-    try {
-      // Send to chat using ResourceTemplate
-      await ResourceTemplate.sendResourceToChat(resourceId);
-
-      console.log('✅ Resource sent to chat successfully');
-
-      // Show success notification
-      NotificationService.info('Recurso enviado al chat');
-    } catch (error) {
-      console.error('❌ Error sending resource to chat:', error);
-      NotificationService.error('Error al enviar recurso al chat');
-    }
+    await ResourcesPanel.handleSendResourceToChat(resourceId);
   }
 
   /**
@@ -1185,105 +744,21 @@ export class CustomInfoDialog implements FocusableDialog {
     reputationId: string,
     _organizationId?: string
   ): Promise<void> {
-    console.log('💬 Send reputation to chat request:', reputationId);
-
-    try {
-      // Send to chat using ReputationTemplate
-      await ReputationTemplate.sendReputationToChat(reputationId);
-
-      console.log('✅ Reputation sent to chat successfully');
-
-      // Show success notification
-      NotificationService.info('Reputación enviada al chat');
-    } catch (error) {
-      console.error('❌ Error sending reputation to chat:', error);
-      NotificationService.error('Error al enviar reputación al chat');
-    }
+    await ReputationPanel.handleSendReputationToChat(reputationId);
   }
 
   /**
    * Handle adding a new reputation entry
    */
   private async handleAddReputation(organizationId: string): Promise<void> {
-    console.log('➕ Add reputation request for organization:', organizationId);
-    console.log(
-      '📊 Current reputation count BEFORE create:',
-      this.currentOrganization?.reputation?.length || 0
-    );
-
-    try {
-      await AddOrEditReputationDialog.showCreateDialog(organizationId);
-
-      // The showCreateDialog already sends 'guard-organizations-updated' event
-      // but we need to wait a bit for the automatic assignment to complete
-      console.log('✅ Add reputation dialog closed, waiting for automatic assignment...');
-
-      // Wait a short time for the automatic reputation assignment to complete
-      setTimeout(async () => {
-        console.log('🔄 Refreshing content after reputation creation...');
-        console.log(
-          '📊 Current reputation count BEFORE refresh:',
-          this.currentOrganization?.reputation?.length || 0
-        );
-        await this.refreshContent();
-        console.log(
-          '📊 Current reputation count AFTER refresh:',
-          this.currentOrganization?.reputation?.length || 0
-        );
-      }, 200); // Increased delay from 100ms to 200ms
-    } catch (error) {
-      console.error('❌ Error showing add reputation dialog:', error);
-      NotificationService.error('Error al abrir el diálogo de reputación');
-    }
+    await ReputationPanel.handleAddReputation(organizationId, () => this.refreshContent());
   }
 
   /**
    * Handle editing a reputation entry
    */
   private async handleEditReputation(reputationId: string): Promise<void> {
-    console.log('✏️ Edit reputation request:', reputationId);
-
-    try {
-      // Get the reputation data first to have the old name for notifications
-      const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) {
-        console.error('DocumentManager not available');
-        return;
-      }
-
-      const reputations = gm.documentManager.getGuardReputations();
-      const oldReputation = reputations.find((r: any) => r.id === reputationId);
-      const oldName = oldReputation?.name || 'Reputación Desconocida';
-
-      await AddOrEditReputationDialog.showEditDialog(reputationId);
-
-      // Always refresh content after edit dialog closes
-      console.log('✅ Edit reputation dialog closed, refreshing content');
-      await this.refreshContent();
-
-      // Get updated reputation data for notification and event
-      const updatedReputations = gm.documentManager.getGuardReputations();
-      const updatedReputation = updatedReputations.find((r: any) => r.id === reputationId);
-      const newName = updatedReputation?.name || oldName;
-
-      // Show notification only if we can determine the name changed
-      if (oldName !== newName) {
-        NotificationService.info(`Reputación actualizada: "${oldName}" → "${newName}"`);
-      }
-
-      // Dispatch event for other dialogs to update
-      const event = new CustomEvent('guard-reputation-updated', {
-        detail: {
-          reputationId: reputationId,
-          oldName: oldName,
-          newName: newName,
-        },
-      });
-      document.dispatchEvent(event);
-    } catch (error) {
-      console.error('❌ Error showing edit reputation dialog:', error);
-      NotificationService.error('Error al editar la reputación');
-    }
+    await ReputationPanel.handleEditReputation(reputationId, () => this.refreshContent());
   }
 
   /**
@@ -1293,81 +768,16 @@ export class CustomInfoDialog implements FocusableDialog {
     reputationId: string,
     reputationName: string
   ): Promise<void> {
-    console.log('🗑️ Remove reputation request:', reputationName, reputationId);
-    const confirmed = await this.showRemoveReputationDialog(reputationName);
-    if (!confirmed) {
-      console.log('❌ Reputation removal cancelled by user');
-      return;
-    }
-
-    const gm = (window as any).GuardManagement;
-
-    if (!gm?.guardOrganizationManager || !this.currentOrganization) {
-      console.error('❌ GuardOrganizationManager or organization not available');
-      return;
-    }
-
-    try {
-      // Get current organization
-      const organization = gm.guardOrganizationManager.getOrganization();
-      if (!organization) {
-        console.error('❌ Organization not found');
-        return;
-      }
-
-      // Check if reputation is assigned
-      if (!organization.reputation || !organization.reputation.includes(reputationId)) {
-        console.log('ℹ️ Reputation not assigned - nothing to remove');
-        NotificationService.warn(
-          `La reputación "${reputationName}" no está asignada a esta organización`
-        );
-        return;
-      }
-
-      // Create a NEW array without the reputation to avoid mutation issues
-      const newReputation = organization.reputation.filter((id: string) => id !== reputationId);
-
-      // Create a completely new organization object to avoid reference issues
-      const updatedOrganization = {
-        ...organization,
-        reputation: newReputation,
-        updatedAt: new Date(),
-        version: (organization.version || 0) + 1,
-      };
-
-      // Update organization
-      await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
-
-      // Update current organization in memory with the NEW object
-      this.currentOrganization = updatedOrganization;
-
-      console.log('✅ Reputation removed successfully');
-
-      // Show success notification
-      NotificationService.info(`Reputación "${reputationName}" removida de la organización`);
-
-      // Re-render the dialog to show the updated reputation list
-      await this.refreshContent();
-    } catch (error) {
-      console.error('❌ Error removing reputation:', error);
-      NotificationService.error('Error al remover la reputación de la organización');
-    }
+    if (!this.currentOrganization) return;
+    await ReputationPanel.handleRemoveReputation(
+      reputationId, 
+      reputationName, 
+      this.currentOrganization, 
+      () => this.refreshContent()
+    );
   }
 
-  /**
-   * Show confirmation dialog for removing a reputation
-   */
-  private async showRemoveReputationDialog(reputationName: string): Promise<boolean> {
-    const html = `
-          <div style="margin-bottom: 1rem;">
-            <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
-            <strong>¿Estás seguro?</strong>
-          </div>
-          <p>¿Deseas remover la reputación "<strong>${reputationName}</strong>" de esta organización?</p>
-          <p><small>Esta acción se puede deshacer asignando la reputación nuevamente.</small></p>
-        `;
-    return await ConfirmService.confirm({ title: 'Confirmar Remoción', html });
-  }
+
 
   /**
    * Handle deleting a reputation entry
@@ -1518,154 +928,7 @@ export class CustomInfoDialog implements FocusableDialog {
     this.element.style.top = Math.max(0, y) + 'px';
   }
 
-  /**
-   * Load external CSS styles for the custom dialog
-   */
-  private loadExternalStyles(): void {
-    // Dynamic loading removed; styles are imported statically via ES modules.
-    return;
-  }
 
-  /**
-   * Generate organization info content
-   */
-  public generateOrganizationInfoContent(organization: GuardOrganization): string {
-    const template = html`
-      <div class="organization-info">
-        <div class="info-section">
-          <h3><i class="fas fa-shield-alt"></i> Información General</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <label>Nombre:</label>
-              <span>${organization.name}</span>
-            </div>
-            <div class="info-item">
-              <label>Subtítulo:</label>
-              <span>${organization.subtitle || 'Sin subtítulo'}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <h3><i class="fas fa-chart-bar"></i> Estadísticas Base</h3>
-          <div class="stats-display">
-            <div class="stat-box">
-              <div class="stat-value">${organization.baseStats.robustismo}</div>
-              <div class="stat-label">Robustismo</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${organization.baseStats.analitica}</div>
-              <div class="stat-label">Analítica</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${organization.baseStats.subterfugio}</div>
-              <div class="stat-label">Subterfugio</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">${organization.baseStats.elocuencia}</div>
-              <div class="stat-label">Elocuencia</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <h3><i class="fas fa-users"></i> Patrullas</h3>
-          <div class="patrol-count">
-            <span class="count">${organization.patrols?.length || 0}</span>
-            <span class="label">patrullas activas</span>
-          </div>
-        </div>
-
-        <div class="info-section resources-section">
-          <h3><i class="fas fa-coins"></i> Recursos</h3>
-          <div class="resources-list" data-organization-id="${organization.id}">
-            ${organization.resources && organization.resources.length > 0
-              ? html`${organization.resources
-                  .map((resourceId: string) => this.renderResourceItemTemplate(resourceId))
-                  .filter((template) => template !== null)}`
-              : html`<p class="empty-state">
-                  No hay recursos asignados a esta organización.<br /><small
-                    >Arrastra recursos desde el warehouse</small
-                  >
-                </p>`}
-          </div>
-        </div>
-
-        <div class="info-section resources-section">
-          <h3><i class="fas fa-handshake"></i> Reputación</h3>
-          <div class="resources-list reputation-list" data-organization-id="${organization.id}">
-            ${organization.reputation && organization.reputation.length > 0
-              ? html`${organization.reputation
-                  .map((reputationId: string) => this.renderReputationItemTemplate(reputationId))
-                  .filter((template: any) => template !== null)}`
-              : html`<p class="empty-state">
-                  No hay entradas de reputación para esta organización.<br /><small
-                    >Arrastra reputaciones desde el warehouse</small
-                  >
-                </p>`}
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Convert template to string for dialog usage
-    return renderTemplateToString(template);
-  }
-
-  /**
-   * Static version for backward compatibility
-   */
-  public static generateOrganizationInfoContent(organization: GuardOrganization): string {
-    const instance = new CustomInfoDialog();
-    return instance.generateOrganizationInfoContent(organization);
-  }
-
-  /**
-   * Render dialog template
-   */
-  private renderDialogTemplate(title: string, content: string): TemplateResult {
-    return html`
-      ${this.renderDialogHeader(title)} ${this.renderDialogContent(content)}
-      ${this.renderDialogResizeHandle()}
-      <div class="drop-overlay" style="display: none;"></div>
-    `;
-  }
-
-  /**
-   * Render dialog header
-   */
-  private renderDialogHeader(title: string): TemplateResult {
-    return html`
-      <div class="custom-dialog-header">
-        <div class="custom-dialog-title">
-          <i class="fas fa-info-circle"></i>
-          <span class="custom-dialog-title-text">${title}</span>
-        </div>
-        <div class="custom-dialog-controls">
-          <button class="custom-dialog-btn custom-dialog-edit" title="Editar">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="custom-dialog-btn custom-dialog-close" title="Cerrar">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Render dialog content
-   */
-  private renderDialogContent(content: string): TemplateResult {
-    return html` <div class="custom-dialog-content">${unsafeHTML(content)}</div> `;
-  }
-
-  /**
-   * Render dialog resize handle
-   */
-  private renderDialogResizeHandle(): TemplateResult {
-    return html` <div class="custom-dialog-resize-handle"></div> `;
-  }
 
   /**
    * Handle focus events - called when dialog gains focus
@@ -1719,47 +982,7 @@ export class CustomInfoDialog implements FocusableDialog {
     // Focus is only lost when another dialog gains focus or when dialog is closed
   }
 
-  /**
-   * Render individual resource item as TemplateResult
-   */
-  private renderResourceItemTemplate(resourceId: string): TemplateResult | null {
-    return ResourceTemplate.renderResourceItem(resourceId, {
-      showActions: true,
-      showSendToChat: true,
-      organizationId: this.currentOrganization?.id || '',
-    });
-  }
 
-  /**
-   * Render a reputation item template
-   */
-  private renderReputationItemTemplate(reputationId: string): TemplateResult | null {
-    try {
-      const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) {
-        console.error('DocumentManager not available');
-        return null;
-      }
-
-      const reputations = gm.documentManager.getGuardReputations();
-      const reputation = reputations.find((r: any) => r.id === reputationId);
-
-      if (!reputation) {
-        console.warn(`Reputation with ID ${reputationId} not found`);
-        return null;
-      }
-
-      // Use ReputationTemplate.renderReputationItem with same options as resources
-      return ReputationTemplate.renderReputationItem(reputationId, {
-        showActions: true,
-        showSendToChat: true,
-        organizationId: this.currentOrganization?.id || '',
-      });
-    } catch (error) {
-      console.error('Error rendering reputation item template:', error);
-      return null;
-    }
-  }
 
   /**
    * Handle global drag start - show overlay
@@ -1905,249 +1128,30 @@ export class CustomInfoDialog implements FocusableDialog {
    * Assign a resource to the current organization
    */
   private async assignResourceToOrganization(resourceData: any): Promise<void> {
-    console.log('🔧 Assigning resource:', resourceData.name);
-
-    const gm = (window as any).GuardManagement;
-
-    if (!gm?.guardOrganizationManager || !this.currentOrganization) {
-      console.error('❌ GuardOrganizationManager or organization not available');
-      return;
-    }
-
-    try {
-      // Get current organization (GuardOrganizationManager manages only one organization)
-      const organization = gm.guardOrganizationManager.getOrganization();
-      if (!organization) {
-        console.error('❌ Organization not found');
-        return;
-      }
-
-      // Initialize resources array if it doesn't exist
-      if (!organization.resources) {
-        organization.resources = [];
-      }
-
-      // Check if resource is already assigned
-      if (organization.resources.includes(resourceData.id)) {
-        console.log('ℹ️ Resource already assigned - skipping');
-        NotificationService.warn(
-          `El recurso "${resourceData.name}" ya está asignado a esta organización`
-        );
-        return;
-      }
-
-      // Create a NEW array with the new resource to avoid mutation issues
-      const newResources = [...organization.resources, resourceData.id];
-
-      // Create a completely new organization object to avoid reference issues
-      const updatedOrganization = {
-        ...organization,
-        resources: newResources,
-        updatedAt: new Date(),
-        version: (organization.version || 0) + 1,
-      };
-
-      // Update organization (GuardOrganizationManager has different update method)
-      await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
-
-      // Update current organization in memory with the NEW object
-      this.currentOrganization = updatedOrganization;
-
-      console.log('✅ Resource assigned successfully');
-    } catch (error) {
-      console.error('❌ Error assigning resource:', error);
-      NotificationService.error('Error al asignar el recurso');
-      throw error;
-    }
+    if (!this.currentOrganization) return;
+    await ResourcesPanel.assignResourceToOrganization(
+      resourceData, 
+      this.currentOrganization, 
+      () => this.refreshContent()
+    );
   }
 
   /**
    * Assign a reputation to the current organization
    */
   private async assignReputationToOrganization(reputationData: any): Promise<void> {
-    console.log('🤝 Assigning reputation:', reputationData.name);
-
-    const gm = (window as any).GuardManagement;
-
-    if (!gm?.guardOrganizationManager || !this.currentOrganization) {
-      console.error('❌ GuardOrganizationManager or organization not available');
-      return;
-    }
-
-    try {
-      // Get current organization (GuardOrganizationManager manages only one organization)
-      const organization = gm.guardOrganizationManager.getOrganization();
-      if (!organization) {
-        console.error('❌ Organization not found');
-        return;
-      }
-
-      // Initialize reputation array if it doesn't exist
-      if (!organization.reputation) {
-        organization.reputation = [];
-      }
-
-      // Check if reputation is already assigned
-      if (organization.reputation.includes(reputationData.id)) {
-        console.log('ℹ️ Reputation already assigned - skipping');
-        NotificationService.warn(
-          `La reputación "${reputationData.name}" ya está asignada a esta organización`
-        );
-        return;
-      }
-
-      // Create a NEW array with the new reputation to avoid mutation issues
-      const newReputation = [...organization.reputation, reputationData.id];
-
-      // Create a completely new organization object to avoid reference issues
-      const updatedOrganization = {
-        ...organization,
-        reputation: newReputation,
-        updatedAt: new Date(),
-        version: (organization.version || 0) + 1,
-      };
-
-      // Update organization (GuardOrganizationManager has different update method)
-      // Update organization (GuardOrganizationManager has different update method)
-      await gm.guardOrganizationManager.updateOrganization(updatedOrganization);
-
-      // Update current organization in memory with the NEW object
-      this.currentOrganization = updatedOrganization;
-
-      console.log('✅ Reputation assigned successfully');
-    } catch (error) {
-      console.error('❌ Error assigning reputation:', error);
-      NotificationService.error('Error al asignar la reputación');
-      throw error;
-    }
+    if (!this.currentOrganization) return;
+    await ReputationPanel.assignReputationToOrganization(
+      reputationData, 
+      this.currentOrganization, 
+      () => this.refreshContent()
+    );
   }
 
-  /**
-   * Refresh dialog content with updated data
-   */
-  private async refreshContent(): Promise<void> {
-    console.log('🔄 RefreshContent called...');
 
-    if (!this.currentOrganization) {
-      console.log('❌ No current organization for refresh');
-      return;
-    }
-
-    const gm = (window as any).GuardManagement;
-    if (!gm?.guardOrganizationManager || !gm?.documentManager) {
-      console.log('❌ No guardOrganizationManager or documentManager for refresh');
-      return;
-    }
-
-    try {
-      // First try to get from DocumentBasedManager which should be more up-to-date
-      let freshOrganization = null;
-
-      try {
-        const guardOrgs = gm.documentManager.getGuardOrganizations();
-        freshOrganization = guardOrgs.find((org: any) => org.id === this.currentOrganization!.id);
-
-        if (freshOrganization) {
-          // Convert Foundry document to our organization type
-          freshOrganization = {
-            id: freshOrganization.id,
-            name: freshOrganization.name || 'Organización Sin Nombre',
-            subtitle: freshOrganization.system?.subtitle || '',
-            baseStats: {
-              robustismo: freshOrganization.system?.baseStats?.robustismo ?? 0,
-              analitica: freshOrganization.system?.baseStats?.analitica ?? 0,
-              subterfugio: freshOrganization.system?.baseStats?.subterfugio ?? 0,
-              elocuencia: freshOrganization.system?.baseStats?.elocuencia ?? 0,
-            },
-            resources: freshOrganization.system?.resources || [],
-            reputation: freshOrganization.system?.reputation || [],
-            patrols: freshOrganization.system?.patrols || [],
-            version: freshOrganization.system?.version || 1,
-            createdAt: freshOrganization.system?.createdAt
-              ? new Date(freshOrganization.system.createdAt)
-              : new Date(),
-            updatedAt: new Date(),
-          };
-          console.log('📊 Using data from DocumentBasedManager');
-        }
-      } catch (error) {
-        console.log(
-          '⚠️ Could not get data from DocumentBasedManager, falling back to GuardOrganizationManager'
-        );
-      }
-
-      // Fallback to GuardOrganizationManager if DocumentBasedManager fails
-      if (!freshOrganization) {
-        freshOrganization = gm.guardOrganizationManager.getOrganization();
-        if (!freshOrganization) {
-          console.log('❌ No organization found in either manager');
-          return;
-        }
-        console.log('📊 Using data from GuardOrganizationManager (fallback)');
-      }
-
-      console.log(
-        '📊 Refreshing - Current reputation count:',
-        this.currentOrganization.reputation?.length || 0
-      );
-      console.log(
-        '📊 Refreshing - Fresh reputation count:',
-        freshOrganization.reputation?.length || 0
-      );
-
-      // IMPORTANT: Update our current organization reference to the fresh one
-      this.currentOrganization = freshOrganization;
-
-      // Force immediate update of the dialog content
-      this.updateOrganization(freshOrganization);
-
-      console.log('✅ Refresh completed immediately');
-    } catch (error) {
-      console.error('❌ Error refreshing dialog content:', error);
-    }
-  }
 
   private async handleEditLastOrder(patrolId: string) {
-    const gm = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
-    const patrol = pMgr.getPatrol(patrolId);
-    if (!patrol) return;
-    const current = patrol.lastOrder?.text || '';
-    const result = await (foundry as any).applications.api.DialogV2.wait({
-      window: { title: 'Editar Última Orden', resizable: true },
-      content: `<form class='last-order-edit'><textarea name='order' rows='4' style='width:100%;'>${current}</textarea><p class='hint'>Actualiza la última orden de la patrulla.</p></form>`,
-      buttons: [
-        {
-          action: 'save',
-          label: 'Guardar',
-          icon: 'fas fa-save',
-          default: true,
-          callback: (_ev: any, btn: any, dlg: any) => {
-            const form = btn?.form || dlg?.window?.content?.querySelector('form.last-order-edit');
-            if (!form) return 'cancel';
-            const fd = new FormData(form);
-            const text = (fd.get('order') as string) || '';
-            if (!text.trim()) {
-              ui?.notifications?.warn('Orden vacía');
-              return 'cancel';
-            }
-            pMgr.updateLastOrder(patrolId, text.trim());
-            const updated = pMgr.getPatrol(patrolId);
-            if (updated) {
-              orgMgr.upsertPatrolSnapshot(updated);
-            }
-            return 'save';
-          },
-        },
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times', callback: () => 'cancel' },
-      ],
-    });
-    if (result === 'save') {
-      ui?.notifications?.info('Orden actualizada');
-      this.refreshPatrolsPanel();
-    }
+    await PatrolsPanel.handleEditLastOrder(patrolId, () => this.refreshPatrolsPanel());
   }
 
   private initTabs(root: HTMLElement): void {
@@ -2204,302 +1208,9 @@ export class CustomInfoDialog implements FocusableDialog {
     this.tabsInitialized = true;
   }
 
-  private computePatrolStatBreakdown(patrol: any) {
-    try {
-      const derived = patrol.derivedStats || patrol.baseStats || {};
-      const effectTotals: Record<string, number> = {};
-      for (const eff of patrol.patrolEffects || []) {
-        for (const [k, v] of Object.entries(eff.modifiers || {})) {
-          effectTotals[k] = (effectTotals[k] || 0) + ((v as number) || 0);
-        }
-      }
-      const breakdown: Record<
-        string,
-        { base: number; effects: number; org: number; total: number }
-      > = {};
-      for (const key of Object.keys(derived)) {
-        const base = patrol.baseStats?.[key] ?? 0;
-        const effects = effectTotals[key] || 0;
-        const total = derived[key] ?? 0; // preserve negatives
-        const org = total - base - effects; // whatever isn't base or effects we attribute to organization modifiers
-        breakdown[key] = { base, effects, org, total };
-      }
-      return breakdown;
-    } catch {
-      return {};
-    }
-  }
 
-  /** Attach drag & drop to officer and soldier zones inside the patrols container */
-  private setupPatrolZonesDnD(container: HTMLElement) {
-    const gm: any = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    const pMgr = orgMgr?.getPatrolManager?.();
-    if (!pMgr) return;
-    const zones = Array.from(
-      container.querySelectorAll(
-        '.patrol-card .officer-slot[data-drop], .patrol-card .soldiers-zone[data-drop]'
-      )
-    ) as HTMLElement[];
-
-    // Heurística simple: si hay tipos comunes usados por Foundry asumimos que es arrastre válido
-    const isActorDrag = (ev: DragEvent) => {
-      const types = Array.from(ev.dataTransfer?.types || []);
-      if (!types.length) return false;
-      if (types.includes('text/plain')) return true;
-      if (types.includes('text/uuid')) return true;
-      if (types.includes('text/x-foundry-entity')) return true;
-      if (types.some((t) => t.includes('application/json'))) return true;
-      return false;
-    };
-
-    const pullAllDataStrings = (ev: DragEvent): string[] => {
-      const out: string[] = [];
-      if (!ev.dataTransfer) return out;
-      const tryGet = (t: string) => {
-        try {
-          const v = ev.dataTransfer!.getData(t);
-          if (v) out.push(v);
-        } catch {}
-      };
-      tryGet('text/plain');
-      tryGet('text/uuid');
-      tryGet('text/x-foundry-entity');
-      for (const t of ev.dataTransfer.types || []) {
-        if (t.startsWith('application/json')) tryGet(t);
-      }
-      return out.filter(Boolean);
-    };
-
-    const parseCandidate = (raw: string): any | null => {
-      if (!raw) return null;
-      const trimmed = raw.trim();
-      if (!trimmed.startsWith('{')) {
-        if (/^Actor\.[A-Za-z0-9]{5,}$/.test(trimmed)) return { uuid: trimmed };
-      }
-      try {
-        return JSON.parse(trimmed);
-      } catch {
-        return null;
-      }
-    };
-
-    const resolveActor = async (data: any): Promise<any | null> => {
-      const g: any = (globalThis as any).game;
-      if (!g) return null;
-      const directId = data.id || data.actorId || data._id;
-      if (directId) {
-        const byId =
-          g.actors?.get?.(directId) || g.actors?.contents?.find?.((a: any) => a.id === directId);
-        if (byId) return byId;
-      }
-      const uuid =
-        data.uuid ||
-        data.documentId ||
-        (typeof data === 'string' && data.startsWith('Actor.') ? data : null);
-      if (uuid && typeof (globalThis as any).fromUuid === 'function') {
-        try {
-          const doc = await (globalThis as any).fromUuid(uuid);
-          if (doc?.documentName === 'Actor') return doc;
-        } catch {}
-      }
-      // Fallback: scan by name maybe (not ideal)
-      if (data.name && g.actors) {
-        const byName = g.actors.find?.((a: any) => a.name === data.name);
-        if (byName) return byName;
-      }
-      return null;
-    };
-
-    const obtainActor = async (ev: DragEvent) => {
-      for (const raw of pullAllDataStrings(ev)) {
-        const data = parseCandidate(raw) || raw;
-        const actor = await resolveActor(data);
-        if (actor) return actor;
-      }
-      return null;
-    };
-
-    zones.forEach((zone) => {
-      if ((zone as any)._gmDnD) return;
-      (zone as any)._gmDnD = true;
-      const mode: 'officer' | 'soldier' =
-        (zone.dataset.drop as any) === 'officer' ? 'officer' : 'soldier';
-      const card = zone.closest('.patrol-card') as HTMLElement | null;
-      const pid = card?.dataset.patrolId || '';
-      if (!pid) return;
-      zone.addEventListener('dragenter', (ev) => {
-        if (!isActorDrag(ev)) return;
-        ev.preventDefault();
-        zone.classList.add('dnd-hover');
-        card?.classList.add('dnd-active');
-      });
-      zone.addEventListener('dragover', (ev) => {
-        if (!isActorDrag(ev)) return;
-        ev.preventDefault();
-        ev.dataTransfer!.dropEffect = 'copy';
-        zone.classList.add('dnd-hover');
-        card?.classList.add('dnd-active');
-      });
-      zone.addEventListener('dragleave', () => {
-        zone.classList.remove('dnd-hover');
-        card?.classList.remove('dnd-active');
-      });
-      zone.addEventListener('drop', async (ev) => {
-        if (!isActorDrag(ev)) return;
-        ev.preventDefault();
-        zone.classList.remove('dnd-hover');
-        card?.classList.remove('dnd-active');
-        const actor = await obtainActor(ev);
-        if (!actor) {
-          console.warn(
-            'CustomInfoDialog | Actor no resuelto desde drag data',
-            ev.dataTransfer?.types
-          );
-          return ui?.notifications?.warn?.('Actor no encontrado');
-        }
-        try {
-          const patrol = pMgr.getPatrol(pid);
-          if (!patrol) return;
-          if (mode === 'officer') {
-            pMgr.assignOfficer(pid, {
-              actorId: actor.id,
-              name: actor.name,
-              img: actor.img,
-              isLinked: actor.isOwner ?? true,
-            });
-            ui?.notifications?.info?.(`Oficial asignado: ${actor.name}`);
-          } else {
-            pMgr.addSoldier(pid, {
-              actorId: actor.id,
-              name: actor.name,
-              img: actor.img,
-              referenceType: 'linked',
-              addedAt: Date.now(),
-            });
-            ui?.notifications?.info?.(`Soldado añadido: ${actor.name}`);
-          }
-          this.refreshPatrolsPanel();
-        } catch (e) {
-          console.warn('CustomInfoDialog | drop error', e);
-          ui?.notifications?.error?.('Error al asignar actor');
-        }
-      });
-    });
-  }
-
-  private renderPatrolCards(patrols: any[]): TemplateResult {
-    return html`<div class="patrol-cards-grid">
-      ${patrols.map((p) => {
-        const lastOrder = p.lastOrder;
-        const ageClass = lastOrder
-          ? classifyLastOrderAge({ issuedAt: lastOrder.issuedAt })
-          : 'normal';
-        const bd = this.computePatrolStatBreakdown(p);
-        return html`<div class="patrol-card" data-patrol-id="${p.id}">
-          <div class="header">
-            <span class="name">${p.name}</span>${p.subtitle
-              ? html`<span class="subtitle">${p.subtitle}</span>`
-              : ''}
-          </div>
-          <div class="stats-mini">
-            ${Object.entries(p.derivedStats || p.baseStats || {}).map(([k, v]) => {
-              const b = (bd as any)[k] || { base: 0, effects: 0, org: 0, total: v };
-              const tip = `Base: ${b.base}\nEfectos: ${b.effects}\nOrganización: ${b.org >= 0 ? '+' : ''}${b.org}\nTotal: ${b.total}`;
-              return html`<span class="stat" data-stat="${k}" title="${tip}"
-                >${k.slice(0, 3)}: ${v}</span
-              >`;
-            })}
-          </div>
-          <div
-            class="officer-slot"
-            data-drop="officer"
-            title="Arrastra un Actor aquí para asignarlo como Oficial"
-          >
-            ${p.officer
-              ? html`<div
-                  class="clickable-actor"
-                  data-action="open-sheet"
-                  data-actor-id="${p.officer.actorId}"
-                  style="cursor: pointer;"
-                >
-                  <img src="${p.officer.img || ''}" alt="oficial" />
-                </div>`
-              : html`<span class="empty">Sin Oficial</span>`}
-          </div>
-          <div
-            class="soldiers-zone"
-            data-drop="soldier"
-            title="Arrastra Actores aquí para añadir Soldados"
-          >
-            ${p.soldiers?.length
-              ? html`${p.soldiers
-                  .slice(0, 12)
-                  .map(
-                    (s: any) =>
-                      html`<div
-                        class="clickable-actor soldier-wrapper"
-                        data-action="open-sheet"
-                        data-actor-id="${s.actorId}"
-                        style="display: inline-block; cursor: pointer;"
-                      >
-                        <img
-                          class="soldier-avatar"
-                          src="${s.img || ''}"
-                          alt="${s.name || 'Soldado'}"
-                          title="${s.name || ''}"
-                        />
-                      </div>`
-                  )}
-                ${p.soldiers.length > 12
-                  ? html`<span class="more" title="${p.soldiers.length - 12} más"
-                      >+${p.soldiers.length - 12}</span
-                    >`
-                  : ''}`
-              : html`<span class="placeholder">Arrastra Soldados aquí</span>`}
-          </div>
-          <div
-            class="last-order-line ${ageClass}"
-            data-action="edit-last-order"
-            data-patrol-id="${p.id}"
-            title="Click para editar la última orden"
-          >
-            <i class="fas fa-scroll"></i>
-            <span class="last-order-label">Orden:</span>
-            <span class="last-order-text">${lastOrder ? lastOrder.text : '— (sin orden)'}</span>
-            ${lastOrder ? html`<span class="age-indicator ${ageClass}"></span>` : ''}
-          </div>
-          <div class="actions">
-            <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="${p.id}">
-              <i class="fas fa-edit"></i></button
-            ><button
-              type="button"
-              class="delete-patrol"
-              data-action="delete"
-              data-patrol-id="${p.id}"
-            >
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>`;
-      })}
-    </div>`;
-  }
 
   private async handleOpenActorSheet(actorId: string): Promise<void> {
-    const actor = (globalThis as any).game.actors.get(actorId);
-    if (actor) {
-      actor.sheet.render(true);
-    } else {
-      // Try to find by token or other means if needed, or notify
-      const tokenActor = (globalThis as any).canvas.tokens.placeables.find(
-        (t: any) => t.actor?.id === actorId
-      )?.actor;
-      if (tokenActor) {
-        tokenActor.sheet.render(true);
-      } else {
-        ui.notifications?.warn(`Actor ${actorId} no encontrado`);
-      }
-    }
+    await PatrolsPanel.handleOpenActorSheet(actorId);
   }
 }

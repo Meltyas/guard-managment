@@ -2,10 +2,8 @@
  * Floating Guard Management Panel - Canvas overlay component
  */
 
-import { html, TemplateResult } from 'lit-html';
 import { GMWarehouseDialog } from '../dialogs/GMWarehouseDialog';
 import { GuardDialogManager } from '../managers/GuardDialogManager';
-import { safeRender } from '../utils/template-renderer.js';
 
 export interface FloatingPanelPosition {
   x: number;
@@ -29,8 +27,8 @@ export class FloatingGuardPanel {
   /**
    * Initialize the floating panel
    */
-  public initialize(): void {
-    this.createPanel();
+  public async initialize(): Promise<void> {
+    await this.createPanel();
     this.attachEventListeners();
     this.restorePosition();
   }
@@ -95,14 +93,17 @@ export class FloatingGuardPanel {
   /**
    * Refresh the panel content after game is ready
    */
-  public refreshPanel(): void {
+  public async refreshPanel(): Promise<void> {
     if (!this.panel) return;
+
+    // Save current position before removing
+    this.savePosition();
 
     // Remove existing panel
     this.panel.remove();
 
     // Recreate with current game state
-    this.createPanel();
+    await this.createPanel();
     this.attachEventListeners();
     this.restorePosition();
   }
@@ -110,108 +111,36 @@ export class FloatingGuardPanel {
   /**
    * Create the panel HTML element
    */
-  private createPanel(): void {
+  private async createPanel(): Promise<void> {
     this.panel = document.createElement('div');
     this.panel.id = 'guard-management-floating-panel';
     this.panel.className = 'guard-floating-panel';
 
     // Check GM status
     const isGM = (game?.user as any)?.isGM;
+    const organizations = this.dialogManager.guardOrganizationManager.getAllOrganizations();
+    const isMinimized = this.panel?.classList.contains('minimized') || false;
 
-    // Render using lit-html templates
-    const panelTemplate = this.renderPanelTemplate(isGM);
-    safeRender(panelTemplate, this.panel);
+    const templatePath = 'modules/guard-management/templates/panels/floating-panel.hbs';
+    const content = await renderTemplate(templatePath, {
+        isGM,
+        organizations,
+        isMinimized,
+        minimizeIcon: isMinimized ? 'fas fa-plus' : 'fas fa-minus'
+    });
+
+    this.panel.innerHTML = content;
 
     // Add CSS styles
     this.addStyles();
 
     // Append to body (will be positioned over canvas)
     document.body.appendChild(this.panel);
-  }
-
-  /**
-   * Main panel template
-   */
-  private renderPanelTemplate(isGM: boolean): TemplateResult {
-    return html` ${this.renderPanelHeader()} ${this.renderPanelContent(isGM)} `;
-  }
-
-  /**
-   * Panel header with controls
-   */
-  private renderPanelHeader(): TemplateResult {
-    return html`
-      <div class="panel-header">
-        <div class="panel-title">
-          <i class="fas fa-shield-alt"></i>
-          <span>Gestión de Guardias</span>
-        </div>
-        <div class="panel-controls">
-          <button class="panel-minimize" title="Minimizar">
-            <i class="fas fa-minus"></i>
-          </button>
-          <button class="panel-close" title="Cerrar">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Panel content section
-   */
-  private renderPanelContent(isGM: boolean): TemplateResult {
-    return html`
-      <div class="panel-content">
-        ${this.renderQuickActions(isGM)} ${this.renderOrganizationSummary()}
-      </div>
-    `;
-  }
-
-  /**
-   * Quick action buttons
-   */
-  private renderQuickActions(isGM: boolean): TemplateResult {
-    return html`
-      <div class="quick-actions">
-        <button class="action-btn primary" data-action="manage-organizations">
-          <i class="fas fa-info-circle"></i>
-          <span>Ver Organización</span>
-        </button>
-        ${isGM ? this.renderGMWarehouseButton() : html`<!-- No GM button - user is not GM -->`}
-        <button class="action-btn secondary" data-action="debug-info">
-          <i class="fas fa-bug"></i>
-          <span>Debug Info</span>
-        </button>
-      </div>
-    `;
-  }
-
-  /**
-   * GM Warehouse button (only for GMs)
-   */
-  private renderGMWarehouseButton(): TemplateResult {
-    return html`
-      <button class="action-btn secondary" data-action="open-warehouse">
-        <i class="fas fa-warehouse"></i>
-        <span>GM Warehouse</span>
-      </button>
-    `;
-  }
-
-  /**
-   * Organization summary section
-   */
-  private renderOrganizationSummary(): TemplateResult {
-    return html`
-      <div class="organization-summary">
-        <div class="summary-header">Organización de Guardias</div>
-        <div class="organization-list" id="organization-quick-list">
-          <!-- Dynamic content will be populated here -->
-        </div>
-      </div>
-    `;
+    
+    // Restore minimized state class if needed
+    if (isMinimized) {
+        this.panel.classList.add('minimized');
+    }
   }
 
   /**
@@ -437,6 +366,12 @@ export class FloatingGuardPanel {
     actionBtns.forEach((btn) => {
       btn.addEventListener('click', this.handleActionClick.bind(this));
     });
+    
+    // Organization items
+    const orgItems = this.panel.querySelectorAll('.organization-item');
+    orgItems.forEach((item) => {
+        item.addEventListener('click', this.handleOrganizationClick.bind(this));
+    });
 
     // Global drag handlers
     document.addEventListener('mousemove', this.handleDragMove.bind(this));
@@ -523,11 +458,18 @@ export class FloatingGuardPanel {
     if (!this.panel) return;
 
     this.panel.classList.toggle('minimized');
-
+    const isMinimized = this.panel.classList.contains('minimized');
+    
+    // Update icon
     const icon = this.panel.querySelector('.panel-minimize i') as HTMLElement;
     if (icon) {
-      const isMinimized = this.panel.classList.contains('minimized');
       icon.className = isMinimized ? 'fas fa-plus' : 'fas fa-minus';
+    }
+    
+    // Update content visibility
+    const content = this.panel.querySelector('.panel-content') as HTMLElement;
+    if (content) {
+        content.style.display = isMinimized ? 'none' : 'block';
     }
   }
 
@@ -733,48 +675,9 @@ export class FloatingGuardPanel {
   /**
    * Update the organization list in the panel
    */
-  public updateOrganizationList(): void {
-    const listContainer = this.panel?.querySelector('#organization-quick-list');
-    if (!listContainer) return;
-
-    const organizations = this.dialogManager.guardOrganizationManager.getAllOrganizations();
-    const organizationTemplate = this.renderOrganizationList(organizations);
-
-    safeRender(organizationTemplate, listContainer as HTMLElement);
-  }
-
-  /**
-   * Render organization list
-   */
-  private renderOrganizationList(organizations: any[]): TemplateResult {
-    if (organizations.length === 0) {
-      return html`
-        <div style="color: #999; font-size: 0.75rem; text-align: center; padding: 8px;">
-          No hay organizaciones
-        </div>
-      `;
-    }
-
-    return html` ${organizations.map((org) => this.renderOrganizationItem(org))} `;
-  }
-
-  /**
-   * Render individual organization item
-   */
-  private renderOrganizationItem(org: any): TemplateResult {
-    return html`
-      <div
-        class="organization-item"
-        data-org-id="${org.id}"
-        @click=${() => this.handleOrganizationClick()}
-      >
-        <div>
-          <div class="organization-name">${org.name}</div>
-          <div class="organization-subtitle">${org.subtitle}</div>
-        </div>
-        <div style="color: #888; font-size: 0.7rem;">${org.patrols.length} patrullas</div>
-      </div>
-    `;
+  public async updateOrganizationList(): Promise<void> {
+    // Just refresh the whole panel to keep it simple
+    await this.refreshPanel();
   }
 
   /**

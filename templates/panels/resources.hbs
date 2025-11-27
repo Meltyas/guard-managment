@@ -1,0 +1,44 @@
+<div class="organization-info">
+  <div class="info-section resources-section">
+    <h3><i class="fas fa-coins"></i> Recursos</h3>
+    <div class="resources-list" data-organization-id="{{organizationId}}">
+      {{#if resources.length}}
+        {{#each resources}}
+          <div class="resource-item" data-resource-id="{{this.id}}">
+            {{#if this.image}}
+              <div class="resource-image">
+                <img src="{{this.image}}" alt="{{this.name}}" onerror="this.style.display='none'" />
+              </div>
+            {{/if}}
+            <div class="resource-info">
+              <span class="resource-name">{{this.name}}</span>
+              <span class="resource-quantity">Cantidad: {{this.quantity}}</span>
+              {{#if this.description}}
+                <span class="resource-description">{{this.description}}</span>
+              {{/if}}
+            </div>
+            <div class="resource-actions">
+              <button type="button" class="send-to-chat-btn btn-icon" title="Enviar al chat"
+                data-resource-id="{{this.id}}" data-resource-name="{{this.name}}"
+                data-organization-id="{{../organizationId}}">
+                <i class="fas fa-comment"></i>
+              </button>
+              <button type="button" class="edit-resource-btn btn-icon" title="Editar recurso"
+                data-resource-id="{{this.id}}" data-resource-name="{{this.name}}">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button type="button" class="remove-resource-btn btn-icon" title="Remover recurso"
+                data-resource-id="{{this.id}}" data-resource-name="{{this.name}}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        {{/each}}
+      {{else}}
+        <p class="empty-state">
+          No hay recursos asignados a esta organización.<br /><small>Arrastra recursos desde el warehouse</small>
+        </p>
+      {{/if}}
+    </div>
+  </div>
+</div>

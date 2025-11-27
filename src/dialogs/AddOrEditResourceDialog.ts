@@ -3,10 +3,8 @@
  * Reusable dialog component for resource management throughout the module
  */
 
-import { html } from 'lit-html';
 import type { Resource } from '../types/entities';
 import { DOMEventSetup } from '../utils/DOMEventSetup.js';
-import { renderTemplateToString } from '../utils/template-renderer.js';
 
 export interface ResourceDialogData {
   name: string;
@@ -68,7 +66,7 @@ export class AddOrEditResourceDialog {
     organizationId: string,
     existingResource?: Resource
   ): Promise<Resource | null> {
-    const content = this.generateContent(mode, organizationId, existingResource);
+    const content = await this.generateContent(mode, organizationId, existingResource);
     const title = mode === 'create' ? 'Nuevo Recurso' : 'Editar Recurso';
 
     try {
@@ -298,100 +296,21 @@ export class AddOrEditResourceDialog {
   /**
    * Generate the HTML content for the dialog
    */
-  private generateContent(
+  private async generateContent(
     mode: 'create' | 'edit',
     organizationId: string,
     existingResource?: Resource
-  ): string {
-    const data: ResourceDialogData = {
+  ): Promise<string> {
+    const data = {
       name: existingResource?.name || '',
       description: existingResource?.description || '',
       quantity: existingResource?.quantity || 1,
       image: existingResource?.image || '',
       organizationId: organizationId,
+      isCreate: mode === 'create'
     };
 
-    const template = html`
-      <form class="resource-form guard-dialog">
-        <div class="form-group">
-          <label for="resource-name">Nombre del Recurso</label>
-          <input
-            type="text"
-            id="resource-name"
-            name="name"
-            value="${data.name}"
-            placeholder="Nombre del recurso..."
-            required
-            maxlength="100"
-          />
-          <small class="form-hint">Máximo 100 caracteres</small>
-        </div>
-
-        <div class="form-group">
-          <label for="resource-description">Descripción</label>
-          <textarea
-            id="resource-description"
-            name="description"
-            placeholder="Descripción del recurso..."
-            rows="3"
-            maxlength="500"
-          ></textarea>
-          <small class="form-hint">Opcional. Máximo 500 caracteres</small>
-        </div>
-
-        <div class="form-group">
-          <label for="resource-image">Imagen</label>
-          <div class="file-picker-wrapper">
-            <input
-              type="text"
-              id="resource-image"
-              name="image"
-              value="${data.image}"
-              placeholder="Selecciona una imagen..."
-            />
-            <button
-              type="button"
-              class="file-picker-btn"
-              data-type="imagevideo"
-              data-target="resource-image"
-              title="Seleccionar imagen"
-            >
-              <i class="fas fa-file-image"></i>
-            </button>
-          </div>
-          <small class="form-hint"
-            >Opcional. Haz click en el botón para seleccionar una imagen</small
-          >
-        </div>
-
-        <div class="form-group">
-          <label for="resource-quantity">Cantidad</label>
-          <input
-            type="number"
-            id="resource-quantity"
-            name="quantity"
-            value="${data.quantity}"
-            min="0"
-            max="999999"
-            required
-          />
-          <small class="form-hint">Cantidad disponible del recurso</small>
-        </div>
-
-        <!-- Hidden field for organization ID -->
-        <input type="hidden" name="organizationId" value="${data.organizationId}" />
-
-        <div class="form-notes">
-          <p>
-            <i class="fas fa-info-circle"></i> ${mode === 'create'
-              ? 'Se creará un nuevo recurso asociado a la organización.'
-              : 'Se actualizará el recurso existente.'}
-          </p>
-        </div>
-      </form>
-    `;
-
-    return renderTemplateToString(template);
+    return renderTemplate('modules/guard-management/templates/dialogs/add-edit-resource.hbs', data);
   }
 
   /**
@@ -402,7 +321,7 @@ export class AddOrEditResourceDialog {
     organizationId: string,
     existingResource?: Resource
   ): Promise<Resource | null> {
-    const content = this.generateContent(mode, organizationId, existingResource);
+    const content = await this.generateContent(mode, organizationId, existingResource);
     const title = mode === 'create' ? 'Nuevo Recurso' : 'Editar Recurso';
 
     return new Promise((resolve) => {
