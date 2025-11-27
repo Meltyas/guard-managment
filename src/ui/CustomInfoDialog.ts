@@ -829,6 +829,16 @@ export class CustomInfoDialog implements FocusableDialog {
     if (!root) return;
     root.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
+
+      // Handle actor sheet opening
+      const actorEl = target.closest('[data-action="open-sheet"]') as HTMLElement | null;
+      if (actorEl && actorEl.dataset.actorId) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleOpenActorSheet(actorEl.dataset.actorId);
+        return;
+      }
+
       const actionBtn = target.closest('button[data-action]') as HTMLButtonElement | null;
       if (actionBtn) {
         const action = actionBtn.dataset.action;
@@ -2407,7 +2417,14 @@ export class CustomInfoDialog implements FocusableDialog {
             title="Arrastra un Actor aquí para asignarlo como Oficial"
           >
             ${p.officer
-              ? html`<img src="${p.officer.img || ''}" alt="oficial" />`
+              ? html`<div
+                  class="clickable-actor"
+                  data-action="open-sheet"
+                  data-actor-id="${p.officer.actorId}"
+                  style="cursor: pointer;"
+                >
+                  <img src="${p.officer.img || ''}" alt="oficial" />
+                </div>`
               : html`<span class="empty">Sin Oficial</span>`}
           </div>
           <div
@@ -2420,12 +2437,19 @@ export class CustomInfoDialog implements FocusableDialog {
                   .slice(0, 12)
                   .map(
                     (s: any) =>
-                      html`<img
-                        class="soldier-avatar"
-                        src="${s.img || ''}"
-                        alt="${s.name || 'Soldado'}"
-                        title="${s.name || ''}"
-                      />`
+                      html`<div
+                        class="clickable-actor soldier-wrapper"
+                        data-action="open-sheet"
+                        data-actor-id="${s.actorId}"
+                        style="display: inline-block; cursor: pointer;"
+                      >
+                        <img
+                          class="soldier-avatar"
+                          src="${s.img || ''}"
+                          alt="${s.name || 'Soldado'}"
+                          title="${s.name || ''}"
+                        />
+                      </div>`
                   )}
                 ${p.soldiers.length > 12
                   ? html`<span class="more" title="${p.soldiers.length - 12} más"
@@ -2460,5 +2484,22 @@ export class CustomInfoDialog implements FocusableDialog {
         </div>`;
       })}
     </div>`;
+  }
+
+  private async handleOpenActorSheet(actorId: string): Promise<void> {
+    const actor = (globalThis as any).game.actors.get(actorId);
+    if (actor) {
+      actor.sheet.render(true);
+    } else {
+      // Try to find by token or other means if needed, or notify
+      const tokenActor = (globalThis as any).canvas.tokens.placeables.find(
+        (t: any) => t.actor?.id === actorId
+      )?.actor;
+      if (tokenActor) {
+        tokenActor.sheet.render(true);
+      } else {
+        ui.notifications?.warn(`Actor ${actorId} no encontrado`);
+      }
+    }
   }
 }
