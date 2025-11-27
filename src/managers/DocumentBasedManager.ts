@@ -8,8 +8,15 @@ import {
   createGuardReputation,
   createGuardResource,
   createPatrol,
+  createPatrolEffect,
 } from '../documents/index.js';
-import { GuardOrganization, Patrol, Reputation, Resource } from '../types/entities.js';
+import {
+  GuardOrganization,
+  Patrol,
+  PatrolEffect,
+  Reputation,
+  Resource,
+} from '../types/entities.js';
 import { convertResourceToFoundryFormat } from '../utils/resource-converter.js';
 
 export class DocumentBasedManager {
@@ -442,6 +449,59 @@ export class DocumentBasedManager {
       console.error('❌ Error deleting reputation:', error);
       return false;
     }
+  }
+
+  // === PATROL EFFECT METHODS ===
+
+  /**
+   * Get all Patrol Effects
+   */
+  getPatrolEffects(): any[] {
+    if (!game?.items) return [];
+
+    return game.items.filter((item: any) => item.type === 'guard-management.patrol-effect');
+  }
+
+  /**
+   * Create a new Patrol Effect
+   */
+  async createPatrolEffect(data: Partial<PatrolEffect>): Promise<any> {
+    return await createPatrolEffect(data);
+  }
+
+  /**
+   * Update a Patrol Effect
+   */
+  async updatePatrolEffect(id: string, data: Partial<PatrolEffect>): Promise<boolean> {
+    const effect = game?.items?.get(id);
+    if (!effect || effect.type !== 'guard-management.patrol-effect') return false;
+
+    const updateData: any = {
+      name: data.name,
+      'system.description': data.description,
+      'system.type': data.type,
+      'system.statModifications': data.statModifications,
+      'system.version': data.version,
+    };
+
+    if (data.image !== undefined) {
+      updateData.img = data.image;
+      updateData['system.image'] = data.image;
+    }
+
+    await effect.update(updateData);
+    return true;
+  }
+
+  /**
+   * Delete a Patrol Effect
+   */
+  async deletePatrolEffect(id: string): Promise<boolean> {
+    const effect = game?.items?.get(id);
+    if (!effect || effect.type !== 'guard-management.patrol-effect') return false;
+
+    await effect.delete();
+    return true;
   }
 
   // === UTILITY METHODS ===

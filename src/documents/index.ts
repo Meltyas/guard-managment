@@ -7,6 +7,7 @@ import {
   GuardOrganizationModel,
   GuardReputationModel,
   GuardResourceModel,
+  PatrolEffectModel,
   PatrolModel,
 } from './models/index.js';
 
@@ -28,6 +29,7 @@ export function registerDataModels() {
   Object.assign(CONFIG.Item.dataModels, {
     'guard-management.guard-resource': GuardResourceModel,
     'guard-management.guard-reputation': GuardReputationModel,
+    'guard-management.patrol-effect': PatrolEffectModel,
   });
 
   console.log('GuardManagement | DataModels registered successfully');
@@ -142,6 +144,31 @@ export async function createGuardReputation(data: any = {}) {
   const folder = await getOrCreateModuleFolder('Item');
   if (folder) reputationData.folder = (folder as any).id;
   return await Item.create(reputationData);
+}
+
+/**
+ * Create a Patrol Effect item
+ */
+export async function createPatrolEffect(data: any = {}) {
+  const effectData: any = {
+    name: data.name || 'New Patrol Effect',
+    type: 'guard-management.patrol-effect',
+    img: data.image || '',
+    system: {
+      description: data.description || '',
+      type: data.type || 'neutral',
+      image: data.image || '',
+      targetPatrolId: data.targetPatrolId || '',
+      statModifications: data.statModifications || [],
+      version: 1,
+    },
+    ownership: {
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
+    },
+  };
+  const folder = await getOrCreateModuleFolder('Item');
+  if (folder) effectData.folder = (folder as any).id;
+  return await Item.create(effectData);
 }
 
 /**

@@ -13,7 +13,7 @@
       "discord": "your-discord-handle"
     }
   ],
-  "scripts": ["./dist/guard-management.js"],
+  "esmodules": ["./dist/guard-management.js"],
   "styles": ["./dist/style.css"],
   "languages": [
     {
@@ -30,7 +30,8 @@
     },
     "Item": {
       "guard-resource": {},
-      "guard-reputation": {}
+      "guard-reputation": {},
+      "patrol-effect": {}
     }
   },
   "url": "https://github.com/meltyas/guard-management",

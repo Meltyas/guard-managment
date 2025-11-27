@@ -15,6 +15,7 @@ import './styles/gm-warehouse.css';
 import './styles/main.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 import { GuardManagementHelpers } from './utils/console-helpers';
+import { TooltipGenerator } from './utils/TooltipGenerator';
 
 // Global module reference
 let guardManagementModule: GuardManagementModule;
@@ -229,6 +230,11 @@ Hooks.once('init', async () => {
       'modules/guard-management/templates/panels/resources.hbs',
       'modules/guard-management/templates/panels/reputation.hbs',
     ]);
+
+    // Register Handlebars helpers
+    Handlebars.registerHelper('guardTooltip', (effect) => {
+      return TooltipGenerator.generatePatrolEffectTooltip(effect);
+    });
 
     guardManagementModule = new GuardManagementModule();
     await guardManagementModule.initialize();

@@ -1,0 +1,46 @@
+<div
+  class='template-item patrol-effect-template'
+  data-effect-id='{{id}}'
+  draggable='true'
+  title='Arrastra este efecto a una patrulla para aplicarlo'
+>
+  {{#if image}}
+    <div class='template-image'>
+      <img src='{{image}}' alt='{{name}}' onerror="this.style.display='none'" />
+    </div>
+  {{/if}}
+  <div class='template-info'>
+    <div class='template-name'>{{name}}</div>
+    <div class='template-description'>
+      {{description}}
+    </div>
+    <div class='template-type type-{{type}}'>
+      {{#if (eq type 'positive')}}Positivo{{/if}}
+      {{#if (eq type 'negative')}}Negativo{{/if}}
+      {{#if (eq type 'neutral')}}Neutral{{/if}}
+    </div>
+    {{#if statModifications.length}}
+      <div class='template-stats'>
+        <small>Modifica: {{statModifications.length}} estadísticas</small>
+      </div>
+    {{/if}}
+  </div>
+  <div class='template-actions'>
+    <button
+      type='button'
+      class='edit-patrol-effect-btn'
+      title='Editar efecto'
+      data-effect-id='{{id}}'
+    >
+      <i class='fas fa-edit'></i>
+    </button>
+    <button
+      type='button'
+      class='delete-patrol-effect-btn'
+      title='Eliminar efecto'
+      data-effect-id='{{id}}'
+    >
+      <i class='fas fa-trash'></i>
+    </button>
+  </div>
+</div>

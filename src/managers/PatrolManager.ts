@@ -49,6 +49,7 @@ export class PatrolManager {
       derivedStats: { ...data.baseStats }, // initial equals base until recalculated
       officer: null,
       soldiers: [],
+      soldierSlots: data.soldierSlots || 5, // Default to 5 if not provided
       patrolEffects: [],
       lastOrder: null,
       // deprecated legacy padding

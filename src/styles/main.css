@@ -1397,6 +1397,73 @@
   background: #3a3a3a;
 }
 
+/* Active Effects on Patrol Card */
+.patrol-card .active-effects {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.patrol-card .effects-label {
+  font-size: 0.65rem;
+  color: #aaa;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.patrol-card .effects-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.patrol-card .effect-tag {
+  display: flex;
+  align-items: center;
+  background: rgba(74, 158, 255, 0.15);
+  border: 1px solid rgba(74, 158, 255, 0.3);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 0.7rem;
+  color: #e0e8f5;
+}
+
+.patrol-card .effect-name {
+  margin-right: 4px;
+}
+
+.patrol-card .remove-effect-btn {
+  background: none;
+  border: none;
+  color: #ff6b6b;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.6rem;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.patrol-card .remove-effect-btn:hover {
+  opacity: 1;
+  background: none; /* Override default button hover */
+}
+
+/* Drag & Drop active state for effects */
+.patrol-card.dnd-active-effect {
+  border-color: #9c27b0; /* Purple for effects */
+  box-shadow: 0 0 0 2px rgba(156, 39, 176, 0.4);
+  background: linear-gradient(
+    135deg,
+    rgba(156, 39, 176, 0.1),
+    rgba(156, 39, 176, 0.02) 55%,
+    rgba(156, 39, 176, 0.1)
+  );
+}
+
 /* State colors for last order meta (future) */
 .last-order-meta.normal {
   color: #9acd32;

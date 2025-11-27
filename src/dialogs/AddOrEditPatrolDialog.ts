@@ -5,6 +5,7 @@ interface PatrolDialogData {
   subtitle: string;
   baseStats: GuardStats;
   organizationId: string;
+  soldierSlots: number;
 }
 
 export class AddOrEditPatrolDialog {
@@ -42,6 +43,7 @@ export class AddOrEditPatrolDialog {
                 name: (fd.get('name') as string) || '',
                 subtitle: (fd.get('subtitle') as string) || '',
                 organizationId: fd.get('organizationId') as string,
+                soldierSlots: parseInt(fd.get('soldierSlots') as string) || 5,
                 baseStats: {
                   robustismo: (() => {
                     const v = parseInt(fd.get('stat_robustismo') as string);
@@ -78,6 +80,7 @@ export class AddOrEditPatrolDialog {
                   subtitle: data.subtitle.trim(),
                   organizationId: data.organizationId,
                   baseStats: data.baseStats,
+                  soldierSlots: data.soldierSlots,
                 } as any);
                 // persist via manager helper
                 orgMgr.upsertPatrolSnapshot(patrolMgr.getPatrol(created.id)!);
@@ -87,6 +90,7 @@ export class AddOrEditPatrolDialog {
                   name: data.name.trim(),
                   subtitle: data.subtitle.trim(),
                   baseStats: data.baseStats,
+                  soldierSlots: data.soldierSlots,
                 });
                 const updated = patrolMgr.getPatrol(existing.id) || null;
                 if (updated) {
@@ -120,6 +124,7 @@ export class AddOrEditPatrolDialog {
       name: existing?.name || '',
       subtitle: existing?.subtitle || '',
       organizationId,
+      soldierSlots: existing?.soldierSlots || 5,
       baseStats: existing?.baseStats || {
         robustismo: 0,
         analitica: 0,
@@ -135,10 +140,17 @@ export class AddOrEditPatrolDialog {
       { label: 'Elocuencia', key: 'elocuencia', value: data.baseStats.elocuencia },
     ];
 
+    const slotOptions = Array.from({ length: 11 }, (_, i) => i + 1).map((n) => ({
+      value: n,
+      label: `${n} Soldado${n > 1 ? 's' : ''}`,
+      selected: n === data.soldierSlots,
+    }));
+
     const templatePath = 'modules/guard-management/templates/dialogs/add-edit-patrol.hbs';
     return await renderTemplate(templatePath, {
       ...data,
       stats,
+      slotOptions,
       isCreate: mode === 'create',
       minStat: GUARD_STAT_MIN,
       maxStat: GUARD_STAT_MAX,

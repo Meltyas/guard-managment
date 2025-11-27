@@ -100,6 +100,7 @@ export interface Patrol extends BaseEntity {
   // Officer & soldiers
   officer: PatrolOfficer | null; // Single officer
   soldiers: PatrolSoldier[]; // Members list (can contain duplicates)
+  soldierSlots: number; // Number of available slots for soldiers (1-11)
 
   // Effects applied directly to this patrol
   patrolEffects: PatrolEffectInstance[]; // Replaces customModifiers/activeEffects
@@ -147,6 +148,8 @@ export interface PatrolEffectInstance {
   id: string; // internal id or reference id
   sourceType: 'temp' | 'organization' | 'manual';
   label: string;
+  img?: string;
+  description?: string;
   modifiers: Partial<GuardStats>;
   expiresAt?: number; // epoch ms
 }

@@ -31,19 +31,17 @@
                         {{/if}}
                     </div>
                     <div class="soldiers-zone" data-drop="soldier" title="Arrastra Actores aquí para añadir Soldados">
-                        {{#if this.soldiers.length}}
-                            {{#each this.soldiers}}
-                                {{#if (lt @index 12)}}
-                                <div class="clickable-actor soldier-wrapper" data-action="open-sheet" data-actor-id="{{this.actorId}}" style="display: inline-block; cursor: pointer;">
-                                    <img class="soldier-avatar" src="{{this.img}}" alt="{{this.name}}" title="{{this.name}}" />
-                                </div>
-                                {{/if}}
-                            {{/each}}
-                            {{#if (gt this.soldiers.length 12)}}
-                            <span class="more" title="{{subtract this.soldiers.length 12}} más">+{{subtract this.soldiers.length 12}}</span>
+                        {{#each this.slots}}
+                            {{#if (eq this.type "soldier")}}
+                            <div class="clickable-actor soldier-wrapper" data-action="open-sheet" data-actor-id="{{this.data.actorId}}" style="display: inline-block; cursor: pointer;">
+                                <img class="soldier-avatar" src="{{this.data.img}}" alt="{{this.data.name}}" title="{{this.data.name}}" />
+                            </div>
+                            {{else}}
+                            <div class="soldier-slot-empty" style="display: inline-block; width: 32px; height: 32px; border: 1px dashed #ccc; border-radius: 4px; margin: 2px;"></div>
                             {{/if}}
-                        {{else}}
-                        <span class="placeholder">Arrastra Soldados aquí</span>
+                        {{/each}}
+                        {{#if (gt this.soldiers.length this.soldierSlots)}}
+                        <span class="more" title="{{subtract this.soldiers.length this.soldierSlots}} más">+{{subtract this.soldiers.length this.soldierSlots}}</span>
                         {{/if}}
                     </div>
                     <div class="last-order-line {{this.ageClass}}" data-action="edit-last-order" data-patrol-id="{{this.id}}" title="Click para editar la última orden">
@@ -60,7 +58,24 @@
                         </div>
                         {{#if this.lastOrder}}<span class="age-indicator {{this.ageClass}}"></span>{{/if}}
                     </div>
+
+                    {{#if this.patrolEffects.length}}
+                    <div class="active-effects">
+                        <div class="effects-label">Efectos Activos:</div>
+                        <div class="effects-list" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                            {{#each this.patrolEffects}}
+                            <div class="effect-item" data-patrol-id="{{../id}}" data-effect-id="{{this.id}}" data-tooltip="{{guardTooltip this}}" style="cursor: pointer; width: 32px; height: 32px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;">
+                                <img src="{{#if this.img}}{{this.img}}{{else}}icons/svg/aura.svg{{/if}}" alt="{{this.label}}" style="width: 100%; height: 100%; object-fit: cover; border: none;" />
+                            </div>
+                            {{/each}}
+                        </div>
+                    </div>
+                    {{/if}}
+
                     <div class="actions">
+                        <button type="button" class="to-chat-patrol" data-action="to-chat" data-patrol-id="{{this.id}}" title="Enviar al chat">
+                            <i class="fas fa-comment-alt"></i>
+                        </button>
                         <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}">
                             <i class="fas fa-edit"></i>
                         </button>

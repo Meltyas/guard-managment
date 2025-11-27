@@ -4,6 +4,12 @@
         <input type="text" name="name" value="{{name}}" required maxlength="50" />
         <label>Subtítulo</label>
         <input type="text" name="subtitle" value="{{subtitle}}" maxlength="80" />
+        <label>Capacidad de Soldados</label>
+        <select name="soldierSlots">
+            {{#each slotOptions}}
+            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+        </select>
     </div>
 
     <div class="section stats">

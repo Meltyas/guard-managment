@@ -217,6 +217,27 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Get patrol effect templates from DocumentBasedManager
+   */
+  private async getPatrolEffectTemplates(): Promise<any[]> {
+    try {
+      const gm = (window as any).GuardManagement;
+
+      if (!gm || !gm.isInitialized || !gm.documentManager) {
+        this.patrolEffectTemplates = [];
+        return this.patrolEffectTemplates;
+      }
+
+      this.patrolEffectTemplates = await gm.documentManager.getPatrolEffects();
+      return this.patrolEffectTemplates;
+    } catch (error) {
+      console.error('Error loading patrol effect templates:', error);
+      this.patrolEffectTemplates = [];
+      return this.patrolEffectTemplates;
+    }
+  }
+
+  /**
    * Load initial content when dialog opens
    */
   private async loadInitialContent(): Promise<void> {
@@ -224,6 +245,29 @@ export class GMWarehouseDialog implements FocusableDialog {
     await this.refreshResourcesTab();
     // Load reputation tab content
     await this.refreshReputationTab();
+    // Load patrol effects tab content
+    await this.refreshPatrolEffectsTab();
+
+    // Restore last tab
+    const lastTab = localStorage.getItem('guard-management-warehouse-tab');
+    if (lastTab && this.element) {
+      const tab = this.element.querySelector(`.tab[data-tab="${lastTab}"]`);
+      if (tab) {
+        // Remove default active classes first to ensure clean switch
+        const container = this.element.querySelector('.gm-warehouse-container');
+        if (container) {
+          container.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+          container
+            .querySelectorAll('.tab-content')
+            .forEach((content) => content.classList.remove('active'));
+        }
+
+        // Activate saved tab
+        tab.classList.add('active');
+        const content = this.element.querySelector(`.tab-content[data-tab="${lastTab}"]`);
+        if (content) content.classList.add('active');
+      }
+    }
   }
 
   /**
@@ -262,6 +306,25 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Render individual patrol effect template
+   */
+  private async renderPatrolEffectTemplate(effect: any): Promise<string> {
+    const effectData = {
+      id: effect.id,
+      name: effect.name,
+      description: effect.system?.description || '',
+      type: effect.system?.type || 'neutral',
+      image: effect.img || '',
+      statModifications: effect.system?.statModifications || [],
+    };
+
+    return renderTemplate(
+      'modules/guard-management/templates/partials/warehouse-patrol-effect-item.hbs',
+      effectData
+    );
+  }
+
+  /**
    * Add event listeners
    */
   private addEventListeners(): void {
@@ -281,6 +344,9 @@ export class GMWarehouseDialog implements FocusableDialog {
         const target = event.currentTarget as HTMLElement;
         const tabName = target.getAttribute('data-tab');
         if (!tabName) return;
+
+        // Save to localStorage
+        localStorage.setItem('guard-management-warehouse-tab', tabName);
 
         const container = target.closest('.gm-warehouse-container');
         if (!container) return;
@@ -316,6 +382,8 @@ export class GMWarehouseDialog implements FocusableDialog {
           await this.handleAddResource();
         } else if (templateType === 'reputation') {
           await this.handleAddReputation();
+        } else if (templateType === 'patrol-effect') {
+          await this.handleAddPatrolEffect();
         } else if (templateType) {
           console.log(`Adding new ${templateType} template - functionality to be implemented`);
           if ((globalThis as any).ui?.notifications) {
@@ -603,6 +671,35 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Handle adding a new patrol effect template
+   */
+  private async handleAddPatrolEffect(): Promise<void> {
+    try {
+      const { AddOrEditPatrolEffectDialog } = await import('./AddOrEditPatrolEffectDialog.js');
+      const newEffect = await AddOrEditPatrolEffectDialog.create();
+
+      if (newEffect) {
+        const gm = (window as any).GuardManagement;
+        if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+
+        await gm.documentManager.createPatrolEffect(newEffect);
+        await this.refreshPatrolEffectsTab();
+
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Patrol effect template "${newEffect.name}" created successfully`
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error adding patrol effect template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error creating patrol effect template');
+      }
+    }
+  }
+
+  /**
    * Refresh the resources tab content
    */
   private async refreshResourcesTab(): Promise<void> {
@@ -668,6 +765,35 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Refresh the patrol effects tab content
+   */
+  private async refreshPatrolEffectsTab(): Promise<void> {
+    if (!this.element) return;
+
+    const effectsList = this.element.querySelector('.patrol-effects-list');
+    if (effectsList) {
+      const effectTemplates = await this.getPatrolEffectTemplates();
+
+      // Clear current content
+      effectsList.innerHTML = '';
+
+      if (effectTemplates.length > 0) {
+        for (const effect of effectTemplates) {
+          const templateContent = await this.renderPatrolEffectTemplate(effect);
+          effectsList.insertAdjacentHTML('beforeend', templateContent);
+        }
+      } else {
+        const emptyStateElement = document.createElement('p');
+        emptyStateElement.className = 'empty-state';
+        emptyStateElement.textContent = 'No patrol effect templates created yet';
+        effectsList.appendChild(emptyStateElement);
+      }
+
+      this.addTemplateEventListeners();
+    }
+  }
+
+  /**
    * Add event listeners specifically for template items
    */
   private addTemplateEventListeners(): void {
@@ -698,11 +824,14 @@ export class GMWarehouseDialog implements FocusableDialog {
         const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
+        const effectId = templateItem?.dataset.effectId;
 
         if (resourceId) {
           this.handleEditTemplate(resourceId);
         } else if (reputationId) {
           this.handleEditReputationTemplate(reputationId);
+        } else if (effectId) {
+          this.handleEditPatrolEffectTemplate(effectId);
         }
       });
     });
@@ -715,11 +844,14 @@ export class GMWarehouseDialog implements FocusableDialog {
         const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
+        const effectId = templateItem?.dataset.effectId;
 
         if (resourceId) {
           this.handleDuplicateTemplate(resourceId);
         } else if (reputationId) {
           this.handleDuplicateReputationTemplate(reputationId);
+        } else if (effectId) {
+          // TODO: Implement duplicate for patrol effect
         }
       });
     });
@@ -732,11 +864,14 @@ export class GMWarehouseDialog implements FocusableDialog {
         const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
+        const effectId = templateItem?.dataset.effectId;
 
         if (resourceId) {
           this.handleDeleteTemplate(resourceId);
         } else if (reputationId) {
           this.handleDeleteReputationTemplate(reputationId);
+        } else if (effectId) {
+          this.handleDeletePatrolEffectTemplate(effectId);
         }
       });
     });
@@ -765,6 +900,20 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       template.addEventListener('dragend', (event) => {
         this.handleReputationDragEnd(event as DragEvent);
+      });
+    });
+
+    // Handle drag start for patrol effect templates
+    const effectTemplates = this.element.querySelectorAll(
+      '.patrol-effect-template[draggable="true"]'
+    );
+    effectTemplates.forEach((template) => {
+      template.addEventListener('dragstart', (event) => {
+        this.handlePatrolEffectDragStart(event as DragEvent);
+      });
+
+      template.addEventListener('dragend', (event) => {
+        this.handlePatrolEffectDragEnd(event as DragEvent);
       });
     });
   }
@@ -911,6 +1060,59 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Handle drag start for patrol effect templates
+   */
+  private handlePatrolEffectDragStart(event: DragEvent): void {
+    const target = event.target as HTMLElement;
+    const effectTemplate = target.closest('.patrol-effect-template') as HTMLElement;
+
+    if (!effectTemplate || !event.dataTransfer) return;
+
+    const effectId = effectTemplate.dataset.effectId;
+    if (!effectId) return;
+
+    const gm = (window as any).GuardManagement;
+    if (!gm?.documentManager) return;
+
+    const effect = gm.documentManager.getPatrolEffects().find((e: any) => e.id === effectId);
+    if (!effect) return;
+
+    const effectData = {
+      id: effect.id,
+      name: effect.name,
+      description: effect.system?.description || '',
+      type: effect.system?.type || 'neutral',
+      image: effect.img || '',
+      statModifications: effect.system?.statModifications || [],
+    };
+
+    const dragData = {
+      type: 'patrol-effect',
+      effectId: effectData.id,
+      effectData: effectData,
+    };
+
+    event.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+    event.dataTransfer.effectAllowed = 'copy';
+
+    effectTemplate.style.opacity = '0.6';
+    effectTemplate.classList.add('dragging');
+  }
+
+  /**
+   * Handle drag end for patrol effect templates
+   */
+  private handlePatrolEffectDragEnd(event: DragEvent): void {
+    const target = event.target as HTMLElement;
+    const effectTemplate = target.closest('.patrol-effect-template') as HTMLElement;
+
+    if (effectTemplate) {
+      effectTemplate.style.opacity = '1';
+      effectTemplate.classList.remove('dragging');
+    }
+  }
+
+  /**
    * Handle sending template to chat
    */
   private async handleSendTemplateToChat(resourceId: string): Promise<void> {
@@ -996,11 +1198,97 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Handle editing a reputation template
+   */
+  private async handleEditReputationTemplate(reputationId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        throw new Error('DocumentBasedManager not available');
+      }
+
+      // Get the reputation to edit
+      const reputations = gm.documentManager.getGuardReputations();
+      const reputation = reputations.find((r: any) => r.id === reputationId);
+
+      if (!reputation) {
+        throw new Error('Reputation not found');
+      }
+
+      // Convert Foundry document to our Reputation type
+      const reputationData = {
+        id: reputation.id,
+        name: reputation.name,
+        description: reputation.system?.description || '',
+        level: reputation.system?.level || 4,
+        image: reputation.img || '',
+        organizationId: reputation.system?.organizationId || '',
+        version: reputation.system?.version || 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Import AddOrEditReputationDialog dynamically
+      const { AddOrEditReputationDialog } = await import('./AddOrEditReputationDialog.js');
+
+      // Show edit dialog
+      const updatedReputation = await AddOrEditReputationDialog.edit(reputationData);
+
+      if (updatedReputation) {
+        // Save the updated reputation to the database
+        const updateSuccess = await gm.documentManager.updateGuardReputation(
+          updatedReputation.id,
+          updatedReputation
+        );
+
+        if (!updateSuccess) {
+          throw new Error('Failed to save reputation to database');
+        }
+
+        // Refresh the warehouse dialog
+        await this.refreshReputationTab();
+
+        // Show success notification
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Reputation template "${updatedReputation.name}" updated successfully`
+          );
+        }
+
+        // Emit custom event to notify other dialogs
+        document.dispatchEvent(
+          new CustomEvent('guard-reputation-updated', {
+            detail: {
+              reputationId: updatedReputation.id,
+              updatedReputation: updatedReputation,
+              oldName: reputationData.name,
+              newName: updatedReputation.name,
+            },
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Error editing reputation template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error editing reputation template');
+      }
+    }
+  }
+
+  /**
    * Handle duplicating a template (placeholder)
    */
   private handleDuplicateTemplate(resourceId: string): void {
     console.log('Duplicate template:', resourceId);
     // TODO: Implement duplicate functionality
+  }
+
+  /**
+   * Handle duplicating a reputation template
+   */
+  private handleDuplicateReputationTemplate(reputationId: string): void {
+    console.log('Duplicate reputation template:', reputationId);
+    // TODO: Implement duplicate functionality for reputation
   }
 
   /**
@@ -1115,6 +1403,53 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Handle deleting a reputation template
+   */
+  private async handleDeleteReputationTemplate(reputationId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) {
+        throw new Error('DocumentBasedManager not available');
+      }
+
+      // Get the reputation to delete for confirmation
+      const reputations = gm.documentManager.getGuardReputations();
+      const reputation = reputations.find((r: any) => r.id === reputationId);
+      const reputationName = reputation?.name || 'Unknown Reputation';
+
+      // Confirm deletion
+      const confirmed = await Dialog.confirm({
+        title: 'Delete Reputation Template',
+        content: `<p>Are you sure you want to delete the reputation template "<strong>${reputationName}</strong>"?</p><p><em>This action cannot be undone.</em></p>`,
+        defaultYes: false,
+      });
+
+      if (!confirmed) return;
+
+      // Delete the reputation
+      const deleteSuccess = await gm.documentManager.deleteGuardReputation(reputationId);
+      if (!deleteSuccess) {
+        throw new Error('Failed to delete reputation from database');
+      }
+
+      // Refresh the warehouse dialog
+      await this.refreshReputationTab();
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Reputation template "${reputationName}" deleted successfully`
+        );
+      }
+    } catch (error) {
+      console.error('Error deleting reputation template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error deleting reputation template');
+      }
+    }
+  }
+
+  /**
    * Static method to show the warehouse dialog
    */
   static show(options?: {
@@ -1196,137 +1531,83 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Handle editing a reputation template
+   * Handle editing a patrol effect template
    */
-  private async handleEditReputationTemplate(reputationId: string): Promise<void> {
+  private async handleEditPatrolEffectTemplate(effectId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) {
-        throw new Error('DocumentBasedManager not available');
-      }
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
 
-      // Get the reputation to edit
-      const reputations = gm.documentManager.getGuardReputations();
-      const reputation = reputations.find((r: any) => r.id === reputationId);
+      const effects = gm.documentManager.getPatrolEffects();
+      const effect = effects.find((e: any) => e.id === effectId);
 
-      if (!reputation) {
-        throw new Error('Reputation not found');
-      }
+      if (!effect) throw new Error('Patrol effect not found');
 
-      // Convert Foundry document to our Reputation type
-      const reputationData = {
-        id: reputation.id,
-        name: reputation.name,
-        description: reputation.system?.description || '',
-        level: reputation.system?.level || 4,
-        image: reputation.img || '',
-        organizationId: reputation.system?.organizationId || '',
-        version: reputation.system?.version || 1,
+      const effectData = {
+        id: effect.id,
+        name: effect.name,
+        description: effect.system?.description || '',
+        type: effect.system?.type || 'neutral',
+        image: effect.img || '',
+        statModifications: effect.system?.statModifications || [],
+        version: effect.system?.version || 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      // Import AddOrEditReputationDialog dynamically
-      const { AddOrEditReputationDialog } = await import('./AddOrEditReputationDialog.js');
+      const { AddOrEditPatrolEffectDialog } = await import('./AddOrEditPatrolEffectDialog.js');
+      const updatedEffect = await AddOrEditPatrolEffectDialog.edit(effectData as any);
 
-      // Show edit dialog
-      const updatedReputation = await AddOrEditReputationDialog.edit(reputationData);
+      if (updatedEffect) {
+        await gm.documentManager.updatePatrolEffect(updatedEffect.id, updatedEffect);
+        await this.refreshPatrolEffectsTab();
 
-      if (updatedReputation) {
-        // Save the updated reputation to the database
-        const updateSuccess = await gm.documentManager.updateGuardReputation(
-          updatedReputation.id,
-          updatedReputation
-        );
-
-        if (!updateSuccess) {
-          throw new Error('Failed to save reputation to database');
-        }
-
-        // Refresh the warehouse dialog
-        await this.refreshReputationTab();
-
-        // Show success notification
         if ((globalThis as any).ui?.notifications) {
           (globalThis as any).ui.notifications.info(
-            `Reputation template "${updatedReputation.name}" updated successfully`
+            `Patrol effect template "${updatedEffect.name}" updated successfully`
           );
         }
-
-        // Emit custom event to notify other dialogs
-        document.dispatchEvent(
-          new CustomEvent('guard-reputation-updated', {
-            detail: {
-              reputationId: updatedReputation.id,
-              updatedReputation: updatedReputation,
-              oldName: reputationData.name,
-              newName: updatedReputation.name,
-            },
-          })
-        );
       }
     } catch (error) {
-      console.error('Error editing reputation template:', error);
+      console.error('Error editing patrol effect template:', error);
       if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error editing reputation template');
+        (globalThis as any).ui.notifications.error('Error editing patrol effect template');
       }
     }
   }
 
   /**
-   * Handle duplicating a reputation template
+   * Handle deleting a patrol effect template
    */
-  private handleDuplicateReputationTemplate(reputationId: string): void {
-    console.log('Duplicate reputation template:', reputationId);
-    // TODO: Implement duplicate functionality for reputation
-    if ((globalThis as any).ui?.notifications) {
-      (globalThis as any).ui.notifications.info('Duplicate reputation template - Coming soon!');
-    }
-  }
-
-  /**
-   * Handle deleting a reputation template
-   */
-  private async handleDeleteReputationTemplate(reputationId: string): Promise<void> {
+  private async handleDeletePatrolEffectTemplate(effectId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) {
-        throw new Error('DocumentBasedManager not available');
-      }
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
 
-      // Get the reputation to delete for confirmation
-      const reputations = gm.documentManager.getGuardReputations();
-      const reputation = reputations.find((r: any) => r.id === reputationId);
-      const reputationName = reputation?.name || 'Unknown Reputation';
+      const effects = gm.documentManager.getPatrolEffects();
+      const effect = effects.find((e: any) => e.id === effectId);
+      const effectName = effect?.name || 'Unknown Effect';
 
-      // Confirm deletion
       const confirmed = await Dialog.confirm({
-        title: 'Delete Reputation Template',
-        content: `<p>Are you sure you want to delete the reputation template "<strong>${reputationName}</strong>"?</p><p><em>This action cannot be undone.</em></p>`,
+        title: 'Delete Patrol Effect Template',
+        content: `<p>Are you sure you want to delete the patrol effect template "<strong>${effectName}</strong>"?</p><p><em>This action cannot be undone.</em></p>`,
         defaultYes: false,
       });
 
       if (!confirmed) return;
 
-      // Delete the reputation
-      const deleteSuccess = await gm.documentManager.deleteGuardReputation(reputationId);
-      if (!deleteSuccess) {
-        throw new Error('Failed to delete reputation from database');
-      }
+      await gm.documentManager.deletePatrolEffect(effectId);
+      await this.refreshPatrolEffectsTab();
 
-      // Refresh the warehouse dialog
-      await this.refreshReputationTab();
-
-      // Show success notification
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.info(
-          `Reputation template "${reputationName}" deleted successfully`
+          `Patrol effect template "${effectName}" deleted successfully`
         );
       }
     } catch (error) {
-      console.error('Error deleting reputation template:', error);
+      console.error('Error deleting patrol effect template:', error);
       if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error deleting reputation template');
+        (globalThis as any).ui.notifications.error('Error deleting patrol effect template');
       }
     }
   }

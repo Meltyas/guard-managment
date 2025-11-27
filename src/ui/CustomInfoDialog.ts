@@ -333,43 +333,6 @@ export class CustomInfoDialog implements FocusableDialog {
     this.element.addEventListener('click', this.handleGlobalClick);
     document.addEventListener('click', this.handleGlobalClick);
 
-    // Patrol and Actor event listeners (Delegated)
-    this.element.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-
-      // Handle actor sheet opening
-      const actorEl = target.closest('[data-action="open-sheet"]') as HTMLElement | null;
-      if (actorEl && actorEl.dataset.actorId) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.handleOpenActorSheet(actorEl.dataset.actorId);
-        return;
-      }
-
-      const actionBtn = target.closest('button[data-action]') as HTMLButtonElement | null;
-      if (actionBtn) {
-        const action = actionBtn.dataset.action;
-        if (action === 'create-patrol') {
-          e.preventDefault();
-          this.handleCreatePatrol();
-          return;
-        }
-        if (action === 'edit') {
-          this.handleEditPatrol(actionBtn.dataset.patrolId!);
-          return;
-        }
-        if (action === 'delete') {
-          this.handleDeletePatrol(actionBtn.dataset.patrolId!);
-          return;
-        }
-      }
-      const lastOrderEl = target.closest('[data-action="edit-last-order"]') as HTMLElement | null;
-      if (lastOrderEl) {
-        const pid = lastOrderEl.dataset.patrolId!;
-        this.handleEditLastOrder(pid);
-      }
-    });
-
     // Add event listeners for remove resource buttons
     this.setupEventListeners();
 
@@ -689,16 +652,6 @@ export class CustomInfoDialog implements FocusableDialog {
     // Add the new event listener
     this.element.addEventListener('click', this.resourceEventHandler);
     console.log('✅ Resource event listeners set up');
-  }
-
-  private async handleCreatePatrol() {
-    await PatrolsPanel.handleCreatePatrol(() => this.refreshPatrolsPanel());
-  }
-  private async handleEditPatrol(patrolId: string) {
-    await PatrolsPanel.handleEditPatrol(patrolId, () => this.refreshPatrolsPanel());
-  }
-  private async handleDeletePatrol(patrolId: string) {
-    await PatrolsPanel.handleDeletePatrol(patrolId, () => this.refreshPatrolsPanel());
   }
 
   private refreshPatrolsPanel() {
@@ -1143,10 +1096,6 @@ export class CustomInfoDialog implements FocusableDialog {
     );
   }
 
-  private async handleEditLastOrder(patrolId: string) {
-    await PatrolsPanel.handleEditLastOrder(patrolId, () => this.refreshPatrolsPanel());
-  }
-
   private initTabs(root: HTMLElement): void {
     if (this.tabsInitialized) return; // prevent duplicate listeners
     const layout = root.querySelector('.org-tabs-layout') as HTMLElement;
@@ -1199,9 +1148,5 @@ export class CustomInfoDialog implements FocusableDialog {
     requestAnimationFrame(() => positionBar(buttons.find((b) => b.classList.contains('active'))));
 
     this.tabsInitialized = true;
-  }
-
-  private async handleOpenActorSheet(actorId: string): Promise<void> {
-    await PatrolsPanel.handleOpenActorSheet(actorId);
   }
 }

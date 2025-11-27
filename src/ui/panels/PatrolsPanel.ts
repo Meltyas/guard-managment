@@ -1,3 +1,4 @@
+import type { GuardStats, PatrolEffectInstance } from '../../types/entities';
 import { classifyLastOrderAge } from '../../utils/patrol-helpers.js';
 
 export class PatrolsPanel {
@@ -25,10 +26,22 @@ export class PatrolsPanel {
         statsBreakdown[k] = { ...b, total: v as number };
       });
 
+      // Prepare slots
+      const soldierSlotsCount = p.soldierSlots || 5;
+      const slots = [];
+      for (let i = 0; i < soldierSlotsCount; i++) {
+        if (i < p.soldiers.length) {
+          slots.push({ type: 'soldier', data: p.soldiers[i] });
+        } else {
+          slots.push({ type: 'empty' });
+        }
+      }
+
       return {
         ...p,
         ageClass,
         statsBreakdown,
+        slots,
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
           ? {
@@ -59,6 +72,7 @@ export class PatrolsPanel {
 
     // Drag & Drop
     this.setupPatrolZonesDnD(container, () => this.refresh(container));
+    this.setupPatrolCardDnD(container, () => this.refresh(container));
 
     // Actions
     $html.find('[data-action="create-patrol"]').on('click', (ev) => {
@@ -68,24 +82,55 @@ export class PatrolsPanel {
     $html.find('[data-action="edit"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      this.handleEditPatrol(id, () => this.refresh(container));
+      if (id) this.handleEditPatrol(id, () => this.refresh(container));
     });
     $html.find('[data-action="delete"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      this.handleDeletePatrol(id, () => this.refresh(container));
+      if (id) this.handleDeletePatrol(id, () => this.refresh(container));
+    });
+    $html.find('[data-action="to-chat"]').on('click', (ev) => {
+      ev.preventDefault();
+      const id = ev.currentTarget.dataset.patrolId;
+      if (id) this.handleSendPatrolToChat(id);
     });
     $html.find('[data-action="edit-last-order"]').on('click', (ev) => {
       ev.preventDefault();
       // Handle click on the line or the icon
       const target = ev.currentTarget;
       const id = target.dataset.patrolId;
-      this.handleEditLastOrder(id, () => this.refresh(container));
+      if (id) this.handleEditLastOrder(id, () => this.refresh(container));
     });
     $html.find('[data-action="open-sheet"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.actorId;
-      this.handleOpenActorSheet(id);
+      if (id) this.handleOpenActorSheet(id);
+    });
+
+    // Effect interactions
+    $html.find('.effect-item').on('mouseenter', (ev) => {
+      const target = ev.currentTarget;
+      const game = (globalThis as any).game;
+      if (game?.tooltip) {
+        game.tooltip.activate(target);
+      }
+    });
+
+    $html.find('.effect-item').on('click', (ev) => {
+      ev.preventDefault();
+      const target = ev.currentTarget;
+      const patrolId = target.dataset.patrolId;
+      const effectId = target.dataset.effectId;
+      if (patrolId && effectId) this.handleEffectClick(patrolId, effectId);
+    });
+
+    $html.find('.effect-item').on('contextmenu', (ev) => {
+      ev.preventDefault();
+      const target = ev.currentTarget;
+      const patrolId = target.dataset.patrolId;
+      const effectId = target.dataset.effectId;
+      if (patrolId && effectId)
+        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container));
     });
   }
 
@@ -272,6 +317,96 @@ export class PatrolsPanel {
     });
   }
 
+  /** Attach drag & drop to patrol cards for effects */
+  private static setupPatrolCardDnD(container: HTMLElement, refreshCallback: () => void) {
+    const gm: any = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    const pMgr = orgMgr?.getPatrolManager?.();
+    if (!pMgr) return;
+
+    const cards = Array.from(container.querySelectorAll('.patrol-card')) as HTMLElement[];
+
+    const isEffectDrag = (ev: DragEvent) => {
+      if (!ev.dataTransfer) return false;
+      const types = Array.from(ev.dataTransfer.types);
+      // Check for our custom type or generic text
+      return types.includes('text/plain');
+    };
+
+    cards.forEach((card) => {
+      const pid = card.dataset.patrolId;
+      if (!pid) return;
+
+      card.addEventListener('dragenter', (ev) => {
+        if (!isEffectDrag(ev)) return;
+        // Check if it's a patrol effect
+        // We can't check content here easily without reading data, which is only available on drop
+        // But we can check if we are dragging a patrol effect by checking a global flag or just allowing it
+        // For now, we'll allow it and validate on drop
+        ev.preventDefault();
+        card.classList.add('dnd-active-effect');
+      });
+
+      card.addEventListener('dragover', (ev) => {
+        if (!isEffectDrag(ev)) return;
+        ev.preventDefault();
+        if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+        card.classList.add('dnd-active-effect');
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('dnd-active-effect');
+      });
+
+      card.addEventListener('drop', async (ev) => {
+        ev.preventDefault();
+        card.classList.remove('dnd-active-effect');
+
+        if (!ev.dataTransfer) return;
+        const dataStr = ev.dataTransfer.getData('text/plain');
+        if (!dataStr) return;
+
+        try {
+          const data = JSON.parse(dataStr);
+          if (data.type !== 'patrol-effect' || !data.effectData) return;
+
+          const effectData = data.effectData;
+
+          // Convert stat modifications to modifiers object
+          const modifiers: Partial<GuardStats> = {};
+          if (Array.isArray(effectData.statModifications)) {
+            effectData.statModifications.forEach((mod: any) => {
+              if (mod.statName && typeof mod.value === 'number') {
+                modifiers[mod.statName as keyof GuardStats] = mod.value;
+              }
+            });
+          }
+
+          const effectInstance: PatrolEffectInstance = {
+            id: (globalThis as any).foundry.utils.randomID(),
+            sourceType: 'manual',
+            label: effectData.name,
+            img: effectData.image,
+            description: effectData.description,
+            modifiers: modifiers,
+          };
+
+          pMgr.addEffect(pid, effectInstance);
+
+          if ((globalThis as any).ui?.notifications) {
+            (globalThis as any).ui.notifications.info(
+              `Efecto "${effectData.name}" aplicado a la patrulla`
+            );
+          }
+
+          refreshCallback();
+        } catch (e) {
+          // Not a JSON or not our data, ignore
+        }
+      });
+    });
+  }
+
   public static async handleCreatePatrol(refreshCallback: () => void) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
@@ -312,6 +447,109 @@ export class PatrolsPanel {
     pMgr.deletePatrol(patrolId);
     ui?.notifications?.warn('Patrulla eliminada');
     refreshCallback();
+  }
+
+  public static async handleSendPatrolToChat(patrolId: string) {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const pMgr = orgMgr.getPatrolManager();
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+
+    const breakdown = this.computePatrolStatBreakdown(patrol);
+
+    // Format stats for display
+    const statsHtml = Object.entries(breakdown)
+      .map(([key, val]: [string, any]) => {
+        const total = val.total;
+        const base = val.base;
+        const effects = val.effects;
+        const org = val.org;
+
+        let details = `Base: ${base}`;
+        if (effects !== 0) details += `, Efectos: ${effects > 0 ? '+' : ''}${effects}`;
+        if (org !== 0) details += `, Org: ${org > 0 ? '+' : ''}${org}`;
+
+        return `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                <span style="text-transform: capitalize;">${key}:</span>
+                <span title="${details}"><strong>${total}</strong></span>
+            </div>
+        `;
+      })
+      .join('');
+
+    // Format soldiers
+    const soldierCount = patrol.soldiers.length;
+    const maxSoldiers = patrol.soldierSlots || 5;
+
+    // Format effects
+    let effectsHtml = '';
+    if (patrol.patrolEffects && patrol.patrolEffects.length > 0) {
+      effectsHtml = `
+            <div style="margin-top: 10px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 5px;">
+                <strong>Efectos Activos:</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+                    ${patrol.patrolEffects
+                      .map(
+                        (eff: any) => `
+                        <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.9em;">
+                            ${eff.img ? `<img src="${eff.img}" style="width: 16px; height: 16px; border: none;" />` : ''}
+                            <span>${eff.label}</span>
+                        </div>
+                    `
+                      )
+                      .join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    const content = `
+      <div class="guard-resource-chat">
+        <div class="chat-header" style="display: flex; align-items: center; gap: 10px;">
+            ${patrol.officer?.img ? `<img src="${patrol.officer.img}" style="width: 32px; height: 32px; border: none; object-fit: cover;" />` : ''}
+            <div>
+                <div style="font-weight: bold; font-size: 1.2em;">${patrol.name}</div>
+                ${patrol.subtitle ? `<div style="font-size: 0.9em; opacity: 0.8;">${patrol.subtitle}</div>` : ''}
+            </div>
+        </div>
+
+        <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
+            <div style="margin-bottom: 8px;">
+                <strong>Oficial:</strong> ${patrol.officer?.name || 'Sin asignar'}
+            </div>
+            <div style="margin-bottom: 8px;">
+                <strong>Soldados:</strong> ${soldierCount} / ${maxSoldiers}
+            </div>
+            ${
+              patrol.lastOrder
+                ? `
+            <div style="margin-bottom: 8px; padding: 5px; background: rgba(255,255,255,0.1); border-radius: 4px;">
+                <strong>Última Orden:</strong><br/>
+                <em style="font-size: 0.95em;">${patrol.lastOrder.text}</em>
+            </div>
+            `
+                : ''
+            }
+
+            <div style="margin-top: 10px;">
+                <strong>Estadísticas:</strong>
+                <div style="margin-top: 4px; padding-left: 5px;">
+                    ${statsHtml}
+                </div>
+            </div>
+
+            ${effectsHtml}
+        </div>
+      </div>
+    `;
+
+    await (ChatMessage as any).create({
+      content: content,
+      speaker: (ChatMessage as any).getSpeaker({ alias: 'Informe de Patrulla' }),
+    });
   }
 
   public static async handleEditLastOrder(patrolId: string, refreshCallback: () => void) {
@@ -448,5 +686,66 @@ export class PatrolsPanel {
         ui.notifications?.warn(`Actor ${actorId} no encontrado`);
       }
     }
+  }
+
+  public static async handleEffectClick(patrolId: string, effectId: string) {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const pMgr = orgMgr.getPatrolManager();
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+    const effect = patrol.patrolEffects.find((e: any) => e.id === effectId);
+    if (!effect) return;
+
+    // Construct chat message content
+    const content = `
+      <div class="guard-resource-chat">
+        <div class="resource-image" style="margin-bottom: 8px;">
+            <img src="${effect.img || 'icons/svg/aura.svg'}" style="max-width: 64px; border: none;" />
+        </div>
+        <div class="chat-header" style="font-weight: bold; font-size: 1.2em; margin-bottom: 5px;">${effect.label}</div>
+        <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
+          ${effect.description || 'Sin descripción'}
+        </div>
+        <div class="stat-modifiers">
+            ${Object.entries(effect.modifiers || {})
+              .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`)
+              .join('')}
+        </div>
+      </div>
+    `;
+
+    await (ChatMessage as any).create({
+      content: content,
+      speaker: (ChatMessage as any).getSpeaker({ alias: 'Efecto de Patrulla' }),
+    });
+  }
+
+  public static async handleRemoveEffect(
+    patrolId: string,
+    effectId: string,
+    refreshCallback: () => void
+  ) {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const pMgr = orgMgr.getPatrolManager();
+
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+    const effect = patrol.patrolEffects.find((e: any) => e.id === effectId);
+    const effectName = effect?.label || 'Efecto';
+
+    const confirm = await Dialog.confirm({
+      title: 'Eliminar Efecto',
+      content: `<p>¿Seguro que deseas eliminar el efecto "<strong>${effectName}</strong>" de la patrulla?</p>`,
+    });
+
+    if (!confirm) return;
+
+    pMgr.removeEffect(patrolId, effectId);
+    ui?.notifications?.info('Efecto eliminado');
+    refreshCallback();
   }
 }
