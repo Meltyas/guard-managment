@@ -227,7 +227,7 @@ Hooks.once('init', async () => {
       'modules/guard-management/templates/panels/general.hbs',
       'modules/guard-management/templates/panels/patrols.hbs',
       'modules/guard-management/templates/panels/resources.hbs',
-      'modules/guard-management/templates/panels/reputation.hbs'
+      'modules/guard-management/templates/panels/reputation.hbs',
     ]);
 
     guardManagementModule = new GuardManagementModule();

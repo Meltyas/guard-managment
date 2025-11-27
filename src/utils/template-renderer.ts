@@ -16,10 +16,7 @@ export function renderTemplateToString(template: string): string {
  * Safe render for HTML strings.
  * Sets innerHTML of the container.
  */
-export function safeRender(
-  template: string,
-  container: HTMLElement | DocumentFragment
-): void {
+export function safeRender(template: string, container: HTMLElement | DocumentFragment): void {
   if (container instanceof HTMLElement) {
     container.innerHTML = template;
   } else if (container && typeof container === 'object' && 'innerHTML' in container) {
@@ -31,10 +28,10 @@ export function safeRender(
 // Export types for compatibility if needed, but mapped to string
 export type TemplateResult = string;
 export const html = (strings: TemplateStringsArray, ...values: any[]) => {
-    let result = "";
-    strings.forEach((s, i) => {
-        result += s + (values[i] ?? "");
-    });
-    return result;
+  let result = '';
+  strings.forEach((s, i) => {
+    result += s + (values[i] ?? '');
+  });
+  return result;
 };
 export const render = safeRender;

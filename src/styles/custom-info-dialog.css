@@ -920,6 +920,12 @@
   background: rgba(0, 0, 0, 0.3);
 }
 
-.reputation-value.positive { color: #4caf50; }
-.reputation-value.negative { color: #f44336; }
-.reputation-value.neutral { color: #f3c267; }
+.reputation-value.positive {
+  color: #4caf50;
+}
+.reputation-value.negative {
+  color: #f44336;
+}
+.reputation-value.neutral {
+  color: #f3c267;
+}

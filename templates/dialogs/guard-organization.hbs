@@ -1,93 +1,96 @@
-<div class="guard-org-dialog-single">
-    <header class="single-header"><h2>Organización</h2></header>
-    <section class="single-panel" data-panel="general">
-        <form class="guard-organization-form" data-form-scope="guard-organization">
-            <div class="form-group">
-                <label for="name">Nombre de la Organización *</label>
-                <input
-                    type="text"
-                    name="name"
-                    id="name"
-                    value="{{name}}"
-                    placeholder="ej: Guardia de la Ciudad"
-                    required
-                />
-            </div>
+<div class='guard-org-dialog-single'>
+  <header class='single-header'><h2>Organización</h2></header>
+  <section class='single-panel' data-panel='general'>
+    <form class='guard-organization-form' data-form-scope='guard-organization'>
+      <div class='form-group'>
+        <label for='name'>Nombre de la Organización *</label>
+        <input
+          type='text'
+          name='name'
+          id='name'
+          value='{{name}}'
+          placeholder='ej: Guardia de la Ciudad'
+          required
+        />
+      </div>
 
-            <div class="form-group">
-                <label for="subtitle">Subtítulo</label>
-                <input
-                    type="text"
-                    name="subtitle"
-                    id="subtitle"
-                    value="{{subtitle}}"
-                    placeholder="ej: Protectores del Reino"
-                />
-            </div>
+      <div class='form-group'>
+        <label for='subtitle'>Subtítulo</label>
+        <input
+          type='text'
+          name='subtitle'
+          id='subtitle'
+          value='{{subtitle}}'
+          placeholder='ej: Protectores del Reino'
+        />
+      </div>
 
-            <div class="stats-section">
-                <h3>Estadísticas Base</h3>
-                <div class="stats-grid">
-                    <div class="stat-input">
-                        <label for="robustismo">Robustismo</label>
-                        <input
-                            type="number"
-                            name="robustismo"
-                            id="robustismo"
-                            value="{{baseStats.robustismo}}"
-                            min="{{minStat}}"
-                            max="{{maxStat}}"
-                            required
-                        />
-                    </div>
-                    <div class="stat-input">
-                        <label for="analitica">Analítica</label>
-                        <input
-                            type="number"
-                            name="analitica"
-                            id="analitica"
-                            value="{{baseStats.analitica}}"
-                            min="{{minStat}}"
-                            max="{{maxStat}}"
-                            required
-                        />
-                    </div>
-                    <div class="stat-input">
-                        <label for="subterfugio">Subterfugio</label>
-                        <input
-                            type="number"
-                            name="subterfugio"
-                            id="subterfugio"
-                            value="{{baseStats.subterfugio}}"
-                            min="{{minStat}}"
-                            max="{{maxStat}}"
-                            required
-                        />
-                    </div>
-                    <div class="stat-input">
-                        <label for="elocuencia">Elocuencia</label>
-                        <input
-                            type="number"
-                            name="elocuencia"
-                            id="elocuencia"
-                            value="{{baseStats.elocuencia}}"
-                            min="{{minStat}}"
-                            max="{{maxStat}}"
-                            required
-                        />
-                    </div>
-                </div>
-            </div>
+      <div class='stats-section'>
+        <h3>Estadísticas Base</h3>
+        <div class='stats-grid'>
+          <div class='stat-input'>
+            <label for='robustismo'>Robustismo</label>
+            <input
+              type='number'
+              name='robustismo'
+              id='robustismo'
+              value='{{baseStats.robustismo}}'
+              min='{{minStat}}'
+              max='{{maxStat}}'
+              required
+            />
+          </div>
+          <div class='stat-input'>
+            <label for='analitica'>Analítica</label>
+            <input
+              type='number'
+              name='analitica'
+              id='analitica'
+              value='{{baseStats.analitica}}'
+              min='{{minStat}}'
+              max='{{maxStat}}'
+              required
+            />
+          </div>
+          <div class='stat-input'>
+            <label for='subterfugio'>Subterfugio</label>
+            <input
+              type='number'
+              name='subterfugio'
+              id='subterfugio'
+              value='{{baseStats.subterfugio}}'
+              min='{{minStat}}'
+              max='{{maxStat}}'
+              required
+            />
+          </div>
+          <div class='stat-input'>
+            <label for='elocuencia'>Elocuencia</label>
+            <input
+              type='number'
+              name='elocuencia'
+              id='elocuencia'
+              value='{{baseStats.elocuencia}}'
+              min='{{minStat}}'
+              max='{{maxStat}}'
+              required
+            />
+          </div>
+        </div>
+      </div>
 
-            <div class="dialog-info">
-                <p><small>* Campos requeridos</small></p>
-                <p>
-                    <small>
-                        Las estadísticas pueden ser de {{minStat}} a {{maxStat}} y modificadas más
-                        tarde mediante modificadores de organización.
-                    </small>
-                </p>
-            </div>
-        </form>
-    </section>
+      <div class='dialog-info'>
+        <p><small>* Campos requeridos</small></p>
+        <p>
+          <small>
+            Las estadísticas pueden ser de
+            {{minStat}}
+            a
+            {{maxStat}}
+            y modificadas más tarde mediante modificadores de organización.
+          </small>
+        </p>
+      </div>
+    </form>
+  </section>
 </div>

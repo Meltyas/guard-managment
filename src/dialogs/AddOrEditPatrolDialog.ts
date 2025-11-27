@@ -129,19 +129,19 @@ export class AddOrEditPatrolDialog {
     };
 
     const stats = [
-        { label: 'Robustismo', key: 'robustismo', value: data.baseStats.robustismo },
-        { label: 'Analítica', key: 'analitica', value: data.baseStats.analitica },
-        { label: 'Subterfugio', key: 'subterfugio', value: data.baseStats.subterfugio },
-        { label: 'Elocuencia', key: 'elocuencia', value: data.baseStats.elocuencia }
+      { label: 'Robustismo', key: 'robustismo', value: data.baseStats.robustismo },
+      { label: 'Analítica', key: 'analitica', value: data.baseStats.analitica },
+      { label: 'Subterfugio', key: 'subterfugio', value: data.baseStats.subterfugio },
+      { label: 'Elocuencia', key: 'elocuencia', value: data.baseStats.elocuencia },
     ];
 
     const templatePath = 'modules/guard-management/templates/dialogs/add-edit-patrol.hbs';
     return await renderTemplate(templatePath, {
-        ...data,
-        stats,
-        isCreate: mode === 'create',
-        minStat: GUARD_STAT_MIN,
-        maxStat: GUARD_STAT_MAX
+      ...data,
+      stats,
+      isCreate: mode === 'create',
+      minStat: GUARD_STAT_MIN,
+      maxStat: GUARD_STAT_MAX,
     });
   }
 

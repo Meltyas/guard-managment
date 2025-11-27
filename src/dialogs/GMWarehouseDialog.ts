@@ -163,7 +163,10 @@ export class GMWarehouseDialog implements FocusableDialog {
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
     // Render using Handlebars template
-    const content = await renderTemplate('modules/guard-management/templates/dialogs/gm-warehouse.hbs', {});
+    const content = await renderTemplate(
+      'modules/guard-management/templates/dialogs/gm-warehouse.hbs',
+      {}
+    );
     dialog.innerHTML = content;
 
     return dialog;
@@ -229,7 +232,10 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async renderResourceTemplate(resource: any): Promise<string> {
     // Use the unified conversion function to ensure consistency
     const resourceData = convertFoundryDocumentToResource(resource);
-    return renderTemplate('modules/guard-management/templates/partials/warehouse-resource-item.hbs', resourceData);
+    return renderTemplate(
+      'modules/guard-management/templates/partials/warehouse-resource-item.hbs',
+      resourceData
+    );
   }
 
   /**
@@ -244,10 +250,15 @@ export class GMWarehouseDialog implements FocusableDialog {
       level: reputation.system?.level || 4, // Default to Neutrales
       image: reputation.img || '',
       organizationId: reputation.system?.organizationId || '',
-      levelLabel: REPUTATION_LABELS[(reputation.system?.level || 4) as ReputationLevel] || `Level ${reputation.system?.level || 4}`
+      levelLabel:
+        REPUTATION_LABELS[(reputation.system?.level || 4) as ReputationLevel] ||
+        `Level ${reputation.system?.level || 4}`,
     };
 
-    return renderTemplate('modules/guard-management/templates/partials/warehouse-reputation-item.hbs', reputationData);
+    return renderTemplate(
+      'modules/guard-management/templates/partials/warehouse-reputation-item.hbs',
+      reputationData
+    );
   }
 
   /**

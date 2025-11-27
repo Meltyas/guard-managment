@@ -9,81 +9,88 @@ export class PatrolsPanel {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     const patrols = orgMgr ? orgMgr.listOrganizationPatrols() : [];
-    
+
     // Enrich patrols
     const enrichedPatrols = patrols.map((p: any) => {
-        const lastOrder = p.lastOrder;
-        const ageClass = lastOrder
-          ? classifyLastOrderAge({ issuedAt: lastOrder.issuedAt })
-          : 'normal';
-        const bd = this.computePatrolStatBreakdown(p);
-        
-        // Format stats breakdown for template
-        const statsBreakdown: Record<string, any> = {};
-        Object.entries(p.derivedStats || p.baseStats || {}).forEach(([k, v]) => {
-             const b = (bd as any)[k] || { base: 0, effects: 0, org: 0, total: v };
-             statsBreakdown[k] = { ...b, total: v as number };
-        });
+      const lastOrder = p.lastOrder;
+      const ageClass = lastOrder
+        ? classifyLastOrderAge({ issuedAt: lastOrder.issuedAt })
+        : 'normal';
+      const bd = this.computePatrolStatBreakdown(p);
 
-        return {
-            ...p,
-            ageClass,
-            statsBreakdown,
-            // Ensure lastOrder text is safe
-            lastOrder: lastOrder ? {
-                ...lastOrder,
-                text: (lastOrder.text && typeof lastOrder.text === 'string' && lastOrder.text.includes('[object ')) ? '— (error de datos)' : lastOrder.text
-            } : null
-        };
+      // Format stats breakdown for template
+      const statsBreakdown: Record<string, any> = {};
+      Object.entries(p.derivedStats || p.baseStats || {}).forEach(([k, v]) => {
+        const b = (bd as any)[k] || { base: 0, effects: 0, org: 0, total: v };
+        statsBreakdown[k] = { ...b, total: v as number };
+      });
+
+      return {
+        ...p,
+        ageClass,
+        statsBreakdown,
+        // Ensure lastOrder text is safe
+        lastOrder: lastOrder
+          ? {
+              ...lastOrder,
+              text:
+                lastOrder.text &&
+                typeof lastOrder.text === 'string' &&
+                lastOrder.text.includes('[object ')
+                  ? '— (error de datos)'
+                  : lastOrder.text,
+            }
+          : null,
+      };
     });
 
     return { patrols: enrichedPatrols };
   }
 
   static async render(container: HTMLElement) {
-      const data = await this.getData();
-      const htmlContent = await renderTemplate(this.template, data);
-      container.innerHTML = htmlContent;
-      this.activateListeners(container);
+    const data = await this.getData();
+    const htmlContent = await renderTemplate(this.template, data);
+    container.innerHTML = htmlContent;
+    this.activateListeners(container);
   }
 
   static activateListeners(container: HTMLElement) {
-      const $html = $(container);
-      
-      // Drag & Drop
-      this.setupPatrolZonesDnD(container, () => this.refresh(container));
+    const $html = $(container);
 
-      // Actions
-      $html.find('[data-action="create-patrol"]').on('click', (ev) => {
-          ev.preventDefault();
-          this.handleCreatePatrol(() => this.refresh(container));
-      });
-      $html.find('[data-action="edit"]').on('click', (ev) => {
-          ev.preventDefault();
-          const id = ev.currentTarget.dataset.patrolId;
-          this.handleEditPatrol(id, () => this.refresh(container));
-      });
-      $html.find('[data-action="delete"]').on('click', (ev) => {
-          ev.preventDefault();
-          const id = ev.currentTarget.dataset.patrolId;
-          this.handleDeletePatrol(id, () => this.refresh(container));
-      });
-      $html.find('[data-action="edit-last-order"]').on('click', (ev) => {
-          ev.preventDefault();
-          // Handle click on the line or the icon
-          const target = ev.currentTarget;
-          const id = target.dataset.patrolId;
-          this.handleEditLastOrder(id, () => this.refresh(container));
-      });
-      $html.find('[data-action="open-sheet"]').on('click', (ev) => {
-          ev.preventDefault();
-          const id = ev.currentTarget.dataset.actorId;
-          this.handleOpenActorSheet(id);
-      });
+    // Drag & Drop
+    this.setupPatrolZonesDnD(container, () => this.refresh(container));
+
+    // Actions
+    $html.find('[data-action="create-patrol"]').on('click', (ev) => {
+      ev.preventDefault();
+      this.handleCreatePatrol(() => this.refresh(container));
+    });
+    $html.find('[data-action="edit"]').on('click', (ev) => {
+      ev.preventDefault();
+      const id = ev.currentTarget.dataset.patrolId;
+      this.handleEditPatrol(id, () => this.refresh(container));
+    });
+    $html.find('[data-action="delete"]').on('click', (ev) => {
+      ev.preventDefault();
+      const id = ev.currentTarget.dataset.patrolId;
+      this.handleDeletePatrol(id, () => this.refresh(container));
+    });
+    $html.find('[data-action="edit-last-order"]').on('click', (ev) => {
+      ev.preventDefault();
+      // Handle click on the line or the icon
+      const target = ev.currentTarget;
+      const id = target.dataset.patrolId;
+      this.handleEditLastOrder(id, () => this.refresh(container));
+    });
+    $html.find('[data-action="open-sheet"]').on('click', (ev) => {
+      ev.preventDefault();
+      const id = ev.currentTarget.dataset.actorId;
+      this.handleOpenActorSheet(id);
+    });
   }
 
   static async refresh(container: HTMLElement) {
-      await this.render(container);
+    await this.render(container);
   }
 
   private static computePatrolStatBreakdown(patrol: any) {
@@ -232,10 +239,7 @@ export class PatrolsPanel {
         card?.classList.remove('dnd-active');
         const actor = await obtainActor(ev);
         if (!actor) {
-          console.warn(
-            'PatrolsPanel | Actor no resuelto desde drag data',
-            ev.dataTransfer?.types
-          );
+          console.warn('PatrolsPanel | Actor no resuelto desde drag data', ev.dataTransfer?.types);
           return ui?.notifications?.warn?.('Actor no encontrado');
         }
         try {
@@ -317,7 +321,7 @@ export class PatrolsPanel {
     const pMgr = orgMgr.getPatrolManager();
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
-    
+
     let current = patrol.lastOrder?.text || '';
     if (current.includes('[object Object]')) current = '';
 
@@ -353,53 +357,53 @@ export class PatrolsPanel {
           callback: async (_ev: any, btn: any, dlg: any) => {
             const form = btn?.form || dlg?.window?.content?.querySelector('form.last-order-edit');
             if (!form) return 'cancel';
-            
+
             let text = '';
 
             // Strategy 1: InnerHTML of the contenteditable div (Most reliable for ProseMirror)
             const editorContent = form.querySelector('.editor-content.ProseMirror');
             if (editorContent) {
-                text = editorContent.innerHTML;
-            } 
-            
+              text = editorContent.innerHTML;
+            }
+
             // Strategy 2: Value of custom element
             if (!text) {
-                const pmElement = form.querySelector('prose-mirror');
-                if (pmElement && 'value' in pmElement) {
-                    const val = (pmElement as any).value;
-                    if (typeof val === 'string' && !val.includes('[object Object]')) {
-                        text = val;
-                    }
+              const pmElement = form.querySelector('prose-mirror');
+              if (pmElement && 'value' in pmElement) {
+                const val = (pmElement as any).value;
+                if (typeof val === 'string' && !val.includes('[object Object]')) {
+                  text = val;
                 }
+              }
             }
-            
+
             // Strategy 3: FormData
             if (!text) {
-                const fd = new FormData(form);
-                const fdText = fd.get('order') as string;
-                if (fdText && !fdText.includes('[object Object]')) {
-                    text = fdText;
-                }
+              const fd = new FormData(form);
+              const fdText = fd.get('order') as string;
+              if (fdText && !fdText.includes('[object Object]')) {
+                text = fdText;
+              }
             }
-            
+
             // Final check
             if (text.includes('[object ')) {
-                text = '';
+              text = '';
             }
-            
+
             // Ensure we have a string
             text = text || '';
-            
+
             pMgr.updateLastOrder(patrolId, text.trim());
             const updated = pMgr.getPatrol(patrolId);
             if (updated) {
               orgMgr.upsertPatrolSnapshot(updated);
-              
+
               // Handle chat notification
               const notifyChat = form.querySelector('input[name="notifyChat"]')?.checked;
               if (notifyChat && text.trim()) {
-                const officerImg = patrol.officer?.img 
-                  ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${patrol.officer.img}" /></div>` 
+                const officerImg = patrol.officer?.img
+                  ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${patrol.officer.img}" /></div>`
                   : '';
 
                 const content = `
@@ -411,10 +415,10 @@ export class PatrolsPanel {
                     </div>
                   </div>
                 `;
-                
+
                 await (ChatMessage as any).create({
                   content: content,
-                  speaker: (ChatMessage as any).getSpeaker({ alias: "Comandante de la Guardia" })
+                  speaker: (ChatMessage as any).getSpeaker({ alias: 'Comandante de la Guardia' }),
                 });
               }
             }

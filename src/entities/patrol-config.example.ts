@@ -276,24 +276,30 @@ export const patrolConfig: EntityConfig<ExtendedPatrol> = {
         'main',
         (entity: ExtendedPatrol, _options) => `
           <div class="patrol-main-content">
-            ${entity.currentLocation
-              ? `
+            ${
+              entity.currentLocation
+                ? `
                   <div class="patrol-location">
                     <i class="fas fa-map-marker-alt"></i>
                     <span>${entity.currentLocation}</span>
                   </div>
                 `
-              : ''}
+                : ''
+            }
             <div class="patrol-info">
               <span class="patrol-name">${entity.name}</span>
               ${patrolMembersRenderer.render(entity.memberCount || 0, entity, 'memberCount')}
-              ${entity.leaderId
-                ? patrolLeaderRenderer.render(entity.leaderId, entity, 'leaderId')
-                : ''}
+              ${
+                entity.leaderId
+                  ? patrolLeaderRenderer.render(entity.leaderId, entity, 'leaderId')
+                  : ''
+              }
             </div>
-            ${entity.derivedStats
-              ? patrolStatsRenderer.render(entity.derivedStats, entity, 'derivedStats')
-              : ''}
+            ${
+              entity.derivedStats
+                ? patrolStatsRenderer.render(entity.derivedStats, entity, 'derivedStats')
+                : ''
+            }
           </div>
         `,
       ],

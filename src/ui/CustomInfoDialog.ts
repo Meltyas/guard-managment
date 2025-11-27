@@ -9,8 +9,8 @@ import '../styles/custom-info-dialog.css';
 import { NotificationService } from '../utils/services/NotificationService.js';
 import { GeneralPanel } from './panels/GeneralPanel.js';
 import { PatrolsPanel } from './panels/PatrolsPanel.js';
-import { ResourcesPanel } from './panels/ResourcesPanel.js';
 import { ReputationPanel } from './panels/ReputationPanel.js';
+import { ResourcesPanel } from './panels/ResourcesPanel.js';
 
 export class CustomInfoDialog implements FocusableDialog {
   public element: HTMLElement | null = null;
@@ -117,12 +117,12 @@ export class CustomInfoDialog implements FocusableDialog {
 
     const templatePath = 'modules/guard-management/templates/dialogs/info-dialog.hbs';
     const content = await renderTemplate(templatePath, {
-        title: `Información: ${organization.name}`,
-        initialTab: localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general'
+      title: `Información: ${organization.name}`,
+      initialTab: localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general',
     });
-    
+
     dialog.innerHTML = content;
-    
+
     this.initTabs(dialog);
 
     return dialog;
@@ -215,17 +215,26 @@ export class CustomInfoDialog implements FocusableDialog {
 
       // Render panels
       if (this.element) {
-          const generalContainer = this.element.querySelector('[data-tab-panel="general"]') as HTMLElement;
-          if (generalContainer) await GeneralPanel.render(generalContainer, freshOrganization);
+        const generalContainer = this.element.querySelector(
+          '[data-tab-panel="general"]'
+        ) as HTMLElement;
+        if (generalContainer) await GeneralPanel.render(generalContainer, freshOrganization);
 
-          const patrolsContainer = this.element.querySelector('[data-tab-panel="patrols"]') as HTMLElement;
-          if (patrolsContainer) await PatrolsPanel.render(patrolsContainer);
+        const patrolsContainer = this.element.querySelector(
+          '[data-tab-panel="patrols"]'
+        ) as HTMLElement;
+        if (patrolsContainer) await PatrolsPanel.render(patrolsContainer);
 
-          const resourcesContainer = this.element.querySelector('[data-tab-panel="resources"]') as HTMLElement;
-          if (resourcesContainer) await ResourcesPanel.render(resourcesContainer, freshOrganization);
+        const resourcesContainer = this.element.querySelector(
+          '[data-tab-panel="resources"]'
+        ) as HTMLElement;
+        if (resourcesContainer) await ResourcesPanel.render(resourcesContainer, freshOrganization);
 
-          const reputationContainer = this.element.querySelector('[data-tab-panel="reputation"]') as HTMLElement;
-          if (reputationContainer) await ReputationPanel.render(reputationContainer, freshOrganization);
+        const reputationContainer = this.element.querySelector(
+          '[data-tab-panel="reputation"]'
+        ) as HTMLElement;
+        if (reputationContainer)
+          await ReputationPanel.render(reputationContainer, freshOrganization);
       }
 
       console.log('✅ Refresh completed immediately');
@@ -233,8 +242,6 @@ export class CustomInfoDialog implements FocusableDialog {
       console.error('❌ Error refreshing dialog content:', error);
     }
   }
-
-
 
   /**
    * Update the title of the dialog
@@ -272,8 +279,6 @@ export class CustomInfoDialog implements FocusableDialog {
   public isOpen(): boolean {
     return this.element !== null && document.body.contains(this.element);
   }
-
-
 
   /**
    * Add event listeners
@@ -701,7 +706,7 @@ export class CustomInfoDialog implements FocusableDialog {
       '[data-tab-panel="patrols"]'
     ) as HTMLElement | null;
     if (!tabPanel) return;
-    
+
     PatrolsPanel.render(tabPanel);
   }
 
@@ -711,14 +716,12 @@ export class CustomInfoDialog implements FocusableDialog {
   private async handleRemoveResource(resourceId: string, resourceName: string): Promise<void> {
     if (!this.currentOrganization) return;
     await ResourcesPanel.handleRemoveResource(
-      resourceId, 
-      resourceName, 
-      this.currentOrganization, 
+      resourceId,
+      resourceName,
+      this.currentOrganization,
       () => this.refreshContent()
     );
   }
-
-
 
   /**
    * Handle editing a resource
@@ -770,14 +773,12 @@ export class CustomInfoDialog implements FocusableDialog {
   ): Promise<void> {
     if (!this.currentOrganization) return;
     await ReputationPanel.handleRemoveReputation(
-      reputationId, 
-      reputationName, 
-      this.currentOrganization, 
+      reputationId,
+      reputationName,
+      this.currentOrganization,
       () => this.refreshContent()
     );
   }
-
-
 
   /**
    * Handle deleting a reputation entry
@@ -928,8 +929,6 @@ export class CustomInfoDialog implements FocusableDialog {
     this.element.style.top = Math.max(0, y) + 'px';
   }
 
-
-
   /**
    * Handle focus events - called when dialog gains focus
    */
@@ -981,8 +980,6 @@ export class CustomInfoDialog implements FocusableDialog {
     // Note: We don't clear focus here because focus is managed globally
     // Focus is only lost when another dialog gains focus or when dialog is closed
   }
-
-
 
   /**
    * Handle global drag start - show overlay
@@ -1129,10 +1126,8 @@ export class CustomInfoDialog implements FocusableDialog {
    */
   private async assignResourceToOrganization(resourceData: any): Promise<void> {
     if (!this.currentOrganization) return;
-    await ResourcesPanel.assignResourceToOrganization(
-      resourceData, 
-      this.currentOrganization, 
-      () => this.refreshContent()
+    await ResourcesPanel.assignResourceToOrganization(resourceData, this.currentOrganization, () =>
+      this.refreshContent()
     );
   }
 
@@ -1142,13 +1137,11 @@ export class CustomInfoDialog implements FocusableDialog {
   private async assignReputationToOrganization(reputationData: any): Promise<void> {
     if (!this.currentOrganization) return;
     await ReputationPanel.assignReputationToOrganization(
-      reputationData, 
-      this.currentOrganization, 
+      reputationData,
+      this.currentOrganization,
       () => this.refreshContent()
     );
   }
-
-
 
   private async handleEditLastOrder(patrolId: string) {
     await PatrolsPanel.handleEditLastOrder(patrolId, () => this.refreshPatrolsPanel());
@@ -1207,8 +1200,6 @@ export class CustomInfoDialog implements FocusableDialog {
 
     this.tabsInitialized = true;
   }
-
-
 
   private async handleOpenActorSheet(actorId: string): Promise<void> {
     await PatrolsPanel.handleOpenActorSheet(actorId);

@@ -311,22 +311,24 @@ export class AddOrEditReputationDialog {
     organizationId: string,
     existingReputation?: Reputation
   ): Promise<string> {
-    const reputationLevels = Object.entries(REPUTATION_LABELS)
-      .map(([value, label]) => ({
-        value,
-        label,
-        selected: existingReputation?.level === parseInt(value)
-      }));
+    const reputationLevels = Object.entries(REPUTATION_LABELS).map(([value, label]) => ({
+      value,
+      label,
+      selected: existingReputation?.level === parseInt(value),
+    }));
 
     const data = {
       name: existingReputation?.name || '',
       description: existingReputation?.description || '',
       image: existingReputation?.image || '',
       organizationId,
-      reputationLevels
+      reputationLevels,
     };
 
-    return renderTemplate('modules/guard-management/templates/dialogs/add-edit-reputation.hbs', data);
+    return renderTemplate(
+      'modules/guard-management/templates/dialogs/add-edit-reputation.hbs',
+      data
+    );
   }
 
   /**

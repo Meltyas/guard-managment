@@ -1,75 +1,74 @@
-<form class="resource-form guard-dialog">
-  <div class="form-group">
-    <label for="resource-name">Nombre del Recurso</label>
+<form class='resource-form guard-dialog'>
+  <div class='form-group'>
+    <label for='resource-name'>Nombre del Recurso</label>
     <input
-      type="text"
-      id="resource-name"
-      name="name"
-      value="{{name}}"
-      placeholder="Nombre del recurso..."
+      type='text'
+      id='resource-name'
+      name='name'
+      value='{{name}}'
+      placeholder='Nombre del recurso...'
       required
-      maxlength="100"
+      maxlength='100'
     />
-    <small class="form-hint">Máximo 100 caracteres</small>
+    <small class='form-hint'>Máximo 100 caracteres</small>
   </div>
 
-  <div class="form-group">
-    <label for="resource-description">Descripción</label>
+  <div class='form-group'>
+    <label for='resource-description'>Descripción</label>
     <textarea
-      id="resource-description"
-      name="description"
-      placeholder="Descripción del recurso..."
-      rows="3"
-      maxlength="500"
+      id='resource-description'
+      name='description'
+      placeholder='Descripción del recurso...'
+      rows='3'
+      maxlength='500'
     >{{description}}</textarea>
-    <small class="form-hint">Opcional. Máximo 500 caracteres</small>
+    <small class='form-hint'>Opcional. Máximo 500 caracteres</small>
   </div>
 
-  <div class="form-group">
-    <label for="resource-image">Imagen</label>
-    <div class="file-picker-wrapper">
+  <div class='form-group'>
+    <label for='resource-image'>Imagen</label>
+    <div class='file-picker-wrapper'>
       <input
-        type="text"
-        id="resource-image"
-        name="image"
-        value="{{image}}"
-        placeholder="Selecciona una imagen..."
+        type='text'
+        id='resource-image'
+        name='image'
+        value='{{image}}'
+        placeholder='Selecciona una imagen...'
       />
       <button
-        type="button"
-        class="file-picker-btn"
-        data-type="imagevideo"
-        data-target="resource-image"
-        title="Seleccionar imagen"
+        type='button'
+        class='file-picker-btn'
+        data-type='imagevideo'
+        data-target='resource-image'
+        title='Seleccionar imagen'
       >
-        <i class="fas fa-file-image"></i>
+        <i class='fas fa-file-image'></i>
       </button>
     </div>
-    <small class="form-hint"
-      >Opcional. Haz click en el botón para seleccionar una imagen</small
-    >
+    <small class='form-hint'>Opcional. Haz click en el botón para seleccionar una imagen</small>
   </div>
 
-  <div class="form-group">
-    <label for="resource-quantity">Cantidad</label>
+  <div class='form-group'>
+    <label for='resource-quantity'>Cantidad</label>
     <input
-      type="number"
-      id="resource-quantity"
-      name="quantity"
-      value="{{quantity}}"
-      min="0"
-      max="999999"
+      type='number'
+      id='resource-quantity'
+      name='quantity'
+      value='{{quantity}}'
+      min='0'
+      max='999999'
       required
     />
-    <small class="form-hint">Cantidad disponible del recurso</small>
+    <small class='form-hint'>Cantidad disponible del recurso</small>
   </div>
 
   <!-- Hidden field for organization ID -->
-  <input type="hidden" name="organizationId" value="{{organizationId}}" />
+  <input type='hidden' name='organizationId' value='{{organizationId}}' />
 
-  <div class="form-notes">
+  <div class='form-notes'>
     <p>
-      <i class="fas fa-info-circle"></i> {{#if isCreate}}
+      <i class='fas fa-info-circle'></i>
+      {{#if isCreate}}
         Se creará un nuevo recurso asociado a la organización.
       {{else}}
         Se actualizará el recurso existente.

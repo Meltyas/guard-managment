@@ -6,7 +6,7 @@ export class GeneralPanel {
   }
 
   static async render(container: HTMLElement, organization: GuardOrganization) {
-      const htmlContent = await renderTemplate(this.template, { organization });
-      container.innerHTML = htmlContent;
+    const htmlContent = await renderTemplate(this.template, { organization });
+    container.innerHTML = htmlContent;
   }
 }

@@ -13,7 +13,6 @@ export interface ReputationTemplateOptions {
  * Follows the exact same pattern as ResourceTemplate with full feature parity
  */
 export class ReputationTemplate {
-  
   /**
    * Generate HTML string for chat messages
    */

@@ -1,10 +1,10 @@
-import type { GuardOrganization } from '../../types/entities';
-import { ReputationTemplate } from '../ReputationTemplate.js';
-import { NotificationService } from '../../utils/services/NotificationService.js';
-import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { AddOrEditReputationDialog } from '../../dialogs/AddOrEditReputationDialog.js';
+import type { GuardOrganization } from '../../types/entities';
 import { REPUTATION_LABELS, ReputationLevel } from '../../types/entities.js';
 import { convertFoundryDocumentToReputation } from '../../utils/resource-converter.js';
+import { ConfirmService } from '../../utils/services/ConfirmService.js';
+import { NotificationService } from '../../utils/services/NotificationService.js';
+import { ReputationTemplate } from '../ReputationTemplate.js';
 
 export class ReputationPanel {
   static get template() {
@@ -12,43 +12,43 @@ export class ReputationPanel {
   }
 
   static async getData(organization: GuardOrganization) {
-      const gm = (window as any).GuardManagement;
-      const reputation = [];
-      if (organization.reputation && organization.reputation.length > 0) {
-          const allReputation = gm.documentManager.getGuardReputations();
-          for (const id of organization.reputation) {
-              const r = allReputation.find((res: any) => res.id === id);
-              if (r) {
-                  const reputationData = convertFoundryDocumentToReputation(r);
-                  const level = reputationData.level;
-                  
-                  let statusClass = 'neutral';
-                  if (level <= 2) statusClass = 'negative';
-                  else if (level >= 5) statusClass = 'positive';
+    const gm = (window as any).GuardManagement;
+    const reputation = [];
+    if (organization.reputation && organization.reputation.length > 0) {
+      const allReputation = gm.documentManager.getGuardReputations();
+      for (const id of organization.reputation) {
+        const r = allReputation.find((res: any) => res.id === id);
+        if (r) {
+          const reputationData = convertFoundryDocumentToReputation(r);
+          const level = reputationData.level;
 
-                  const rep = { 
-                      ...reputationData,
-                      value: REPUTATION_LABELS[level as ReputationLevel] || 'Desconocido',
-                      statusClass: statusClass
-                  };
-                  reputation.push(rep);
-              }
-          }
+          let statusClass = 'neutral';
+          if (level <= 2) statusClass = 'negative';
+          else if (level >= 5) statusClass = 'positive';
+
+          const rep = {
+            ...reputationData,
+            value: REPUTATION_LABELS[level as ReputationLevel] || 'Desconocido',
+            statusClass: statusClass,
+          };
+          reputation.push(rep);
+        }
       }
-      
-      // Sort by level descending
-      reputation.sort((a, b) => b.level - a.level);
+    }
 
-      return {
-          organizationId: organization.id,
-          reputation
-      };
+    // Sort by level descending
+    reputation.sort((a, b) => b.level - a.level);
+
+    return {
+      organizationId: organization.id,
+      reputation,
+    };
   }
 
   static async render(container: HTMLElement, organization: GuardOrganization) {
-      const data = await this.getData(organization);
-      const htmlContent = await renderTemplate(this.template, data);
-      container.innerHTML = htmlContent;
+    const data = await this.getData(organization);
+    const htmlContent = await renderTemplate(this.template, data);
+    container.innerHTML = htmlContent;
   }
 
   /**
@@ -136,7 +136,7 @@ export class ReputationPanel {
     refreshCallback: () => Promise<void>
   ): Promise<void> {
     console.log('🗑️ Remove reputation request:', reputationName, reputationId);
-    
+
     const html = `
           <div style="margin-bottom: 1rem;">
             <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
@@ -145,9 +145,9 @@ export class ReputationPanel {
           <p>¿Deseas remover la reputación "<strong>${reputationName}</strong>" de esta organización?</p>
           <p><small>Esta acción se puede deshacer asignando la reputación nuevamente.</small></p>
         `;
-    
+
     const confirmed = await ConfirmService.confirm({ title: 'Confirmar Remoción', html });
-    
+
     if (!confirmed) {
       console.log('❌ Reputation removal cancelled by user');
       return;

@@ -1,42 +1,38 @@
 <div
-  class="template-item resource-template"
-  data-resource-id="{{id}}"
-  draggable="true"
-  title="Arrastra este recurso a una organización para asignarlo"
+  class='template-item resource-template'
+  data-resource-id='{{id}}'
+  draggable='true'
+  title='Arrastra este recurso a una organización para asignarlo'
 >
   {{#if image}}
-    <div class="template-image">
-      <img
-        src="{{image}}"
-        alt="{{name}}"
-        onerror="this.style.display='none'"
-      />
+    <div class='template-image'>
+      <img src='{{image}}' alt='{{name}}' onerror="this.style.display='none'" />
     </div>
   {{/if}}
-  <div class="template-info">
-    <div class="template-name">{{name}}</div>
-    <div class="template-description">
+  <div class='template-info'>
+    <div class='template-name'>{{name}}</div>
+    <div class='template-description'>
       {{description}}
     </div>
-    <div class="template-quantity">Cantidad: {{quantity}}</div>
+    <div class='template-quantity'>Cantidad: {{quantity}}</div>
   </div>
-  <div class="template-actions">
+  <div class='template-actions'>
     <button
-      type="button"
-      class="send-to-chat-template-btn"
-      title="Enviar al chat"
-      data-resource-id="{{id}}"
+      type='button'
+      class='send-to-chat-template-btn'
+      title='Enviar al chat'
+      data-resource-id='{{id}}'
     >
-      <i class="fas fa-comment"></i>
+      <i class='fas fa-comment'></i>
     </button>
-    <button type="button" class="edit-template-btn" title="Editar template">
-      <i class="fas fa-edit"></i>
+    <button type='button' class='edit-template-btn' title='Editar template'>
+      <i class='fas fa-edit'></i>
     </button>
-    <button type="button" class="duplicate-template-btn" title="Duplicar template">
-      <i class="fas fa-copy"></i>
+    <button type='button' class='duplicate-template-btn' title='Duplicar template'>
+      <i class='fas fa-copy'></i>
     </button>
-    <button type="button" class="delete-template-btn" title="Eliminar template">
-      <i class="fas fa-trash"></i>
+    <button type='button' class='delete-template-btn' title='Eliminar template'>
+      <i class='fas fa-trash'></i>
     </button>
   </div>
 </div>

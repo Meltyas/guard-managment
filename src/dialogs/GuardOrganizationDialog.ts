@@ -235,24 +235,30 @@ export class GuardOrganizationDialog {
   /**
    * Generate the HTML content for the dialog
    */
-  public async generateContent(_mode: 'create' | 'edit', organization?: GuardOrganization): Promise<string> {
+  public async generateContent(
+    _mode: 'create' | 'edit',
+    organization?: GuardOrganization
+  ): Promise<string> {
     const data: GuardOrganizationFormRenderData = organization
       ? {
           name: organization.name ?? '',
           subtitle: organization.subtitle ?? '',
           baseStats: { ...organization.baseStats },
           minStat: GUARD_STAT_MIN,
-          maxStat: GUARD_STAT_MAX
+          maxStat: GUARD_STAT_MAX,
         }
-      : { 
-          name: '', 
-          subtitle: '', 
+      : {
+          name: '',
+          subtitle: '',
           baseStats: { ...DEFAULT_GUARD_STATS },
           minStat: GUARD_STAT_MIN,
-          maxStat: GUARD_STAT_MAX
+          maxStat: GUARD_STAT_MAX,
         };
 
-    return renderTemplate('modules/guard-management/templates/dialogs/guard-organization.hbs', data);
+    return renderTemplate(
+      'modules/guard-management/templates/dialogs/guard-organization.hbs',
+      data
+    );
   }
 
   /**
@@ -400,7 +406,7 @@ export class GuardOrganizationDialog {
     existingOrganization?: GuardOrganization,
     content?: string
   ): Promise<GuardOrganization | null> {
-    const dialogContent = content || await this.generateContent(mode, existingOrganization);
+    const dialogContent = content || (await this.generateContent(mode, existingOrganization));
     const title =
       mode === 'create' ? 'Nueva Organización de Guardias' : 'Editar Organización de Guardias';
 
@@ -427,7 +433,9 @@ export class GuardOrganizationDialog {
 
                 // No cerrar el diálogo - crear uno nuevo
                 setTimeout(() => {
-                  this.showWithStandardDialog(mode, existingOrganization, dialogContent).then(resolve);
+                  this.showWithStandardDialog(mode, existingOrganization, dialogContent).then(
+                    resolve
+                  );
                 }, 100);
                 return;
               }

@@ -307,7 +307,7 @@ export class AddOrEditResourceDialog {
       quantity: existingResource?.quantity || 1,
       image: existingResource?.image || '',
       organizationId: organizationId,
-      isCreate: mode === 'create'
+      isCreate: mode === 'create',
     };
 
     return renderTemplate('modules/guard-management/templates/dialogs/add-edit-resource.hbs', data);

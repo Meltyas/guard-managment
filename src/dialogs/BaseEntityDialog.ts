@@ -118,28 +118,28 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
     existingEntity?: T
   ): Promise<string> {
     const fields = this.getFieldConfiguration();
-    
+
     // Prepare fields data for Handlebars
-    const processedFields = fields.map(field => {
+    const processedFields = fields.map((field) => {
       const value = existingEntity ? (existingEntity as any)[field.name] : undefined;
-      
+
       // Handle specific field types
       if (field.type === 'select' && field.options) {
         return {
           ...field,
           value: value || '',
-          options: field.options.map(opt => ({
+          options: field.options.map((opt) => ({
             ...opt,
-            selected: value === opt.value
-          }))
+            selected: value === opt.value,
+          })),
         };
       }
-      
+
       return {
         ...field,
         value: value !== undefined ? value : '',
         rows: field.rows || 3,
-        fileType: field.fileType || 'image'
+        fileType: field.fileType || 'image',
       };
     });
 
@@ -147,10 +147,13 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
       entityType: this.config.entityType,
       fields: processedFields,
       contextId,
-      entityId: mode === 'edit' ? existingEntity?.id : ''
+      entityId: mode === 'edit' ? existingEntity?.id : '',
     };
 
-    return renderTemplate('modules/guard-management/templates/dialogs/base-entity.hbs', templateData);
+    return renderTemplate(
+      'modules/guard-management/templates/dialogs/base-entity.hbs',
+      templateData
+    );
   }
 
   /**
@@ -247,8 +250,8 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
     content?: string
   ): Promise<T | null> {
     console.warn(`Usando Dialog estándar para ${this.config.displayName}`);
-    
-    const dialogContent = content || await this.generateContent(mode, contextId, existingEntity);
+
+    const dialogContent = content || (await this.generateContent(mode, contextId, existingEntity));
 
     return new Promise((resolve) => {
       new Dialog({

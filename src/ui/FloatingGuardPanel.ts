@@ -123,10 +123,10 @@ export class FloatingGuardPanel {
 
     const templatePath = 'modules/guard-management/templates/panels/floating-panel.hbs';
     const content = await renderTemplate(templatePath, {
-        isGM,
-        organizations,
-        isMinimized,
-        minimizeIcon: isMinimized ? 'fas fa-plus' : 'fas fa-minus'
+      isGM,
+      organizations,
+      isMinimized,
+      minimizeIcon: isMinimized ? 'fas fa-plus' : 'fas fa-minus',
     });
 
     this.panel.innerHTML = content;
@@ -136,10 +136,10 @@ export class FloatingGuardPanel {
 
     // Append to body (will be positioned over canvas)
     document.body.appendChild(this.panel);
-    
+
     // Restore minimized state class if needed
     if (isMinimized) {
-        this.panel.classList.add('minimized');
+      this.panel.classList.add('minimized');
     }
   }
 
@@ -366,11 +366,11 @@ export class FloatingGuardPanel {
     actionBtns.forEach((btn) => {
       btn.addEventListener('click', this.handleActionClick.bind(this));
     });
-    
+
     // Organization items
     const orgItems = this.panel.querySelectorAll('.organization-item');
     orgItems.forEach((item) => {
-        item.addEventListener('click', this.handleOrganizationClick.bind(this));
+      item.addEventListener('click', this.handleOrganizationClick.bind(this));
     });
 
     // Global drag handlers
@@ -459,17 +459,17 @@ export class FloatingGuardPanel {
 
     this.panel.classList.toggle('minimized');
     const isMinimized = this.panel.classList.contains('minimized');
-    
+
     // Update icon
     const icon = this.panel.querySelector('.panel-minimize i') as HTMLElement;
     if (icon) {
       icon.className = isMinimized ? 'fas fa-plus' : 'fas fa-minus';
     }
-    
+
     // Update content visibility
     const content = this.panel.querySelector('.panel-content') as HTMLElement;
     if (content) {
-        content.style.display = isMinimized ? 'none' : 'block';
+      content.style.display = isMinimized ? 'none' : 'block';
     }
   }
 

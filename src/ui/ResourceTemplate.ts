@@ -17,7 +17,6 @@ export interface ResourceTemplateOptions {
  * Provides consistent rendering for resources across all UI components
  */
 export class ResourceTemplate {
-  
   /**
    * Generate HTML string for chat messages
    */

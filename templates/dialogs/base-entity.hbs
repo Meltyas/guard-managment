@@ -3,12 +3,12 @@
         {{#if (eq this.type "text")}}
             <div class="form-group">
                 <label for="{{../entityType}}-{{this.name}}">{{this.label}}{{#if this.required}} *{{/if}}</label>
-                <input 
-                    type="text" 
-                    id="{{../entityType}}-{{this.name}}" 
-                    name="{{this.name}}" 
-                    value="{{this.value}}" 
-                    placeholder="{{this.placeholder}}" 
+                <input
+                    type="text"
+                    id="{{../entityType}}-{{this.name}}"
+                    name="{{this.name}}"
+                    value="{{this.value}}"
+                    placeholder="{{this.placeholder}}"
                     {{#if this.required}}required{{/if}}
                 />
             </div>
@@ -17,11 +17,11 @@
         {{#if (eq this.type "textarea")}}
             <div class="form-group">
                 <label for="{{../entityType}}-{{this.name}}">{{this.label}}{{#if this.required}} *{{/if}}</label>
-                <textarea 
-                    id="{{../entityType}}-{{this.name}}" 
-                    name="{{this.name}}" 
-                    placeholder="{{this.placeholder}}" 
-                    rows="{{this.rows}}" 
+                <textarea
+                    id="{{../entityType}}-{{this.name}}"
+                    name="{{this.name}}"
+                    placeholder="{{this.placeholder}}"
+                    rows="{{this.rows}}"
                     {{#if this.required}}required{{/if}}
                 >{{this.value}}</textarea>
             </div>
@@ -30,13 +30,13 @@
         {{#if (eq this.type "number")}}
             <div class="form-group">
                 <label for="{{../entityType}}-{{this.name}}">{{this.label}}{{#if this.required}} *{{/if}}</label>
-                <input 
-                    type="number" 
-                    id="{{../entityType}}-{{this.name}}" 
-                    name="{{this.name}}" 
-                    value="{{this.value}}" 
-                    min="{{this.min}}" 
-                    max="{{this.max}}" 
+                <input
+                    type="number"
+                    id="{{../entityType}}-{{this.name}}"
+                    name="{{this.name}}"
+                    value="{{this.value}}"
+                    min="{{this.min}}"
+                    max="{{this.max}}"
                     {{#if this.required}}required{{/if}}
                 />
             </div>
@@ -46,18 +46,18 @@
             <div class="form-group">
                 <label for="{{../entityType}}-{{this.name}}">{{this.label}}{{#if this.required}} *{{/if}}</label>
                 <div class="file-picker-container">
-                    <input 
-                        type="text" 
-                        id="{{../entityType}}-{{this.name}}" 
-                        name="{{this.name}}" 
-                        value="{{this.value}}" 
-                        placeholder="{{this.placeholder}}" 
+                    <input
+                        type="text"
+                        id="{{../entityType}}-{{this.name}}"
+                        name="{{this.name}}"
+                        value="{{this.value}}"
+                        placeholder="{{this.placeholder}}"
                         {{#if this.required}}required{{/if}}
                     />
-                    <button 
-                        type="button" 
-                        class="file-picker-btn" 
-                        data-target="{{../entityType}}-{{this.name}}" 
+                    <button
+                        type="button"
+                        class="file-picker-btn"
+                        data-target="{{../entityType}}-{{this.name}}"
                         data-file-type="{{this.fileType}}"
                     >
                         <i class="fas fa-folder"></i>
@@ -82,10 +82,10 @@
         {{#if (eq this.type "checkbox")}}
             <div class="form-group">
                 <label class="checkbox-label">
-                    <input 
-                        type="checkbox" 
-                        id="{{../entityType}}-{{this.name}}" 
-                        name="{{this.name}}" 
+                    <input
+                        type="checkbox"
+                        id="{{../entityType}}-{{this.name}}"
+                        name="{{this.name}}"
                         {{#if this.value}}checked{{/if}}
                     />
                     {{this.label}}
