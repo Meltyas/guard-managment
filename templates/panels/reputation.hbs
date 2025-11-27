@@ -6,6 +6,11 @@
         {{#each reputation}}
           <div class="reputation-item" data-reputation-id="{{this.id}}">
             <div class="reputation-header">
+              {{#if this.image}}
+              <div class="reputation-image">
+                  <img src="{{this.image}}" alt="{{this.name}}"/>
+              </div>
+              {{/if}}
               <span class="reputation-name">{{this.name}}</span>
               <span class="reputation-value {{this.statusClass}}">{{this.value}}</span>
             </div>

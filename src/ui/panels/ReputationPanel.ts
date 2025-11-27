@@ -4,6 +4,7 @@ import { NotificationService } from '../../utils/services/NotificationService.js
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { AddOrEditReputationDialog } from '../../dialogs/AddOrEditReputationDialog.js';
 import { REPUTATION_LABELS, ReputationLevel } from '../../types/entities.js';
+import { convertFoundryDocumentToReputation } from '../../utils/resource-converter.js';
 
 export class ReputationPanel {
   static get template() {
@@ -18,20 +19,17 @@ export class ReputationPanel {
           for (const id of organization.reputation) {
               const r = allReputation.find((res: any) => res.id === id);
               if (r) {
-                  const system = r.system || {};
-                  const level = system.level || ReputationLevel.Neutrales;
+                  const reputationData = convertFoundryDocumentToReputation(r);
+                  const level = reputationData.level;
                   
                   let statusClass = 'neutral';
                   if (level <= 2) statusClass = 'negative';
                   else if (level >= 5) statusClass = 'positive';
 
                   const rep = { 
-                      id: r.id, 
-                      name: r.name,
-                      description: system.description || '',
+                      ...reputationData,
                       value: REPUTATION_LABELS[level as ReputationLevel] || 'Desconocido',
-                      statusClass: statusClass,
-                      level: level
+                      statusClass: statusClass
                   };
                   reputation.push(rep);
               }
