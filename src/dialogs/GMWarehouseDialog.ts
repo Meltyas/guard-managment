@@ -147,11 +147,28 @@ export class GMWarehouseDialog implements FocusableDialog {
     const dialog = document.createElement('div');
     dialog.className = 'gm-warehouse-dialog custom-dialog';
 
+    // Load saved position if available
+    const savedPosition = localStorage.getItem('guard-management-warehouse-position');
+    let width = options.width || 800;
+    let height = options.height || 600;
+    let x = options.x;
+    let y = options.y;
+
+    if (savedPosition) {
+      try {
+        const pos = JSON.parse(savedPosition);
+        if (!options.width) width = pos.width;
+        if (!options.height) height = pos.height;
+        if (!options.x) x = pos.x;
+        if (!options.y) y = pos.y;
+      } catch (e) {
+        console.error('Error parsing saved warehouse position', e);
+      }
+    }
+
     // Set initial size and position
-    const width = options.width || 800;
-    const height = options.height || 600;
-    const x = options.x || (window.innerWidth - width) / 2;
-    const y = options.y || (window.innerHeight - height) / 2;
+    if (x === undefined) x = (window.innerWidth - width) / 2;
+    if (y === undefined) y = (window.innerHeight - height) / 2;
 
     // Only set position and size, z-index comes from CSS
     dialog.style.left = `${x}px`;
@@ -159,6 +176,10 @@ export class GMWarehouseDialog implements FocusableDialog {
     dialog.style.width = `${width}px`;
     dialog.style.height = `${height}px`;
     dialog.style.position = 'fixed';
+    dialog.style.resize = 'both';
+    dialog.style.overflow = 'hidden';
+    dialog.style.minWidth = '400px';
+    dialog.style.minHeight = '300px';
 
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
@@ -540,8 +561,28 @@ export class GMWarehouseDialog implements FocusableDialog {
    * Handle mouse up events for dragging
    */
   private handleMouseUp(): void {
+    if (this.isDragging || this.isResizing) {
+      this.savePosition();
+    }
     this.isDragging = false;
     this.isResizing = false;
+  }
+
+  /**
+   * Save current position and size to localStorage
+   */
+  private savePosition(): void {
+    if (!this.element) return;
+
+    const rect = this.element.getBoundingClientRect();
+    const settings = {
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+
+    localStorage.setItem('guard-management-warehouse-position', JSON.stringify(settings));
   }
 
   /**

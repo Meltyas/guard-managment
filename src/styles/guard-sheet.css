@@ -432,6 +432,8 @@
   padding: 15px;
   overflow-y: auto;
   height: 100%;
+  container-type: inline-size;
+  container-name: tab-container;
 }
 
 .guard-management-sheet .tab.active {
@@ -594,6 +596,133 @@
 
 .guard-management-sheet button.primary:hover {
   background: rgba(74, 116, 232, 0.7);
+}
+
+/* Grid Layout for Resources and Reputation */
+.guard-management-sheet .resources-list,
+.guard-management-sheet .reputation-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+/* Card styling for grid items */
+.guard-management-sheet .resource-item,
+.guard-management-sheet .reputation-item {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.guard-management-sheet .resource-item .resource-info,
+.guard-management-sheet .reputation-item .reputation-header {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 10px;
+  height: 100%;
+}
+
+.guard-management-sheet .resource-item .resource-image,
+.guard-management-sheet .reputation-item .reputation-image {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  margin-bottom: 5px;
+}
+
+.guard-management-sheet .resource-item .resource-info,
+.guard-management-sheet .reputation-item .reputation-info {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.guard-management-sheet .resource-item .resource-name,
+.guard-management-sheet .reputation-item .reputation-name {
+  white-space: normal;
+  text-overflow: clip;
+  font-size: 14px;
+}
+
+.guard-management-sheet .resource-item .resource-quantity,
+.guard-management-sheet .reputation-item .reputation-value {
+  width: 100%;
+  margin: 5px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.guard-management-sheet .resource-item .resource-actions,
+.guard-management-sheet .reputation-item .reputation-actions {
+  width: 100%;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive Grid Behavior */
+@container tab-container (max-width: 600px) {
+  .guard-management-sheet .resources-list,
+  .guard-management-sheet .reputation-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@container tab-container (max-width: 450px) {
+  .guard-management-sheet .resources-list,
+  .guard-management-sheet .reputation-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container tab-container (max-width: 300px) {
+  .guard-management-sheet .resources-list,
+  .guard-management-sheet .reputation-list {
+    grid-template-columns: 1fr;
+  }
+
+  /* Revert to row layout for single column */
+  .guard-management-sheet .resource-item,
+  .guard-management-sheet .reputation-item {
+    flex-direction: row;
+    text-align: left;
+    align-items: center;
+    padding: 5px;
+  }
+
+  .guard-management-sheet .resource-item .resource-image,
+  .guard-management-sheet .reputation-item .reputation-image {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    margin-bottom: 0;
+  }
+
+  .guard-management-sheet .resource-item .resource-info,
+  .guard-management-sheet .reputation-item .reputation-info {
+    flex: 1;
+    display: block;
+  }
+
+  .guard-management-sheet .resource-item .resource-name,
+  .guard-management-sheet .reputation-item .reputation-name {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: inherit;
+  }
+
+  .guard-management-sheet .resource-item .resource-actions,
+  .guard-management-sheet .reputation-item .reputation-actions {
+    width: auto;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
 }
 
 /* Ensure we don't leak any styles outside our module */

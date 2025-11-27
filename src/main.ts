@@ -232,8 +232,15 @@ Hooks.once('init', async () => {
     ]);
 
     // Register Handlebars helpers
-    Handlebars.registerHelper('guardTooltip', (effect) => {
-      return TooltipGenerator.generatePatrolEffectTooltip(effect);
+    Handlebars.registerHelper('guardTooltip', (item, type) => {
+      if (type === 'resource') {
+        return TooltipGenerator.generateResourceTooltip(item);
+      } else if (type === 'reputation') {
+        return TooltipGenerator.generateReputationTooltip(item);
+      } else {
+        // Default to patrol effect
+        return TooltipGenerator.generatePatrolEffectTooltip(item);
+      }
     });
 
     guardManagementModule = new GuardManagementModule();

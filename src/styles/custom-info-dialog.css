@@ -211,6 +211,8 @@
   border-radius: 6px;
   padding: 1rem;
   border: 1px solid #f3c267; /* Daggerheart gold border */
+  container-type: inline-size;
+  container-name: info-section-container;
 }
 
 .info-section h3 {
@@ -325,15 +327,15 @@
 /* Resource image */
 .resource-image {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 4px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .resource-image img {
@@ -346,104 +348,114 @@
 .resource-info {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 4px;
   flex: 1;
   text-align: center;
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .resource-name {
   font-weight: bold;
   color: #f0f0e0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .resource-quantity {
   color: #4a9eff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 
 .resource-description {
   color: #d0d0c0;
-  font-size: 10px;
+  font-size: 11px;
   font-style: italic;
-  margin-top: 0.25rem;
-  flex: 1;
+  margin-top: 0;
+  flex: none;
+  white-space: normal; /* Allow wrapping in card view */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .resource-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 6px;
   justify-content: center;
   margin-top: auto;
+  align-items: center;
+  width: 100%;
 }
 
-.btn-icon {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 4px;
-  background: rgba(255, 68, 68, 0.2);
-  color: #ff4444;
-  cursor: pointer;
+/* Stats Display - Styled like Daggerheart */
+.stats-display {
   display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0;
+  margin-bottom: 15px;
+}
+
+.stat-box {
+  background: url('../assets/svg/trait-shield.svg') no-repeat;
+  height: 60px;
+  width: 60px;
+  text-align: center;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.stat-value {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: #efe6d8; /* Daggerheart text color */
+  margin-bottom: 0;
+  text-align: center;
+}
+
+.stat-label {
+  display: flex;
+  padding-top: 5px;
+  color: #f3c267; /* Daggerheart gold color */
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 12px;
+  gap: 3px;
 }
 
-.btn-icon:hover {
-  background: rgba(255, 68, 68, 0.4);
-  transform: scale(1.05);
+/* Count Displays */
+.patrol-count,
+.resource-count,
+.reputation-count {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-/* Edit button specific styling */
-.edit-resource-btn.btn-icon {
-  background: rgba(68, 136, 255, 0.2);
-  color: #4488ff;
+.count {
+  font-size: 28px;
+  font-weight: bold;
+  color: #4a9eff;
 }
 
-.edit-resource-btn.btn-icon:hover {
-  background: rgba(68, 136, 255, 0.4);
+.label {
+  color: #d0d0c0;
+  font-size: 14px;
 }
 
-/* Send to Chat button specific styling */
-.send-to-chat-btn.btn-icon {
-  background: rgba(46, 204, 113, 0.2);
-  color: #2ecc71;
-}
-
-.send-to-chat-btn.btn-icon:hover {
-  background: rgba(46, 204, 113, 0.4);
-}
-
-.resources-list {
-  min-height: 60px;
-}
-
-.empty-state {
-  text-align: center;
-  color: #999;
-  font-style: italic;
-  padding: 1rem;
-  border: 2px dashed #666;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.02);
-  margin: 0.5rem 0;
-}
-
-.empty-state small {
-  display: block;
-  margin-top: 0.5rem;
-  color: #777;
-  font-size: 11px;
-}
-
-/* Resources Layout - 3 per row */
+/* Resources Layout - Grid View */
 .resources-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
   margin-top: 1rem;
 }
@@ -451,13 +463,15 @@
 .resource-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   transition: background-color 0.2s ease;
-  min-height: 120px;
+  min-height: 140px;
+  text-align: center;
 }
 
 /* Floating Panel Z-Index Update */
@@ -928,4 +942,178 @@
 }
 .reputation-value.neutral {
   color: #f3c267;
+}
+
+/* === REPUTATION STYLES === */
+/* Copied and adapted from resource styles for identical appearance */
+
+/* Reputation section - same as resources-section */
+.reputation-section {
+  margin-bottom: 16px;
+}
+
+/* Reputation list - Grid View */
+.reputation-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+/* Reputation items - same as resource-item */
+.reputation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  min-height: 160px;
+  text-align: center;
+  align-items: center;
+}
+
+.reputation-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Reputation header - contains image, name, value */
+.reputation-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Reputation image - same as resource-image */
+.reputation-image {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(243, 194, 103, 0.5);
+}
+
+.reputation-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* Reputation name */
+.reputation-name {
+  flex: 1;
+  font-weight: bold;
+  color: #f0f0e0;
+  font-size: 14px;
+}
+
+/* Reputation value badge */
+.reputation-value {
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.reputation-value.positive {
+  color: #4caf50;
+}
+.reputation-value.negative {
+  color: #f44336;
+}
+.reputation-value.neutral {
+  color: #f3c267;
+}
+
+/* Reputation description */
+.reputation-description {
+  color: #d0d0c0;
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 0;
+  padding-left: 0; /* Remove indent */
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Reputation actions */
+.reputation-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+}
+
+/* Reputation buttons - same as resource btn-icon */
+.edit-reputation-btn,
+.remove-reputation-btn,
+.send-to-chat-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 12px;
+}
+
+.edit-reputation-btn,
+.send-to-chat-btn {
+  background: rgba(68, 136, 255, 0.2);
+  color: #4488ff;
+}
+
+.edit-reputation-btn:hover,
+.send-to-chat-btn:hover {
+  background: rgba(68, 136, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.remove-reputation-btn:hover {
+  background: rgba(255, 68, 68, 0.4);
+  transform: scale(1.05);
+}
+
+/* Send to Chat button specific styling for reputation */
+.send-to-chat-btn.btn-icon {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+}
+
+.send-to-chat-btn.btn-icon:hover {
+  background: rgba(46, 204, 113, 0.4);
+}
+
+/* Empty state for reputation */
+.reputation-list .empty-state {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  border: 1px dashed #ccc;
 }

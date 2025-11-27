@@ -6,6 +6,12 @@
 /* Import resource dialog styles */
 @import url('./resource-dialog.css');
 
+/* Import guard sheet styles */
+@import url('./guard-sheet.css');
+
+/* Import GM warehouse styles */
+@import url('./gm-warehouse.css');
+
 /* Import Daggerheart-style chat items */
 @import url('./daggerheart-chat.css');
 
