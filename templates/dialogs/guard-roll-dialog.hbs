@@ -1,0 +1,87 @@
+<div class="roll-dialog-container">
+    <div class="dices-section">
+        <div class="dice-option">
+            <img class="dice-icon" src="systems/daggerheart/assets/icons/dice/hope/d12.svg" alt="">
+            <div class="dice-select">
+                <span class="label">{{localize "DAGGERHEART.GENERAL.hope"}}</span>
+                <select name="roll.dice.dHope">
+                    {{selectOptions diceOptions selected=roll.dice.dHope}}
+                </select>
+            </div>
+        </div>
+
+        <div class="dice-option">
+            <img class="dice-icon" src="systems/daggerheart/assets/icons/dice/fear/d12.svg" alt="">
+            <div class="dice-select">
+                <span class="label">{{localize "DAGGERHEART.GENERAL.fear"}}</span>
+                <select name="roll.dice.dFear">
+                    {{selectOptions diceOptions selected=roll.dice.dFear}}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <fieldset class="modifier-container two-columns">
+        <legend>{{localize "DAGGERHEART.GENERAL.Modifier.plural"}}</legend>
+        <div class="nest-inputs">
+            <button type="button" class="advantage-chip flex1 {{#if advantage}}active{{/if}}" data-action="updateIsAdvantage" data-advantage="1">
+                <span><i class="{{#if advantage}}fa-solid fa-check-circle{{else}}fa-regular fa-circle{{/if}}"></i></span>
+                <span class="label">{{localize "DAGGERHEART.GENERAL.Advantage.full"}}</span>
+            </button>
+            <button type="button" class="disadvantage-chip flex1 {{#if disadvantage}}active{{/if}}" data-action="updateIsAdvantage" data-advantage="-1">
+                <span><i class="{{#if disadvantage}}fa-solid fa-check-circle{{else}}fa-regular fa-circle{{/if}}"></i></span>
+                <span class="label">{{localize "DAGGERHEART.GENERAL.Disadvantage.full"}}</span>
+            </button>
+        </div>
+
+        {{#if (or advantage disadvantage)}}
+        <div class="nest-inputs">
+            <select name="roll.dice.advantageNumber">
+                {{selectOptions advantageNumbers selected=roll.dice.advantageNumber}}
+            </select>
+            <select name="roll.dice.advantageFaces">
+                {{selectOptions diceOptions selected=roll.dice.advantageFaces}}
+            </select>
+        </div>
+        {{/if}}
+
+        <span>{{localize "DAGGERHEART.GENERAL.traitModifier"}}</span>
+        <select name="trait">
+            <option value="">{{localize "DAGGERHEART.GENERAL.none"}}</option>
+            {{#each traits}}
+            <option value="{{id}}" {{#if (eq ../selectedTrait id)}}selected{{/if}}>{{label}} ({{value}})</option>
+            {{/each}}
+        </select>
+
+        <span class="formula-label">{{localize "DAGGERHEART.GENERAL.situationalBonus"}}</span>
+        <input type="text" value="{{extraFormula}}" name="extraFormula" placeholder="Ex: 1d6 + 5">
+    </fieldset>
+
+    {{#if activeModifiers}}
+    <fieldset class="modifier-container">
+        <legend>Active Modifiers</legend>
+        <div class="active-modifiers-list">
+            {{#each activeModifiers}}
+            <div class="modifier-item">
+                <span class="modifier-name">{{name}}</span>
+                <span class="modifier-value">{{value}}</span>
+            </div>
+            {{/each}}
+        </div>
+    </fieldset>
+    {{/if}}
+
+    <span class="formula-label"><b>{{localize "DAGGERHEART.GENERAL.formula"}}:</b> {{formula}}</span>
+
+    <div class="roll-dialog-controls">
+        <select class="roll-mode-select" name="selectedRollMode">
+            {{selectOptions rollModes selected=selectedRollMode valueAttr="action" labelAttr="label"}}
+        </select>
+        <button class="submit-btn" data-action="submitRoll">
+            <i class="fa-solid fa-dice"></i>
+            <span class="label">
+                {{localize "DAGGERHEART.GENERAL.roll"}}
+            </span>
+        </button>
+    </div>
+</div>

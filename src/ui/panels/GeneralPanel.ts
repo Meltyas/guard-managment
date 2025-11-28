@@ -36,19 +36,17 @@ export class GeneralPanel {
             mods.length > 0
               ? '<ul class="stat-tooltip-list">' +
                 mods
-                  .map(
-                    (m: { name: string; img: string; value: number }) => {
-                      let colorClass = 'neutral';
-                      let sign = '';
-                      if (m.value > 0) {
-                        colorClass = 'positive';
-                        sign = '+';
-                      } else if (m.value < 0) {
-                        colorClass = 'negative';
-                      }
-                      return `<li><span class="mod-val ${colorClass}">${sign}${m.value}</span> <img src="${m.img}" class="tooltip-icon"/> ${m.name}</li>`;
+                  .map((m: { name: string; img: string; value: number }) => {
+                    let colorClass = 'neutral';
+                    let sign = '';
+                    if (m.value > 0) {
+                      colorClass = 'positive';
+                      sign = '+';
+                    } else if (m.value < 0) {
+                      colorClass = 'negative';
                     }
-                  )
+                    return `<li><span class="mod-val ${colorClass}">${sign}${m.value}</span> <img src="${m.img}" class="tooltip-icon"/> ${m.name}</li>`;
+                  })
                   .join('') +
                 '</ul>'
               : '';
@@ -88,7 +86,8 @@ export class GeneralPanel {
             const val = m.value;
             const valStr = val >= 0 ? `+${val}` : `${val}`;
             let color = '#ffffff'; // Neutral
-            if (val > 0) color = '#4ae89a'; // Green
+            if (val > 0)
+              color = '#4ae89a'; // Green
             else if (val < 0) color = '#e84a4a'; // Red
 
             tooltip += `<div style="display: flex; justify-content: space-between; font-size: 0.9em;"><span>${m.statName}:</span> <strong style="color: ${color}">${valStr}</strong></div>`;
@@ -142,6 +141,16 @@ export class GeneralPanel {
       const id = ev.currentTarget.dataset.id;
       console.log('Guard Management | Modifier right-clicked:', id);
       if (id) this.handleRemoveModifier(id, onRefresh);
+    });
+
+    // Stat click listener
+    $html.off('click', '.stat-box.clickable-stat').on('click', '.stat-box.clickable-stat', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const statKey = ev.currentTarget.dataset.stat;
+      if (statKey) {
+        gm.guardOrganizationManager.rollStat(statKey);
+      }
     });
   }
 

@@ -255,7 +255,7 @@ Hooks.once('init', async () => {
       if (stat.effects > 0) effColor = '#4ae89a';
       else if (stat.effects < 0) effColor = '#e84a4a';
 
-      let html = `<table style="border-collapse: collapse; width: 100%; font-size: 14px;">`;
+      let html = `<table style="border-collapse: collapse; width: 100%; font-size: 17px;">`;
 
       // Base
       html += `<tr>

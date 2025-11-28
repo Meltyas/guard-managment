@@ -16,7 +16,7 @@
                     </div>
                     <div class="stats-mini">
                         {{#each this.statsBreakdown as |stat key|}}
-                        <span class="stat" data-stat="{{key}}" data-tooltip="{{patrolStatTooltip stat}}">
+                        <span class="stat clickable-stat" data-stat="{{key}}" data-tooltip="{{patrolStatTooltip stat}}">
                             {{key}}: {{stat.total}}
                         </span>
                         {{/each}}

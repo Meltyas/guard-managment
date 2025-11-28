@@ -107,6 +107,25 @@ export class PatrolsPanel {
       if (id) this.handleOpenActorSheet(id);
     });
 
+    // Stat interactions
+    $html.find('.stat.clickable-stat').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const target = ev.currentTarget;
+      const card = target.closest('.patrol-card') as HTMLElement;
+      const patrolId = card?.dataset.patrolId;
+      const statKey = target.dataset.stat;
+
+      if (patrolId && statKey) {
+        const gm = (window as any).GuardManagement;
+        const orgMgr = gm?.guardOrganizationManager;
+        const pMgr = orgMgr?.getPatrolManager();
+        if (pMgr) {
+          pMgr.rollStat(patrolId, statKey);
+        }
+      }
+    });
+
     // Effect interactions
     $html.find('.effect-item, .stat').on('mouseenter', (ev) => {
       const target = ev.currentTarget;

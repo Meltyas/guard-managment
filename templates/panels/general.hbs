@@ -17,7 +17,11 @@
     <h3><i class='fas fa-chart-bar'></i> Estadísticas</h3>
     <div class='stats-display'>
       {{#each statsDisplay}}
-        <div class='stat-box' data-tooltip='{{this.tooltip}}'>
+        <div
+          class='stat-box clickable-stat'
+          data-stat='{{this.key}}'
+          data-tooltip='{{this.tooltip}}'
+        >
           <div class='stat-value {{this.cssClass}}'>
             {{this.base}}
             {{#if this.showTotal}}({{this.total}}){{/if}}

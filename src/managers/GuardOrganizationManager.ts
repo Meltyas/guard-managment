@@ -1,5 +1,6 @@
 import { AddOrEditPatrolDialog } from '../dialogs/AddOrEditPatrolDialog';
 import { GuardOrganizationDialog } from '../dialogs/GuardOrganizationDialog';
+import { GuardRollDialog } from '../dialogs/GuardRollDialog';
 import { createGuardReputation, createGuardResource } from '../documents/index';
 import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats, Patrol } from '../types/entities';
 import { PatrolChangeOp, PatrolManager } from './PatrolManager';
@@ -795,5 +796,123 @@ export class GuardOrganizationManager {
     }
 
     return stats;
+  }
+
+  public async rollStat(stat?: keyof GuardStats): Promise<void> {
+    if (!this.organization) return;
+
+    const activeModifiers = this.getActiveModifiers().map((m) => ({ name: m.name, value: 0 }));
+
+    const config: any = await GuardRollDialog.create(
+      this.organization,
+      activeModifiers,
+      (stat as string) || ''
+    );
+    if (config) {
+      await this.performRoll(config);
+    }
+  }
+
+  private async performRoll(config: any) {
+    const DualityRoll = (game as any).system.api.dice.DualityRoll;
+
+    // Construct base formula
+    const formula = `1${config.roll.dice.dHope} + 1${config.roll.dice.dFear}`;
+
+    const stats = this.calculateEffectiveOrgStats();
+    const traitsData = {
+      robustismo: { value: stats.robustismo, label: 'Robustismo' },
+      analitica: { value: stats.analitica, label: 'Analítica' },
+      subterfugio: { value: stats.subterfugio, label: 'Subterfugio' },
+      elocuencia: { value: stats.elocuencia, label: 'Elocuencia' },
+    };
+
+    const rollData = { traits: traitsData, bonuses: {} };
+
+    const options = {
+      roll: {
+        ...config.roll,
+        advantage: config.roll.advantage,
+      },
+      source: {},
+      data: rollData,
+    };
+
+    // Avoid adding +0 modifier if trait value is 0
+    if (options.roll.trait && (traitsData as any)[options.roll.trait]?.value === 0) {
+      delete options.roll.trait;
+    }
+
+    const roll = new DualityRoll(formula, rollData, options);
+
+    // Set advantage properties
+    roll.advantageNumber = Number(config.roll.dice.advantageNumber);
+    roll.advantageFaces = config.roll.dice.advantageFaces;
+
+    // Add extra formula if present
+    if (config.extraFormula) {
+      // We can't easily append to formula after construction without re-parsing or manipulating terms.
+      // But DualityRoll extends D20Roll which extends Roll.
+      // We can try to create a new roll with the full formula.
+      // But DualityRoll expects specific terms at specific indices (0, 1, 2).
+
+      // Alternatively, we can add terms manually.
+      // But parsing "1d6 + 5" into terms is hard without Roll.parse.
+
+      // Let's try to append to the formula string passed to constructor?
+      // But DualityRoll constructor might be strict.
+      // "1d12 + 1d12 + 1d6 + 5"
+
+      // If we pass a longer formula, DualityRoll might not identify dHope/dFear correctly if it relies on indices.
+      // DualityRoll.mjs:
+      // get dHope() { if (!(this.dice[0] instanceof foundry.dice.terms.Die)) this.createBaseDice(); return this.dice[0]; }
+      // It assumes dice[0] is Hope.
+
+      // So if we append, it should be fine as long as the first two dice are Hope and Fear.
+
+      const fullFormula = `${formula} + ${config.extraFormula}`;
+      const complexRoll = new DualityRoll(fullFormula, rollData, options);
+      complexRoll.advantageNumber = Number(config.roll.dice.advantageNumber);
+      complexRoll.advantageFaces = config.roll.dice.advantageFaces;
+
+      await complexRoll.evaluate();
+
+      const evaluatedData = DualityRoll.postEvaluate(complexRoll, options);
+      const messageData = {
+        type: 'dualityRoll',
+        user: (game as any).user.id,
+        speaker: { alias: this.organization!.name },
+        sound: (CONFIG as any).sounds.dice,
+        system: {
+          ...options,
+          roll: evaluatedData,
+          hasRoll: true,
+          title: complexRoll.title,
+        },
+        rolls: [complexRoll],
+      };
+
+      await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
+      return;
+    }
+
+    await roll.evaluate();
+
+    const evaluatedData = DualityRoll.postEvaluate(roll, options);
+    const messageData = {
+      type: 'dualityRoll',
+      user: (game as any).user.id,
+      speaker: { alias: this.organization!.name },
+      sound: (CONFIG as any).sounds.dice,
+      system: {
+        ...options,
+        roll: evaluatedData,
+        hasRoll: true,
+        title: roll.title,
+      },
+      rolls: [roll],
+    };
+
+    await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
   }
 }

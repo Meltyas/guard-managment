@@ -1274,3 +1274,14 @@
   color: #4a9eff;
   font-weight: bold;
 }
+
+/* Clickable Stats */
+.clickable-stat {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable-stat:hover {
+  transform: scale(1.05);
+  text-shadow: 0 0 5px #f3c267;
+}

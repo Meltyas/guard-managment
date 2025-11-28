@@ -1,3 +1,4 @@
+import { GuardRollDialog } from '../dialogs/GuardRollDialog';
 import { GuardStats, Patrol, PatrolEffectInstance, PatrolLastOrder } from '../types/entities';
 
 /**
@@ -363,5 +364,106 @@ export class PatrolManager {
     } catch (e) {
       console.warn('PatrolManager | setupActorWatchers failed', e);
     }
+  }
+
+  public async rollStat(patrolId: string, stat?: keyof GuardStats): Promise<void> {
+    const patrol = this.patrols.get(patrolId);
+    if (!patrol) return;
+
+    const activeModifiers: { name: string; value: number }[] = [];
+    for (const eff of patrol.patrolEffects) {
+      activeModifiers.push({ name: eff.label, value: 0 });
+    }
+
+    const config: any = await GuardRollDialog.create(
+      patrol,
+      activeModifiers,
+      (stat as string) || ''
+    );
+    if (config) {
+      await this.performRoll(patrol, config);
+    }
+  }
+
+  private async performRoll(patrol: Patrol, config: any) {
+    const DualityRoll = (game as any).system.api.dice.DualityRoll;
+
+    const formula = `1${config.roll.dice.dHope} + 1${config.roll.dice.dFear}`;
+
+    const stats = patrol.derivedStats || patrol.baseStats;
+
+    const traitsData = {
+      robustismo: { value: stats.robustismo, label: 'Robustismo' },
+      analitica: { value: stats.analitica, label: 'Analítica' },
+      subterfugio: { value: stats.subterfugio, label: 'Subterfugio' },
+      elocuencia: { value: stats.elocuencia, label: 'Elocuencia' },
+    };
+
+    const rollData = { traits: traitsData, bonuses: {} };
+
+    const options = {
+      roll: {
+        ...config.roll,
+        advantage: config.roll.advantage,
+      },
+      source: {},
+      data: rollData,
+    };
+
+    // Avoid adding +0 modifier if trait value is 0
+    if (options.roll.trait && (traitsData as any)[options.roll.trait]?.value === 0) {
+      delete options.roll.trait;
+    }
+
+    const roll = new DualityRoll(formula, rollData, options);
+
+    roll.advantageNumber = Number(config.roll.dice.advantageNumber);
+    roll.advantageFaces = config.roll.dice.advantageFaces;
+
+    if (config.extraFormula) {
+      const fullFormula = `${formula} + ${config.extraFormula}`;
+      const complexRoll = new DualityRoll(fullFormula, rollData, options);
+      complexRoll.advantageNumber = Number(config.roll.dice.advantageNumber);
+      complexRoll.advantageFaces = config.roll.dice.advantageFaces;
+
+      await complexRoll.evaluate();
+
+      const evaluatedData = DualityRoll.postEvaluate(complexRoll, options);
+      const messageData = {
+        type: 'dualityRoll',
+        user: (game as any).user.id,
+        speaker: { alias: patrol.name },
+        sound: (CONFIG as any).sounds.dice,
+        system: {
+          ...options,
+          roll: evaluatedData,
+          hasRoll: true,
+          title: complexRoll.title,
+        },
+        rolls: [complexRoll],
+      };
+
+      await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
+      return;
+    }
+
+    await roll.evaluate();
+
+    const evaluatedData = DualityRoll.postEvaluate(roll, options);
+    const messageData = {
+      type: 'dualityRoll',
+      user: (game as any).user.id,
+      speaker: { alias: patrol.name },
+      sound: (CONFIG as any).sounds.dice,
+      system: {
+        ...options,
+        roll: evaluatedData,
+        hasRoll: true,
+        title: roll.title,
+      },
+      rolls: [roll],
+    };
+
+    await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
   }
 }
