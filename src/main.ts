@@ -243,6 +243,61 @@ Hooks.once('init', async () => {
       }
     });
 
+    Handlebars.registerHelper('patrolStatTooltip', (stat) => {
+      const orgSign = stat.org >= 0 ? '+' : '';
+      const effSign = stat.effects >= 0 ? '+' : '';
+
+      let html = `<table style="border-collapse: collapse; width: 100%; font-size: 0.9em;">`;
+
+      // Base
+      html += `<tr>
+        <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold; min-width: 25px;">${stat.base}</td>
+        <td style="padding: 2px 0;">Base</td>
+      </tr>`;
+
+      // Organization
+      html += `<tr>
+        <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold;">${orgSign}${stat.org}</td>
+        <td style="padding: 2px 0;">Organización</td>
+      </tr>`;
+
+      // Effects Header
+      html += `<tr>
+        <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold;">${effSign}${stat.effects}</td>
+        <td style="padding: 2px 0;">Efectos:</td>
+      </tr>`;
+
+      // Effects List
+      if (stat.effectList && stat.effectList.length > 0) {
+        for (const eff of stat.effectList) {
+          const valStr = eff.value >= 0 ? `+${eff.value}` : `${eff.value}`;
+          const imgHtml = eff.img
+            ? `<img src='${eff.img}' style='width: 24px; height: 24px; border: none; object-fit: cover; vertical-align: middle;' />`
+            : '';
+
+          html += `<tr>
+                <td style="text-align: center; padding: 2px 8px 2px 0; font-size: 0.9em; opacity: 0.8;">${valStr}</td>
+                <td style="padding: 1px 0;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                        ${imgHtml}
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${eff.name}</span>
+                    </div>
+                </td>
+            </tr>`;
+        }
+      }
+
+      // Total
+      html += `<tr style="border-top: 1px solid rgba(255,255,255,0.3);">
+        <td style="text-align: center; padding: 6px 8px 2px 0; font-weight: bold; font-size: 1.1em;">${stat.total}</td>
+        <td style="padding: 6px 0 2px 0; font-weight: bold;">Total</td>
+      </tr>`;
+
+      html += `</table>`;
+
+      return html;
+    });
+
     guardManagementModule = new GuardManagementModule();
     await guardManagementModule.initialize();
 

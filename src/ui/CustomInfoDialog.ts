@@ -1125,6 +1125,11 @@ export class CustomInfoDialog implements FocusableDialog {
         localStorage.setItem(CustomInfoDialog.TAB_LS_KEY, tab);
       } catch {}
       positionBar(buttons.find((b) => b.dataset.tab === tab));
+
+      // Refresh patrols panel if activated
+      if (tab === 'patrols') {
+        this.refreshPatrolsPanel();
+      }
     };
 
     buttons.forEach((b) => b.addEventListener('click', () => activate(b.dataset.tab!)));

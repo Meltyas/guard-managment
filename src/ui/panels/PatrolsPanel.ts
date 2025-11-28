@@ -22,7 +22,7 @@ export class PatrolsPanel {
       // Format stats breakdown for template
       const statsBreakdown: Record<string, any> = {};
       Object.entries(p.derivedStats || p.baseStats || {}).forEach(([k, v]) => {
-        const b = (bd as any)[k] || { base: 0, effects: 0, org: 0, total: v };
+        const b = (bd as any)[k] || { base: 0, effects: 0, effectList: [], org: 0, total: v };
         statsBreakdown[k] = { ...b, total: v as number };
       });
 
@@ -108,7 +108,7 @@ export class PatrolsPanel {
     });
 
     // Effect interactions
-    $html.find('.effect-item').on('mouseenter', (ev) => {
+    $html.find('.effect-item, .stat').on('mouseenter', (ev) => {
       const target = ev.currentTarget;
       const game = (globalThis as any).game;
       if (game?.tooltip) {
@@ -141,22 +141,35 @@ export class PatrolsPanel {
   private static computePatrolStatBreakdown(patrol: any) {
     try {
       const derived = patrol.derivedStats || patrol.baseStats || {};
+
       const effectTotals: Record<string, number> = {};
+      const effectDetails: Record<string, Array<{ name: string; img: string; value: number }>> = {};
+
       for (const eff of patrol.patrolEffects || []) {
         for (const [k, v] of Object.entries(eff.modifiers || {})) {
-          effectTotals[k] = (effectTotals[k] || 0) + ((v as number) || 0);
+          const val = (v as number) || 0;
+          effectTotals[k] = (effectTotals[k] || 0) + val;
+
+          if (!effectDetails[k]) effectDetails[k] = [];
+          effectDetails[k].push({
+            name: eff.label || 'Unknown',
+            img: eff.img,
+            value: val,
+          });
         }
       }
+
       const breakdown: Record<
         string,
-        { base: number; effects: number; org: number; total: number }
+        { base: number; effects: number; effectList: any[]; org: number; total: number }
       > = {};
       for (const key of Object.keys(derived)) {
         const base = patrol.baseStats?.[key] ?? 0;
         const effects = effectTotals[key] || 0;
+        const effectList = effectDetails[key] || [];
         const total = derived[key] ?? 0; // preserve negatives
         const org = total - base - effects; // whatever isn't base or effects we attribute to organization modifiers
-        breakdown[key] = { base, effects, org, total };
+        breakdown[key] = { base, effects, effectList, org, total };
       }
       return breakdown;
     } catch {

@@ -194,11 +194,13 @@ export class PatrolManager {
       updatedAt: now,
     };
     // Keep derivedStats unless baseStats changed (will be recalculated externally)
+    let ctx: any = undefined;
     if (updates.baseStats) {
       merged.derivedStats = { ...updates.baseStats } as any;
+      ctx = { field: 'baseStats' };
     }
     this.patrols.set(patrolId, merged);
-    this.onChange?.(merged, 'update');
+    this.onChange?.(merged, 'update', ctx);
     this.queueSave();
     return merged;
   }

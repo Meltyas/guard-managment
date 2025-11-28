@@ -16,7 +16,7 @@
                     </div>
                     <div class="stats-mini">
                         {{#each this.statsBreakdown as |stat key|}}
-                        <span class="stat" data-stat="{{key}}" title="Base: {{stat.base}}&#10;Efectos: {{stat.effects}}&#10;Organización: {{#if (gte stat.org 0)}}+{{/if}}{{stat.org}}&#10;Total: {{stat.total}}">
+                        <span class="stat" data-stat="{{key}}" data-tooltip="{{patrolStatTooltip stat}}">
                             {{key}}: {{stat.total}}
                         </span>
                         {{/each}}

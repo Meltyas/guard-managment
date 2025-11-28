@@ -27,8 +27,12 @@ export class GuardOrganizationManager {
         if (!this.organization.patrols.includes(patrol.id)) {
           this.organization.patrols.push(patrol.id);
         }
-        if (ctx?.field === 'patrolEffects' || ctx?.field === 'baseStats') {
-          this.patrolManager.recalcDerived(patrol.id, {});
+
+        // If derived stats changed, we don't need to save organization unless patrol list changed
+        if (ctx?.field === 'derivedStats') return;
+
+        if (op === 'create' || ctx?.field === 'patrolEffects' || ctx?.field === 'baseStats') {
+          this.patrolManager.recalcDerived(patrol.id, this.organization?.baseStats || {});
         }
         this.organization.updatedAt = new Date();
         this.organization.version += 1;
@@ -48,6 +52,10 @@ export class GuardOrganizationManager {
       console.warn('GuardOrganizationManager | patrolManager initialize failed', e);
     }
     await this.loadOrganization();
+
+    if (this.organization) {
+      this.recalcAllPatrols();
+    }
 
     // Si no hay organización, intentar obtenerla del GM o crear una por defecto
     if (!this.organization) {
@@ -253,6 +261,12 @@ export class GuardOrganizationManager {
       id: this.organization.id,
       version: this.organization.version + 1,
     };
+
+    // If baseStats changed, recalculate all patrols
+    if (updates.baseStats) {
+      this.organization = updated; // Update local ref first
+      this.recalcAllPatrols();
+    }
 
     await this.saveOrganization(updated);
     console.log(`GuardOrganizationManager | Updated organization: ${updated.name}`);
@@ -657,8 +671,9 @@ export class GuardOrganizationManager {
 
   public recalcAllPatrols(orgModifiers?: Partial<GuardStats>) {
     if (!this.organization) return;
+    const modifiers = orgModifiers || this.organization.baseStats;
     for (const pid of this.organization.patrols) {
-      this.patrolManager.recalcDerived(pid, orgModifiers);
+      this.patrolManager.recalcDerived(pid, modifiers);
     }
   }
 
