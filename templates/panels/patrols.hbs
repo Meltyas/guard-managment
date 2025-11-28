@@ -21,7 +21,7 @@
                         </span>
                         {{/each}}
                     </div>
-                    <div class="officer-slot" data-drop="officer" data-tooltip="Arrastra un Actor aquí para asignarlo como Oficial">
+                    <div class="officer-slot" data-drop="officer" >
                         {{#if this.officer}}
                         <div class="clickable-actor" data-action="open-sheet" data-actor-id="{{this.officer.actorId}}" style="cursor: pointer;">
                             <img src="{{this.officer.img}}" alt="oficial" />
@@ -44,7 +44,7 @@
                         <span class="more" data-tooltip="{{subtract this.soldiers.length this.soldierSlots}} más">+{{subtract this.soldiers.length this.soldierSlots}}</span>
                         {{/if}}
                     </div>
-                    <div class="last-order-line {{this.ageClass}}" data-action="edit-last-order" data-patrol-id="{{this.id}}" data-tooltip="Click para editar la última orden">
+                    <div class="last-order-line {{this.ageClass}}" data-action="edit-last-order" data-patrol-id="{{this.id}}" >
                         <i class="fas fa-scroll"></i>
                         <div class="last-order-content">
                             <span class="last-order-label">Última Orden:</span>

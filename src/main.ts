@@ -247,6 +247,14 @@ Hooks.once('init', async () => {
       const orgSign = stat.org >= 0 ? '+' : '';
       const effSign = stat.effects >= 0 ? '+' : '';
 
+      let orgColor = '#ffffff';
+      if (stat.org > 0) orgColor = '#4ae89a';
+      else if (stat.org < 0) orgColor = '#e84a4a';
+
+      let effColor = '#ffffff';
+      if (stat.effects > 0) effColor = '#4ae89a';
+      else if (stat.effects < 0) effColor = '#e84a4a';
+
       let html = `<table style="border-collapse: collapse; width: 100%; font-size: 14px;">`;
 
       // Base
@@ -257,7 +265,7 @@ Hooks.once('init', async () => {
 
       // Organization
       html += `<tr>
-        <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold;">${orgSign}${stat.org}</td>
+        <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold; color: ${orgColor};">${orgSign}${stat.org}</td>
         <td style="padding: 2px 0;">Organización</td>
       </tr>`;
 
@@ -269,7 +277,7 @@ Hooks.once('init', async () => {
             ? `<img src='${mod.img}' style='width: 24px; height: 24px; border: none; object-fit: cover; vertical-align: middle;' />`
             : '';
 
-          let color = '#f0f0e0'; // Neutral (white-ish)
+          let color = '#ffffff'; // Neutral (white)
           if (mod.value > 0)
             color = '#4ae89a'; // Green
           else if (mod.value < 0) color = '#e84a4a'; // Red
@@ -290,7 +298,7 @@ Hooks.once('init', async () => {
 
       // Effects Header
       html += `<tr>
-        <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold;">${effSign}${stat.effects}</td>
+        <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold; color: ${effColor};">${effSign}${stat.effects}</td>
         <td style="padding: 2px 0;">Efectos:</td>
       </tr>`;
 
@@ -302,7 +310,7 @@ Hooks.once('init', async () => {
             ? `<img src='${eff.img}' style='width: 24px; height: 24px; border: none; object-fit: cover; vertical-align: middle;' />`
             : '';
 
-          let color = '#f0f0e0'; // Neutral (white-ish)
+          let color = '#ffffff'; // Neutral (white)
           if (eff.value > 0)
             color = '#4ae89a'; // Green
           else if (eff.value < 0) color = '#e84a4a'; // Red
@@ -371,6 +379,11 @@ Hooks.once('init', async () => {
 });
 
 Hooks.once('ready', async () => {
+  // Configure tooltips to be fast
+  if (game?.tooltip) {
+    (game.tooltip as any).activationTime = 100; // 100ms delay
+  }
+
   // Check if module was properly initialized
   const gm = (window as any).GuardManagement;
   if (!gm || !gm.isInitialized) {

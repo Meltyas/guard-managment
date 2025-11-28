@@ -15,8 +15,14 @@ export class TooltipGenerator {
       modifiersHtml =
         '<div class="tooltip-modifiers" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
       for (const [key, value] of Object.entries(effect.modifiers)) {
-        const valStr = (value as number) >= 0 ? `+${value}` : `${value}`;
-        modifiersHtml += `<div class="tooltip-mod" style="display: flex; justify-content: space-between; font-size: 0.9em;"><span>${key}:</span> <strong>${valStr}</strong></div>`;
+        const val = value as number;
+        const valStr = val >= 0 ? `+${val}` : `${val}`;
+        
+        let color = '#ffffff'; // Neutral
+        if (val > 0) color = '#4ae89a'; // Green
+        else if (val < 0) color = '#e84a4a'; // Red
+
+        modifiersHtml += `<div class="tooltip-mod" style="display: flex; justify-content: space-between; font-size: 0.9em;"><span>${key}:</span> <strong style="color: ${color}">${valStr}</strong></div>`;
       }
       modifiersHtml += '</div>';
     }

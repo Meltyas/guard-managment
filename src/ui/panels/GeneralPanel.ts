@@ -37,8 +37,17 @@ export class GeneralPanel {
               ? '<ul class="stat-tooltip-list">' +
                 mods
                   .map(
-                    (m: { name: string; img: string; value: number }) =>
-                      `<li><span class="mod-val ${m.value > 0 ? 'positive' : 'negative'}">${m.value > 0 ? '+' : ''}${m.value}</span> <img src="${m.img}" class="tooltip-icon"/> ${m.name}</li>`
+                    (m: { name: string; img: string; value: number }) => {
+                      let colorClass = 'neutral';
+                      let sign = '';
+                      if (m.value > 0) {
+                        colorClass = 'positive';
+                        sign = '+';
+                      } else if (m.value < 0) {
+                        colorClass = 'negative';
+                      }
+                      return `<li><span class="mod-val ${colorClass}">${sign}${m.value}</span> <img src="${m.img}" class="tooltip-icon"/> ${m.name}</li>`;
+                    }
                   )
                   .join('') +
                 '</ul>'
@@ -66,6 +75,29 @@ export class GeneralPanel {
         if (netValue > 0) borderClass = 'positive-border';
         else if (netValue < 0) borderClass = 'negative-border';
 
+        // Generate tooltip
+        let tooltip = `<strong>${mod.name}</strong><br/>`;
+        if (mod.system.description) {
+          tooltip += `<div style="margin-bottom:5px; font-size:0.9em; font-style:italic;">${mod.system.description}</div>`;
+        }
+
+        if (mod.system.statModifications && mod.system.statModifications.length > 0) {
+          tooltip +=
+            '<div class="tooltip-modifiers" style="margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
+          for (const m of mod.system.statModifications) {
+            const val = m.value;
+            const valStr = val >= 0 ? `+${val}` : `${val}`;
+            let color = '#ffffff'; // Neutral
+            if (val > 0) color = '#4ae89a'; // Green
+            else if (val < 0) color = '#e84a4a'; // Red
+
+            tooltip += `<div style="display: flex; justify-content: space-between; font-size: 0.9em;"><span>${m.statName}:</span> <strong style="color: ${color}">${valStr}</strong></div>`;
+          }
+          tooltip += '</div>';
+        }
+
+        tooltip += '<hr>Left Click: Send to Chat<br/>Right Click: Remove';
+
         // Create a plain object with all necessary properties explicitly
         // This handles cases where 'mod' is a Foundry Document (where id/name/img are getters)
         return {
@@ -75,6 +107,7 @@ export class GeneralPanel {
           system: mod.system,
           netValue,
           borderClass,
+          tooltip,
         };
       })
       .sort((a: any, b: any) => {

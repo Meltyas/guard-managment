@@ -193,7 +193,7 @@ export class PatrolsComponent extends ComponentBase<PatrolsComponentState> {
     const lastOrder = p.lastOrder;
     const ageClass = lastOrder ? classifyLastOrderAge({ issuedAt: lastOrder.issuedAt }) : 'normal';
     const lastOrderHtml = `
-      <div class="last-order-line ${ageClass}" data-action="edit-last-order" data-patrol-id="${p.id}" title="Click para editar la última orden">
+      <div class="last-order-line ${ageClass}" data-action="edit-last-order">
         <i class="fas fa-scroll"></i>
         <span class="last-order-label">Orden:</span>
         <span class="last-order-text">${escapeHtml(lastOrder ? lastOrder.text : '— (sin orden)')}</span>
