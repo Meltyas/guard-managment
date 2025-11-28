@@ -31,7 +31,8 @@
     "Item": {
       "guard-resource": {},
       "guard-reputation": {},
-      "patrol-effect": {}
+      "patrol-effect": {},
+      "guard-modifier": {}
     }
   },
   "url": "https://github.com/meltyas/guard-management",

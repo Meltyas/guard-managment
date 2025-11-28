@@ -13,6 +13,33 @@ import { ResourceEventHandler, type ResourceEventContext } from '../utils/Resour
  */
 
 export class GMWarehouseDialog implements FocusableDialog {
+  private static instance: GMWarehouseDialog | null = null;
+
+  /**
+   * Static method to show the singleton instance
+   */
+  public static async show(
+    options: {
+      width?: number;
+      height?: number;
+      x?: number;
+      y?: number;
+    } = {}
+  ): Promise<void> {
+    if (!GMWarehouseDialog.instance) {
+      GMWarehouseDialog.instance = new GMWarehouseDialog();
+    }
+
+    // If already open, just focus it
+    if (GMWarehouseDialog.instance.isOpen()) {
+      DialogFocusManager.getInstance().setFocus(GMWarehouseDialog.instance);
+      return;
+    }
+
+    // Otherwise show it
+    await GMWarehouseDialog.instance.show(options);
+  }
+
   public element: HTMLElement | null = null;
   private isDragging = false;
   private isResizing = false;
@@ -28,6 +55,7 @@ export class GMWarehouseDialog implements FocusableDialog {
   private resourceTemplates: any[] = [];
   private reputationTemplates: any[] = [];
   private patrolEffectTemplates: any[] = [];
+  private guardModifierTemplates: any[] = [];
 
   constructor() {
     // Check GM permissions
@@ -259,6 +287,27 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Get guard modifier templates from DocumentBasedManager
+   */
+  private async getGuardModifierTemplates(): Promise<any[]> {
+    try {
+      const gm = (window as any).GuardManagement;
+
+      if (!gm || !gm.isInitialized || !gm.documentManager) {
+        this.guardModifierTemplates = [];
+        return this.guardModifierTemplates;
+      }
+
+      this.guardModifierTemplates = await gm.documentManager.getGuardModifiers();
+      return this.guardModifierTemplates;
+    } catch (error) {
+      console.error('Error loading guard modifier templates:', error);
+      this.guardModifierTemplates = [];
+      return this.guardModifierTemplates;
+    }
+  }
+
+  /**
    * Load initial content when dialog opens
    */
   private async loadInitialContent(): Promise<void> {
@@ -268,6 +317,8 @@ export class GMWarehouseDialog implements FocusableDialog {
     await this.refreshReputationTab();
     // Load patrol effects tab content
     await this.refreshPatrolEffectsTab();
+    // Load guard modifiers tab content
+    await this.refreshGuardModifiersTab();
 
     // Restore last tab
     const lastTab = localStorage.getItem('guard-management-warehouse-tab');
@@ -346,6 +397,25 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Render individual guard modifier template
+   */
+  private async renderGuardModifierTemplate(modifier: any): Promise<string> {
+    const modifierData = {
+      id: modifier.id,
+      name: modifier.name,
+      description: modifier.system?.description || '',
+      type: modifier.system?.type || 'neutral',
+      image: modifier.img || '',
+      statModifications: modifier.system?.statModifications || [],
+    };
+
+    return renderTemplate(
+      'modules/guard-management/templates/partials/warehouse-guard-modifier-item.hbs',
+      modifierData
+    );
+  }
+
+  /**
    * Add event listeners
    */
   private addEventListeners(): void {
@@ -405,6 +475,8 @@ export class GMWarehouseDialog implements FocusableDialog {
           await this.handleAddReputation();
         } else if (templateType === 'patrol-effect') {
           await this.handleAddPatrolEffect();
+        } else if (templateType === 'guard-modifier') {
+          await this.handleAddGuardModifier();
         } else if (templateType) {
           console.log(`Adding new ${templateType} template - functionality to be implemented`);
           if ((globalThis as any).ui?.notifications) {
@@ -741,6 +813,35 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Handle adding a new guard modifier template
+   */
+  private async handleAddGuardModifier(): Promise<void> {
+    try {
+      const { AddOrEditGuardModifierDialog } = await import('./AddOrEditGuardModifierDialog.js');
+      const newModifier = await AddOrEditGuardModifierDialog.create();
+
+      if (newModifier) {
+        const gm = (window as any).GuardManagement;
+        if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+
+        await gm.documentManager.createGuardModifier(newModifier);
+        await this.refreshGuardModifiersTab();
+
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Guard modifier template "${newModifier.name}" created successfully`
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error adding guard modifier template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error creating guard modifier template');
+      }
+    }
+  }
+
+  /**
    * Refresh the resources tab content
    */
   private async refreshResourcesTab(): Promise<void> {
@@ -835,6 +936,35 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Refresh the guard modifiers tab content
+   */
+  private async refreshGuardModifiersTab(): Promise<void> {
+    if (!this.element) return;
+
+    const modifiersList = this.element.querySelector('.guard-modifiers-list');
+    if (modifiersList) {
+      const modifierTemplates = await this.getGuardModifierTemplates();
+
+      // Clear current content
+      modifiersList.innerHTML = '';
+
+      if (modifierTemplates.length > 0) {
+        for (const modifier of modifierTemplates) {
+          const templateContent = await this.renderGuardModifierTemplate(modifier);
+          modifiersList.insertAdjacentHTML('beforeend', templateContent);
+        }
+      } else {
+        const emptyStateElement = document.createElement('p');
+        emptyStateElement.className = 'empty-state';
+        emptyStateElement.textContent = 'No guard modifier templates created yet';
+        modifiersList.appendChild(emptyStateElement);
+      }
+
+      this.addTemplateEventListeners();
+    }
+  }
+
+  /**
    * Add event listeners specifically for template items
    */
   private addTemplateEventListeners(): void {
@@ -866,6 +996,7 @@ export class GMWarehouseDialog implements FocusableDialog {
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
+        const modifierId = templateItem?.dataset.modifierId;
 
         if (resourceId) {
           this.handleEditTemplate(resourceId);
@@ -873,6 +1004,8 @@ export class GMWarehouseDialog implements FocusableDialog {
           this.handleEditReputationTemplate(reputationId);
         } else if (effectId) {
           this.handleEditPatrolEffectTemplate(effectId);
+        } else if (modifierId) {
+          this.handleEditGuardModifierTemplate(modifierId);
         }
       });
     });
@@ -886,6 +1019,7 @@ export class GMWarehouseDialog implements FocusableDialog {
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
+        const modifierId = templateItem?.dataset.modifierId;
 
         if (resourceId) {
           this.handleDuplicateTemplate(resourceId);
@@ -893,6 +1027,8 @@ export class GMWarehouseDialog implements FocusableDialog {
           this.handleDuplicateReputationTemplate(reputationId);
         } else if (effectId) {
           // TODO: Implement duplicate for patrol effect
+        } else if (modifierId) {
+          // TODO: Implement duplicate for guard modifier
         }
       });
     });
@@ -906,6 +1042,7 @@ export class GMWarehouseDialog implements FocusableDialog {
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
+        const modifierId = templateItem?.dataset.modifierId;
 
         if (resourceId) {
           this.handleDeleteTemplate(resourceId);
@@ -913,6 +1050,8 @@ export class GMWarehouseDialog implements FocusableDialog {
           this.handleDeleteReputationTemplate(reputationId);
         } else if (effectId) {
           this.handleDeletePatrolEffectTemplate(effectId);
+        } else if (modifierId) {
+          this.handleDeleteGuardModifierTemplate(modifierId);
         }
       });
     });
@@ -955,6 +1094,20 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       template.addEventListener('dragend', (event) => {
         this.handlePatrolEffectDragEnd(event as DragEvent);
+      });
+    });
+
+    // Handle drag start for guard modifier templates
+    const modifierTemplates = this.element.querySelectorAll(
+      '.guard-modifier-template[draggable="true"]'
+    );
+    modifierTemplates.forEach((template) => {
+      template.addEventListener('dragstart', (event) => {
+        this.handleGuardModifierDragStart(event as DragEvent);
+      });
+
+      template.addEventListener('dragend', (event) => {
+        this.handleGuardModifierDragEnd(event as DragEvent);
       });
     });
   }
@@ -1154,6 +1307,59 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Handle drag start for guard modifier templates
+   */
+  private handleGuardModifierDragStart(event: DragEvent): void {
+    const target = event.target as HTMLElement;
+    const modifierTemplate = target.closest('.guard-modifier-template') as HTMLElement;
+
+    if (!modifierTemplate || !event.dataTransfer) return;
+
+    const modifierId = modifierTemplate.dataset.modifierId;
+    if (!modifierId) return;
+
+    const gm = (window as any).GuardManagement;
+    if (!gm?.documentManager) return;
+
+    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
+    if (!modifier) return;
+
+    const modifierData = {
+      id: modifier.id,
+      name: modifier.name,
+      description: modifier.system?.description || '',
+      type: modifier.system?.type || 'neutral',
+      image: modifier.img || '',
+      statModifications: modifier.system?.statModifications || [],
+    };
+
+    const dragData = {
+      type: 'guard-modifier',
+      modifierId: modifierData.id,
+      modifierData: modifierData,
+    };
+
+    event.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+    event.dataTransfer.effectAllowed = 'copy';
+
+    modifierTemplate.style.opacity = '0.6';
+    modifierTemplate.classList.add('dragging');
+  }
+
+  /**
+   * Handle drag end for guard modifier templates
+   */
+  private handleGuardModifierDragEnd(event: DragEvent): void {
+    const target = event.target as HTMLElement;
+    const modifierTemplate = target.closest('.guard-modifier-template') as HTMLElement;
+
+    if (modifierTemplate) {
+      modifierTemplate.style.opacity = '1';
+      modifierTemplate.classList.remove('dragging');
+    }
+  }
+
+  /**
    * Handle sending template to chat
    */
   private async handleSendTemplateToChat(resourceId: string): Promise<void> {
@@ -1177,6 +1383,79 @@ export class GMWarehouseDialog implements FocusableDialog {
     }
   }
 
+  /**
+   * Handle sending reputation template to chat
+   */
+  private async handleSendReputationTemplateToChat(reputationId: string): Promise<void> {
+    try {
+      console.log('💬 Send reputation template to chat request:', reputationId);
+
+      // Send to chat using ReputationTemplate
+      await ReputationTemplate.sendReputationToChat(reputationId);
+
+      console.log('✅ Reputation template sent to chat successfully');
+
+      // Show success notification
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info('Reputación enviada al chat');
+      }
+    } catch (error) {
+      console.error('❌ Error sending reputation template to chat:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al enviar reputación al chat');
+      }
+    }
+  }
+
+  /**
+   * Handle editing a patrol effect template
+   */
+  private async handleEditPatrolEffectTemplate(effectId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+
+      const effects = gm.documentManager.getPatrolEffects();
+      const effect = effects.find((e: any) => e.id === effectId);
+
+      if (!effect) throw new Error('Patrol effect not found');
+
+      const effectData = {
+        id: effect.id,
+        name: effect.name,
+        description: effect.system?.description || '',
+        type: effect.system?.type || 'neutral',
+        image: effect.img || '',
+        statModifications: effect.system?.statModifications || [],
+        version: effect.system?.version || 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const { AddOrEditPatrolEffectDialog } = await import('./AddOrEditPatrolEffectDialog.js');
+      const updatedEffect = await AddOrEditPatrolEffectDialog.edit(effectData as any);
+
+      if (updatedEffect) {
+        await gm.documentManager.updatePatrolEffect(updatedEffect.id, updatedEffect);
+        await this.refreshPatrolEffectsTab();
+
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Patrol effect template "${updatedEffect.name}" updated successfully`
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error editing patrol effect template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error editing patrol effect template');
+      }
+    }
+  }
+
+  /**
+   * Handle editing a resource template
+   */
   private async handleEditTemplate(resourceId: string): Promise<void> {
     await ResourceErrorHandler.handleResourceOperation(
       async () => {
@@ -1312,6 +1591,52 @@ export class GMWarehouseDialog implements FocusableDialog {
       console.error('Error editing reputation template:', error);
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.error('Error editing reputation template');
+      }
+    }
+  }
+
+  /**
+   * Handle editing a guard modifier template
+   */
+  private async handleEditGuardModifierTemplate(modifierId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+
+      const modifiers = gm.documentManager.getGuardModifiers();
+      const modifier = modifiers.find((m: any) => m.id === modifierId);
+
+      if (!modifier) throw new Error('Guard modifier not found');
+
+      const modifierData = {
+        id: modifier.id,
+        name: modifier.name,
+        description: modifier.system?.description || '',
+        type: modifier.system?.type || 'neutral',
+        image: modifier.img || '',
+        statModifications: modifier.system?.statModifications || [],
+        version: modifier.system?.version || 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const { AddOrEditGuardModifierDialog } = await import('./AddOrEditGuardModifierDialog.js');
+      const updatedModifier = await AddOrEditGuardModifierDialog.edit(modifierData as any);
+
+      if (updatedModifier) {
+        await gm.documentManager.updateGuardModifier(updatedModifier.id, updatedModifier);
+        await this.refreshGuardModifiersTab();
+
+        if ((globalThis as any).ui?.notifications) {
+          (globalThis as any).ui.notifications.info(
+            `Guard modifier template "${updatedModifier.name}" updated successfully`
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error editing guard modifier template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error editing guard modifier template');
       }
     }
   }
@@ -1491,133 +1816,6 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Static method to show the warehouse dialog
-   */
-  static show(options?: {
-    width?: number;
-    height?: number;
-    x?: number;
-    y?: number;
-  }): GMWarehouseDialog {
-    try {
-      // Check if window exists
-      if (typeof window === 'undefined') {
-        throw new Error('Window object not available');
-      }
-
-      // Verify that GuardManagement module is available
-      const gm = (window as any).GuardManagement;
-
-      if (!gm) {
-        throw new Error('GuardManagement module not loaded yet');
-      }
-
-      if (!gm.isInitialized) {
-        throw new Error('GuardManagement module not fully initialized yet');
-      }
-
-      if (!gm.documentManager) {
-        throw new Error('DocumentBasedManager not initialized yet');
-      }
-
-      const dialog = new GMWarehouseDialog();
-      dialog.show(options);
-      return dialog;
-    } catch (error) {
-      console.error('Error creating GM Warehouse dialog:', error);
-      if (error instanceof Error && error.message.includes('Only GM can access')) {
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.error(
-            'Solo el GM puede acceder al almacén de plantillas'
-          );
-        }
-      } else if (
-        error instanceof Error &&
-        (error.message.includes('not loaded') || error.message.includes('not initialized'))
-      ) {
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.warn(
-            'Módulo aún no está completamente cargado. Intenta de nuevo en un momento.'
-          );
-        }
-      }
-      throw error;
-    }
-  }
-
-  // ===== REPUTATION TEMPLATE HANDLERS =====
-
-  /**
-   * Handle sending a reputation template to chat
-   */
-  private async handleSendReputationTemplateToChat(reputationId: string): Promise<void> {
-    try {
-      console.log('💬 Send reputation template to chat request:', reputationId);
-
-      // Send to chat using ReputationTemplate (without organization name)
-      await ReputationTemplate.sendReputationToChat(reputationId);
-
-      console.log('✅ Reputation template sent to chat successfully');
-
-      // Show success notification
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.info('Reputación enviada al chat');
-      }
-    } catch (error) {
-      console.error('❌ Error sending reputation template to chat:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error al enviar reputación al chat');
-      }
-    }
-  }
-
-  /**
-   * Handle editing a patrol effect template
-   */
-  private async handleEditPatrolEffectTemplate(effectId: string): Promise<void> {
-    try {
-      const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
-
-      const effects = gm.documentManager.getPatrolEffects();
-      const effect = effects.find((e: any) => e.id === effectId);
-
-      if (!effect) throw new Error('Patrol effect not found');
-
-      const effectData = {
-        id: effect.id,
-        name: effect.name,
-        description: effect.system?.description || '',
-        type: effect.system?.type || 'neutral',
-        image: effect.img || '',
-        statModifications: effect.system?.statModifications || [],
-        version: effect.system?.version || 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const { AddOrEditPatrolEffectDialog } = await import('./AddOrEditPatrolEffectDialog.js');
-      const updatedEffect = await AddOrEditPatrolEffectDialog.edit(effectData as any);
-
-      if (updatedEffect) {
-        await gm.documentManager.updatePatrolEffect(updatedEffect.id, updatedEffect);
-        await this.refreshPatrolEffectsTab();
-
-        if ((globalThis as any).ui?.notifications) {
-          (globalThis as any).ui.notifications.info(
-            `Patrol effect template "${updatedEffect.name}" updated successfully`
-          );
-        }
-      }
-    } catch (error) {
-      console.error('Error editing patrol effect template:', error);
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error('Error editing patrol effect template');
-      }
-    }
-  }
-
-  /**
    * Handle deleting a patrol effect template
    */
   private async handleDeletePatrolEffectTemplate(effectId: string): Promise<void> {
@@ -1649,6 +1847,42 @@ export class GMWarehouseDialog implements FocusableDialog {
       console.error('Error deleting patrol effect template:', error);
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.error('Error deleting patrol effect template');
+      }
+    }
+  }
+
+  /**
+   * Handle deleting a guard modifier template
+   */
+  private async handleDeleteGuardModifierTemplate(modifierId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+
+      const modifiers = gm.documentManager.getGuardModifiers();
+      const modifier = modifiers.find((m: any) => m.id === modifierId);
+      const modifierName = modifier?.name || 'Unknown Modifier';
+
+      const confirmed = await Dialog.confirm({
+        title: 'Delete Guard Modifier Template',
+        content: `<p>Are you sure you want to delete the guard modifier template "<strong>${modifierName}</strong>"?</p><p><em>This action cannot be undone.</em></p>`,
+        defaultYes: false,
+      });
+
+      if (!confirmed) return;
+
+      await gm.documentManager.deleteGuardModifier(modifierId);
+      await this.refreshGuardModifiersTab();
+
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Guard modifier template "${modifierName}" deleted successfully`
+        );
+      }
+    } catch (error) {
+      console.error('Error deleting guard modifier template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error deleting guard modifier template');
       }
     }
   }

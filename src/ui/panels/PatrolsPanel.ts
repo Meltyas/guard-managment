@@ -142,6 +142,31 @@ export class PatrolsPanel {
     try {
       const derived = patrol.derivedStats || patrol.baseStats || {};
 
+      // Get Organization Modifiers
+      const gm = (window as any).GuardManagement;
+      const orgMgr = gm?.guardOrganizationManager;
+      const activeModifiers = orgMgr?.getActiveModifiers() || [];
+
+      const orgModTotals: Record<string, number> = {};
+      const orgModDetails: Record<string, Array<{ name: string; img: string; value: number }>> = {};
+
+      for (const mod of activeModifiers) {
+        if (mod.system?.statModifications) {
+          for (const statMod of mod.system.statModifications) {
+            const k = statMod.statName;
+            const v = statMod.value;
+            orgModTotals[k] = (orgModTotals[k] || 0) + v;
+
+            if (!orgModDetails[k]) orgModDetails[k] = [];
+            orgModDetails[k].push({
+              name: mod.name,
+              img: mod.img,
+              value: v,
+            });
+          }
+        }
+      }
+
       const effectTotals: Record<string, number> = {};
       const effectDetails: Record<string, Array<{ name: string; img: string; value: number }>> = {};
 
@@ -161,15 +186,38 @@ export class PatrolsPanel {
 
       const breakdown: Record<
         string,
-        { base: number; effects: number; effectList: any[]; org: number; total: number }
+        {
+          base: number;
+          effects: number;
+          effectList: any[];
+          org: number;
+          orgBase: number;
+          orgMods: number;
+          orgModList: any[];
+          total: number;
+        }
       > = {};
       for (const key of Object.keys(derived)) {
         const base = patrol.baseStats?.[key] ?? 0;
         const effects = effectTotals[key] || 0;
         const effectList = effectDetails[key] || [];
         const total = derived[key] ?? 0; // preserve negatives
-        const org = total - base - effects; // whatever isn't base or effects we attribute to organization modifiers
-        breakdown[key] = { base, effects, effectList, org, total };
+
+        const orgTotal = total - base - effects;
+        const orgMods = orgModTotals[key] || 0;
+        const orgBase = orgTotal - orgMods;
+        const orgModList = orgModDetails[key] || [];
+
+        breakdown[key] = {
+          base,
+          effects,
+          effectList,
+          org: orgTotal,
+          orgBase,
+          orgMods,
+          orgModList,
+          total,
+        };
       }
       return breakdown;
     } catch {

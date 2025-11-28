@@ -265,17 +265,6 @@
   margin-bottom: 15px;
 }
 
-.stat-box {
-  background: url('../assets/svg/trait-shield.svg') no-repeat;
-  height: 60px;
-  width: 60px;
-  text-align: center;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  cursor: pointer;
-}
-
 .stat-value {
   font-family: 'Montserrat', sans-serif;
   font-size: 20px;
@@ -401,8 +390,6 @@
 
 .stat-box {
   background: url('../assets/svg/trait-shield.svg') no-repeat;
-  height: 60px;
-  width: 60px;
   text-align: center;
   border: none;
   border-radius: 0;
@@ -1116,4 +1103,170 @@
   background: rgba(0, 0, 0, 0.05);
   border-radius: 4px;
   border: 1px dashed #ccc;
+}
+
+/* Modifiers Grid */
+.modifiers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.modifiers-grid.compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  grid-template-columns: none; /* Override grid */
+}
+
+.modifier-compact {
+  position: relative;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  flex: 0 0 40px;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  z-index: 5; /* Ensure it is above other elements */
+}
+
+.modifier-compact img {
+  pointer-events: none; /* Let clicks pass through to the div */
+}
+
+.modifier-compact:hover {
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.modifier-compact.positive-border {
+  border: 1px solid #4ae89a;
+}
+
+.modifier-compact.negative-border {
+  border: 1px solid #e84a4a;
+}
+
+.modifier-compact.neutral-border {
+  border: 1px solid #f0f0e0;
+}
+
+.modifier-icon-large {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+  display: block;
+}
+
+/* Tooltip Styles for Custom Info Dialog */
+.stat-tooltip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.stat-tooltip-list li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
+.stat-tooltip-list .tooltip-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  object-fit: cover;
+  border: none;
+  vertical-align: middle;
+}
+
+.stat-tooltip-list .mod-val {
+  font-weight: bold;
+  min-width: 20px;
+  text-align: right;
+}
+
+.stat-tooltip-list .mod-val.positive {
+  color: #4ae89a;
+}
+
+.stat-tooltip-list .mod-val.negative {
+  color: #e84a4a;
+}
+
+.modifier-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modifier-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.modifier-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.modifier-name {
+  flex: 1;
+  font-weight: bold;
+  color: #f0f0e0;
+  font-size: 14px;
+}
+
+.remove-modifier-btn {
+  background: transparent;
+  border: none;
+  color: #ff4444;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.remove-modifier-btn:hover {
+  background: rgba(255, 68, 68, 0.2);
+}
+
+.modifier-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mod-stat {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: flex;
+  gap: 4px;
+}
+
+.mod-stat-label {
+  color: #d0d0c0;
+}
+
+.mod-stat-value {
+  color: #4a9eff;
+  font-weight: bold;
 }

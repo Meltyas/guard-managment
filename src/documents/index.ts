@@ -4,6 +4,7 @@
 
 import type {} from '../types/foundry';
 import {
+  GuardModifierModel,
   GuardOrganizationModel,
   GuardReputationModel,
   GuardResourceModel,
@@ -29,6 +30,7 @@ export function registerDataModels() {
   Object.assign(CONFIG.Item.dataModels, {
     'guard-management.guard-resource': GuardResourceModel,
     'guard-management.guard-reputation': GuardReputationModel,
+    'guard-management.guard-modifier': GuardModifierModel,
     'guard-management.patrol-effect': PatrolEffectModel,
   });
 
@@ -169,6 +171,31 @@ export async function createPatrolEffect(data: any = {}) {
   const folder = await getOrCreateModuleFolder('Item');
   if (folder) effectData.folder = (folder as any).id;
   return await Item.create(effectData);
+}
+
+/**
+ * Create a Guard Modifier item
+ */
+export async function createGuardModifier(data: any = {}) {
+  const modifierData: any = {
+    name: data.name || 'New Guard Modifier',
+    type: 'guard-management.guard-modifier',
+    img: data.image || '',
+    system: {
+      description: data.description || '',
+      type: data.type || 'neutral',
+      image: data.image || '',
+      organizationId: data.organizationId || '',
+      statModifications: data.statModifications || [],
+      version: 1,
+    },
+    ownership: {
+      default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
+    },
+  };
+  const folder = await getOrCreateModuleFolder('Item');
+  if (folder) modifierData.folder = (folder as any).id;
+  return await Item.create(modifierData);
 }
 
 /**

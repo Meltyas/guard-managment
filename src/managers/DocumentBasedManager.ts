@@ -4,6 +4,7 @@
  */
 
 import {
+  createGuardModifier,
   createGuardOrganization,
   createGuardReputation,
   createGuardResource,
@@ -11,6 +12,7 @@ import {
   createPatrolEffect,
 } from '../documents/index.js';
 import {
+  GuardModifier,
   GuardOrganization,
   Patrol,
   PatrolEffect,
@@ -504,6 +506,98 @@ export class DocumentBasedManager {
     return true;
   }
 
+  // === GUARD MODIFIER METHODS ===
+
+  /**
+   * Get all Guard Modifiers
+   */
+  getGuardModifiers(): any[] {
+    if (!game?.items) return [];
+
+    return game.items.filter((item: any) => item.type === 'guard-management.guard-modifier');
+  }
+
+  /**
+   * Get Guard Modifiers for a specific organization
+   */
+  getGuardModifiersForOrganization(organizationId: string): any[] {
+    return this.getGuardModifiers().filter(
+      (modifier: any) => modifier.system.organizationId === organizationId
+    );
+  }
+
+  /**
+   * Create a new Guard Modifier
+   */
+  async createGuardModifier(data: Partial<GuardModifier>): Promise<any> {
+    const modifier = await createGuardModifier(data);
+
+    // Add modifier to organization's activeModifiers list
+    if (data.organizationId) {
+      const org = this.getGuardOrganization(data.organizationId);
+      if (org) {
+        await org.system.addModifier(modifier.id);
+      }
+    }
+
+    return modifier;
+  }
+
+  /**
+   * Update a Guard Modifier
+   */
+  async updateGuardModifier(id: string, data: Partial<GuardModifier>): Promise<boolean> {
+    const modifier = game?.items?.get(id);
+    if (!modifier || modifier.type !== 'guard-management.guard-modifier') return false;
+
+    const updateData: any = {
+      name: data.name,
+      'system.description': data.description,
+      'system.type': data.type,
+      'system.statModifications': data.statModifications,
+      'system.version': data.version,
+    };
+
+    if (data.image !== undefined) {
+      updateData.img = data.image;
+      updateData['system.image'] = data.image;
+    }
+
+    await modifier.update(updateData);
+    return true;
+  }
+
+  /**
+   * Delete a Guard Modifier
+   */
+  async deleteGuardModifier(id: string): Promise<boolean> {
+    const modifier = game?.items?.get(id);
+    if (!modifier || modifier.type !== 'guard-management.guard-modifier') return false;
+
+    try {
+      // Remove modifier from all organizations that have it
+      const organizations = this.getGuardOrganizations();
+      for (const org of organizations) {
+        if (org.system?.activeModifiers?.includes(id)) {
+          const newModifiers = org.system.activeModifiers.filter(
+            (modifierId: string) => modifierId !== id
+          );
+          await this.updateGuardOrganization(org.id, {
+            activeModifiers: newModifiers,
+            version: (org.system.version || 0) + 1,
+            updatedAt: new Date(),
+          } as any);
+        }
+      }
+
+      await modifier.delete();
+      return true;
+    } catch (error) {
+      console.error('❌ Error deleting guard modifier:', error);
+      return false;
+    }
+  }
+
   // === UTILITY METHODS ===
 
   /**
@@ -526,6 +620,12 @@ export class DocumentBasedManager {
     const reputations = this.getReputationsForOrganization(organizationId);
     for (const reputation of reputations) {
       await reputation.delete();
+    }
+
+    // Delete all guard modifiers
+    const modifiers = this.getGuardModifiersForOrganization(organizationId);
+    for (const modifier of modifiers) {
+      await modifier.delete();
     }
   }
 
@@ -609,6 +709,12 @@ export class DocumentBasedManager {
       const reputations = this.getGuardReputations();
       for (const reputation of reputations) {
         await reputation.update({ ownership: newPermissions });
+      }
+
+      // Fix permissions for Guard Modifiers (Items)
+      const modifiers = this.getGuardModifiers();
+      for (const modifier of modifiers) {
+        await modifier.update({ ownership: newPermissions });
       }
 
       // Show notification to user

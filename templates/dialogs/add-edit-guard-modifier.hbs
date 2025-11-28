@@ -1,0 +1,51 @@
+<form class="guard-modifier-form guard-dialog">
+    <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" name="name" value="{{name}}" required />
+    </div>
+
+    <div class="form-group">
+        <label>Descripción</label>
+        <textarea name="description" rows="3">{{description}}</textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Tipo</label>
+        <select name="type">
+            <option value="positive" {{#if (eq type "positive")}}selected{{/if}}>Positivo</option>
+            <option value="negative" {{#if (eq type "negative")}}selected{{/if}}>Negativo</option>
+            <option value="neutral" {{#if (eq type "neutral")}}selected{{/if}}>Neutral</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Imagen</label>
+        <div class="image-picker">
+            <div class="image-preview">
+                <img src="{{image}}" alt="Preview" height="64" width="64" />
+            </div>
+            <div class="image-input">
+                <input type="text" name="image" value="{{image}}" />
+                <button type="button" class="file-picker-btn"><i class="fas fa-file-import"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Modificadores de Estadísticas</label>
+        <div class="stat-mods-container" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;">
+            {{#each statModifications}}
+            <div class="stat-mod-row form-group" style="display: flex; gap: 5px; align-items: center;">
+                <select name="statName" style="flex: 1;">
+                    {{#each ../statOptions}}
+                    <option value="{{this.value}}" {{#if (eq this.value ../statName)}}selected{{/if}}>{{this.label}}</option>
+                    {{/each}}
+                </select>
+                <input type="number" name="statValue" value="{{this.value}}" style="width: 60px;" />
+                <button type="button" class="remove-stat-mod" style="width: 30px;"><i class="fas fa-trash"></i></button>
+            </div>
+            {{/each}}
+        </div>
+        <button type="button" class="add-stat-mod"><i class="fas fa-plus"></i> Añadir Modificador</button>
+    </div>
+</form>

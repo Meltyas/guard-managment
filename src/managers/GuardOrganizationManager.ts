@@ -32,7 +32,7 @@ export class GuardOrganizationManager {
         if (ctx?.field === 'derivedStats') return;
 
         if (op === 'create' || ctx?.field === 'patrolEffects' || ctx?.field === 'baseStats') {
-          this.patrolManager.recalcDerived(patrol.id, this.organization?.baseStats || {});
+          this.patrolManager.recalcDerived(patrol.id, this.calculateEffectiveOrgStats());
         }
         this.organization.updatedAt = new Date();
         this.organization.version += 1;
@@ -263,7 +263,7 @@ export class GuardOrganizationManager {
     };
 
     // If baseStats changed, recalculate all patrols
-    if (updates.baseStats) {
+    if (updates.baseStats || updates.activeModifiers) {
       this.organization = updated; // Update local ref first
       this.recalcAllPatrols();
     }
@@ -671,7 +671,7 @@ export class GuardOrganizationManager {
 
   public recalcAllPatrols(orgModifiers?: Partial<GuardStats>) {
     if (!this.organization) return;
-    const modifiers = orgModifiers || this.organization.baseStats;
+    const modifiers = orgModifiers || this.calculateEffectiveOrgStats();
     for (const pid of this.organization.patrols) {
       this.patrolManager.recalcDerived(pid, modifiers);
     }
@@ -687,5 +687,113 @@ export class GuardOrganizationManager {
     const patrol = this.patrolManager.getPatrol(patrolId);
     if (!patrol) return null;
     return AddOrEditPatrolDialog.edit(this.organization.id, patrol);
+  }
+
+  /**
+   * Get active modifier objects
+   */
+  public getActiveModifiers(): any[] {
+    if (!this.organization || !this.organization.activeModifiers?.length) return [];
+    const gm = (window as any).GuardManagement;
+    if (!gm?.documentManager) return [];
+
+    const allModifiers = gm.documentManager.getGuardModifiers();
+    return allModifiers.filter((m: any) => this.organization!.activeModifiers.includes(m.id));
+  }
+
+  /**
+   * Remove a modifier from the organization
+   */
+  public async removeModifier(modifierId: string): Promise<void> {
+    if (!this.organization) return;
+
+    const idx = this.organization.activeModifiers.indexOf(modifierId);
+    if (idx === -1) return;
+
+    const updatedModifiers = [...this.organization.activeModifiers];
+    updatedModifiers.splice(idx, 1);
+
+    await this.updateOrganization({
+      activeModifiers: updatedModifiers,
+    });
+  }
+
+  /**
+   * Get detailed stats breakdown for UI
+   */
+  public getStatsBreakdown(): {
+    base: GuardStats;
+    total: GuardStats;
+    modifiers: Record<keyof GuardStats, Array<{ name: string; img: string; value: number }>>;
+  } {
+    if (!this.organization) {
+      return {
+        base: { ...DEFAULT_GUARD_STATS },
+        total: { ...DEFAULT_GUARD_STATS },
+        modifiers: { robustismo: [], analitica: [], subterfugio: [], elocuencia: [] },
+      };
+    }
+
+    const base = { ...this.organization.baseStats };
+    const total = { ...base };
+    const modifiers: Record<
+      keyof GuardStats,
+      Array<{ name: string; img: string; value: number }>
+    > = {
+      robustismo: [],
+      analitica: [],
+      subterfugio: [],
+      elocuencia: [],
+    };
+
+    const gm = (window as any).GuardManagement;
+    if (gm?.documentManager && this.organization.activeModifiers?.length) {
+      const allModifiers = gm.documentManager.getGuardModifiers();
+
+      for (const modId of this.organization.activeModifiers) {
+        const modifier = allModifiers.find((m: any) => m.id === modId);
+        if (modifier && modifier.system?.statModifications) {
+          for (const mod of modifier.system.statModifications) {
+            if (total[mod.statName] !== undefined) {
+              total[mod.statName] += mod.value;
+              modifiers[mod.statName].push({
+                name: modifier.name,
+                img: modifier.img,
+                value: mod.value,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return { base, total, modifiers };
+  }
+
+  /**
+   * Calculate effective organization stats including modifiers
+   */
+  public calculateEffectiveOrgStats(): GuardStats {
+    if (!this.organization) return { ...DEFAULT_GUARD_STATS };
+
+    const stats = { ...this.organization.baseStats };
+    const gm = (window as any).GuardManagement;
+
+    if (gm?.documentManager && this.organization.activeModifiers?.length) {
+      const modifiers = gm.documentManager.getGuardModifiers();
+
+      for (const modId of this.organization.activeModifiers) {
+        const modifier = modifiers.find((m: any) => m.id === modId);
+        if (modifier && modifier.system?.statModifications) {
+          for (const mod of modifier.system.statModifications) {
+            if (stats[mod.statName] !== undefined) {
+              stats[mod.statName] += mod.value;
+            }
+          }
+        }
+      }
+    }
+
+    return stats;
   }
 }

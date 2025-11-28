@@ -247,7 +247,7 @@ Hooks.once('init', async () => {
       const orgSign = stat.org >= 0 ? '+' : '';
       const effSign = stat.effects >= 0 ? '+' : '';
 
-      let html = `<table style="border-collapse: collapse; width: 100%; font-size: 0.9em;">`;
+      let html = `<table style="border-collapse: collapse; width: 100%; font-size: 14px;">`;
 
       // Base
       html += `<tr>
@@ -260,6 +260,33 @@ Hooks.once('init', async () => {
         <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold;">${orgSign}${stat.org}</td>
         <td style="padding: 2px 0;">Organización</td>
       </tr>`;
+
+      // Organization Modifiers List
+      if (stat.orgModList && stat.orgModList.length > 0) {
+        for (const mod of stat.orgModList) {
+          const valStr = mod.value >= 0 ? `+${mod.value}` : `${mod.value}`;
+          const imgHtml = mod.img
+            ? `<img src='${mod.img}' style='width: 24px; height: 24px; border: none; object-fit: cover; vertical-align: middle;' />`
+            : '';
+
+          let color = '#f0f0e0'; // Neutral (white-ish)
+          if (mod.value > 0)
+            color = '#4ae89a'; // Green
+          else if (mod.value < 0) color = '#e84a4a'; // Red
+
+          html += `<tr>
+                <td></td>
+                <td style="padding: 1px 0 1px 12px;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(243, 194, 103, 0.1); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box; font-size: 0.9em;">
+                        <span style="color: #f3c267; opacity: 0.7;">↳</span>
+                        <span style="font-weight: bold; min-width: 20px; text-align: right; color: ${color};">${valStr}</span>
+                        ${imgHtml}
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">${mod.name}</span>
+                    </div>
+                </td>
+            </tr>`;
+        }
+      }
 
       // Effects Header
       html += `<tr>
@@ -275,12 +302,19 @@ Hooks.once('init', async () => {
             ? `<img src='${eff.img}' style='width: 24px; height: 24px; border: none; object-fit: cover; vertical-align: middle;' />`
             : '';
 
+          let color = '#f0f0e0'; // Neutral (white-ish)
+          if (eff.value > 0)
+            color = '#4ae89a'; // Green
+          else if (eff.value < 0) color = '#e84a4a'; // Red
+
           html += `<tr>
-                <td style="text-align: center; padding: 2px 8px 2px 0; font-size: 0.9em; opacity: 0.8;">${valStr}</td>
-                <td style="padding: 1px 0;">
-                    <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box;">
+                <td></td>
+                <td style="padding: 1px 0 1px 12px;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box; font-size: 0.9em;">
+                        <span style="color: #ccc; opacity: 0.7;">↳</span>
+                        <span style="font-weight: bold; min-width: 20px; text-align: right; color: ${color};">${valStr}</span>
                         ${imgHtml}
-                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${eff.name}</span>
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">${eff.name}</span>
                     </div>
                 </td>
             </tr>`;

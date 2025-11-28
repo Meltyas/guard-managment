@@ -1,0 +1,36 @@
+<div
+  class='template-item guard-modifier-template'
+  data-modifier-id='{{id}}'
+  draggable='true'
+  title='Arrastra este modificador a la guardia para aplicarlo'
+>
+  {{#if image}}
+    <div class='template-image'>
+      <img src='{{image}}' alt='{{name}}' onerror="this.style.display='none'" />
+    </div>
+  {{/if}}
+  <div class='template-info'>
+    <div class='template-name'>{{name}}</div>
+    <div class='template-description'>
+      {{description}}
+    </div>
+    <div class='template-type type-{{type}}'>
+      {{#if (eq type 'positive')}}Positivo{{/if}}
+      {{#if (eq type 'negative')}}Negativo{{/if}}
+      {{#if (eq type 'neutral')}}Neutral{{/if}}
+    </div>
+    {{#if statModifications.length}}
+      <div class='template-stats'>
+        <small>Modifica: {{statModifications.length}} estadísticas</small>
+      </div>
+    {{/if}}
+  </div>
+  <div class='template-actions'>
+    <button type='button' class='edit-template-btn' title='Editar modificador'>
+      <i class='fas fa-edit'></i>
+    </button>
+    <button type='button' class='delete-template-btn' title='Eliminar modificador'>
+      <i class='fas fa-trash'></i>
+    </button>
+  </div>
+</div>

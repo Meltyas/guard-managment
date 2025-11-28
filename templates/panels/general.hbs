@@ -14,25 +14,32 @@
   </div>
 
   <div class='info-section'>
-    <h3><i class='fas fa-chart-bar'></i> Estadísticas Base</h3>
+    <h3><i class='fas fa-chart-bar'></i> Estadísticas</h3>
     <div class='stats-display'>
-      <div class='stat-box'>
-        <div class='stat-value'>{{organization.baseStats.robustismo}}</div>
-        <div class='stat-label'>Robustismo</div>
-      </div>
-      <div class='stat-box'>
-        <div class='stat-value'>{{organization.baseStats.analitica}}</div>
-        <div class='stat-label'>Analítica</div>
-      </div>
-      <div class='stat-box'>
-        <div class='stat-value'>{{organization.baseStats.subterfugio}}</div>
-        <div class='stat-label'>Subterfugio</div>
-      </div>
-      <div class='stat-box'>
-        <div class='stat-value'>{{organization.baseStats.elocuencia}}</div>
-        <div class='stat-label'>Elocuencia</div>
-      </div>
+      {{#each statsDisplay}}
+        <div class='stat-box' data-tooltip='{{this.tooltip}}'>
+          <div class='stat-value {{this.cssClass}}'>
+            {{this.base}}
+            {{#if this.showTotal}}({{this.total}}){{/if}}
+          </div>
+          <div class='stat-label'>{{this.label}}</div>
+        </div>
+      {{/each}}
     </div>
+
+    {{#if activeModifiers.length}}
+      <div class='modifiers-grid compact' style='margin-top: 1rem;'>
+        {{#each activeModifiers}}
+          <div
+            class='modifier-compact {{this.borderClass}}'
+            data-id='{{this.id}}'
+            data-tooltip='<strong>{{this.name}}</strong><br/>{{this.system.description}}<br/><hr>Left Click: Send to Chat<br/>Right Click: Remove'
+          >
+            <img src='{{this.img}}' alt='{{this.name}}' class='modifier-icon-large' />
+          </div>
+        {{/each}}
+      </div>
+    {{/if}}
   </div>
 
   <div class='info-section'>

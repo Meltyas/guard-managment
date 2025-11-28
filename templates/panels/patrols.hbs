@@ -21,7 +21,7 @@
                         </span>
                         {{/each}}
                     </div>
-                    <div class="officer-slot" data-drop="officer" title="Arrastra un Actor aquí para asignarlo como Oficial">
+                    <div class="officer-slot" data-drop="officer" data-tooltip="Arrastra un Actor aquí para asignarlo como Oficial">
                         {{#if this.officer}}
                         <div class="clickable-actor" data-action="open-sheet" data-actor-id="{{this.officer.actorId}}" style="cursor: pointer;">
                             <img src="{{this.officer.img}}" alt="oficial" />
@@ -30,21 +30,21 @@
                         <span class="empty">Sin Oficial</span>
                         {{/if}}
                     </div>
-                    <div class="soldiers-zone" data-drop="soldier" title="Arrastra Actores aquí para añadir Soldados">
+                    <div class="soldiers-zone" data-drop="soldier" data-tooltip="Arrastra Actores aquí para añadir Soldados">
                         {{#each this.slots}}
                             {{#if (eq this.type "soldier")}}
                             <div class="clickable-actor soldier-wrapper" data-action="open-sheet" data-actor-id="{{this.data.actorId}}" style="display: inline-block; cursor: pointer;">
-                                <img class="soldier-avatar" src="{{this.data.img}}" alt="{{this.data.name}}" title="{{this.data.name}}" />
+                                <img class="soldier-avatar" src="{{this.data.img}}" alt="{{this.data.name}}" data-tooltip="{{this.data.name}}" />
                             </div>
                             {{else}}
                             <div class="soldier-slot-empty" style="display: inline-block; width: 32px; height: 32px; border: 1px dashed #ccc; border-radius: 4px; margin: 2px;"></div>
                             {{/if}}
                         {{/each}}
                         {{#if (gt this.soldiers.length this.soldierSlots)}}
-                        <span class="more" title="{{subtract this.soldiers.length this.soldierSlots}} más">+{{subtract this.soldiers.length this.soldierSlots}}</span>
+                        <span class="more" data-tooltip="{{subtract this.soldiers.length this.soldierSlots}} más">+{{subtract this.soldiers.length this.soldierSlots}}</span>
                         {{/if}}
                     </div>
-                    <div class="last-order-line {{this.ageClass}}" data-action="edit-last-order" data-patrol-id="{{this.id}}" title="Click para editar la última orden">
+                    <div class="last-order-line {{this.ageClass}}" data-action="edit-last-order" data-patrol-id="{{this.id}}" data-tooltip="Click para editar la última orden">
                         <i class="fas fa-scroll"></i>
                         <div class="last-order-content">
                             <span class="last-order-label">Última Orden:</span>
@@ -73,13 +73,13 @@
                     {{/if}}
 
                     <div class="actions">
-                        <button type="button" class="to-chat-patrol" data-action="to-chat" data-patrol-id="{{this.id}}" title="Enviar al chat">
+                        <button type="button" class="to-chat-patrol" data-action="to-chat" data-patrol-id="{{this.id}}" data-tooltip="Enviar al chat">
                             <i class="fas fa-comment-alt"></i>
                         </button>
-                        <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}">
+                        <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}" data-tooltip="Editar Patrulla">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" class="delete-patrol" data-action="delete" data-patrol-id="{{this.id}}">
+                        <button type="button" class="delete-patrol" data-action="delete" data-patrol-id="{{this.id}}" data-tooltip="Eliminar Patrulla">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

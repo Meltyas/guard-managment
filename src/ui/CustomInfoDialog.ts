@@ -218,7 +218,10 @@ export class CustomInfoDialog implements FocusableDialog {
         const generalContainer = this.element.querySelector(
           '[data-tab-panel="general"]'
         ) as HTMLElement;
-        if (generalContainer) await GeneralPanel.render(generalContainer, freshOrganization);
+        if (generalContainer)
+          await GeneralPanel.render(generalContainer, freshOrganization, () =>
+            this.refreshContent()
+          );
 
         const patrolsContainer = this.element.querySelector(
           '[data-tab-panel="patrols"]'
@@ -943,7 +946,11 @@ export class CustomInfoDialog implements FocusableDialog {
     if (dragData) {
       try {
         const data = JSON.parse(dragData);
-        if (data.type === 'guard-resource' || data.type === 'reputation') {
+        if (
+          data.type === 'guard-resource' ||
+          data.type === 'reputation' ||
+          data.type === 'guard-modifier'
+        ) {
           console.log('🎯 Detected drag start for:', data.type);
           this.showDropOverlay();
         }
@@ -1065,6 +1072,15 @@ export class CustomInfoDialog implements FocusableDialog {
 
         // Re-render the dialog to show the new reputation
         await this.refreshContent();
+      } else if (data.type === 'guard-modifier') {
+        console.log('🛡️ Guard Modifier drop:', data.modifierData.name);
+        await this.assignGuardModifierToOrganization(data.modifierData);
+
+        NotificationService.info(
+          `Modificador "${data.modifierData.name}" asignado a la organización`
+        );
+
+        await this.refreshContent();
       } else {
         console.warn('⚠️ Unknown drop type:', data.type);
       }
@@ -1094,6 +1110,28 @@ export class CustomInfoDialog implements FocusableDialog {
       this.currentOrganization,
       () => this.refreshContent()
     );
+  }
+
+  /**
+   * Assign a guard modifier to the current organization
+   */
+  private async assignGuardModifierToOrganization(modifierData: any): Promise<void> {
+    if (!this.currentOrganization) return;
+
+    const gm = (window as any).GuardManagement;
+    if (!gm?.guardOrganizationManager) return;
+
+    // Check if modifier is already assigned
+    if (this.currentOrganization.activeModifiers?.includes(modifierData.id)) {
+      NotificationService.warn('Este modificador ya está activo en la organización');
+      return;
+    }
+
+    const updatedModifiers = [...(this.currentOrganization.activeModifiers || []), modifierData.id];
+
+    await gm.guardOrganizationManager.updateOrganization({
+      activeModifiers: updatedModifiers,
+    });
   }
 
   private initTabs(root: HTMLElement): void {
