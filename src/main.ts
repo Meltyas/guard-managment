@@ -9,10 +9,12 @@ import { DocumentBasedManager } from './managers/DocumentBasedManager';
 import { DocumentEventManager } from './managers/DocumentEventManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
+import { OfficerManager } from './managers/OfficerManager';
 import { registerSettings } from './settings';
 import './styles/custom-info-dialog.css';
 import './styles/gm-warehouse.css';
 import './styles/main.css';
+import './styles/officers.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 import { GuardManagementHelpers } from './utils/console-helpers';
 import { TooltipGenerator } from './utils/TooltipGenerator';
@@ -86,6 +88,7 @@ class GuardManagementModule {
   public documentEventManager: DocumentEventManager;
   public guardOrganizationManager: GuardOrganizationManager;
   public guardDialogManager: GuardDialogManager;
+  public officerManager: OfficerManager;
   public floatingPanel: FloatingGuardPanel;
   public isInitialized: boolean = false;
 
@@ -94,6 +97,7 @@ class GuardManagementModule {
     this.documentEventManager = new DocumentEventManager(this.documentManager);
     this.guardOrganizationManager = new GuardOrganizationManager();
     this.guardDialogManager = new GuardDialogManager(this.guardOrganizationManager);
+    this.officerManager = new OfficerManager();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
   }
 
@@ -115,6 +119,7 @@ class GuardManagementModule {
     await this.documentEventManager.initialize();
     await this.guardOrganizationManager.initialize();
     await this.guardDialogManager.initialize();
+    await this.officerManager.initialize(); // Load officers from Foundry
 
     // Initialize floating panel (but don't show it yet)
     this.floatingPanel.initialize();
@@ -232,6 +237,10 @@ Hooks.once('init', async () => {
     ]);
 
     // Register Handlebars helpers
+    Handlebars.registerHelper('eq', (a, b) => {
+      return a === b;
+    });
+
     Handlebars.registerHelper('guardTooltip', (item, type) => {
       if (type === 'resource') {
         return TooltipGenerator.generateResourceTooltip(item);

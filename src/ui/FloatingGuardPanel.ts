@@ -3,6 +3,7 @@
  */
 
 import { GMWarehouseDialog } from '../dialogs/GMWarehouseDialog';
+import { OfficerWarehouseDialog } from '../dialogs/OfficerWarehouseDialog';
 import { GuardDialogManager } from '../managers/GuardDialogManager';
 
 export interface FloatingPanelPosition {
@@ -487,6 +488,9 @@ export class FloatingGuardPanel {
       case 'open-warehouse':
         this.openGMWarehouse();
         break;
+      case 'open-officer-warehouse':
+        this.openOfficerWarehouse();
+        break;
       case 'debug-info':
         this.showDebugInfo();
         break;
@@ -537,6 +541,52 @@ export class FloatingGuardPanel {
       if (ui?.notifications) {
         ui.notifications.error(
           `Error al abrir el almacén: ${error instanceof Error ? error.message : 'Error desconocido'}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Open the Officer Warehouse dialog
+   */
+  private openOfficerWarehouse(): void {
+    try {
+      // Verify that GuardManagement module is available
+      const gm = (window as any).GuardManagement;
+
+      if (!gm) {
+        if (ui?.notifications) {
+          ui.notifications.error(
+            'Error: El módulo Guard Management no está disponible. Recarga la página.'
+          );
+        }
+        return;
+      }
+
+      if (!gm.isInitialized) {
+        if (ui?.notifications) {
+          ui.notifications.warn(
+            'Módulo aún no está completamente inicializado. Intenta de nuevo en un momento.'
+          );
+        }
+        return;
+      }
+
+      if (!gm.officerManager) {
+        if (ui?.notifications) {
+          ui.notifications.warn(
+            'Sistema de oficiales aún no está listo. Intenta de nuevo en un momento.'
+          );
+        }
+        return;
+      }
+
+      OfficerWarehouseDialog.show();
+    } catch (error) {
+      console.error('FloatingGuardPanel.openOfficerWarehouse() | Error:', error);
+      if (ui?.notifications) {
+        ui.notifications.error(
+          `Error al abrir el almacén de oficiales: ${error instanceof Error ? error.message : 'Error desconocido'}`
         );
       }
     }

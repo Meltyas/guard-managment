@@ -98,7 +98,8 @@ export interface Patrol extends BaseEntity {
   derivedStats?: GuardStats; // Calculated from base + organization + effects
 
   // Officer & soldiers
-  officer: PatrolOfficer | null; // Single officer
+  officerId: string | null; // Reference to Officer entity from OfficerManager
+  officer: PatrolOfficer | null; // Single officer (legacy actor-based)
   soldiers: PatrolSoldier[]; // Members list (can contain duplicates)
   soldierSlots: number; // Number of available slots for soldiers (1-11)
 

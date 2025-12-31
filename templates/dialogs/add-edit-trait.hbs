@@ -1,0 +1,39 @@
+<div class='trait-content'>
+  <div class='form-group'>
+    <label for='trait-title'>Título</label>
+    <input
+      type='text'
+      id='trait-title'
+      name='title'
+      value='{{title}}'
+      placeholder='Ej: Valiente, Estratega, Impulsivo...'
+      required
+    />
+  </div>
+
+  <div class='form-group stacked'>
+    <label for='trait-description'>Descripción</label>
+    <div class='editor-wrapper'>
+      <div class='editor-toolbar'>
+        <button type='button' class='editor-btn' data-action='bold' title='Negrita (Ctrl+B)'>
+          <i class='fas fa-bold'></i>
+        </button>
+        <button type='button' class='editor-btn' data-action='italic' title='Cursiva (Ctrl+I)'>
+          <i class='fas fa-italic'></i>
+        </button>
+        <button type='button' class='editor-btn' data-action='underline' title='Subrayado (Ctrl+U)'>
+          <i class='fas fa-underline'></i>
+        </button>
+        <button type='button' class='editor-btn' data-action='insertUnorderedList' title='Lista'>
+          <i class='fas fa-list-ul'></i>
+        </button>
+      </div>
+      <div
+        id='trait-description'
+        class='editor-content'
+        contenteditable='true'
+        data-placeholder='Escribe la descripción aquí... Puedes usar los botones de arriba para formato.'
+      >{{{description}}}</div>
+    </div>
+  </div>
+</div>

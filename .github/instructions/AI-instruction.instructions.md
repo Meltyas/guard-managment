@@ -80,6 +80,7 @@ npm run test:watch   # Tests in watch mode
 
 ### ✅ Core Requirements
 
+- **Make sure you are using v13 on foundry**: Look for the documentation if you don't know how to do it.
 - **Clarity**: Tasks must be clear, specific, and actionable—avoid ambiguity
 - **Ownership**: Every task must be assigned a responsible agent, explicitly tagged
 - **Atomicity**: Complex tasks must be broken into atomic, trackable subtasks

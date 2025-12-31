@@ -1,0 +1,142 @@
+<form class='officer-form'>
+  <div class='officer-content' data-dialog-id='{{dialogId}}'>
+    <div class='officer-actor-section'>
+      {{#if actorImg}}
+        <div class='officer-actor-preview'>
+          <img src='{{actorImg}}' alt='{{actorName}}' class='officer-actor-image' />
+          <div class='officer-actor-name'>{{actorName}}</div>
+        </div>
+      {{else}}
+        <div class='officer-actor-dropzone' data-drop='actor'>
+          <i class='fas fa-user-plus'></i>
+          <p>Arrastra un Actor aquí para asignarlo como Oficial</p>
+        </div>
+      {{/if}}
+    </div>
+
+    <input type='hidden' name='actorId' value='{{actorId}}' />
+    <input type='hidden' name='actorName' value='{{actorName}}' />
+    <input type='hidden' name='actorImg' value='{{actorImg}}' />
+    <input type='hidden' name='organizationId' value='{{organizationId}}' />
+
+    <div class='form-group'>
+      <label for='officer-title'>Título del Oficial</label>
+      <input
+        type='text'
+        id='officer-title'
+        name='title'
+        value='{{title}}'
+        placeholder='Ej: Capitán, Sargento, Comandante...'
+        required
+      />
+    </div>
+
+    <!-- Patrol Skills Section -->
+    <div class='officer-skills-section'>
+      <h3>
+        <i class='fas fa-star'></i>
+        Patrol Skills (Habilidades de Patrulla)
+      </h3>
+      <div class='skills-list' data-skill-list>
+        {{#each patrolSkills}}
+          <div class='skill-item' data-skill-id='{{this.id}}'>
+            <div class='skill-header'>
+              <strong>{{this.title}}</strong>
+              <span class='skill-hope-cost'>
+                <i class='fas fa-heart'></i>
+                {{this.hopeCost}}
+                Hope
+              </span>
+              <button type='button' class='skill-remove-btn' data-skill-id='{{this.id}}'>
+                <i class='fas fa-times'></i>
+              </button>
+            </div>
+            <div class='skill-description'>{{{this.description}}}</div>
+          </div>
+        {{else}}
+          <p class='empty-skills'>No hay habilidades agregadas</p>
+        {{/each}}
+      </div>
+      <button type='button' class='add-skill-btn'>
+        <i class='fas fa-plus'></i>
+        Agregar Skill
+      </button>
+    </div>
+
+    <div class='officer-traits-section'>
+      <div class='traits-column pros-column'>
+        <h3>
+          <i class='fas fa-thumbs-up'></i>
+          Pros (Características Positivas)
+        </h3>
+        <div class='traits-list pros-list' data-trait-type='pro'>
+          {{#each pros}}
+            <div class='trait-item' data-trait-id='{{this.id}}'>
+              <div class='trait-header'>
+                <strong>{{this.title}}</strong>
+                <button
+                  type='button'
+                  class='trait-remove-btn'
+                  data-trait-id='{{this.id}}'
+                  data-trait-type='pro'
+                >
+                  <i class='fas fa-times'></i>
+                </button>
+              </div>
+              <div class='trait-description'>{{{this.description}}}</div>
+            </div>
+          {{else}}
+            <p class='empty-traits'>No hay pros agregados</p>
+          {{/each}}
+        </div>
+        <button type='button' class='add-trait-btn' data-trait-type='pro'>
+          <i class='fas fa-plus'></i>
+          Agregar Pro
+        </button>
+      </div>
+
+      <div class='traits-column cons-column'>
+        <h3>
+          <i class='fas fa-thumbs-down'></i>
+          Cons (Características Negativas)
+        </h3>
+        <div class='traits-list cons-list' data-trait-type='con'>
+          {{#each cons}}
+            <div class='trait-item' data-trait-id='{{this.id}}'>
+              <div class='trait-header'>
+                <strong>{{this.title}}</strong>
+                <button
+                  type='button'
+                  class='trait-remove-btn'
+                  data-trait-id='{{this.id}}'
+                  data-trait-type='con'
+                >
+                  <i class='fas fa-times'></i>
+                </button>
+              </div>
+              <div class='trait-description'>{{{this.description}}}</div>
+            </div>
+          {{else}}
+            <p class='empty-traits'>No hay cons agregados</p>
+          {{/each}}
+        </div>
+        <button type='button' class='add-trait-btn' data-trait-type='con'>
+          <i class='fas fa-plus'></i>
+          Agregar Con
+        </button>
+      </div>
+    </div>
+
+    <!-- Form Buttons -->
+    <footer class='sheet-footer flexrow'>
+      <button type='submit' class='dialog-button'>
+        <i class='fas fa-save'></i>
+        {{#if (eq mode 'create')}}Crear{{else}}Guardar{{/if}}
+      </button>
+      <button type='button' class='dialog-button cancel-button'>
+        <i class='fas fa-times'></i>
+        Cancelar
+      </button>
+    </footer>
+  </div>
+</form>

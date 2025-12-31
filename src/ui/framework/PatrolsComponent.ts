@@ -98,6 +98,21 @@ export class PatrolsComponent extends ComponentBase<PatrolsComponentState> {
           const raw = ev.dataTransfer?.getData('text/plain');
           if (!raw) return;
           const data = JSON.parse(raw);
+
+          // Handle Officer from OfficerWarehouseDialog
+          if (data.type === 'Officer' && mode === 'officer') {
+            const gm: any = (window as any).GuardManagement;
+            const pMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
+            if (!pMgr) return;
+
+            // Assign the officer by ID
+            pMgr.assignOfficerById(pid, data.officerId);
+            ui?.notifications?.info?.(`Oficial asignado a patrulla`);
+            this.forceUpdate();
+            return;
+          }
+
+          // Handle Actor (legacy)
           const g: any = (globalThis as any).game;
           const actorId = data.id || data.actorId;
           if (!actorId) return;
@@ -120,13 +135,13 @@ export class PatrolsComponent extends ComponentBase<PatrolsComponentState> {
     if (soldiersZone) bind(soldiersZone, 'soldier');
   }
 
-  /** Detect if current drag event likely contains a Foundry Actor */
+  /** Detect if current drag event likely contains a Foundry Actor or Officer */
   private isActorDrag(ev: DragEvent): boolean {
     try {
       const raw = ev.dataTransfer?.getData('text/plain');
       if (!raw) return false;
       const data = JSON.parse(raw);
-      return data?.type === 'Actor' || !!data?.actorId;
+      return data?.type === 'Actor' || data?.type === 'Officer' || !!data?.actorId;
     } catch {
       return false;
     }
@@ -187,9 +202,29 @@ export class PatrolsComponent extends ComponentBase<PatrolsComponentState> {
         return `<span class="stat" data-stat="${k}" title="${escapeHtml(tip)}">${escapeHtml(k.slice(0, 3))}: ${v}</span>`;
       })
       .join('');
-    const officer = p.officer
-      ? `<img src="${escapeHtml(p.officer.img || '')}" alt="oficial" />`
-      : `<span class="empty">Sin Oficial</span>`;
+
+    // Render officer - check if officerId exists first
+    let officer = `<span class="empty">Sin Oficial</span>`;
+    if (p.officerId) {
+      // Get officer from OfficerManager
+      const gm: any = (window as any).GuardManagement;
+      const officerData = gm?.officerManager?.get(p.officerId);
+      if (officerData) {
+        officer = `
+          <div class="officer-assigned">
+            <img src="${escapeHtml(officerData.actorImg || '')}" alt="${escapeHtml(officerData.actorName)}" />
+            <div class="officer-details">
+              <div class="officer-name">${escapeHtml(officerData.actorName)}</div>
+              <div class="officer-title">${escapeHtml(officerData.title)}</div>
+            </div>
+          </div>
+        `;
+      }
+    } else if (p.officer) {
+      // Fallback to legacy officer format
+      officer = `<img src="${escapeHtml(p.officer.img || '')}" alt="oficial" />`;
+    }
+
     const lastOrder = p.lastOrder;
     const ageClass = lastOrder ? classifyLastOrderAge({ issuedAt: lastOrder.issuedAt }) : 'normal';
     const lastOrderHtml = `
@@ -203,7 +238,7 @@ export class PatrolsComponent extends ComponentBase<PatrolsComponentState> {
       <div class="patrol-card" data-patrol-id="${p.id}">
         <div class="header"><span class="name">${name}</span>${subtitle}</div>
         <div class="stats-mini">${stats}</div>
-        <div class="officer-slot" data-drop="officer" title="Arrastra un Actor aquí para asignarlo como Oficial">${officer}</div>
+        <div class="officer-slot" data-drop="officer" title="Arrastra un Oficial o Actor aquí">${officer}</div>
         <div class="soldiers-zone" data-drop="soldier" title="Arrastra Actores aquí para añadir Soldados">
           ${
             p.soldiers?.length

@@ -7,19 +7,15 @@ export class GuardActor extends Actor {
   /**
    * Override _preCreate to bypass Daggerheart validation
    */
-  protected async _preCreate(
-    data: any,
-    options: any,
-    user: any
-  ): Promise<boolean | void> {
+  protected async _preCreate(data: any, options: any, user: any): Promise<boolean | void> {
     // Skip Daggerheart's validation for Guard Management types
     if (this.type.startsWith('guard-management.')) {
       console.log(`GuardActor | Bypassing Daggerheart validation for ${this.type}`);
-      
+
       // Call the base Actor class _preCreate (not Daggerheart's)
       return await super._preCreate(data, options, user);
     }
-    
+
     // For non-Guard Management types, fall back to default behavior
     return await super._preCreate(data, options, user);
   }

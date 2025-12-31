@@ -1,0 +1,52 @@
+<div class='skill-content'>
+  <div class='form-group'>
+    <label for='skill-title'>Título</label>
+    <input
+      type='text'
+      id='skill-title'
+      name='title'
+      value='{{title}}'
+      placeholder='Ej: Rastrear, Negociar, Intimidar...'
+      required
+    />
+  </div>
+
+  <div class='form-group'>
+    <label for='skill-hope-cost'>Coste de Hope (0-5)</label>
+    <input
+      type='number'
+      id='skill-hope-cost'
+      name='hopeCost'
+      value='{{hopeCost}}'
+      min='0'
+      max='5'
+      required
+    />
+  </div>
+
+  <div class='form-group stacked'>
+    <label for='skill-description'>Descripción</label>
+    <div class='editor-wrapper'>
+      <div class='editor-toolbar'>
+        <button type='button' class='editor-btn' data-action='bold' title='Negrita (Ctrl+B)'>
+          <i class='fas fa-bold'></i>
+        </button>
+        <button type='button' class='editor-btn' data-action='italic' title='Cursiva (Ctrl+I)'>
+          <i class='fas fa-italic'></i>
+        </button>
+        <button type='button' class='editor-btn' data-action='underline' title='Subrayado (Ctrl+U)'>
+          <i class='fas fa-underline'></i>
+        </button>
+        <button type='button' class='editor-btn' data-action='insertUnorderedList' title='Lista'>
+          <i class='fas fa-list-ul'></i>
+        </button>
+      </div>
+      <div
+        id='skill-description'
+        class='editor-content'
+        contenteditable='true'
+        data-placeholder='Escribe la descripción aquí... Puedes usar los botones de arriba para formato.'
+      >{{{description}}}</div>
+    </div>
+  </div>
+</div>
