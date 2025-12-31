@@ -20,19 +20,65 @@ const MODULE_FOLDER_NAME = 'Guard Management';
 export function registerDataModels() {
   console.log('GuardManagement | Registering DataModels...');
 
-  // Register Actor sub-types
+  // Ensure types arrays exist
+  if (!Array.isArray(CONFIG.Actor.types)) {
+    CONFIG.Actor.types = [];
+  }
+  if (!Array.isArray(CONFIG.Item.types)) {
+    CONFIG.Item.types = [];
+  }
+
+  // Register Actor sub-types in types array (required for validation)
+  if (!CONFIG.Actor.types.includes('guard-management.guard-organization')) {
+    CONFIG.Actor.types.push('guard-management.guard-organization');
+  }
+  if (!CONFIG.Actor.types.includes('guard-management.patrol')) {
+    CONFIG.Actor.types.push('guard-management.patrol');
+  }
+
+  // Register Actor sub-types DataModels
   Object.assign(CONFIG.Actor.dataModels, {
     'guard-management.guard-organization': GuardOrganizationModel,
     'guard-management.patrol': PatrolModel,
   });
 
-  // Register Item sub-types
+  // Register default icons for custom Actor types (prevents Daggerheart DEFAULT_ICON errors)
+  if (!(CONFIG as any).Actor.typeIcons) {
+    (CONFIG as any).Actor.typeIcons = {};
+  }
+  (CONFIG as any).Actor.typeIcons['guard-management.guard-organization'] = 'icons/svg/castle.svg';
+  (CONFIG as any).Actor.typeIcons['guard-management.patrol'] = 'icons/svg/pawprint.svg';
+
+  // Register Item sub-types in types array (required for validation)
+  if (!CONFIG.Item.types.includes('guard-management.guard-resource')) {
+    CONFIG.Item.types.push('guard-management.guard-resource');
+  }
+  if (!CONFIG.Item.types.includes('guard-management.guard-reputation')) {
+    CONFIG.Item.types.push('guard-management.guard-reputation');
+  }
+  if (!CONFIG.Item.types.includes('guard-management.guard-modifier')) {
+    CONFIG.Item.types.push('guard-management.guard-modifier');
+  }
+  if (!CONFIG.Item.types.includes('guard-management.patrol-effect')) {
+    CONFIG.Item.types.push('guard-management.patrol-effect');
+  }
+
+  // Register Item sub-types DataModels
   Object.assign(CONFIG.Item.dataModels, {
     'guard-management.guard-resource': GuardResourceModel,
     'guard-management.guard-reputation': GuardReputationModel,
     'guard-management.guard-modifier': GuardModifierModel,
     'guard-management.patrol-effect': PatrolEffectModel,
   });
+
+  // Register default icons for custom Item types
+  if (!(CONFIG as any).Item.typeIcons) {
+    (CONFIG as any).Item.typeIcons = {};
+  }
+  (CONFIG as any).Item.typeIcons['guard-management.guard-resource'] = 'icons/svg/item-bag.svg';
+  (CONFIG as any).Item.typeIcons['guard-management.guard-reputation'] = 'icons/svg/angel.svg';
+  (CONFIG as any).Item.typeIcons['guard-management.guard-modifier'] = 'icons/svg/upgrade.svg';
+  (CONFIG as any).Item.typeIcons['guard-management.patrol-effect'] = 'icons/svg/aura.svg';
 
   console.log('GuardManagement | DataModels registered successfully');
 }
@@ -49,6 +95,7 @@ export async function createGuardOrganization(data: any = {}) {
   const organizationData = {
     name: data.name,
     type: 'guard-management.guard-organization',
+    img: data.img || 'icons/svg/castle.svg', // Explicit default icon
     system: {
       subtitle: data.subtitle || '',
       baseStats: data.baseStats || {
@@ -81,6 +128,7 @@ export async function createPatrol(data: any = {}) {
   const patrolData: any = {
     name: data.name || 'New Patrol',
     type: 'guard-management.patrol',
+    img: data.img || 'icons/svg/pawprint.svg', // Explicit default icon
     system: {
       unitCount: data.unitCount || 1,
       organizationId: data.organizationId || '',

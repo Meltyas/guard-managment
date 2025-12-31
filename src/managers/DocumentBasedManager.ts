@@ -645,6 +645,11 @@ export class DocumentBasedManager {
       },
     });
 
+    if (!org) {
+      console.error('Guard Management | Failed to create sample organization');
+      return;
+    }
+
     // Create a sample patrol
     await this.createPatrol({
       name: 'Alpha Patrol',

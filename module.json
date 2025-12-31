@@ -13,6 +13,15 @@
       "discord": "your-discord-handle"
     }
   ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "daggerheart",
+        "type": "system",
+        "compatibility": {}
+      }
+    ]
+  },
   "esmodules": ["./dist/guard-management.js"],
   "styles": ["./dist/style.css"],
   "languages": [

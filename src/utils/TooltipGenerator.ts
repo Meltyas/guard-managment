@@ -17,7 +17,7 @@ export class TooltipGenerator {
       for (const [key, value] of Object.entries(effect.modifiers)) {
         const val = value as number;
         const valStr = val >= 0 ? `+${val}` : `${val}`;
-        
+
         let color = '#ffffff'; // Neutral
         if (val > 0) color = '#4ae89a'; // Green
         else if (val < 0) color = '#e84a4a'; // Red
@@ -38,7 +38,7 @@ export class TooltipGenerator {
   static generateResourceTooltip(resource: any): string {
     const img = resource.image || 'icons/svg/item-bag.svg';
     const description = resource.description || 'Sin descripción';
-    
+
     const quantityHtml = `
       <div class="tooltip-stat" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">
         <div style="display: flex; justify-content: space-between; font-size: 0.9em;">
@@ -58,7 +58,7 @@ export class TooltipGenerator {
   static generateReputationTooltip(reputation: any): string {
     const img = reputation.image || 'icons/svg/target.svg';
     const description = reputation.description || 'Sin descripción';
-    
+
     const levelHtml = `
       <div class="tooltip-stat" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">
         <div style="display: flex; justify-content: space-between; font-size: 0.9em;">

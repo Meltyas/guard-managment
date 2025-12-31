@@ -817,14 +817,42 @@ export class GuardOrganizationManager {
     const DualityRoll = (game as any).system.api.dice.DualityRoll;
 
     // Construct base formula
-    const formula = `1${config.roll.dice.dHope} + 1${config.roll.dice.dFear}`;
+    let formula = `1${config.roll.dice.dHope} + 1${config.roll.dice.dFear}`;
 
-    const stats = this.calculateEffectiveOrgStats();
+    const baseStats = this.organization!.baseStats;
+
+    if (config.roll.trait) {
+      const stat = config.roll.trait as keyof GuardStats;
+
+      // 1. Base Trait
+      const baseValue = baseStats[stat] || 0;
+      if (baseValue !== 0) {
+        const label = config.roll.trait.charAt(0).toUpperCase() + config.roll.trait.slice(1);
+        formula += ` ${baseValue >= 0 ? '+' : '-'} ${Math.abs(baseValue)}[${label}]`;
+      }
+
+      // 2. Active Modifiers
+      const gm = (window as any).GuardManagement;
+      if (gm?.documentManager && this.organization!.activeModifiers?.length) {
+        const allModifiers = gm.documentManager.getGuardModifiers();
+        for (const modId of this.organization!.activeModifiers) {
+          const mod = allModifiers.find((m: any) => m.id === modId);
+          if (mod && mod.system?.statModifications) {
+            for (const change of mod.system.statModifications) {
+              if (change.statName === stat && change.value !== 0) {
+                formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[${mod.name}]`;
+              }
+            }
+          }
+        }
+      }
+    }
+
     const traitsData = {
-      robustismo: { value: stats.robustismo, label: 'Robustismo' },
-      analitica: { value: stats.analitica, label: 'Analítica' },
-      subterfugio: { value: stats.subterfugio, label: 'Subterfugio' },
-      elocuencia: { value: stats.elocuencia, label: 'Elocuencia' },
+      robustismo: { value: baseStats.robustismo, label: 'Robustismo' },
+      analitica: { value: baseStats.analitica, label: 'Analítica' },
+      subterfugio: { value: baseStats.subterfugio, label: 'Subterfugio' },
+      elocuencia: { value: baseStats.elocuencia, label: 'Elocuencia' },
     };
 
     const rollData = { traits: traitsData, bonuses: {} };
@@ -833,6 +861,7 @@ export class GuardOrganizationManager {
       roll: {
         ...config.roll,
         advantage: config.roll.advantage,
+        trait: undefined, // Disable auto-trait addition by DualityRoll
       },
       source: {},
       data: rollData,

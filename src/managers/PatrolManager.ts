@@ -388,15 +388,94 @@ export class PatrolManager {
   private async performRoll(patrol: Patrol, config: any) {
     const DualityRoll = (game as any).system.api.dice.DualityRoll;
 
-    const formula = `1${config.roll.dice.dHope} + 1${config.roll.dice.dFear}`;
+    let formula = `1${config.roll.dice.dHope} + 1${config.roll.dice.dFear}`;
 
-    const stats = patrol.derivedStats || patrol.baseStats;
+    const baseStats = patrol.baseStats;
+    // const derivedStats = patrol.derivedStats || baseStats; // Rebuilding from components for breakdown
 
+    const breakdown: any[] = [];
+
+    if (config.roll.trait) {
+      const stat = config.roll.trait as keyof GuardStats;
+      
+      // 1. Patrol Base Trait
+      const baseValue = baseStats[stat] || 0;
+      if (baseValue !== 0) {
+        const label = config.roll.trait.charAt(0).toUpperCase() + config.roll.trait.slice(1);
+        formula += ` ${baseValue >= 0 ? '+' : '-'} ${Math.abs(baseValue)}[${label}]`;
+        breakdown.push({ label: label, value: baseValue });
+      }
+
+      // 2. Patrol Effects
+      let effectsSum = 0;
+      for (const eff of patrol.patrolEffects) {
+        const val = eff.modifiers[stat] || 0;
+        if (val !== 0) {
+          formula += ` ${val >= 0 ? '+' : '-'} ${Math.abs(val)}[${eff.label}]`;
+          effectsSum += val;
+          breakdown.push({ label: eff.label, value: val });
+        }
+      }
+
+      // 3. Organization Breakdown
+      const gm = (window as any).GuardManagement;
+      const orgManager = gm?.guardOrganizationManager;
+      const organization = orgManager?.getOrganization();
+
+      if (organization && organization.id === patrol.organizationId) {
+        const orgNode: any = { label: 'Organización', value: 0, children: [] };
+        let orgTotal = 0;
+
+        // 3a. Organization Base
+        const orgBase = organization.baseStats[stat] || 0;
+        if (orgBase !== 0) {
+           formula += ` ${orgBase >= 0 ? '+' : '-'} ${Math.abs(orgBase)}[Org. Base]`;
+           orgNode.children.push({ label: 'Base', value: orgBase });
+           orgTotal += orgBase;
+        }
+
+        // 3b. Organization Modifiers
+        if (gm?.documentManager && organization.activeModifiers?.length) {
+          const allModifiers = gm.documentManager.getGuardModifiers();
+          for (const modId of organization.activeModifiers) {
+            const mod = allModifiers.find((m: any) => m.id === modId);
+            if (mod && mod.system?.statModifications) {
+              for (const change of mod.system.statModifications) {
+                if (change.statName === stat && change.value !== 0) {
+                  formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[Org. ${mod.name}]`;
+                  orgNode.children.push({ label: mod.name, value: change.value });
+                  orgTotal += change.value;
+                }
+              }
+            }
+          }
+        }
+
+        if (orgTotal !== 0) {
+            orgNode.value = orgTotal;
+            breakdown.push(orgNode);
+        }
+
+      } else {
+        // Fallback: Organization Bonus (Derived - Base - Effects)
+        // This handles cases where organization is not loaded or ID mismatch
+        const derivedStats = patrol.derivedStats || baseStats;
+        const total = derivedStats[stat] || 0;
+        const orgBonus = total - baseValue - effectsSum;
+
+        if (orgBonus !== 0) {
+          formula += ` ${orgBonus >= 0 ? '+' : '-'} ${Math.abs(orgBonus)}[Organization]`;
+          breakdown.push({ label: 'Organización', value: orgBonus });
+        }
+      }
+    }
+
+    // Use BASE stats for the main trait value so modifiers are additive
     const traitsData = {
-      robustismo: { value: stats.robustismo, label: 'Robustismo' },
-      analitica: { value: stats.analitica, label: 'Analítica' },
-      subterfugio: { value: stats.subterfugio, label: 'Subterfugio' },
-      elocuencia: { value: stats.elocuencia, label: 'Elocuencia' },
+      robustismo: { value: baseStats.robustismo, label: 'Robustismo' },
+      analitica: { value: baseStats.analitica, label: 'Analítica' },
+      subterfugio: { value: baseStats.subterfugio, label: 'Subterfugio' },
+      elocuencia: { value: baseStats.elocuencia, label: 'Elocuencia' },
     };
 
     const rollData = { traits: traitsData, bonuses: {} };
@@ -405,6 +484,7 @@ export class PatrolManager {
       roll: {
         ...config.roll,
         advantage: config.roll.advantage,
+        trait: undefined, // Disable auto-trait addition by DualityRoll
       },
       source: {},
       data: rollData,
@@ -441,6 +521,11 @@ export class PatrolManager {
           title: complexRoll.title,
         },
         rolls: [complexRoll],
+        flags: {
+            'guard-management': {
+                breakdown: breakdown
+            }
+        }
       };
 
       await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
@@ -462,6 +547,11 @@ export class PatrolManager {
         title: roll.title,
       },
       rolls: [roll],
+      flags: {
+        'guard-management': {
+            breakdown: breakdown
+        }
+      }
     };
 
     await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });

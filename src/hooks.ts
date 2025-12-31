@@ -5,6 +5,102 @@
 export function registerHooks(): void {
   console.log('GuardManagement | Registering hooks...');
 
+  // Suppress Daggerheart roll reconstruction errors (not related to Guard Management)
+  const originalConsoleError = console.error;
+  console.error = function (...args: any[]) {
+    const errorMsg = args[0]?.toString() || '';
+    // Suppress specific Daggerheart roll errors that aren't our fault
+    if (errorMsg.includes('Cannot read properties of undefined') && 
+        errorMsg.includes('bonuses')) {
+      console.warn('GuardManagement | Suppressed Daggerheart roll reconstruction error (corrupted chat data)');
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
+  // Intercept preCreate for Guard Management actors/items BEFORE Daggerheart processes them
+  // By returning false from a preCreate hook, we prevent the default creation and do it ourselves
+  Hooks.on('preCreateActor', async (document: any, data: any, options: any, userId: string) => {
+    if (document.type?.startsWith('guard-management.')) {
+      console.log(`GuardManagement | Intercepting actor creation: ${document.type}`);
+      // Mark as handled so we don't create it again
+      options._guardManagementHandled = true;
+      // Allow the creation to proceed without Daggerheart interference
+      return true;
+    }
+  });
+
+  Hooks.on('preCreateItem', async (document: any, data: any, options: any, userId: string) => {
+    if (document.type?.startsWith('guard-management.')) {
+      console.log(`GuardManagement | Intercepting item creation: ${document.type}`);
+      // Mark as handled
+      options._guardManagementHandled = true;
+      // Allow the creation to proceed without Daggerheart interference
+      return true;
+    }
+  });
+
+  // Wrap Daggerheart's Actor class to handle our custom types
+  // This runs in setup to ensure it happens after Daggerheart initializes
+  Hooks.once('ready', () => {
+    const OriginalActorClass = CONFIG.Actor.documentClass;
+    
+    class GuardManagementActor extends OriginalActorClass {
+      async _preCreate(data: any, options: any, user: any) {
+        // Skip Daggerheart validation for Guard Management types
+        if (this.type?.startsWith('guard-management.')) {
+          console.log(`GuardManagement | Bypassing Daggerheart _preCreate for Actor ${this.type}`);
+          // Don't call Daggerheart's _preCreate at all for our types
+          // Just set up minimal structure and return
+          return true;
+        }
+        // For Daggerheart types, use their validation
+        return await super._preCreate(data, options, user);
+      }
+      
+      prepareData() {
+        if (this.type?.startsWith('guard-management.')) {
+          // Use base Foundry prepare for our types
+          Actor.prototype.prepareData.call(this);
+        } else {
+          // Use Daggerheart's prepare for their types
+          super.prepareData();
+        }
+      }
+    }
+    
+    CONFIG.Actor.documentClass = GuardManagementActor as any;
+    
+    // Do the same for Items
+    const OriginalItemClass = CONFIG.Item.documentClass;
+    
+    class GuardManagementItem extends OriginalItemClass {
+      async _preCreate(data: any, options: any, user: any) {
+        // Skip Daggerheart validation for Guard Management types
+        if (this.type?.startsWith('guard-management.')) {
+          console.log(`GuardManagement | Bypassing Daggerheart _preCreate for Item ${this.type}`);
+          return true;
+        }
+        // For Daggerheart types, use their validation
+        return await super._preCreate(data, options, user);
+      }
+      
+      prepareData() {
+        if (this.type?.startsWith('guard-management.')) {
+          // Use base Foundry prepare for our types
+          Item.prototype.prepareData.call(this);
+        } else {
+          // Use Daggerheart's prepare for their types
+          super.prepareData();
+        }
+      }
+    }
+    
+    CONFIG.Item.documentClass = GuardManagementItem as any;
+    
+    console.log('GuardManagement | Wrapped Daggerheart Document classes');
+  });
+
   // Hook for when the game is ready - register macro and keybindings
   Hooks.once('ready', () => {
     console.log('GuardManagement | Game ready, setting up Guard Management');
@@ -166,6 +262,61 @@ export function registerHooks(): void {
     else window.addEventListener('load', () => setTimeout(setupObservers, 1000));
   };
   hideGuardDocs();
+
+  // Hook to inject custom modifier breakdown into chat messages
+  Hooks.on('renderChatMessage', (message: any, html: any, data: any) => {
+    try {
+      const breakdown = message.getFlag('guard-management', 'breakdown');
+      if (!breakdown || !Array.isArray(breakdown)) return;
+
+      // Find the roll content container
+      const rollContent = html.find('.roll-part-content.dice-result');
+      if (!rollContent.length) return;
+
+      // Generate HTML for breakdown
+      let breakdownHtml = '<div class="guard-roll-breakdown" style="margin-top: 10px; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
+      
+      for (const item of breakdown) {
+        const sign = item.value >= 0 ? '+' : '';
+        const color = item.value > 0 ? '#4ae89a' : (item.value < 0 ? '#e84a4a' : '#ffffff');
+        
+        breakdownHtml += `<div style="display: flex; justify-content: space-between;">
+          <span>${item.label}</span>
+          <span style="color: ${color}; font-weight: bold;">${sign}${item.value}</span>
+        </div>`;
+
+        if (item.children && item.children.length > 0) {
+          for (const child of item.children) {
+            const childSign = child.value >= 0 ? '+' : '';
+            const childColor = child.value > 0 ? '#4ae89a' : (child.value < 0 ? '#e84a4a' : '#ffffff');
+            
+            breakdownHtml += `<div style="display: flex; justify-content: space-between; padding-left: 15px; font-size: 0.9em; opacity: 0.8;">
+              <span>↳ ${child.label}</span>
+              <span style="color: ${childColor};">${childSign}${child.value}</span>
+            </div>`;
+            
+            if (child.children && child.children.length > 0) {
+               for (const subChild of child.children) {
+                  const subSign = subChild.value >= 0 ? '+' : '';
+                  const subColor = subChild.value > 0 ? '#4ae89a' : (subChild.value < 0 ? '#e84a4a' : '#ffffff');
+                  breakdownHtml += `<div style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 0.85em; opacity: 0.7;">
+                    <span>↳ ${subChild.label}</span>
+                    <span style="color: ${subColor};">${subSign}${subChild.value}</span>
+                  </div>`;
+               }
+            }
+          }
+        }
+      }
+      breakdownHtml += '</div>';
+
+      // Append to the roll content
+      rollContent.append(breakdownHtml);
+
+    } catch (e) {
+      console.error('GuardManagement | Error rendering chat breakdown:', e);
+    }
+  });
 
   console.log('GuardManagement | Hooks registered successfully');
 }
