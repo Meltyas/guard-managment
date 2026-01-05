@@ -1,0 +1,13 @@
+{
+  "folders": [
+	{
+		"path": "."
+	},
+	{
+		"path": "../fvtt-party-resources"
+	},
+	{
+		"path": "../../systems/daggerheart"
+	}
+]
+}

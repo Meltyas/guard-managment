@@ -324,7 +324,7 @@ export class OfficerFormApplication extends FormApplication {
       let officer: Officer;
 
       if (this.mode === 'create') {
-        officer = gm.officerManager.create({
+        officer = await gm.officerManager.create({
           actorId: this.currentData.actorId!,
           actorName: this.currentData.actorName!,
           actorImg: this.currentData.actorImg,

@@ -55,6 +55,29 @@ export function registerSettings(): void {
     default: [],
   });
 
+  // Officers data storage
+  game?.settings?.register('guard-management', 'officers', {
+    name: 'Officers Data',
+    hint: 'Stored officer information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (value) => {
+      // Reload officers in manager when settings change
+      const gm = (window as any).GuardManagement;
+      if (gm?.officerManager) {
+        gm.officerManager.loadFromSettings?.();
+      }
+      
+      // Refresh open officer warehouse dialog
+      const warehouse = (window as any).GuardManagement?.OfficerWarehouseDialog;
+      if (warehouse?.instance?.isOpen?.()) {
+        warehouse.instance.refresh();
+      }
+    },
+  });
+
   // Sync options
   game?.settings?.register('guard-management', 'syncOptions', {
     name: 'Synchronization Options',

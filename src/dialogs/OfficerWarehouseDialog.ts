@@ -95,11 +95,12 @@ export class OfficerWarehouseDialog {
 
     // Get officers from OfficerManager
     const officers = this.getOfficers();
+    const isGM = (game as any)?.user?.isGM || false;
 
     // Render using Handlebars template
     const content = await renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-      { officers }
+      { officers, isGM }
     );
 
     dialog.innerHTML = `

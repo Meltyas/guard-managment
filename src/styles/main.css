@@ -1305,8 +1305,8 @@
   letter-spacing: 0.5px;
 }
 .patrol-card .officer-slot {
-  width: 48px;
-  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
   border: 1px dashed #666;
   display: flex;
   align-items: center;
@@ -1315,14 +1315,63 @@
   overflow: hidden;
   font-size: 0.55rem;
   color: #888;
+  padding: 0.25rem;
 }
+
+.patrol-card .officer-slot .empty {
+  font-size: 0.65rem;
+  color: #888;
+  font-style: italic;
+}
+
+.patrol-card .officer-slot .officer-assigned {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.patrol-card .officer-slot .officer-assigned img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ffa500;
+  flex-shrink: 0;
+}
+
+.patrol-card .officer-slot .officer-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.patrol-card .officer-slot .officer-name {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.patrol-card .officer-slot .officer-title {
+  font-size: 0.65rem;
+  color: #ffa500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .patrol-card .officer-slot.dnd-hover {
   border-color: var(--color-accent, #4a90e2);
   background: rgba(74, 144, 226, 0.15);
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.4);
-  color: #cfe6ff;
 }
-.patrol-card .officer-slot img {
+
+.patrol-card .officer-slot img:only-child {
   width: 100%;
   height: 100%;
   object-fit: cover;

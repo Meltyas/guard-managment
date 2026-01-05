@@ -14,34 +14,39 @@ export class OfficerManager {
   }
 
   /**
-   * Initialize - load officers from Foundry actor
+   * Initialize - load officers from world settings
    */
   public async initialize(): Promise<void> {
-    await this.loadFromActor();
+    await this.loadFromSettings();
   }
 
   /**
-   * Load officers from the organization actor
+   * Load officers from world settings (public for onChange callback)
    */
-  private async loadFromActor(): Promise<void> {
+  public async loadFromSettings(): Promise<void> {
     try {
-      if (!game?.actors) return;
-
-      // Find organization actor with officers
-      const candidates = game.actors.filter(
-        (a: any) => a?.flags?.['guard-management']?.orgStore === true
-      );
-
-      const actor: any = candidates[0];
-      if (!actor) {
-        console.log('OfficerManager | No organization actor found');
-        return;
-      }
-
-      const officers = actor.getFlag('guard-management', 'officers') as Officer[] | undefined;
+      const officers = game?.settings?.get('guard-management', 'officers') as Officer[] | null;
       if (officers && Array.isArray(officers)) {
-        this.load(officers);
-        console.log(`OfficerManager | Loaded ${officers.length} officers from actor`);
+        // Deserialize dates
+        const deserializedOfficers = officers.map((o) => ({
+          ...o,
+          createdAt: o.createdAt ? new Date(o.createdAt) : new Date(),
+          updatedAt: o.updatedAt ? new Date(o.updatedAt) : new Date(),
+          patrolSkills: (o.patrolSkills || []).map((s) => ({
+            ...s,
+            createdAt: s.createdAt ? new Date(s.createdAt) : new Date(),
+          })),
+          pros: (o.pros || []).map((p) => ({
+            ...p,
+            createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+          })),
+          cons: (o.cons || []).map((c) => ({
+            ...c,
+            createdAt: c.createdAt ? new Date(c.createdAt) : new Date(),
+          })),
+        }));
+        this.load(deserializedOfficers);
+        console.log(`OfficerManager | Loaded ${officers.length} officers from settings`);
       }
     } catch (error) {
       console.error('OfficerManager | Error loading officers:', error);
@@ -49,42 +54,62 @@ export class OfficerManager {
   }
 
   /**
-   * Save officers to the organization actor
+   * Save officers to world settings (fire-and-forget)
    */
-  private async saveToActor(): Promise<void> {
+  private saveToSettings(): void {
+    this._saveToSettingsAsync().catch((error) => {
+      console.error('OfficerManager | Error in background save:', error);
+    });
+  }
+
+  /**
+   * Internal async save method to world settings (synchronized for all users)
+   */
+  private async _saveToSettingsAsync(): Promise<void> {
     try {
-      if (!game?.actors) return;
-
-      // Find organization actor
-      const candidates = game.actors.filter(
-        (a: any) => a?.flags?.['guard-management']?.orgStore === true
-      );
-
-      let actor: any = candidates[0];
-
-      // If no actor exists and user is GM, create one
-      if (!actor && (game as any).user?.isGM) {
-        console.log('OfficerManager | Creating organization actor for officers');
-        const fallbackType = (CONFIG as any).Actor?.type || 'character';
-        actor = await (game as any).actors.documentClass.create({
-          name: 'Guard Organization Data',
-          type: fallbackType,
-          flags: {
-            'guard-management': {
-              orgStore: true,
-            },
-          },
-        });
-      }
-
-      if (!actor) {
-        console.warn('OfficerManager | No actor available to save officers');
+      const user = game?.user as any;
+      if (!user?.isGM) {
+        console.warn('OfficerManager | Only GM can save officers to settings');
         return;
       }
 
-      // Save officers to actor flags
-      await actor.setFlag('guard-management', 'officers', this.export());
-      console.log(`OfficerManager | Saved ${this.officers.size} officers to actor`);
+      // Serialize officers data with plain objects and ISO dates
+      const officersData = this.export().map(officer => ({
+        id: officer.id,
+        name: officer.name,
+        actorId: officer.actorId,
+        actorName: officer.actorName,
+        actorImg: officer.actorImg,
+        title: officer.title,
+        patrolSkills: officer.patrolSkills.map(s => ({
+          id: s.id,
+          title: s.title,
+          description: s.description,
+          hopeCost: s.hopeCost,
+          createdAt: s.createdAt.toISOString()
+        })),
+        pros: officer.pros.map(p => ({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          createdAt: p.createdAt.toISOString()
+        })),
+        cons: officer.cons.map(c => ({
+          id: c.id,
+          title: c.title,
+          description: c.description,
+          createdAt: c.createdAt.toISOString()
+        })),
+        organizationId: officer.organizationId,
+        version: officer.version,
+        createdAt: officer.createdAt.toISOString(),
+        updatedAt: officer.updatedAt.toISOString()
+      }));
+
+      // Save to world settings - automatically syncs to all clients
+      await game?.settings?.set('guard-management', 'officers', officersData);
+
+      console.log(`OfficerManager | Saved ${this.officers.size} officers to settings`);
     } catch (error) {
       console.error('OfficerManager | Error saving officers:', error);
     }
@@ -93,7 +118,7 @@ export class OfficerManager {
   /**
    * Create a new officer
    */
-  public create(data: {
+  public async create(data: {
     actorId: string;
     actorName: string;
     actorImg?: string;
@@ -136,7 +161,7 @@ export class OfficerManager {
 
     this.officers.set(id, officer);
     this.onChange?.(officer, 'create');
-    this.saveToActor(); // Persist to Foundry
+    await this._saveToSettingsAsync();
 
     return officer;
   }
@@ -188,7 +213,7 @@ export class OfficerManager {
     officer.updatedAt = new Date();
 
     this.onChange?.(officer, 'update');
-    this.saveToActor();
+    this.saveToSettings();
     return officer;
   }
 
@@ -201,7 +226,7 @@ export class OfficerManager {
 
     this.officers.delete(id);
     this.onChange?.(officer, 'delete');
-    this.saveToActor();
+    this.saveToSettings();
     return true;
   }
 
@@ -226,7 +251,7 @@ export class OfficerManager {
     officer.updatedAt = new Date();
 
     this.onChange?.(officer, 'update');
-    this.saveToActor();
+    this.saveToSettings();
     return officer;
   }
 
@@ -242,7 +267,7 @@ export class OfficerManager {
     officer.updatedAt = new Date();
 
     this.onChange?.(officer, 'update');
-    this.saveToActor();
+    this.saveToSettings();
     return officer;
   }
 
@@ -267,7 +292,7 @@ export class OfficerManager {
     officer.updatedAt = new Date();
 
     this.onChange?.(officer, 'update');
-    this.saveToActor();
+    this.saveToSettings();
     return officer;
   }
 
@@ -283,7 +308,7 @@ export class OfficerManager {
     officer.updatedAt = new Date();
 
     this.onChange?.(officer, 'update');
-    this.saveToActor();
+    this.saveToSettings();
     return officer;
   }
 

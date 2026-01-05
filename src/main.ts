@@ -10,6 +10,7 @@ import { DocumentEventManager } from './managers/DocumentEventManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
+import { OfficerWarehouseDialog } from './dialogs/OfficerWarehouseDialog';
 import { registerSettings } from './settings';
 import './styles/custom-info-dialog.css';
 import './styles/gm-warehouse.css';
@@ -354,6 +355,9 @@ Hooks.once('init', async () => {
 
     // Export for global access
     (window as any).GuardManagement = guardManagementModule;
+    
+    // Export OfficerWarehouseDialog for onChange callback
+    (window as any).GuardManagement.OfficerWarehouseDialog = OfficerWarehouseDialog;
 
     // Set up a watchdog to detect if something deletes our module
     setupModuleWatchdog(guardManagementModule);

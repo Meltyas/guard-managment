@@ -20,14 +20,16 @@
             <span>Ver Organización</span>
         </button>
 
+        {{!-- Temporarily allow all users to see officer warehouse for sync testing --}}
+        <button class="action-btn secondary" data-action="open-officer-warehouse">
+            <i class="fas fa-user-shield"></i>
+            <span>Almacén de Oficiales</span>
+        </button>
+
         {{#if isGM}}
         <button class="action-btn secondary" data-action="open-warehouse">
             <i class="fas fa-warehouse"></i>
             <span>GM Warehouse</span>
-        </button>
-        <button class="action-btn secondary" data-action="open-officer-warehouse">
-            <i class="fas fa-user-shield"></i>
-            <span>Almacén de Oficiales</span>
         </button>
         {{/if}}
 
