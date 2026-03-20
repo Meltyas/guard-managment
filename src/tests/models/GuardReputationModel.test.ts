@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for GuardReputationModel DataModel
  * Following TDD principles

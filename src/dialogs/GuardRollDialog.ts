@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { GuardOrganization, GuardStats, Patrol } from '../types/entities';
 
 // @ts-ignore

@@ -3,7 +3,6 @@
  */
 
 import type { Resource } from '../types/entities.js';
-import { convertFoundryDocumentToResource } from '../utils/resource-converter.js';
 
 export interface ResourceTemplateOptions {
   showActions?: boolean;
@@ -25,12 +24,12 @@ export class ResourceTemplate {
 
     try {
       const gm = (window as any).GuardManagement;
-      if (gm?.documentManager) {
-        const resource = gm.documentManager
-          .getGuardResources()
+      if (gm?.resourceManager) {
+        const resource = gm.resourceManager
+          .getAllResources()
           ?.find((r: any) => r.id === resourceId);
         if (resource) {
-          resourceData = convertFoundryDocumentToResource(resource);
+          resourceData = resource; // Ya no necesita conversión
         }
       }
     } catch (error) {
@@ -83,6 +82,7 @@ export class ResourceTemplate {
     try {
       await (ChatMessage as any).create({
         content: chatHTML,
+        speaker: { scene: null, actor: null, token: null, alias: 'Guard Management' },
         whisper: whisperTo || [],
         flags: {
           'guard-management': {

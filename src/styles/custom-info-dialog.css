@@ -1285,3 +1285,64 @@
   transform: scale(1.05);
   text-shadow: 0 0 5px #f3c267;
 }
+
+/* ==================== Officer Skills (General Panel + Patrols) ==================== */
+
+.officer-skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.officer-skill-entry {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid #f3c267;
+}
+
+.skill-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.skill-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+  border: none !important;
+  border-radius: 3px;
+}
+
+.skill-name {
+  font-weight: bold;
+  color: #f3c267;
+  font-size: 0.9rem;
+}
+
+.skill-officer {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  opacity: 0.85;
+}
+
+.officer-mini-avatar {
+  width: 20px;
+  height: 20px;
+  object-fit: cover;
+  border: none !important;
+  border-radius: 50%;
+}
+
+.officer-info-text {
+  font-size: 0.8rem;
+  color: #c0c0c0;
+}
+
+/* Patrol card officer skill inline */
+.officer-skill {
+  padding: 0 4px;
+}

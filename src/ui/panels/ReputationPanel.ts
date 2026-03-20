@@ -1,7 +1,6 @@
 import { AddOrEditReputationDialog } from '../../dialogs/AddOrEditReputationDialog.js';
 import type { GuardOrganization } from '../../types/entities';
 import { REPUTATION_LABELS, ReputationLevel } from '../../types/entities.js';
-import { convertFoundryDocumentToReputation } from '../../utils/resource-converter.js';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { ReputationTemplate } from '../ReputationTemplate.js';
@@ -15,11 +14,11 @@ export class ReputationPanel {
     const gm = (window as any).GuardManagement;
     const reputation = [];
     if (organization.reputation && organization.reputation.length > 0) {
-      const allReputation = gm.documentManager.getGuardReputations();
+      const allReputation = gm.reputationManager?.getAllReputations() || [];
       for (const id of organization.reputation) {
         const r = allReputation.find((res: any) => res.id === id);
         if (r) {
-          const reputationData = convertFoundryDocumentToReputation(r);
+          const reputationData = r; // Ya no necesita conversión
           const level = reputationData.level;
 
           let statusClass = 'neutral';
@@ -47,8 +46,12 @@ export class ReputationPanel {
 
   static async render(container: HTMLElement, organization: GuardOrganization) {
     const data = await this.getData(organization);
-    const htmlContent = await renderTemplate(this.template, data);
-    container.innerHTML = htmlContent;
+    const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
+    
+    // Use jQuery html() to forcibly replace content
+    console.log('ReputationPanel | Rendering with data:', data);
+    $(container).html(htmlContent);
+    console.log('ReputationPanel | DOM updated');
   }
 
   /**
@@ -88,12 +91,12 @@ export class ReputationPanel {
     try {
       // Get the reputation data first to have the old name for notifications
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) {
-        console.error('DocumentManager not available');
+      if (!gm?.reputationManager) {
+        console.error('ReputationManager not available');
         return;
       }
 
-      const reputations = gm.documentManager.getGuardReputations();
+      const reputations = gm.reputationManager.getAllReputations() || [];
       const oldReputation = reputations.find((r: any) => r.id === reputationId);
       const oldName = oldReputation?.name || 'Reputación Desconocida';
 
@@ -103,7 +106,7 @@ export class ReputationPanel {
       await refreshCallback();
 
       // Get updated reputation data for notification and event
-      const updatedReputations = gm.documentManager.getGuardReputations();
+      const updatedReputations = gm.reputationManager.getAllReputations() || [];
       const updatedReputation = updatedReputations.find((r: any) => r.id === reputationId);
       const newName = updatedReputation?.name || oldName;
 

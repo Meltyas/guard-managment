@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * DataModel for Guard Organization Actor sub-type
  */

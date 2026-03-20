@@ -82,6 +82,7 @@ export class ReputationTemplate {
     try {
       await (ChatMessage as any).create({
         content: chatHTML,
+        speaker: { scene: null, actor: null, token: null, alias: 'Guard Management' },
         whisper: whisperTo || [],
         flags: {
           'guard-management': {

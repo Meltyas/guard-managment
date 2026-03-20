@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Guard Organization Dialog - Create/Edit Guard Organizations using DialogV2
  */

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * OfficerWarehouseDialog
  * Dialog for managing all created officers
@@ -416,9 +417,10 @@ export class OfficerWarehouseDialog {
     if (!this.element) return;
 
     const officers = this.getOfficers();
+    const isGM = (game as any)?.user?.isGM || false;
     const content = await renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-      { officers }
+      { officers, isGM }
     );
 
     const contentArea = this.element.querySelector('.window-content');

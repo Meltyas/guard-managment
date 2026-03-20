@@ -75,7 +75,7 @@ export class AddOrEditPatrolDialog {
               const patrolMgr = orgMgr.getPatrolManager();
 
               if (mode === 'create') {
-                const created = patrolMgr.createPatrol({
+                const created = await patrolMgr.createPatrol({
                   name: data.name.trim(),
                   subtitle: data.subtitle.trim(),
                   organizationId: data.organizationId,

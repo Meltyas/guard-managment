@@ -213,7 +213,7 @@ export class AddOrEditResourceDialog {
                 try {
                   if (mode === 'create') {
                     // Crear nuevo recurso
-                    const newResource = await gm.documentManager.createGuardResource(resourceData);
+                    const newResource = await gm.resourceManager.createResource(resourceData);
                     resourceResult = {
                       id: newResource.id,
                       name: data.name.trim(),
@@ -227,7 +227,7 @@ export class AddOrEditResourceDialog {
                     };
                   } else {
                     // Actualizar recurso existente
-                    const updateSuccess = await gm.documentManager.updateGuardResource(
+                    const updateSuccess = await gm.resourceManager.updateResource(
                       existingResource!.id,
                       resourceData
                     );

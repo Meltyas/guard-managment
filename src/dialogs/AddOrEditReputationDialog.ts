@@ -223,7 +223,7 @@ export class AddOrEditReputationDialog {
                   if (mode === 'create') {
                     // Crear nueva reputación
                     const newReputation =
-                      await gm.documentManager.createGuardReputation(reputationData);
+                      await gm.reputationManager.createReputation(reputationData);
                     reputationResult = {
                       id: newReputation.id,
                       name: data.name.trim(),
@@ -237,7 +237,7 @@ export class AddOrEditReputationDialog {
                     };
                   } else {
                     // Actualizar reputación existente
-                    const updateSuccess = await gm.documentManager.updateGuardReputation(
+                    const updateSuccess = await gm.reputationManager.updateReputation(
                       existingReputation!.id,
                       reputationData
                     );
@@ -311,10 +311,11 @@ export class AddOrEditReputationDialog {
     organizationId: string,
     existingReputation?: Reputation
   ): Promise<string> {
+    const defaultLevel = existingReputation?.level ?? ReputationLevel.Neutrales;
     const reputationLevels = Object.entries(REPUTATION_LABELS).map(([value, label]) => ({
       value,
       label,
-      selected: existingReputation?.level === parseInt(value),
+      selected: parseInt(value) === defaultLevel,
     }));
 
     const data = {
@@ -466,28 +467,28 @@ export class AddOrEditReputationDialog {
     try {
       // Get the reputation data first
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) {
-        throw new Error('DocumentManager not available');
+      if (!gm?.reputationManager) {
+        throw new Error('ReputationManager not available');
       }
 
-      const reputations = gm.documentManager.getGuardReputations();
+      const reputations = gm.reputationManager.getAllReputations() || [];
       const reputation = reputations.find((r: any) => r.id === reputationId);
 
       if (!reputation) {
         throw new Error(`Reputation with ID ${reputationId} not found`);
       }
 
-      // Convert to Reputation interface
+      // reputation is a plain object from SimpleReputationManager — no .system wrapper
       const reputationData: Reputation = {
         id: reputation.id,
         name: reputation.name,
-        description: reputation.system?.description || '',
-        level: reputation.system?.level || ReputationLevel.Neutrales,
-        image: reputation.img || '',
-        organizationId: reputation.system?.organizationId || '',
-        version: reputation.system?.version || 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        description: reputation.description || '',
+        level: reputation.level ?? ReputationLevel.Neutrales,
+        image: reputation.image || '',
+        organizationId: reputation.organizationId || '',
+        version: reputation.version ?? 1,
+        createdAt: reputation.createdAt ? new Date(reputation.createdAt) : new Date(),
+        updatedAt: reputation.updatedAt ? new Date(reputation.updatedAt) : new Date(),
       };
 
       const result = await AddOrEditReputationDialog.edit(reputationData);

@@ -8,7 +8,7 @@ import { GuardOrganizationManager } from './GuardOrganizationManager';
 
 export class GuardDialogManager {
   public guardOrganizationManager: GuardOrganizationManager;
-  private customInfoDialog: CustomInfoDialog | null = null;
+  public customInfoDialog: CustomInfoDialog | null = null;
 
   constructor(guardOrganizationManager: GuardOrganizationManager) {
     this.guardOrganizationManager = guardOrganizationManager;

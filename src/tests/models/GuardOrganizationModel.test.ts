@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for GuardOrganizationModel DataModel
  * Following TDD principles

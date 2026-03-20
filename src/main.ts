@@ -3,6 +3,8 @@
  * Handles initialization and data synchronization between Player and GM
  */
 
+import { GMWarehouseDialog } from './dialogs/GMWarehouseDialog';
+import { OfficerWarehouseDialog } from './dialogs/OfficerWarehouseDialog';
 import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
 import { DocumentBasedManager } from './managers/DocumentBasedManager';
@@ -10,7 +12,8 @@ import { DocumentEventManager } from './managers/DocumentEventManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
-import { OfficerWarehouseDialog } from './dialogs/OfficerWarehouseDialog';
+import { SimpleResourceManager } from './managers/SimpleResourceManager';
+import { SimpleReputationManager } from './managers/SimpleReputationManager';
 import { registerSettings } from './settings';
 import './styles/custom-info-dialog.css';
 import './styles/gm-warehouse.css';
@@ -90,6 +93,8 @@ class GuardManagementModule {
   public guardOrganizationManager: GuardOrganizationManager;
   public guardDialogManager: GuardDialogManager;
   public officerManager: OfficerManager;
+  public resourceManager: SimpleResourceManager;
+  public reputationManager: SimpleReputationManager;
   public floatingPanel: FloatingGuardPanel;
   public isInitialized: boolean = false;
 
@@ -99,6 +104,8 @@ class GuardManagementModule {
     this.guardOrganizationManager = new GuardOrganizationManager();
     this.guardDialogManager = new GuardDialogManager(this.guardOrganizationManager);
     this.officerManager = new OfficerManager();
+    this.resourceManager = new SimpleResourceManager();
+    this.reputationManager = new SimpleReputationManager();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
   }
 
@@ -120,7 +127,9 @@ class GuardManagementModule {
     await this.documentEventManager.initialize();
     await this.guardOrganizationManager.initialize();
     await this.guardDialogManager.initialize();
-    await this.officerManager.initialize(); // Load officers from Foundry
+    await this.officerManager.initialize(); // Load officers from settings
+    await this.resourceManager.initialize(); // Load resources from settings
+    await this.reputationManager.initialize(); // Load reputations from settings
 
     // Initialize floating panel (but don't show it yet)
     this.floatingPanel.initialize();
@@ -355,9 +364,12 @@ Hooks.once('init', async () => {
 
     // Export for global access
     (window as any).GuardManagement = guardManagementModule;
-    
+
     // Export OfficerWarehouseDialog for onChange callback
     (window as any).GuardManagement.OfficerWarehouseDialog = OfficerWarehouseDialog;
+
+    // Export GMWarehouseDialog for onChange callback
+    (window as any).GuardManagement.GMWarehouseDialog = GMWarehouseDialog;
 
     // Set up a watchdog to detect if something deletes our module
     setupModuleWatchdog(guardManagementModule);
@@ -395,6 +407,33 @@ Hooks.once('ready', async () => {
   // Configure tooltips to be fast
   if (game?.tooltip) {
     (game.tooltip as any).activationTime = 100; // 100ms delay
+  }
+
+  // CRITICAL: Allow Players to modify world settings (required for GM/Player sync)
+  // Only the GM can modify core permissions - players cannot do this themselves.
+  // This grants Player (1) and Trusted Player (2) roles write access to world settings,
+  // which is required for scope:'world' settings to sync when a player makes a change.
+  if ((game as any)?.user?.isGM) {
+    try {
+      const permissions = game?.settings?.get('core', 'permissions') as any;
+      if (permissions && permissions.SETTINGS_MODIFY) {
+        let changed = false;
+        if (!permissions.SETTINGS_MODIFY.includes(1)) {
+          permissions.SETTINGS_MODIFY.push(1);
+          changed = true;
+        }
+        if (!permissions.SETTINGS_MODIFY.includes(2)) {
+          permissions.SETTINGS_MODIFY.push(2);
+          changed = true;
+        }
+        if (changed) {
+          await game?.settings?.set('core', 'permissions', permissions);
+          console.log('Guard Management | Configured permissions for Players to modify settings');
+        }
+      }
+    } catch (error) {
+      console.warn('Guard Management | Could not configure permissions:', error);
+    }
   }
 
   // Check if module was properly initialized

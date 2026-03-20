@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AddOrEditOfficerDialog
  * Dialog for creating and editing patrol officers

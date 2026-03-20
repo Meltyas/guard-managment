@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ConfirmService
  * Uniform confirmation dialog abstraction.

@@ -214,6 +214,7 @@ export class EntityChatIntegration<T extends Identifiable> implements Chattable<
     try {
       await (ChatMessage as any).create({
         content: chatHTML,
+        speaker: { scene: null, actor: null, token: null, alias: 'Guard Management' },
         whisper: finalContext.whisperTo || [],
         flags,
       });

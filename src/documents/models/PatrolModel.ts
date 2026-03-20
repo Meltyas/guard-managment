@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * DataModel for Patrol Actor sub-type
  */

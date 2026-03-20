@@ -21,7 +21,7 @@ export function registerHooks(): void {
 
   // Intercept preCreate for Guard Management actors/items BEFORE Daggerheart processes them
   // By returning false from a preCreate hook, we prevent the default creation and do it ourselves
-  Hooks.on('preCreateActor', async (document: any, data: any, options: any, userId: string) => {
+  (Hooks as any).on('preCreateActor', async (document: any, _data: any, options: any, _userId: string) => {
     if (document.type?.startsWith('guard-management.')) {
       console.log(`GuardManagement | Intercepting actor creation: ${document.type}`);
       // Mark as handled so we don't create it again
@@ -31,7 +31,7 @@ export function registerHooks(): void {
     }
   });
 
-  Hooks.on('preCreateItem', async (document: any, data: any, options: any, userId: string) => {
+  (Hooks as any).on('preCreateItem', async (document: any, _data: any, options: any, _userId: string) => {
     if (document.type?.startsWith('guard-management.')) {
       console.log(`GuardManagement | Intercepting item creation: ${document.type}`);
       // Mark as handled
@@ -102,6 +102,29 @@ export function registerHooks(): void {
     console.log('GuardManagement | Wrapped Daggerheart Document classes');
   });
 
+  // Patch ChatMessage.getRollData to return {} for Guard Management messages.
+  // Foundry V13's speakerActor getter falls back to this.author?.character even when
+  // speaker fields are null, which causes DhpActor.getRollData to crash for some
+  // Daggerheart actor system types that don't implement getRollData.
+  Hooks.once('ready', () => {
+    try {
+      const ChatMessageImpl =
+        (ChatMessage as any).implementation ||
+        (CONFIG as any)?.ChatMessage?.documentClass ||
+        ChatMessage;
+      const originalGetRollData = ChatMessageImpl.prototype.getRollData;
+      if (typeof originalGetRollData === 'function') {
+        ChatMessageImpl.prototype.getRollData = function (this: any) {
+          if (this.flags?.['guard-management']) return {};
+          return originalGetRollData.call(this);
+        };
+        console.log('GuardManagement | Patched ChatMessage.getRollData to skip actor resolution for module messages');
+      }
+    } catch (e) {
+      console.warn('GuardManagement | Could not patch ChatMessage.getRollData:', e);
+    }
+  });
+
   // Hook for when the game is ready - register macro and keybindings
   Hooks.once('ready', () => {
     console.log('GuardManagement | Game ready, setting up Guard Management');
@@ -163,12 +186,12 @@ export function registerHooks(): void {
   });
 
   // Custom hook for user connection events
-  Hooks.on('guard-management.userConnected', (user: any) => {
+  (Hooks as any).on('guard-management.userConnected', (user: any) => {
     console.log('GuardManagement | Processing new user connection:', user?.name);
   });
 
   // Custom hook for guard token updates
-  Hooks.on(
+  (Hooks as any).on(
     'guard-management.guardTokenUpdated',
     (token: any, _updateData: any, _userId: string) => {
       const tName = token?.name || token?.document?.name || '';
@@ -265,7 +288,7 @@ export function registerHooks(): void {
   hideGuardDocs();
 
   // Hook to inject custom modifier breakdown into chat messages
-  Hooks.on('renderChatMessage', (message: any, html: any, data: any) => {
+  Hooks.on('renderChatMessage', (message: any, html: any, _data: any) => {
     try {
       const breakdown = message.getFlag('guard-management', 'breakdown');
       if (!breakdown || !Array.isArray(breakdown)) return;
@@ -335,7 +358,7 @@ function registerKeybindings(guardManagement: any): void {
     editable: [
       {
         key: 'KeyG',
-        modifiers: ['Control', 'Shift'],
+        modifiers: ['CONTROL', 'SHIFT'],
       },
     ],
     onDown: () => {
@@ -351,7 +374,7 @@ function registerKeybindings(guardManagement: any): void {
     editable: [
       {
         key: 'KeyN',
-        modifiers: ['Control', 'Shift'],
+        modifiers: ['CONTROL', 'SHIFT'],
       },
     ],
     onDown: () => {
@@ -395,6 +418,8 @@ function registerChatCommands(guardManagement: any): void {
         case 'help':
         case 'ayuda':
           (ChatMessage as any).create({
+            speaker: { scene: null, actor: null, token: null, alias: 'Guard Management' },
+            flags: { 'guard-management': { type: 'help' } },
             content: `
               <h3>Comandos de Gestión de Guardias</h3>
               <ul>

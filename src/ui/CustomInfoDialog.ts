@@ -149,7 +149,7 @@ export class CustomInfoDialog implements FocusableDialog {
   /**
    * Refresh dialog content with updated data
    */
-  private async refreshContent(): Promise<void> {
+  public async refreshContent(): Promise<void> {
     console.log('🔄 RefreshContent called...');
 
     if (!this.currentOrganization) {
@@ -158,89 +158,67 @@ export class CustomInfoDialog implements FocusableDialog {
     }
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.guardOrganizationManager || !gm?.documentManager) {
-      console.log('❌ No guardOrganizationManager or documentManager for refresh');
+    if (!gm?.guardOrganizationManager) {
+      console.log('❌ No guardOrganizationManager for refresh');
       return;
     }
 
     try {
-      // First try to get from DocumentBasedManager which should be more up-to-date
-      let freshOrganization = null;
-
-      try {
-        const guardOrgs = gm.documentManager.getGuardOrganizations();
-        freshOrganization = guardOrgs.find((org: any) => org.id === this.currentOrganization!.id);
-
-        if (freshOrganization) {
-          // Convert Foundry document to our organization type
-          freshOrganization = {
-            id: freshOrganization.id,
-            name: freshOrganization.name || 'Organización Sin Nombre',
-            subtitle: freshOrganization.system?.subtitle || '',
-            baseStats: {
-              robustismo: freshOrganization.system?.baseStats?.robustismo ?? 0,
-              analitica: freshOrganization.system?.baseStats?.analitica ?? 0,
-              subterfugio: freshOrganization.system?.baseStats?.subterfugio ?? 0,
-              elocuencia: freshOrganization.system?.baseStats?.elocuencia ?? 0,
-            },
-            resources: freshOrganization.system?.resources || [],
-            reputation: freshOrganization.system?.reputation || [],
-            patrols: freshOrganization.system?.patrols || [],
-            version: freshOrganization.system?.version || 1,
-            createdAt: freshOrganization.system?.createdAt
-              ? new Date(freshOrganization.system.createdAt)
-              : new Date(),
-            updatedAt: new Date(),
-          };
-          console.log('📊 Using data from DocumentBasedManager');
-        }
-      } catch (error) {
-        console.log(
-          '⚠️ Could not get data from DocumentBasedManager, falling back to GuardOrganizationManager'
-        );
-      }
-
-      // Fallback to GuardOrganizationManager if DocumentBasedManager fails
+      // ALWAYS use GuardOrganizationManager as source of truth
+      // It's updated via settings onChange and has the freshest data
+      const freshOrganization = gm.guardOrganizationManager.getOrganization();
+      
       if (!freshOrganization) {
-        freshOrganization = gm.guardOrganizationManager.getOrganization();
-        if (!freshOrganization) {
-          console.log('❌ No organization found in either manager');
-          return;
-        }
-        console.log('📊 Using data from GuardOrganizationManager (fallback)');
+        console.log('❌ No organization found in GuardOrganizationManager');
+        return;
       }
+
+      console.log('📊 Using fresh data from GuardOrganizationManager', {
+        resources: freshOrganization.resources?.length || 0,
+        reputation: freshOrganization.reputation?.length || 0,
+      });
 
       // IMPORTANT: Update our current organization reference to the fresh one
       this.currentOrganization = freshOrganization;
 
-      // Render panels
+      // Render panels with fresh data
       if (this.element) {
         const generalContainer = this.element.querySelector(
           '[data-tab-panel="general"]'
         ) as HTMLElement;
-        if (generalContainer)
+        if (generalContainer) {
+          console.log('🔄 Rendering GeneralPanel...');
           await GeneralPanel.render(generalContainer, freshOrganization, () =>
             this.refreshContent()
           );
+        }
 
         const patrolsContainer = this.element.querySelector(
           '[data-tab-panel="patrols"]'
         ) as HTMLElement;
-        if (patrolsContainer) await PatrolsPanel.render(patrolsContainer);
+        if (patrolsContainer) {
+          console.log('🔄 Rendering PatrolsPanel...');
+          await PatrolsPanel.render(patrolsContainer);
+        }
 
         const resourcesContainer = this.element.querySelector(
           '[data-tab-panel="resources"]'
         ) as HTMLElement;
-        if (resourcesContainer) await ResourcesPanel.render(resourcesContainer, freshOrganization);
+        if (resourcesContainer) {
+          console.log('🔄 Rendering ResourcesPanel with', freshOrganization.resources?.length || 0, 'resource IDs...');
+          await ResourcesPanel.render(resourcesContainer, freshOrganization);
+        }
 
         const reputationContainer = this.element.querySelector(
           '[data-tab-panel="reputation"]'
         ) as HTMLElement;
-        if (reputationContainer)
+        if (reputationContainer) {
+          console.log('🔄 Rendering ReputationPanel with', freshOrganization.reputation?.length || 0, 'reputation IDs...');
           await ReputationPanel.render(reputationContainer, freshOrganization);
+        }
       }
 
-      console.log('✅ Refresh completed immediately');
+      console.log('✅ Refresh completed successfully');
     } catch (error) {
       console.error('❌ Error refreshing dialog content:', error);
     }

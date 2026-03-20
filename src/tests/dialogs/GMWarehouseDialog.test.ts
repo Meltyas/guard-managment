@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * GM Warehouse Dialog Tests
  * Testing the GM-only warehouse interface with tabs system

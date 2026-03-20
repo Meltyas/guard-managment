@@ -6,6 +6,16 @@
 import { BaseEntity } from './entities';
 
 /**
+ * Patrol skill with hope cost – multiple per officer
+ */
+export interface OfficerSkill {
+  id: string;
+  name: string;
+  image?: string;
+  hopeCost: number; // 0-5
+}
+
+/**
  * Officer entity with actor assignment and characteristics
  */
 export interface Officer extends BaseEntity {
@@ -17,8 +27,8 @@ export interface Officer extends BaseEntity {
   // Custom title for the officer
   title: string;
 
-  // Patrol Skills (special abilities)
-  patrolSkills: PatrolSkill[];
+  // Skills shown in patrol card and general panel
+  skills: OfficerSkill[];
 
   // Pros (positive characteristics)
   pros: OfficerTrait[];
@@ -27,18 +37,7 @@ export interface Officer extends BaseEntity {
   cons: OfficerTrait[];
 
   // Optional metadata
-  organizationId?: string; // If officer is tied to organization
-}
-
-/**
- * Patrol skill with hope cost
- */
-export interface PatrolSkill {
-  id: string;
-  title: string;
-  description: string; // Rich text
-  hopeCost: number; // 0-5
-  createdAt: Date;
+  organizationId?: string;
 }
 
 /**
@@ -59,9 +58,8 @@ export interface OfficerFormData {
   actorName: string;
   actorImg?: string;
   title: string;
-  patrolSkills: Omit<PatrolSkill, 'id' | 'createdAt'>[];
+  skills: Omit<OfficerSkill, 'id'>[];
   pros: Omit<OfficerTrait, 'id' | 'createdAt'>[];
   cons: Omit<OfficerTrait, 'id' | 'createdAt'>[];
   organizationId?: string;
-}
 }

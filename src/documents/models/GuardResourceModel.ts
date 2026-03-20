@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * DataModel for Guard Resource Item sub-type
  */

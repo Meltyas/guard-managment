@@ -300,17 +300,19 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--color-border);
+  background: rgba(24, 22, 46, 0.5);
+  border: 1px solid rgba(243, 194, 103, 0.4);
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   font-size: 0.9rem;
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
 }
 
 .add-trait-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: var(--color-border-highlight);
+  background: rgba(243, 194, 103, 0.15);
+  border-color: #f3c267;
 }
 
 /* ==================== Officer Warehouse Dialog ==================== */
@@ -770,49 +772,271 @@
 .officer-form-app .sheet-footer {
   display: flex;
   gap: 0.5rem;
-  justify-content: flex-end;
   padding: 1rem;
   margin-top: 1rem;
-  border-top: 1px solid var(--color-border);
-  background: rgba(0, 0, 0, 0.1);
+  border-top: 1px solid rgba(243, 194, 103, 0.3);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .officer-form-app .dialog-button {
-  padding: 0.5rem 1.5rem;
+  flex: 1;
+  padding: 0.6rem 1.5rem;
   font-size: 1rem;
-  border: 1px solid var(--color-border);
   border-radius: 4px;
-  background: var(--color-button);
-  color: var(--color-text);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  font-family: 'Cinzel', serif;
+  font-weight: bold;
+  letter-spacing: 0.3px;
 }
 
-.officer-form-app .dialog-button:hover {
-  background: var(--color-button-hover);
-  border-color: var(--color-border-highlight);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
-}
-
+/* Primary submit button — Daggerheart gold */
 .officer-form-app .dialog-button[type='submit'] {
-  background: #2a7a3e;
-  border-color: #3a9a5e;
+  background: linear-gradient(180deg, #f3c267 0%, #c8912a 100%);
+  border: 1px solid #a87020;
+  color: #18162e;
 }
 
 .officer-form-app .dialog-button[type='submit']:hover {
-  background: #3a9a5e;
-  border-color: #4aba7e;
+  background: linear-gradient(180deg, #ffd280 0%, #d4a03a 100%);
+  border-color: #b87c30;
+  box-shadow: 0 2px 8px rgba(243, 194, 103, 0.4);
 }
 
+/* Cancel button */
 .officer-form-app .cancel-button {
-  background: #7a2a2a;
-  border-color: #9a3a3a;
+  background: rgba(24, 22, 46, 0.7);
+  border: 1px solid rgba(232, 74, 74, 0.6);
+  color: rgba(232, 74, 74, 0.9);
 }
 
 .officer-form-app .cancel-button:hover {
-  background: #9a3a3a;
-  border-color: #ba4a4a;
+  background: rgba(232, 74, 74, 0.2);
+  border-color: #e84a4a;
+  color: #fff;
 }
+
+/* ==================== Officer Skill Section (form) ==================== */
+
+.officer-skill-section {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: rgba(24, 22, 46, 0.3);
+  border-radius: 6px;
+  border: 1px solid rgba(243, 194, 103, 0.2);
+}
+
+.officer-skill-section h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Thumbnail in form skill list */
+.skill-thumb {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border: 1px solid rgba(243, 194, 103, 0.4);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.skill-thumb-placeholder {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(243, 194, 103, 0.1);
+  border: 1px solid rgba(243, 194, 103, 0.3);
+  border-radius: 4px;
+  color: #f3c267;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.skill-image-picker-btn {
+  background: rgba(24, 22, 46, 0.7);
+  border: 1px solid rgba(243, 194, 103, 0.6);
+  color: #f3c267;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.skill-image-picker-btn:hover {
+  background: #f3c267;
+  color: #18162e;
+}
+
+.skill-preview-img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border: 1px solid rgba(243, 194, 103, 0.4);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ==================== Patrol Card Officer Slot ==================== */
+
+.officer-slot-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  width: 100%;
+}
+
+.officer-avatar-wrap {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.officer-avatar-img {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f3c267;
+  display: block;
+}
+
+.officer-slot-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.officer-slot-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.officer-edit-btn {
+  background: rgba(24, 22, 46, 0.7);
+  border: 1px solid rgba(243, 194, 103, 0.5);
+  color: #f3c267;
+  border-radius: 4px;
+  padding: 3px 7px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.officer-edit-btn:hover {
+  background: #f3c267;
+  color: #18162e;
+}
+
+/* ==================== Patrol Card: Officer Skills at bottom ==================== */
+
+.patrol-officer-skills {
+  margin-top: 6px;
+  border-top: 1px solid rgba(243, 194, 103, 0.15);
+  padding-top: 6px;
+}
+
+.patrol-officer-skills-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(243, 194, 103, 0.6);
+  margin-bottom: 4px;
+  font-family: 'Cinzel', serif;
+}
+
+.patrol-skill-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  margin-bottom: 3px;
+  background: rgba(24, 22, 46, 0.4);
+  border: 1px solid rgba(243, 194, 103, 0.2);
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.patrol-skill-item:hover {
+  background: rgba(243, 194, 103, 0.1);
+  border-color: rgba(243, 194, 103, 0.5);
+}
+
+.patrol-skill-img {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+  border: none;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.patrol-skill-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(243, 194, 103, 0.6);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.patrol-skill-name {
+  flex: 1;
+  font-size: 0.78rem;
+  color: #efe6d8;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patrol-skill-hope {
+  font-size: 0.72rem;
+  color: #e84a4a;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ==================== General Panel: Skill Hope Badge ==================== */
+
+.skill-hope-badge {
+  font-size: 0.75rem;
+  color: #e84a4a;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 5px;
+  background: rgba(232, 74, 74, 0.12);
+  border: 1px solid rgba(232, 74, 74, 0.3);
+  border-radius: 4px;
+}
+
+.skill-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+

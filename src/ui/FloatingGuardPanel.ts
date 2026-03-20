@@ -123,7 +123,7 @@ export class FloatingGuardPanel {
     const isMinimized = this.panel?.classList.contains('minimized') || false;
 
     const templatePath = 'modules/guard-management/templates/panels/floating-panel.hbs';
-    const content = await renderTemplate(templatePath, {
+    const content = await foundry.applications.handlebars.renderTemplate(templatePath, {
       isGM,
       organizations,
       isMinimized,
@@ -157,9 +157,8 @@ export class FloatingGuardPanel {
       .guard-floating-panel {
         position: fixed;
         width: 280px;
-        min-height: 200px;
-        background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 20, 0.95));
-        border: 2px solid #5e5e5e;
+        background: rgba(24, 22, 46, 0.9);
+        border: 1px solid #f3c267;
         border-radius: 8px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
         z-index: 40;
@@ -169,7 +168,6 @@ export class FloatingGuardPanel {
       }
 
       .guard-floating-panel .panel-header {
-        background: linear-gradient(90deg, #4a4a4a, #2a2a2a);
         color: white;
         padding: 8px 12px;
         border-radius: 6px 6px 0 0;
@@ -177,15 +175,18 @@ export class FloatingGuardPanel {
         justify-content: space-between;
         align-items: center;
         cursor: move;
-        border-bottom: 1px solid #666;
+        border-bottom: 1px solid #f3c267;
       }
 
       .guard-floating-panel .panel-title {
+      color: #f3c267;
         display: flex;
         align-items: center;
         gap: 8px;
         font-weight: bold;
         font-size: 0.9rem;
+
+
       }
 
       .guard-floating-panel .panel-controls {

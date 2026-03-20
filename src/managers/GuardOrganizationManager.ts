@@ -1,7 +1,6 @@
 import { AddOrEditPatrolDialog } from '../dialogs/AddOrEditPatrolDialog';
 import { GuardOrganizationDialog } from '../dialogs/GuardOrganizationDialog';
 import { GuardRollDialog } from '../dialogs/GuardRollDialog';
-import { createGuardReputation, createGuardResource } from '../documents/index';
 import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats, Patrol } from '../types/entities';
 import { PatrolChangeOp, PatrolManager } from './PatrolManager';
 
@@ -148,12 +147,19 @@ export class GuardOrganizationManager {
         },
       ];
 
+      // Obtener los managers de los managers globales
+      const gm = (window as any).GuardManagement;
+      if (!gm?.resourceManager || !gm?.reputationManager) {
+        console.error('GuardOrganizationManager | resourceManager or reputationManager not available');
+        return;
+      }
+
       for (const r of resourceSeeds) {
-        const doc: any = await createGuardResource({
+        const resource = await gm.resourceManager.createResource({
           ...r,
           organizationId: orgId,
         });
-        if (doc?.id) createdResourceIds.push(doc.id);
+        if (resource?.id) createdResourceIds.push(resource.id);
       }
 
       // Reputaciones solicitadas (Neutral = nivel 4)
@@ -171,11 +177,11 @@ export class GuardOrganizationManager {
       ];
 
       for (const rep of reputationSeeds) {
-        const doc: any = await createGuardReputation({
+        const reputation = await gm.reputationManager.createReputation({
           ...rep,
           organizationId: orgId,
         });
-        if (doc?.id) createdReputationIds.push(doc.id);
+        if (reputation?.id) createdReputationIds.push(reputation.id);
       }
 
       if (!this.organization || this.organization.id !== orgId) return;
@@ -334,127 +340,34 @@ export class GuardOrganizationManager {
    */
   private async saveToSettings(broadcast: boolean = true): Promise<void> {
     try {
-      // Solo el GM guarda en settings como backup (usando duck typing para evitar problemas de tipos)
-      const user = game?.user as any;
-      if (user?.isGM) {
-        await game?.settings?.set('guard-management', 'guardOrganization', this.organization);
-        console.log('GuardOrganizationManager | Saved organization to settings (GM backup)');
+      // Don't save if game is not ready yet
+      if (!game?.ready) {
+        console.log('GuardOrganizationManager | Skipping save - game not ready yet');
+        return;
       }
-      // Siempre intentar persistir en un Actor compartido para que jugadores puedan editar
-      await this.saveToActor();
+
+      // Save to settings - now that we've configured permissions, both GM and Players can save
+      await game?.settings?.set('guard-management', 'guardOrganization', this.organization);
+      console.log('GuardOrganizationManager | Saved organization to settings', {
+        user: game?.user?.name,
+        isGM: game?.user?.isGM,
+        resources: this.organization?.resources?.length,
+        reputation: this.organization?.reputation?.length,
+      });
+      
       if (broadcast) this.broadcastOrganization();
     } catch (error) {
       // Si hay error de permisos con settings, simplemente continuar con la sincronización
       if (error instanceof Error && error.message?.includes('lacks permission')) {
-        console.log(
+        console.warn(
           'GuardOrganizationManager | User lacks permission to save to settings, using socket sync only'
         );
-        await this.saveToActor();
         if (broadcast) this.broadcastOrganization();
       } else {
         console.warn('GuardOrganizationManager | Could not save organization to settings:', error);
-        await this.saveToActor();
         if (broadcast) this.broadcastOrganization();
       }
     }
-  }
-
-  /** Persist organization into a dedicated Actor so players (with permissions) can modify */
-  private async saveToActor(): Promise<void> {
-    try {
-      if (!this.organization) return;
-      if (!game?.actors) return;
-      // Buscar actor existente por flag
-      const candidates = game.actors.filter(
-        (a: any) => a?.flags?.['guard-management']?.orgStore === true
-      );
-      let actor: any = candidates[0];
-      if (!actor) {
-        // Crear actor si GM; si no, abortar silenciosamente
-        if (!(game as any).user?.isGM) return;
-        const fallbackType = (CONFIG as any).Actor?.type || 'character';
-        // Asegurar carpeta
-        let folder: any = null;
-        try {
-          const allFolders: any[] = (game as any).folders?.contents || [];
-          folder =
-            allFolders.find((f) => f.type === 'Actor' && f.name === 'Guard Management') || null;
-          if (!folder) {
-            folder = await (Folder as any).create({
-              name: 'Guard Management',
-              type: 'Actor',
-              parent: null,
-            });
-            console.log('GuardOrganizationManager | Created folder Guard Management');
-          }
-        } catch {
-          /* ignore */
-        }
-        actor = await (Actor as any).create({
-          name: 'Guard Organization Store',
-          type: fallbackType,
-          flags: { 'guard-management': { orgStore: true } },
-          ownership: { default: 3 }, // OWNER para que todos puedan editar (nivel 3)
-          folder: folder?.id || null,
-        });
-        console.log('GuardOrganizationManager | Created organization actor store');
-      }
-      // Ensure actor in folder if GM
-      if ((game as any).user?.isGM) {
-        try {
-          const allFolders: any[] = (game as any).folders?.contents || [];
-          const targetFolder =
-            allFolders.find((f) => f.type === 'Actor' && f.name === 'Guard Management') || null;
-          if (targetFolder && actor.folder?.id !== targetFolder.id) {
-            await actor.update({ folder: targetFolder.id });
-            console.log(
-              'GuardOrganizationManager | Moved organization actor to Guard Management folder'
-            );
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      const current = actor?.getFlag('guard-management', 'organization');
-      // Solo actualizar si versión nueva para evitar writes innecesarios
-      if (!current || current.version !== this.organization.version) {
-        await actor.setFlag('guard-management', 'organization', this.organization);
-        // Guardar una copia ligera también en notas (opcional) para fácil inspección
-        try {
-          const summary = `${this.organization.name} v${this.organization.version} | Patrols: ${this.organization.patrols?.length || 0}`;
-          // No sobreescribir bio largo existente
-          if (!actor.system?.details?.biography || actor.system.details.biography === '') {
-            await actor.update({ 'system.details.biography': { value: summary } });
-          }
-        } catch {
-          /* ignore */
-        }
-        console.log('GuardOrganizationManager | Saved organization to actor flags');
-      }
-    } catch (e) {
-      console.warn('GuardOrganizationManager | saveToActor failed:', e);
-    }
-  }
-
-  /** Load from actor if available; used mainly for players */
-  private async loadFromActor(): Promise<boolean> {
-    try {
-      if (!game?.actors) return false;
-      const matches = game.actors.filter(
-        (a: any) => a?.flags?.['guard-management']?.orgStore === true
-      );
-      const actor: any = matches[0];
-      if (!actor) return false;
-      const data = await actor.getFlag('guard-management', 'organization');
-      if (data) {
-        this.organization = data as any;
-        console.log('GuardOrganizationManager | Loaded organization from actor flags');
-        return true;
-      }
-    } catch (e) {
-      console.warn('GuardOrganizationManager | loadFromActor failed:', e);
-    }
-    return false;
   }
 
   /**
@@ -525,33 +438,35 @@ export class GuardOrganizationManager {
   }
 
   /**
+   * Public alias for loadOrganization - called from settings onChange on all clients
+   */
+  public async loadFromSettings(): Promise<void> {
+    await this.loadOrganization();
+  }
+
+  /**
    * Load organization from game settings
    */
   private async loadOrganization(): Promise<void> {
     try {
-      // Intentar primero actor (para que jugadores reciban datos actualizados si GM ya los puso allí)
-      const actorLoaded = await this.loadFromActor();
-      let savedOrganization: GuardOrganization | null = null;
-      if (!actorLoaded) {
-        savedOrganization = game?.settings?.get(
-          'guard-management',
-          'guardOrganization'
-        ) as GuardOrganization | null;
-        this.organization = savedOrganization;
-      }
+      const savedOrganization = game?.settings?.get(
+        'guard-management',
+        'guardOrganization'
+      ) as GuardOrganization | null;
+      this.organization = savedOrganization;
 
       // hydrate patrol manager from snapshots if present
       // Ya no hidratamos desde patrolSnapshots; PatrolManager carga desde su propio flag
 
       if (this.organization) {
         console.log(`GuardOrganizationManager | Loaded organization: ${this.organization.name}`);
-        // Fallback: si hay IDs de patrullas pero PatrolManager aún no tiene objetos (ej: actor no disponible al inicio), re-hidratar ahora.
+        // Fallback: si hay IDs de patrullas pero PatrolManager aún no tiene objetos, esperar un momento
         if (this.organization.patrols?.length) {
           const anyPatrol = this.organization.patrols.some(
             (id) => !!this.patrolManager.getPatrol(id)
           );
           if (!anyPatrol) {
-            await this.patrolManager.hydrateFromActor();
+            console.log('GuardOrganizationManager | Waiting for patrols to load from settings...');
           }
           // Migración legacy: si todavía existe una propiedad antigua patrolSnapshots en los datos persistidos
           const legacy: any = this.organization as any;
@@ -569,7 +484,7 @@ export class GuardOrganizationManager {
               console.log(`GuardOrganizationManager | Migrated ${migrated} legacy patrolSnapshots`);
               // Persistir a flags para que quede guardado en el nuevo formato
               try {
-                await (this.patrolManager as any).persistToActor?.();
+                await (this.patrolManager as any).persistToSettings?.();
               } catch {
                 /* ignore */
               }
@@ -607,12 +522,12 @@ export class GuardOrganizationManager {
   }
 
   // Helper: create patrol and attach to organization
-  public createPatrolForOrganization(data: { name: string; baseStats: GuardStats }): Patrol | null {
+  public async createPatrolForOrganization(data: { name: string; baseStats: GuardStats }): Promise<Patrol | null> {
     if (!this.organization) {
       console.warn('GuardOrganizationManager | No organization for patrol creation');
       return null;
     }
-    const patrol = this.patrolManager.createPatrol({
+    const patrol = await this.patrolManager.createPatrol({
       name: data.name,
       organizationId: this.organization.id,
       baseStats: data.baseStats,
@@ -632,11 +547,8 @@ export class GuardOrganizationManager {
     for (const id of [...this.organization.patrols]) {
       let p = this.patrolManager.getPatrol(id);
       if (!p) {
-        // Intento tardío de hidratación (por si actor llegó después)
-        // Nota: hidratación rápida no await para no bloquear UI; si se requiere forzar, se puede llamar hydrateFromActor manualmente.
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        this.patrolManager.hydrateFromActor();
-        p = this.patrolManager.getPatrol(id);
+        // Si no existe, los datos se cargarán automáticamente via settings onChange
+        console.warn(`GuardOrganizationManager | Patrol ${id} not found, may load later`);
       }
       if (p) result.push(p);
       else {

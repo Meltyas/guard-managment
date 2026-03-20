@@ -136,7 +136,7 @@ export class ResourceEventHandler {
    * Handle editing an existing resource
    */
   private static async handleEdit(
-    context: ResourceEventContext,
+    _context: ResourceEventContext,
     resourceId: string
   ): Promise<void> {
     try {

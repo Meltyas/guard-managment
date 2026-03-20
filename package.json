@@ -47,6 +47,6 @@
     "vitest": "^1.0.0"
   },
   "dependencies": {
-    "@league-of-foundry-developers/foundry-vtt-types": "^12.331.0"
+    "@league-of-foundry-developers/foundry-vtt-types": "13.346.0-beta.20251209192131"
   }
 }

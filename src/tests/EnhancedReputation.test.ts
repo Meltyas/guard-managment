@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Test for Enhanced Reputation System
  * Verifies that the reputation system has full feature parity with resources

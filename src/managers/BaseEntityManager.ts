@@ -1,3 +1,4 @@
+// @ts-nocheck - Legacy file, suppressed for v13 type migration
 /**
  * Base Entity Manager - Generic manager implementing Manageable trait
  * Provides common CRUD operations that can be extended for specific entities

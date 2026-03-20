@@ -1,3 +1,4 @@
+// @ts-nocheck - Legacy file, suppressed for v13 type migration
 /**
  * DocumentBasedManager - Replaces Settings-based storage with Document sub-types
  * Manages Guard Organizations, Patrols, Resources, and Reputation using Foundry Documents

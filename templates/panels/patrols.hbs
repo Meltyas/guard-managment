@@ -21,15 +21,30 @@
                         </span>
                         {{/each}}
                     </div>
-                    <div class="officer-slot" data-drop="officer" >
+
+                    <!-- Officer slot: image + name + GM edit button -->
+                    <div class="officer-slot" data-drop="officer">
                         {{#if this.officer}}
-                        <div class="clickable-actor" data-action="open-sheet" data-actor-id="{{this.officer.actorId}}" style="cursor: pointer;">
-                            <img src="{{this.officer.img}}" alt="oficial" />
+                        <div class="officer-slot-inner">
+                            <div class="clickable-actor officer-avatar-wrap" data-action="open-sheet" data-actor-id="{{this.officer.actorId}}" style="cursor: pointer;">
+                                <img src="{{this.officerImgDisplay}}" alt="oficial" class="officer-avatar-img" />
+                            </div>
+                            <div class="officer-slot-info">
+                                <span class="officer-slot-name">{{this.officerName}}</span>
+                            </div>
+                            {{#if this.isGM}}
+                            {{#if this.officerId}}
+                            <button type="button" class="officer-edit-btn" data-action="edit-officer" data-officer-id="{{this.officerId}}" data-tooltip="Editar Oficial">
+                                <i class="fas fa-user-edit"></i>
+                            </button>
+                            {{/if}}
+                            {{/if}}
                         </div>
                         {{else}}
                         <span class="empty">Sin Oficial</span>
                         {{/if}}
                     </div>
+
                     <div class="soldiers-zone" data-drop="soldier" data-tooltip="Arrastra Actores aquí para añadir Soldados">
                         {{#each this.slots}}
                             {{#if (eq this.type "soldier")}}
@@ -44,6 +59,7 @@
                         <span class="more" data-tooltip="{{subtract this.soldiers.length this.soldierSlots}} más">+{{subtract this.soldiers.length this.soldierSlots}}</span>
                         {{/if}}
                     </div>
+
                     <div class="last-order-line {{this.ageClass}}" data-action="edit-last-order" data-patrol-id="{{this.id}}" >
                         <i class="fas fa-scroll"></i>
                         <div class="last-order-content">
@@ -69,6 +85,33 @@
                             </div>
                             {{/each}}
                         </div>
+                    </div>
+                    {{/if}}
+
+                    <!-- Officer Skills at bottom -->
+                    {{#if this.officerSkills.length}}
+                    <div class="patrol-officer-skills">
+                        <div class="patrol-officer-skills-label"><i class="fas fa-bolt"></i> Habilidades</div>
+                        {{#each this.officerSkills}}
+                        <div class="patrol-skill-item skill-to-chat-trigger"
+                             data-action="skill-to-chat"
+                             data-skill-name="{{this.name}}"
+                             data-skill-image="{{this.image}}"
+                             data-skill-hope-cost="{{this.hopeCost}}"
+                             data-officer-name="{{../officerName}}"
+                             data-tooltip="Clic para enviar al chat"
+                             style="cursor: pointer;">
+                            {{#if this.image}}
+                            <img src="{{this.image}}" alt="{{this.name}}" class="patrol-skill-img" />
+                            {{else}}
+                            <span class="patrol-skill-icon"><i class="fas fa-bolt"></i></span>
+                            {{/if}}
+                            <span class="patrol-skill-name">{{this.name}}</span>
+                            <span class="patrol-skill-hope">
+                                <i class="fas fa-heart"></i> {{this.hopeCost}}
+                            </span>
+                        </div>
+                        {{/each}}
                     </div>
                     {{/if}}
 

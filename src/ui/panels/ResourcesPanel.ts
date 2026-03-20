@@ -1,7 +1,6 @@
 import type { GuardOrganization } from '../../types/entities';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
-import { convertFoundryDocumentToResource } from '../../utils/resource-converter.js';
 import { ResourceTemplate } from '../ResourceTemplate.js';
 
 export class ResourcesPanel {
@@ -12,15 +11,25 @@ export class ResourcesPanel {
   static async getData(organization: GuardOrganization) {
       const gm = (window as any).GuardManagement;
       const resources = [];
+      
+      console.log('ResourcesPanel.getData | Organization has', organization.resources?.length || 0, 'resource IDs');
+      
       if (organization.resources && organization.resources.length > 0) {
-          const allResources = gm.documentManager.getGuardResources();
+          const allResources = gm.resourceManager?.getAllResources() || [];
+          console.log('ResourcesPanel.getData | ResourceManager has', allResources.length, 'total resources');
+          
           for (const id of organization.resources) {
               const r = allResources.find((res: any) => res.id === id);
               if (r) {
-                  resources.push(convertFoundryDocumentToResource(r));
+                  resources.push(r);
+                  console.log('ResourcesPanel.getData | Found resource:', r.name);
+              } else {
+                  console.warn('ResourcesPanel.getData | Resource ID not found:', id);
               }
           }
       }
+      
+      console.log('ResourcesPanel.getData | Returning', resources.length, 'resources');
       return {
           organizationId: organization.id,
           resources
@@ -29,8 +38,13 @@ export class ResourcesPanel {
 
   static async render(container: HTMLElement, organization: GuardOrganization) {
       const data = await this.getData(organization);
-      const htmlContent = await renderTemplate(this.template, data);
-      container.innerHTML = htmlContent;
+      const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
+      
+      // Use jQuery html() to forcibly replace content
+      // This is more reliable than empty+append for string HTML
+      console.log('ResourcesPanel | Rendering with data:', data);
+      $(container).html(htmlContent);
+      console.log('ResourcesPanel | DOM updated');
   }
 
   /**
@@ -113,15 +127,15 @@ export class ResourcesPanel {
     console.log('✏️ Edit resource request:', resourceName, resourceId);
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) {
-      console.error('❌ DocumentBasedManager not available');
-      NotificationService.error('No se pudo acceder al gestor de documentos');
+    if (!gm?.resourceManager) {
+      console.error('❌ ResourceManager not available');
+      NotificationService.error('No se pudo acceder al gestor de recursos');
       return;
     }
 
     try {
-      // Get the resource from the document manager
-      const resources = gm.documentManager.getGuardResources();
+      // Get the resource from the resource manager
+      const resources = gm.resourceManager.getAllResources() || [];
       const resource = resources.find((r: any) => r.id === resourceId);
 
       if (!resource) {
@@ -130,8 +144,7 @@ export class ResourcesPanel {
         return;
       }
 
-      // Convert Foundry document to our Resource type
-      const resourceData = convertFoundryDocumentToResource(resource);
+      const resourceData = resource; // Ya no necesita conversión
 
       // Import AddOrEditResourceDialog dynamically
       const { AddOrEditResourceDialog } = await import('../../dialogs/AddOrEditResourceDialog.js');
@@ -143,7 +156,7 @@ export class ResourcesPanel {
         console.log('💾 Resource edited successfully, saving to database:', editedResource);
 
         // Save the edited resource
-        const updateSuccess = await gm.documentManager.updateGuardResource(
+        const updateSuccess = await gm.resourceManager.updateResource(
           editedResource.id,
           editedResource
         );
@@ -161,7 +174,7 @@ export class ResourcesPanel {
               newName: editedResource.name,
             },
           });
-          document.dispatchEvent(event);
+          window.dispatchEvent(event);
 
           // Refresh dialog
           await refreshCallback();

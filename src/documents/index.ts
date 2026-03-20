@@ -21,19 +21,19 @@ export function registerDataModels() {
   console.log('GuardManagement | Registering DataModels...');
 
   // Ensure types arrays exist
-  if (!Array.isArray(CONFIG.Actor.types)) {
-    CONFIG.Actor.types = [];
+  if (!Array.isArray((CONFIG.Actor as any).types)) {
+    (CONFIG.Actor as any).types = [];
   }
-  if (!Array.isArray(CONFIG.Item.types)) {
-    CONFIG.Item.types = [];
+  if (!Array.isArray((CONFIG.Item as any).types)) {
+    (CONFIG.Item as any).types = [];
   }
 
   // Register Actor sub-types in types array (required for validation)
-  if (!CONFIG.Actor.types.includes('guard-management.guard-organization')) {
-    CONFIG.Actor.types.push('guard-management.guard-organization');
+  if (!(CONFIG.Actor as any).types.includes('guard-management.guard-organization')) {
+    (CONFIG.Actor as any).types.push('guard-management.guard-organization');
   }
-  if (!CONFIG.Actor.types.includes('guard-management.patrol')) {
-    CONFIG.Actor.types.push('guard-management.patrol');
+  if (!(CONFIG.Actor as any).types.includes('guard-management.patrol')) {
+    (CONFIG.Actor as any).types.push('guard-management.patrol');
   }
 
   // Register Actor sub-types DataModels
@@ -50,17 +50,17 @@ export function registerDataModels() {
   (CONFIG as any).Actor.typeIcons['guard-management.patrol'] = 'icons/svg/pawprint.svg';
 
   // Register Item sub-types in types array (required for validation)
-  if (!CONFIG.Item.types.includes('guard-management.guard-resource')) {
-    CONFIG.Item.types.push('guard-management.guard-resource');
+  if (!(CONFIG.Item as any).types.includes('guard-management.guard-resource')) {
+    (CONFIG.Item as any).types.push('guard-management.guard-resource');
   }
-  if (!CONFIG.Item.types.includes('guard-management.guard-reputation')) {
-    CONFIG.Item.types.push('guard-management.guard-reputation');
+  if (!(CONFIG.Item as any).types.includes('guard-management.guard-reputation')) {
+    (CONFIG.Item as any).types.push('guard-management.guard-reputation');
   }
-  if (!CONFIG.Item.types.includes('guard-management.guard-modifier')) {
-    CONFIG.Item.types.push('guard-management.guard-modifier');
+  if (!(CONFIG.Item as any).types.includes('guard-management.guard-modifier')) {
+    (CONFIG.Item as any).types.push('guard-management.guard-modifier');
   }
-  if (!CONFIG.Item.types.includes('guard-management.patrol-effect')) {
-    CONFIG.Item.types.push('guard-management.patrol-effect');
+  if (!(CONFIG.Item as any).types.includes('guard-management.patrol-effect')) {
+    (CONFIG.Item as any).types.push('guard-management.patrol-effect');
   }
 
   // Register Item sub-types DataModels

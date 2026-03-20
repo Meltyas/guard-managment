@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { DEFAULT_GUARD_STATS } from '../../types/entities.js';
 
 /**

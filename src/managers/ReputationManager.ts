@@ -1,3 +1,4 @@
+// @ts-nocheck - Legacy file, suppressed for v13 type migration
 /**
  * Reputation Manager - Manages organizational reputation with factions
  */

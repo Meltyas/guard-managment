@@ -10,6 +10,16 @@ export class PatrolsPanel {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     const patrols = orgMgr ? orgMgr.listOrganizationPatrols() : [];
+    const isGM = (globalThis as any).game?.user?.isGM ?? false;
+
+    // Build actorId → officer map for quick lookup (name + skills)
+    const officerByActorId = new Map<string, any>();
+    const allOfficers: any[] = gm?.officerManager?.list?.() || [];
+    for (const officer of allOfficers) {
+      if (officer.actorId) {
+        officerByActorId.set(officer.actorId, officer);
+      }
+    }
 
     // Enrich patrols
     const enrichedPatrols = patrols.map((p: any) => {
@@ -37,11 +47,19 @@ export class PatrolsPanel {
         }
       }
 
+      // Resolve officer record from officerManager to get name + skills
+      const officerRecord = p.officer?.actorId ? officerByActorId.get(p.officer.actorId) : null;
+
       return {
         ...p,
         ageClass,
         statsBreakdown,
         slots,
+        isGM,
+        officerName: officerRecord?.name || p.officer?.name || null,
+        officerId: officerRecord?.id || null,
+        officerImgDisplay: officerRecord?.actorImg || p.officer?.img || null,
+        officerSkills: officerRecord?.skills?.length ? officerRecord.skills : [],
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
           ? {
@@ -62,8 +80,10 @@ export class PatrolsPanel {
 
   static async render(container: HTMLElement) {
     const data = await this.getData();
-    const htmlContent = await renderTemplate(this.template, data);
-    container.innerHTML = htmlContent;
+    const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
+    
+    // Use jQuery html() to forcibly replace content
+    $(container).html(htmlContent);
     this.activateListeners(container);
   }
 
@@ -105,6 +125,23 @@ export class PatrolsPanel {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.actorId;
       if (id) this.handleOpenActorSheet(id);
+    });
+    $html.find('[data-action="skill-to-chat"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const el = ev.currentTarget;
+      const skill = {
+        name: el.dataset.skillName || '',
+        image: el.dataset.skillImage || '',
+        hopeCost: parseInt(el.dataset.skillHopeCost || '0', 10),
+        officerName: el.dataset.officerName || '',
+      };
+      this.handleSkillToChat(skill);
+    });
+    $html.find('[data-action="edit-officer"]').on('click', (ev) => {
+      ev.preventDefault();
+      const officerId = ev.currentTarget.dataset.officerId;
+      if (officerId) this.handleEditOfficer(officerId, () => this.refresh(container));
     });
 
     // Stat interactions
@@ -300,6 +337,13 @@ export class PatrolsPanel {
     const resolveActor = async (data: any): Promise<any | null> => {
       const g: any = (globalThis as any).game;
       if (!g) return null;
+
+      // Handle Officer drag from OfficerWarehouseDialog
+      if (data.type === 'Officer' && data.officerData?.actorId) {
+        const actor = g.actors?.get?.(data.officerData.actorId);
+        if (actor) return actor;
+      }
+
       const directId = data.id || data.actorId || data._id;
       if (directId) {
         const byId =
@@ -524,7 +568,7 @@ export class PatrolsPanel {
     if (!org) return;
     orgMgr.removePatrol(patrolId);
     const pMgr = orgMgr.getPatrolManager();
-    pMgr.deletePatrol(patrolId);
+    await pMgr.deletePatrol(patrolId);
     ui?.notifications?.warn('Patrulla eliminada');
     refreshCallback();
   }
@@ -628,7 +672,8 @@ export class PatrolsPanel {
 
     await (ChatMessage as any).create({
       content: content,
-      speaker: (ChatMessage as any).getSpeaker({ alias: 'Informe de Patrulla' }),
+      speaker: { scene: null, actor: null, token: null, alias: 'Informe de Patrulla' },
+      flags: { 'guard-management': { type: 'patrol-report' } },
     });
   }
 
@@ -712,7 +757,7 @@ export class PatrolsPanel {
             // Ensure we have a string
             text = text || '';
 
-            pMgr.updateLastOrder(patrolId, text.trim());
+            await pMgr.updateLastOrder(patrolId, text.trim());
             const updated = pMgr.getPatrol(patrolId);
             if (updated) {
               orgMgr.upsertPatrolSnapshot(updated);
@@ -736,7 +781,8 @@ export class PatrolsPanel {
 
                 await (ChatMessage as any).create({
                   content: content,
-                  speaker: (ChatMessage as any).getSpeaker({ alias: 'Comandante de la Guardia' }),
+                  speaker: { scene: null, actor: null, token: null, alias: 'Comandante de la Guardia' },
+                  flags: { 'guard-management': { type: 'last-order' } },
                 });
               }
             }
@@ -765,6 +811,50 @@ export class PatrolsPanel {
       } else {
         ui.notifications?.warn(`Actor ${actorId} no encontrado`);
       }
+    }
+  }
+
+  public static async handleSkillToChat(skill: {
+    name: string;
+    image?: string;
+    hopeCost: number;
+    officerName?: string;
+  }) {
+    const heartIcons = skill.hopeCost > 0
+      ? Array(skill.hopeCost).fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>').join(' ')
+      : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
+
+    const content = `
+      <div class="guard-resource-chat">
+        ${skill.image ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${skill.image}" style="max-width: 64px; border: none;" /></div>` : ''}
+        <div class="chat-header" style="font-weight: bold; font-size: 1.1em; margin-bottom: 4px;">${skill.name}</div>
+        ${skill.officerName ? `<div style="font-size: 0.85em; opacity: 0.75; margin-bottom: 6px;"><i class="fas fa-user"></i> ${skill.officerName}</div>` : ''}
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.9em;">
+          <span style="opacity: 0.8;">Coste de Hope:</span>
+          <span>${heartIcons}</span>
+        </div>
+      </div>
+    `;
+
+    await (ChatMessage as any).create({
+      content,
+      speaker: { scene: null, actor: null, token: null, alias: 'Habilidad de Oficial' },
+      flags: { 'guard-management': { type: 'officer-skill' } },
+    });
+  }
+
+  public static async handleEditOfficer(officerId: string, refreshCallback: () => void) {
+    const gm = (window as any).GuardManagement;
+    const officerManager = gm?.officerManager;
+    if (!officerManager) return;
+    const officer = officerManager.get(officerId);
+    if (!officer) return;
+
+    const { OfficerFormApplication } = await import('../../dialogs/OfficerFormApplication.js');
+    const app = new OfficerFormApplication('edit', officer.organizationId || '', officer);
+    const result = await app.show();
+    if (result) {
+      refreshCallback();
     }
   }
 
@@ -798,7 +888,8 @@ export class PatrolsPanel {
 
     await (ChatMessage as any).create({
       content: content,
-      speaker: (ChatMessage as any).getSpeaker({ alias: 'Efecto de Patrulla' }),
+      speaker: { scene: null, actor: null, token: null, alias: 'Efecto de Patrulla' },
+      flags: { 'guard-management': { type: 'patrol-effect' } },
     });
   }
 

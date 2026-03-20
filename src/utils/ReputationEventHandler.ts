@@ -189,9 +189,9 @@ export class ReputationEventHandler {
       const gm = (window as any).GuardManagement;
       let reputationData = null;
 
-      if (gm?.documentManager) {
-        const reputation = gm.documentManager
-          .getGuardReputations()
+      if (gm?.reputationManager) {
+        const reputation = gm.reputationManager
+          .getAllReputations()
           ?.find((r: any) => r.id === reputationId);
         if (reputation) {
           reputationData = reputation;
@@ -356,9 +356,9 @@ export class ReputationEventHandler {
           const gm = (window as any).GuardManagement;
           let reputationData = null;
 
-          if (gm?.documentManager && reputationId.startsWith('temp-') === false) {
-            const reputation = gm.documentManager
-              .getGuardReputations()
+          if (gm?.reputationManager && reputationId.startsWith('temp-') === false) {
+            const reputation = gm.reputationManager
+              .getAllReputations()
               ?.find((r: any) => r.id === reputationId);
             if (reputation) {
               reputationData = reputation;

@@ -18,6 +18,7 @@ dist/
 # IDE files
 .vscode/settings.json
 .vscode/launch.json
+.vscode/chrome-debug-profile/
 *.swp
 *.swo
 *~

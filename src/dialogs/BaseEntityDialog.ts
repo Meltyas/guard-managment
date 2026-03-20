@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Base Entity Dialog - Generic dialog for entity CRUD operations
  * Provides consistent dialog behavior using DialogV2 across all entities

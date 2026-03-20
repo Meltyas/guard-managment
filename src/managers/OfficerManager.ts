@@ -3,7 +3,7 @@
  * Manages CRUD operations for patrol officers
  */
 
-import type { Officer, OfficerTrait, PatrolSkill } from '../types/officer';
+import type { Officer, OfficerSkill, OfficerTrait } from '../types/officer';
 
 export class OfficerManager {
   private officers: Map<string, Officer> = new Map();
@@ -13,29 +13,20 @@ export class OfficerManager {
     this.onChange = onChange;
   }
 
-  /**
-   * Initialize - load officers from world settings
-   */
   public async initialize(): Promise<void> {
     await this.loadFromSettings();
   }
 
-  /**
-   * Load officers from world settings (public for onChange callback)
-   */
   public async loadFromSettings(): Promise<void> {
     try {
       const officers = game?.settings?.get('guard-management', 'officers') as Officer[] | null;
       if (officers && Array.isArray(officers)) {
-        // Deserialize dates
         const deserializedOfficers = officers.map((o) => ({
           ...o,
+          // Migrate legacy single skill to skills array
+          skills: ((o as any).skills || (((o as any).skill) ? [{ id: foundry.utils.randomID(), name: (o as any).skill.name, image: (o as any).skill.image, hopeCost: 0 }] : [])),
           createdAt: o.createdAt ? new Date(o.createdAt) : new Date(),
           updatedAt: o.updatedAt ? new Date(o.updatedAt) : new Date(),
-          patrolSkills: (o.patrolSkills || []).map((s) => ({
-            ...s,
-            createdAt: s.createdAt ? new Date(s.createdAt) : new Date(),
-          })),
           pros: (o.pros || []).map((p) => ({
             ...p,
             createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
@@ -53,95 +44,77 @@ export class OfficerManager {
     }
   }
 
-  /**
-   * Save officers to world settings (fire-and-forget)
-   */
   private saveToSettings(): void {
     this._saveToSettingsAsync().catch((error) => {
       console.error('OfficerManager | Error in background save:', error);
     });
   }
 
-  /**
-   * Internal async save method to world settings (synchronized for all users)
-   */
   private async _saveToSettingsAsync(): Promise<void> {
     try {
-      const user = game?.user as any;
-      if (!user?.isGM) {
-        console.warn('OfficerManager | Only GM can save officers to settings');
-        return;
-      }
+      if (!game?.ready) return;
 
-      // Serialize officers data with plain objects and ISO dates
-      const officersData = this.export().map(officer => ({
+      const officersData = this.export().map((officer) => ({
         id: officer.id,
         name: officer.name,
         actorId: officer.actorId,
         actorName: officer.actorName,
         actorImg: officer.actorImg,
         title: officer.title,
-        patrolSkills: officer.patrolSkills.map(s => ({
+        skills: (officer.skills || []).map((s) => ({
           id: s.id,
-          title: s.title,
-          description: s.description,
+          name: s.name,
+          image: s.image,
           hopeCost: s.hopeCost,
-          createdAt: s.createdAt.toISOString()
         })),
-        pros: officer.pros.map(p => ({
+        pros: officer.pros.map((p) => ({
           id: p.id,
           title: p.title,
           description: p.description,
-          createdAt: p.createdAt.toISOString()
+          createdAt: p.createdAt.toISOString(),
         })),
-        cons: officer.cons.map(c => ({
+        cons: officer.cons.map((c) => ({
           id: c.id,
           title: c.title,
           description: c.description,
-          createdAt: c.createdAt.toISOString()
+          createdAt: c.createdAt.toISOString(),
         })),
         organizationId: officer.organizationId,
         version: officer.version,
-        createdAt: officer.createdAt.toISOString(),
-        updatedAt: officer.updatedAt.toISOString()
+        createdAt: officer.createdAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt: officer.updatedAt?.toISOString() ?? new Date().toISOString(),
       }));
 
-      // Save to world settings - automatically syncs to all clients
       await game?.settings?.set('guard-management', 'officers', officersData);
-
       console.log(`OfficerManager | Saved ${this.officers.size} officers to settings`);
     } catch (error) {
       console.error('OfficerManager | Error saving officers:', error);
     }
   }
 
-  /**
-   * Create a new officer
-   */
   public async create(data: {
     actorId: string;
     actorName: string;
     actorImg?: string;
     title: string;
-    patrolSkills?: Omit<PatrolSkill, 'id' | 'createdAt'>[];
+    skills?: Omit<OfficerSkill, 'id'>[];
     pros?: Omit<OfficerTrait, 'id' | 'createdAt'>[];
     cons?: Omit<OfficerTrait, 'id' | 'createdAt'>[];
     organizationId?: string;
-  }): Officer {
+  }): Promise<Officer> {
     const id = foundry.utils.randomID();
     const now = new Date();
 
     const officer: Officer = {
       id,
-      name: data.actorName, // Use actor name as officer name
+      name: data.actorName,
       actorId: data.actorId,
       actorName: data.actorName,
       actorImg: data.actorImg,
       title: data.title,
-      patrolSkills: (data.patrolSkills || []).map((s) => ({
+      skills: (data.skills || []).map((s) => ({
         ...s,
         id: foundry.utils.randomID(),
-        createdAt: now,
       })),
       pros: (data.pros || []).map((p) => ({
         ...p,
@@ -166,35 +139,23 @@ export class OfficerManager {
     return officer;
   }
 
-  /**
-   * Get officer by ID
-   */
   public get(id: string): Officer | undefined {
     return this.officers.get(id);
   }
 
-  /**
-   * List all officers
-   */
   public list(): Officer[] {
     return Array.from(this.officers.values());
   }
 
-  /**
-   * List officers by organization
-   */
   public listByOrganization(organizationId: string): Officer[] {
     return this.list().filter((o) => o.organizationId === organizationId);
   }
 
-  /**
-   * Update an existing officer
-   */
   public update(
     id: string,
     updates: {
       title?: string;
-      patrolSkills?: PatrolSkill[];
+      skills?: OfficerSkill[];
       pros?: OfficerTrait[];
       cons?: OfficerTrait[];
       organizationId?: string;
@@ -204,7 +165,7 @@ export class OfficerManager {
     if (!officer) return undefined;
 
     if (updates.title !== undefined) officer.title = updates.title;
-    if (updates.patrolSkills !== undefined) officer.patrolSkills = updates.patrolSkills;
+    if (updates.skills !== undefined) officer.skills = updates.skills;
     if (updates.pros !== undefined) officer.pros = updates.pros;
     if (updates.cons !== undefined) officer.cons = updates.cons;
     if (updates.organizationId !== undefined) officer.organizationId = updates.organizationId;
@@ -217,9 +178,6 @@ export class OfficerManager {
     return officer;
   }
 
-  /**
-   * Delete an officer
-   */
   public delete(id: string): boolean {
     const officer = this.officers.get(id);
     if (!officer) return false;
@@ -230,108 +188,59 @@ export class OfficerManager {
     return true;
   }
 
-  /**
-   * Add a pro to an officer
-   */
-  public addPro(
-    officerId: string,
-    trait: Omit<OfficerTrait, 'id' | 'createdAt'>
-  ): Officer | undefined {
+  public addPro(officerId: string, trait: Omit<OfficerTrait, 'id' | 'createdAt'>): Officer | undefined {
     const officer = this.officers.get(officerId);
     if (!officer) return undefined;
-
-    const newPro: OfficerTrait = {
-      ...trait,
-      id: foundry.utils.randomID(),
-      createdAt: new Date(),
-    };
-
-    officer.pros.push(newPro);
+    officer.pros.push({ ...trait, id: foundry.utils.randomID(), createdAt: new Date() });
     officer.version += 1;
     officer.updatedAt = new Date();
-
     this.onChange?.(officer, 'update');
     this.saveToSettings();
     return officer;
   }
 
-  /**
-   * Remove a pro from an officer
-   */
   public removePro(officerId: string, proId: string): Officer | undefined {
     const officer = this.officers.get(officerId);
     if (!officer) return undefined;
-
     officer.pros = officer.pros.filter((p) => p.id !== proId);
     officer.version += 1;
     officer.updatedAt = new Date();
-
     this.onChange?.(officer, 'update');
     this.saveToSettings();
     return officer;
   }
 
-  /**
-   * Add a con to an officer
-   */
-  public addCon(
-    officerId: string,
-    trait: Omit<OfficerTrait, 'id' | 'createdAt'>
-  ): Officer | undefined {
+  public addCon(officerId: string, trait: Omit<OfficerTrait, 'id' | 'createdAt'>): Officer | undefined {
     const officer = this.officers.get(officerId);
     if (!officer) return undefined;
-
-    const newCon: OfficerTrait = {
-      ...trait,
-      id: foundry.utils.randomID(),
-      createdAt: new Date(),
-    };
-
-    officer.cons.push(newCon);
+    officer.cons.push({ ...trait, id: foundry.utils.randomID(), createdAt: new Date() });
     officer.version += 1;
     officer.updatedAt = new Date();
-
     this.onChange?.(officer, 'update');
     this.saveToSettings();
     return officer;
   }
 
-  /**
-   * Remove a con from an officer
-   */
   public removeCon(officerId: string, conId: string): Officer | undefined {
     const officer = this.officers.get(officerId);
     if (!officer) return undefined;
-
     officer.cons = officer.cons.filter((c) => c.id !== conId);
     officer.version += 1;
     officer.updatedAt = new Date();
-
     this.onChange?.(officer, 'update');
     this.saveToSettings();
     return officer;
   }
 
-  /**
-   * Load officers from data
-   */
   public load(officers: Officer[]): void {
     this.officers.clear();
-    officers.forEach((officer) => {
-      this.officers.set(officer.id, officer);
-    });
+    officers.forEach((officer) => this.officers.set(officer.id, officer));
   }
 
-  /**
-   * Export all officers
-   */
   public export(): Officer[] {
     return this.list();
   }
 
-  /**
-   * Clear all officers
-   */
   public clear(): void {
     this.officers.clear();
   }

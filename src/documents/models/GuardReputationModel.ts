@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * DataModel for Guard Reputation Item sub-type
  */

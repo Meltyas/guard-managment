@@ -249,13 +249,119 @@ npm run test:watch   # Tests in watch mode
 
 ## 🔄 Synchronization Strategy
 
-### 🛡️ Anti-Death Spiral Design
+### 🛡️ Settings-Based Persistence (MANDATORY PATTERN)
 
-- **Universal Edit Access**: All users should be able to edit all entities
-- **Version Tracking**: Version tracking for all entities
-- **Conflict Detection**: Conflict detection and resolution
-- **Permission-Based Access**: GM vs Player permissions
-- **Real-time Updates**: Real-time updates with DialogV2
+**ALL data persistence MUST use `game.settings` with `scope: 'world'` for automatic synchronization.**
+
+#### ✅ Correct Pattern for ALL Managers:
+
+```typescript
+// 1. Manager Structure
+export class MyEntityManager {
+  private entities: Map<string, MyEntity> = new Map();
+
+  // 2. Public loadFromSettings for onChange callback
+  public async loadFromSettings(): Promise<void> {
+    const data = game?.settings?.get('guard-management', 'myEntities') as MyEntity[];
+    if (Array.isArray(data)) {
+      this.entities.clear();
+      for (const item of data) {
+        this.entities.set(item.id, item);
+      }
+    }
+  }
+
+  // 3. Private save that ALWAYS writes (no optimization)
+  private async _saveToSettingsAsync(): Promise<void> {
+    const data = Array.from(this.entities.values());
+    await game?.settings?.set('guard-management', 'myEntities', data);
+  }
+
+  // 4. CRUD methods that await save
+  public async createEntity(data: any): Promise<MyEntity> {
+    const entity = { id: foundry.utils.randomID(), ...data };
+    this.entities.set(entity.id, entity);
+    await this._saveToSettingsAsync(); // ← ALWAYS await
+    return entity;
+  }
+
+  public async updateEntity(id: string, updates: any): Promise<MyEntity> {
+    const entity = this.entities.get(id);
+    if (!entity) return null;
+    const updated = { ...entity, ...updates };
+    this.entities.set(id, updated);
+    await this._saveToSettingsAsync(); // ← ALWAYS await
+    return updated;
+  }
+
+  public async deleteEntity(id: string): Promise<boolean> {
+    const deleted = this.entities.delete(id);
+    if (deleted) await this._saveToSettingsAsync(); // ← ALWAYS await
+    return deleted;
+  }
+}
+```
+
+#### ✅ Settings Registration Pattern:
+
+```typescript
+// settings.ts
+game?.settings?.register('guard-management', 'myEntities', {
+  name: 'My Entities Data',
+  scope: 'world',  // ← REQUIRED for multi-client sync
+  config: false,
+  type: Array,
+  default: [],
+  onChange: (value) => {
+    console.log('Settings onChange | MyEntities changed');
+    const gm = (window as any).GuardManagement;
+    if (gm?.myEntityManager) {
+      gm.myEntityManager.loadFromSettings?.();
+    }
+    // Optionally refresh UI if dialog is open
+    if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+      gm.guardDialogManager.customInfoDialog.refreshMyEntitiesPanel?.();
+    }
+  },
+});
+```
+
+#### ✅ Module Integration Pattern:
+
+```typescript
+// main.ts
+class GuardManagementModule {
+  public myEntityManager: MyEntityManager;
+
+  constructor() {
+    this.myEntityManager = new MyEntityManager();
+  }
+
+  public async initialize(): Promise<void> {
+    registerSettings(); // ← Register BEFORE initializing managers
+    await this.myEntityManager.initialize(); // ← Calls loadFromSettings()
+  }
+}
+```
+
+### 🚫 PROHIBITED Patterns:
+
+❌ **NO version optimization** - Always save
+❌ **NO .catch()** wrapping - Use await directly
+❌ **NO queueSave()** debouncing - Save immediately
+❌ **NO actor flags** - Settings only
+❌ **NO sockets** - Foundry handles sync with `scope: 'world'`
+❌ **NO private managers** - All managers must be accessible from `window.GuardManagement`
+
+### ✅ Currently Migrated Entities:
+
+| Entity | Manager | Settings Key | Status |
+|--------|---------|--------------|--------|
+| Officers | OfficerManager | `'officers'` | ✅ Migrated |
+| Patrols | PatrolManager | `'patrols'` | ✅ Migrated |
+| Resources | SimpleResourceManager | `'resources'` | ✅ Migrated |
+| Reputations | SimpleReputationManager | `'reputations'` | ✅ Migrated |
+| Organization | GuardOrganizationManager | `'guardOrganization'` | ✅ Migrated |
 
 ### ⚖️ Conflict Resolution Priorities
 

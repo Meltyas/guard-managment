@@ -116,12 +116,51 @@ export class GeneralPanel {
         return typeA - typeB;
       });
 
-    const htmlContent = await renderTemplate(this.template, {
+    // Collect ALL officer skills from every officer in the organization
+    const officerSkills: Array<{
+      skillName: string;
+      skillImage?: string;
+      skillHopeCost: number;
+      officerName: string;
+      officerImg?: string;
+      patrolName: string;
+    }> = [];
+
+    const allOfficers: any[] = gm?.officerManager?.list?.() || [];
+
+    // Build actorId → patrol name map for officers assigned to patrols
+    const patrolNameByActorId = new Map<string, string>();
+    const patrols = gm?.guardOrganizationManager?.listOrganizationPatrols?.() || [];
+    for (const patrol of patrols) {
+      if (patrol.officer?.actorId) {
+        patrolNameByActorId.set(patrol.officer.actorId, patrol.name);
+      }
+    }
+
+    for (const off of allOfficers) {
+      if (!off.skills?.length) continue;
+      const patrolName = off.actorId ? (patrolNameByActorId.get(off.actorId) || 'Sin patrulla') : 'Sin patrulla';
+      for (const skill of off.skills) {
+        officerSkills.push({
+          skillName: skill.name,
+          skillImage: skill.image,
+          skillHopeCost: skill.hopeCost ?? 0,
+          officerName: off.actorName || off.name || 'Oficial',
+          officerImg: off.actorImg,
+          patrolName,
+        });
+      }
+    }
+
+    const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, {
       organization,
       activeModifiers: processedModifiers,
       statsDisplay,
+      officerSkills,
     });
-    container.innerHTML = htmlContent;
+    
+    // Use jQuery html() to forcibly replace content
+    $(container).html(htmlContent);
 
     // Activate listeners using jQuery for consistency
     const $html = $(container);
@@ -151,6 +190,19 @@ export class GeneralPanel {
       if (statKey) {
         gm.guardOrganizationManager.rollStat(statKey);
       }
+    });
+
+    // Skill to chat listener
+    $html.off('click', '.skill-to-chat').on('click', '.skill-to-chat', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const el = ev.currentTarget;
+      this.handleSkillToChat({
+        name: el.dataset.skillName || '',
+        image: el.dataset.skillImage || '',
+        hopeCost: parseInt(el.dataset.skillHopeCost || '0', 10),
+        officerName: el.dataset.officerName || '',
+      });
     });
   }
 
@@ -190,7 +242,8 @@ export class GeneralPanel {
 
     await (ChatMessage as any).create({
       content,
-      speaker: (ChatMessage as any).getSpeaker({ alias: 'Modificador de Guardia' }),
+      speaker: { scene: null, actor: null, token: null, alias: 'Modificador de Guardia' },
+      flags: { 'guard-management': { type: 'modifier' } },
     });
   }
 
@@ -213,5 +266,34 @@ export class GeneralPanel {
 
     await gm.guardOrganizationManager.removeModifier(modifierId);
     if (onRefresh) onRefresh();
+  }
+
+  static async handleSkillToChat(skill: {
+    name: string;
+    image?: string;
+    hopeCost: number;
+    officerName?: string;
+  }) {
+    const heartIcons = skill.hopeCost > 0
+      ? Array(skill.hopeCost).fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>').join(' ')
+      : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
+
+    const content = `
+      <div class="guard-resource-chat">
+        ${skill.image ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${skill.image}" style="max-width: 64px; border: none;" /></div>` : ''}
+        <div class="chat-header" style="font-weight: bold; font-size: 1.1em; margin-bottom: 4px;">${skill.name}</div>
+        ${skill.officerName ? `<div style="font-size: 0.85em; opacity: 0.75; margin-bottom: 6px;"><i class="fas fa-user"></i> ${skill.officerName}</div>` : ''}
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.9em;">
+          <span style="opacity: 0.8;">Coste de Hope:</span>
+          <span>${heartIcons}</span>
+        </div>
+      </div>
+    `;
+
+    await (ChatMessage as any).create({
+      content,
+      speaker: { scene: null, actor: null, token: null, alias: 'Habilidad de Oficial' },
+      flags: { 'guard-management': { type: 'officer-skill' } },
+    });
   }
 }

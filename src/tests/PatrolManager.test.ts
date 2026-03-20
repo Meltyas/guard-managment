@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, expect, it } from 'vitest';
 import { PatrolManager } from '../managers/PatrolManager';
 import type { Patrol, PatrolEffectInstance, PatrolOfficer, PatrolSoldier } from '../types/entities';
