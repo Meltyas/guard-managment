@@ -101,24 +101,6 @@ export function registerHooks(): void {
           super.prepareData();
         }
       }
-
-      /**
-       * Add isInventoryItem getter for Daggerheart compatibility
-       * This prevents errors when Daggerheart tries to filter items
-       */
-      get isInventoryItem(): boolean {
-        // Guard Management items are NEVER inventory items
-        if (this.type?.startsWith('guard-management.')) {
-          return false;
-        }
-        // For other types, check parent implementation
-        const parentDescriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(OriginalItemClass.prototype), 'isInventoryItem');
-        if (parentDescriptor?.get) {
-          return parentDescriptor.get.call(this);
-        }
-        // Fallback: assume it's not an inventory item if no parent implementation
-        return false;
-      }
     }
 
     CONFIG.Item.documentClass = GuardManagementItem as any;
@@ -159,7 +141,8 @@ export function registerHooks(): void {
 
   // Patch Actor.items getter to filter out Guard Management items when accessed by Daggerheart
   // This prevents Daggerheart from trying to process our custom item types
-  Hooks.once('ready', () => {
+  // Execute this twice with a delay to handle race conditions with Daggerheart initialization
+  const patchActorItemsGetter = () => {
     try {
       const OriginalActorClass = CONFIG.Actor.documentClass;
       const originalItemsGetter = Object.getOwnPropertyDescriptor(OriginalActorClass.prototype, 'items');
@@ -171,7 +154,8 @@ export function registerHooks(): void {
             const items = originalGet.call(this);
             // Filter out Guard Management items from the collection to prevent Daggerheart processing
             if (items && typeof items.filter === 'function') {
-              return items.filter((item: any) => !item.type?.startsWith('guard-management.'));
+              const filtered = items.filter((item: any) => !item?.type?.startsWith('guard-management.'));
+              return filtered;
             }
             return items;
           },
@@ -182,6 +166,57 @@ export function registerHooks(): void {
       }
     } catch (e) {
       console.warn('GuardManagement | Could not patch Actor.items getter:', e);
+    }
+  };
+
+  Hooks.once('ready', () => {
+    patchActorItemsGetter();
+
+    // Patch again after a delay to handle race conditions
+    setTimeout(patchActorItemsGetter, 500);
+  });
+
+  // Also clean up any legacy Guard Management items from actors
+  Hooks.once('ready', async () => {
+    try {
+      const itemsToDelete: any[] = [];
+
+      // Search all actors for Guard Management items
+      for (const actor of game?.actors || []) {
+        for (const item of actor?.items || []) {
+          if (item?.type?.startsWith('guard-management.')) {
+            itemsToDelete.push({ actorId: actor.id, itemId: item.id, itemName: item.name });
+          }
+        }
+      }
+
+      if (itemsToDelete.length > 0) {
+        console.warn(
+          `GuardManagement | Found ${itemsToDelete.length} legacy Guard Management items in actors. Removing...`,
+          itemsToDelete
+        );
+
+        // Delete them
+        for (const { actorId, itemId } of itemsToDelete) {
+          const actor = game?.actors?.get(actorId);
+          if (actor) {
+            try {
+              await actor.deleteEmbeddedDocuments('Item', [itemId]);
+              console.log(`GuardManagement | Deleted legacy item ${itemId} from actor ${actorId}`);
+            } catch (e) {
+              console.error(`GuardManagement | Error deleting item ${itemId}:`, e);
+            }
+          }
+        }
+
+        if (ui?.notifications) {
+          ui.notifications.notify(
+            `Guard Management: Limpiados ${itemsToDelete.length} items legacy del sistema.`
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('GuardManagement | Error during legacy item cleanup:', e);
     }
   });
 

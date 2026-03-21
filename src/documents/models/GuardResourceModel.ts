@@ -4,6 +4,9 @@
  */
 
 export class GuardResourceModel extends foundry.abstract.TypeDataModel {
+  /** Metadata for Daggerheart compatibility - these are NOT inventory items */
+  static metadata = { isInventoryItem: false, label: 'Guard Resource' };
+
   // Declare schema properties
   declare description: string;
   declare quantity: number;

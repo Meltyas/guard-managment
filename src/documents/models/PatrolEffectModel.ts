@@ -5,6 +5,9 @@ import { DEFAULT_GUARD_STATS } from '../../types/entities.js';
  * DataModel for Patrol Effects
  */
 export class PatrolEffectModel extends foundry.abstract.DataModel {
+  /** Metadata for Daggerheart compatibility - these are NOT inventory items */
+  static metadata = { isInventoryItem: false, label: 'Patrol Effect' };
+
   static defineSchema() {
     const fields = foundry.data.fields;
 

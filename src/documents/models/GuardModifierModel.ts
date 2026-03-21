@@ -5,6 +5,9 @@ import { DEFAULT_GUARD_STATS } from '../../types/entities.js';
  * DataModel for Guard Modifiers
  */
 export class GuardModifierModel extends foundry.abstract.DataModel {
+  /** Metadata for Daggerheart compatibility - these are NOT inventory items */
+  static metadata = { isInventoryItem: false, label: 'Guard Modifier' };
+
   static defineSchema() {
     const fields = foundry.data.fields;
 
