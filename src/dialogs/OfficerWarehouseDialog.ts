@@ -268,6 +268,19 @@ export class OfficerWarehouseDialog {
         if (civilianId) this.handleSendToChat(civilianId, 'civilian');
       });
     });
+
+    // Toggle visibility buttons (officers + civilians)
+    this.element.querySelectorAll('.toggle-visibility-btn').forEach((button) => {
+      button.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const el = button as HTMLElement;
+        const officerId = el.dataset.officerId;
+        const civilianId = el.dataset.civilianId;
+        if (officerId) this.handleToggleVisibility(officerId, 'officer');
+        else if (civilianId) this.handleToggleVisibility(civilianId, 'civilian');
+      });
+    });
   }
 
   /**
@@ -558,6 +571,20 @@ export class OfficerWarehouseDialog {
   }
 
   // ── Shared handlers ────────────────────────────────────────────────────
+
+  /**
+   * Toggle visibleToPlayers for an officer or civilian
+   */
+  private async handleToggleVisibility(id: string, type: 'officer' | 'civilian'): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    const manager = type === 'civilian' ? gm?.civilianManager : gm?.officerManager;
+    if (!manager) return;
+    const record = manager.get(id);
+    if (!record) return;
+    const newValue = !record.visibleToPlayers;
+    await manager.update(id, { visibleToPlayers: newValue });
+    await this.refresh();
+  }
 
   /**
    * Send personnel info to chat

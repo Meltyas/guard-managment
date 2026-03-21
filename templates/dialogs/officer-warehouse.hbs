@@ -27,9 +27,9 @@
               {{#if ../isGM}}
               <div class='officer-visibility'>
                 {{#if this.visibleToPlayers}}
-                <span class='visibility-badge visible'><i class='fas fa-eye'></i> Visible</span>
+                <button type='button' class='visibility-badge visible toggle-visibility-btn' data-officer-id='{{this.id}}' title='Clic para ocultar a jugadores'><i class='fas fa-eye'></i> Visible</button>
                 {{else}}
-                <span class='visibility-badge hidden'><i class='fas fa-eye-slash'></i> Oculto</span>
+                <button type='button' class='visibility-badge hidden toggle-visibility-btn' data-officer-id='{{this.id}}' title='Clic para mostrar a jugadores'><i class='fas fa-eye-slash'></i> Oculto</button>
                 {{/if}}
               </div>
               {{/if}}
@@ -147,9 +147,9 @@
               {{#if ../isGM}}
               <div class='officer-visibility'>
                 {{#if this.visibleToPlayers}}
-                <span class='visibility-badge visible'><i class='fas fa-eye'></i> Visible</span>
+                <button type='button' class='visibility-badge visible toggle-visibility-btn' data-civilian-id='{{this.id}}' title='Clic para ocultar a jugadores'><i class='fas fa-eye'></i> Visible</button>
                 {{else}}
-                <span class='visibility-badge hidden'><i class='fas fa-eye-slash'></i> Oculto</span>
+                <button type='button' class='visibility-badge hidden toggle-visibility-btn' data-civilian-id='{{this.id}}' title='Clic para mostrar a jugadores'><i class='fas fa-eye-slash'></i> Oculto</button>
                 {{/if}}
               </div>
               {{/if}}

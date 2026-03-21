@@ -22,6 +22,7 @@ import './styles/gm-warehouse.css';
 import './styles/main.css';
 import './styles/officers.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
+import { PatrolOverlayManager } from './ui/PatrolOverlayManager';
 import { GuardManagementHelpers } from './utils/console-helpers';
 import { TooltipGenerator } from './utils/TooltipGenerator';
 
@@ -99,6 +100,7 @@ class GuardManagementModule {
   public resourceManager: SimpleResourceManager;
   public reputationManager: SimpleReputationManager;
   public floatingPanel: FloatingGuardPanel;
+  public patrolOverlayManager: PatrolOverlayManager;
   public isInitialized: boolean = false;
 
   constructor() {
@@ -111,6 +113,7 @@ class GuardManagementModule {
     this.resourceManager = new SimpleResourceManager();
     this.reputationManager = new SimpleReputationManager();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
+    this.patrolOverlayManager = new PatrolOverlayManager();
   }
 
   /**
@@ -168,6 +171,7 @@ class GuardManagementModule {
       setTimeout(() => {
         this.floatingPanel.show(); // Ensure panel is visible
         this.floatingPanel.updateOrganizationList();
+        this.patrolOverlayManager.restoreActiveOverlays();
       }, 1000);
     });
   }
@@ -222,6 +226,7 @@ class GuardManagementModule {
     }
 
     this.floatingPanel.cleanup();
+    this.patrolOverlayManager.cleanup();
     this.guardDialogManager.cleanup();
     this.guardOrganizationManager?.cleanup?.();
   }
@@ -236,11 +241,16 @@ Hooks.once('init', async () => {
       'modules/guard-management/templates/panels/patrols.hbs',
       'modules/guard-management/templates/panels/resources.hbs',
       'modules/guard-management/templates/panels/reputation.hbs',
+      'modules/guard-management/templates/overlays/patrol-overlay.hbs',
     ]);
 
     // Register Handlebars helpers
     Handlebars.registerHelper('eq', (a, b) => {
       return a === b;
+    });
+
+    Handlebars.registerHelper('subtract', (a, b) => {
+      return (Number(a) || 0) - (Number(b) || 0);
     });
 
     Handlebars.registerHelper('guardTooltip', (item, type) => {

@@ -94,6 +94,7 @@ export class PatrolsPanel {
         officerStatsDisplay,
         hasOfficerStats: officerStatsDisplay.length > 0,
         hasMembers: !!(p.officer?.actorId || (p.soldiers && p.soldiers.length > 0)),
+        extraSoldiers: Math.max(0, (p.soldiers?.length || 0) - (p.soldierSlots || 5)),
         currentHope: p.currentHope ?? 0,
         maxHope: p.maxHope ?? 0,
         hopePips:
@@ -131,6 +132,17 @@ export class PatrolsPanel {
     // Store unitType on container for handler access
     container.dataset.unitType = unitType;
     this.activateListeners(container, unitType);
+
+    // Sync overlay toggle button states
+    const gm = (window as any).GuardManagement;
+    if (gm?.patrolOverlayManager) {
+      container.querySelectorAll<HTMLElement>('[data-action="toggle-overlay"]').forEach((btn) => {
+        const id = btn.dataset.patrolId;
+        if (id && gm.patrolOverlayManager.isActive(id, unitType)) {
+          btn.classList.add('overlay-active');
+        }
+      });
+    }
   }
 
   static activateListeners(container: HTMLElement, unitType: PanelUnitType = 'patrol') {
@@ -200,6 +212,19 @@ export class PatrolsPanel {
       const id = ev.currentTarget.dataset.patrolId;
       if (id) this.handleSendPatrolToChat(id, unitType);
     });
+    // Overlay toggle
+    $html.find('[data-action="toggle-overlay"]').on('click', (ev) => {
+      ev.preventDefault();
+      const id = ev.currentTarget.dataset.patrolId;
+      if (id) {
+        const gm = (window as any).GuardManagement;
+        gm?.patrolOverlayManager?.toggleOverlay(id, unitType);
+        // Update button active state
+        const btn = ev.currentTarget as HTMLElement;
+        const isActive = gm?.patrolOverlayManager?.isActive(id, unitType);
+        btn.classList.toggle('overlay-active', isActive);
+      }
+    });
     $html.find('[data-action="edit-last-order"]').on('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
@@ -241,6 +266,7 @@ export class PatrolsPanel {
         image: el.dataset.skillImage || '',
         hopeCost: parseInt(el.dataset.skillHopeCost || '0', 10),
         officerName: el.dataset.officerName || '',
+        description: el.dataset.skillDescription || '',
       };
       this.handleSkillToChat(skill);
     });
@@ -307,6 +333,15 @@ export class PatrolsPanel {
       const target = ev.currentTarget;
       const patrolId = target.dataset.patrolId;
       const effectId = target.dataset.effectId;
+      if (patrolId && effectId)
+        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container), unitType);
+    });
+    $html.find('[data-action="remove-effect"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const el = ev.currentTarget as HTMLElement;
+      const patrolId = el.dataset.patrolId;
+      const effectId = el.dataset.effectId;
       if (patrolId && effectId)
         this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container), unitType);
     });
@@ -714,6 +749,13 @@ export class PatrolsPanel {
             ui?.notifications?.info?.(`${unitType === 'auxiliary' ? 'Auxiliar' : 'Oficial'} asignado: ${actor.name}`);
           } else {
             const soldierLabel = unitType === 'auxiliary' ? 'Subalterno' : 'Soldado';
+            const maxSlots = patrol.soldierSlots || 5;
+            if (patrol.soldiers.length >= maxSlots) {
+              ui?.notifications?.warn?.(
+                `No hay espacio. La ${unitType === 'auxiliary' ? 'unidad auxiliar' : 'patrulla'} ya tiene ${patrol.soldiers.length}/${maxSlots} ${soldierLabel.toLowerCase()}s.`
+              );
+              return;
+            }
             const isDuplicate = (patrol.soldiers as any[]).some((s: any) => s.actorId === actor.id);
             if (isDuplicate) {
               const confirmed = await Dialog.confirm({
@@ -1181,6 +1223,7 @@ export class PatrolsPanel {
     image?: string;
     hopeCost: number;
     officerName?: string;
+    description?: string;
   }) {
     const heartIcons =
       skill.hopeCost > 0
@@ -1188,6 +1231,13 @@ export class PatrolsPanel {
             .fill('<i class="fas fa-diamond" style="color:#e84a4a;font-size:0.8rem;"></i>')
             .join(' ')
         : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
+
+    const descHtml = skill.description
+      ? `<div class="guard-chat-toggle" style="margin-top:6px;">
+           <div class="guard-chat-toggle-header" style="cursor:pointer;font-size:0.85em;color:#f3c267;"><i class="fas fa-caret-right"></i> Descripción</div>
+           <div class="guard-chat-toggle-body" style="display:none;margin-top:4px;padding:6px 8px;background:rgba(0,0,0,0.1);border-radius:4px;font-size:0.9em;">${skill.description}</div>
+         </div>`
+      : '';
 
     const content = `
       <div class="guard-resource-chat">
@@ -1198,6 +1248,7 @@ export class PatrolsPanel {
           <span style="opacity: 0.8;">Coste de Hope:</span>
           <span>${heartIcons}</span>
         </div>
+        ${descHtml}
       </div>
     `;
 
@@ -1268,20 +1319,25 @@ export class PatrolsPanel {
     if (!effect) return;
 
     // Construct chat message content
+    const descHtml = effect.description
+      ? `<div class="guard-chat-toggle" style="margin-top:6px;">
+           <div class="guard-chat-toggle-header" style="cursor:pointer;font-size:0.85em;color:#f3c267;"><i class="fas fa-caret-right"></i> Descripción</div>
+           <div class="guard-chat-toggle-body" style="display:none;margin-top:4px;padding:6px 8px;background:rgba(0,0,0,0.1);border-radius:4px;font-size:0.9em;">${effect.description}</div>
+         </div>`
+      : '';
+
     const content = `
       <div class="guard-resource-chat">
         <div class="resource-image" style="margin-bottom: 8px;">
             <img src="${effect.img || 'icons/svg/aura.svg'}" style="max-width: 64px; border: none;" />
         </div>
         <div class="chat-header" style="font-weight: bold; font-size: 1.2em; margin-bottom: 5px;">${effect.label}</div>
-        <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
-          ${effect.description || 'Sin descripción'}
-        </div>
-        <div class="stat-modifiers">
+        <div class="stat-modifiers" style="margin: 6px 0;">
             ${Object.entries(effect.modifiers || {})
               .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`)
               .join('')}
         </div>
+        ${descHtml}
       </div>
     `;
 
@@ -1349,11 +1405,17 @@ export class PatrolsPanel {
       trait.type === 'pro'
         ? '<i class="fas fa-plus-circle" style="color:#9acd32"></i>'
         : '<i class="fas fa-minus-circle" style="color:#ff6b6b"></i>';
+    const descHtml = trait.description
+      ? `<div class="guard-chat-toggle" style="margin-top:6px;">
+           <div class="guard-chat-toggle-header" style="cursor:pointer;font-size:0.85em;color:#f3c267;"><i class="fas fa-caret-right"></i> Descripción</div>
+           <div class="guard-chat-toggle-body" style="display:none;margin-top:4px;padding:6px 8px;background:rgba(0,0,0,0.1);border-radius:4px;font-size:0.9em;">${trait.description}</div>
+         </div>`
+      : '';
     const content = `
       <div class="guard-resource-chat">
         <div class="chat-header">${icon} ${trait.title}</div>
         ${trait.officerName ? `<div style="font-size:0.85em;opacity:0.75;"><i class="fas fa-user"></i> ${trait.officerName}</div>` : ''}
-        <div class="resource-description">${trait.description || ''}</div>
+        ${descHtml}
       </div>
     `;
     await (ChatMessage as any).create({

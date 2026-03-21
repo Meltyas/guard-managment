@@ -512,6 +512,13 @@
   border-radius: 10px;
   margin-top: 2px;
   width: fit-content;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.visibility-badge:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
 }
 
 .visibility-badge.visible {
@@ -1323,8 +1330,14 @@ body.guard-is-gm .officer-edit-btn {
 }
 
 [data-patrols-panel].shift-held .officer-avatar-wrap:hover .shift-unassign,
-[data-patrols-panel].shift-held .soldier-wrapper:hover .shift-unassign {
+[data-patrols-panel].shift-held .soldier-wrapper:hover .shift-unassign,
+[data-patrols-panel].shift-held .effect-item-wrapper:hover .shift-unassign {
   display: flex;
+}
+
+.effect-item-wrapper {
+  position: relative;
+  display: inline-block;
 }
 
 .shift-unassign:hover {

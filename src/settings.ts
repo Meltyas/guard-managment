@@ -42,6 +42,7 @@ export function registerSettings(): void {
       }
       // Refresh FloatingGuardPanel on all clients
       gm?.floatingPanel?.refreshPanel?.();
+      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 
@@ -83,6 +84,7 @@ export function registerSettings(): void {
         }
       }
       gm?.floatingPanel?.refreshPanel?.();
+      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 
@@ -125,6 +127,7 @@ export function registerSettings(): void {
         console.log('ℹ️ CustomInfoDialog not open, skipping refresh');
       }
       gm?.floatingPanel?.refreshPanel?.();
+      gm?.patrolOverlayManager?.refreshAll?.();
       // Refresh open GMWarehouseDialog resources tab
       const gmWarehouseR = (window as any).GuardManagement?.GMWarehouseDialog;
       if (gmWarehouseR?.instance?.isOpen?.()) {
@@ -162,6 +165,7 @@ export function registerSettings(): void {
         console.log('ℹ️ CustomInfoDialog not open, skipping refresh');
       }
       gm?.floatingPanel?.refreshPanel?.();
+      gm?.patrolOverlayManager?.refreshAll?.();
       // Refresh open GMWarehouseDialog reputation tab
       const gmWarehouseRep = (window as any).GuardManagement?.GMWarehouseDialog;
       if (gmWarehouseRep?.instance?.isOpen?.()) {
@@ -193,6 +197,7 @@ export function registerSettings(): void {
         gm.guardDialogManager.customInfoDialog.refreshContent?.();
       }
       gm?.floatingPanel?.refreshPanel?.();
+      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 
@@ -215,6 +220,7 @@ export function registerSettings(): void {
         gmWarehouse.instance.refreshPatrolEffectsTab?.();
       }
       gm?.floatingPanel?.refreshPanel?.();
+      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 
@@ -248,6 +254,7 @@ export function registerSettings(): void {
       if (warehouse?.instance?.isOpen?.()) {
         warehouse.instance.refresh();
       }
+      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 
@@ -270,6 +277,7 @@ export function registerSettings(): void {
       if (warehouse?.instance?.isOpen?.()) {
         warehouse.instance.refresh();
       }
+      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 
@@ -300,6 +308,7 @@ export function registerSettings(): void {
         }
       }
       gm?.floatingPanel?.refreshPanel?.();
+      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 

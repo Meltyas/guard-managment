@@ -24,6 +24,7 @@ interface GuardRollDialogConfig {
 export class GuardRollDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   config: GuardRollDialogConfig;
   submitted: boolean = false;
+  _pendingSubmit: boolean = false;
 
   constructor(config: GuardRollDialogConfig, options = {}) {
     super(options);
@@ -176,7 +177,20 @@ export class GuardRollDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       this.config.selectedRollMode = expanded.selectedRollMode;
     }
 
+    // Skip re-render if a submit is pending (pointerdown already fired on Roll button)
+    if (this._pendingSubmit) return;
+
     (this as any).render();
+  }
+
+  _onRender(context: any, options: any) {
+    super._onRender?.(context, options);
+    // Capture pointerdown on the Roll button — fires BEFORE blur, preventing
+    // the submitOnChange re-render from destroying the button before click fires
+    const submitBtn = this.element?.querySelector('[data-action="submitRoll"]');
+    submitBtn?.addEventListener('pointerdown', () => {
+      this._pendingSubmit = true;
+    });
   }
 
   static updateIsAdvantage(this: GuardRollDialog, _event: Event, button: HTMLElement) {
@@ -190,7 +204,19 @@ export class GuardRollDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     (this as any).render();
   }
 
-  static async submitRoll(this: GuardRollDialog) {
+  static async submitRoll(this: GuardRollDialog, _event: Event, button: HTMLElement) {
+    // Read the form values before closing to avoid race with submitOnChange
+    const form = button.closest('form') as HTMLFormElement;
+    if (form) {
+      const formData = new FormData(form);
+      const expanded = (foundry.utils as any).expandObject(Object.fromEntries(formData));
+      if (expanded.roll?.dice) {
+        this.config.roll.dice = { ...this.config.roll.dice, ...expanded.roll.dice };
+      }
+      if (expanded.trait !== undefined) this.config.roll.trait = expanded.trait;
+      if (expanded.extraFormula !== undefined) this.config.extraFormula = expanded.extraFormula;
+      if (expanded.selectedRollMode !== undefined) this.config.selectedRollMode = expanded.selectedRollMode;
+    }
     this.submitted = true;
     await (this as any).close();
   }

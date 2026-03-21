@@ -108,59 +108,70 @@ export function registerHooks(): void {
 
   // Hook to inject custom modifier breakdown into chat messages
   Hooks.on('renderChatMessageHTML', (message: any, html: HTMLElement, _data: any) => {
+    // Inject roll breakdown if present
     try {
       const breakdown = message.getFlag('guard-management', 'breakdown');
-      if (!breakdown || !Array.isArray(breakdown)) return;
+      if (breakdown && Array.isArray(breakdown)) {
+        const rollContent = html.querySelector('.roll-part-content.dice-result');
+        if (rollContent) {
+          let breakdownHtml =
+            '<div class="guard-roll-breakdown" style="margin-top: 10px; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
 
-      // Find the roll content container
-      const rollContent = html.querySelector('.roll-part-content.dice-result');
-      if (!rollContent) return;
+          for (const item of breakdown) {
+            const sign = item.value >= 0 ? '+' : '';
+            const color = item.value > 0 ? '#4ae89a' : item.value < 0 ? '#e84a4a' : '#ffffff';
 
-      // Generate HTML for breakdown
-      let breakdownHtml =
-        '<div class="guard-roll-breakdown" style="margin-top: 10px; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
-
-      for (const item of breakdown) {
-        const sign = item.value >= 0 ? '+' : '';
-        const color = item.value > 0 ? '#4ae89a' : item.value < 0 ? '#e84a4a' : '#ffffff';
-
-        breakdownHtml += `<div style="display: flex; justify-content: space-between;">
-          <span>${item.label}</span>
-          <span style="color: ${color}; font-weight: bold;">${sign}${item.value}</span>
-        </div>`;
-
-        if (item.children && item.children.length > 0) {
-          for (const child of item.children) {
-            const childSign = child.value >= 0 ? '+' : '';
-            const childColor =
-              child.value > 0 ? '#4ae89a' : child.value < 0 ? '#e84a4a' : '#ffffff';
-
-            breakdownHtml += `<div style="display: flex; justify-content: space-between; padding-left: 15px; font-size: 0.9em; opacity: 0.8;">
-              <span>↳ ${child.label}</span>
-              <span style="color: ${childColor};">${childSign}${child.value}</span>
+            breakdownHtml += `<div style="display: flex; justify-content: space-between;">
+              <span>${item.label}</span>
+              <span style="color: ${color}; font-weight: bold;">${sign}${item.value}</span>
             </div>`;
 
-            if (child.children && child.children.length > 0) {
-              for (const subChild of child.children) {
-                const subSign = subChild.value >= 0 ? '+' : '';
-                const subColor =
-                  subChild.value > 0 ? '#4ae89a' : subChild.value < 0 ? '#e84a4a' : '#ffffff';
-                breakdownHtml += `<div style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 0.85em; opacity: 0.7;">
-                    <span>↳ ${subChild.label}</span>
-                    <span style="color: ${subColor};">${subSign}${subChild.value}</span>
-                  </div>`;
+            if (item.children && item.children.length > 0) {
+              for (const child of item.children) {
+                const childSign = child.value >= 0 ? '+' : '';
+                const childColor =
+                  child.value > 0 ? '#4ae89a' : child.value < 0 ? '#e84a4a' : '#ffffff';
+
+                breakdownHtml += `<div style="display: flex; justify-content: space-between; padding-left: 15px; font-size: 0.9em; opacity: 0.8;">
+                  <span>↳ ${child.label}</span>
+                  <span style="color: ${childColor};">${childSign}${child.value}</span>
+                </div>`;
+
+                if (child.children && child.children.length > 0) {
+                  for (const subChild of child.children) {
+                    const subSign = subChild.value >= 0 ? '+' : '';
+                    const subColor =
+                      subChild.value > 0 ? '#4ae89a' : subChild.value < 0 ? '#e84a4a' : '#ffffff';
+                    breakdownHtml += `<div style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 0.85em; opacity: 0.7;">
+                        <span>↳ ${subChild.label}</span>
+                        <span style="color: ${subColor};">${subSign}${subChild.value}</span>
+                      </div>`;
+                  }
+                }
               }
             }
           }
+          breakdownHtml += '</div>';
+          rollContent.insertAdjacentHTML('beforeend', breakdownHtml);
         }
       }
-      breakdownHtml += '</div>';
-
-      // Append to the roll content
-      rollContent.insertAdjacentHTML('beforeend', breakdownHtml);
     } catch (e) {
       console.error('GuardManagement | Error rendering chat breakdown:', e);
     }
+
+    // Activate toggleable description sections in guard chat messages (runs for ALL messages)
+    html.querySelectorAll('.guard-chat-toggle-header').forEach((header) => {
+      header.addEventListener('click', () => {
+        const body = header.nextElementSibling as HTMLElement;
+        if (!body) return;
+        const isHidden = body.style.display === 'none';
+        body.style.display = isHidden ? 'block' : 'none';
+        const icon = header.querySelector('i');
+        if (icon) {
+          icon.className = isHidden ? 'fas fa-caret-down' : 'fas fa-caret-right';
+        }
+      });
+    });
   });
 
   // ---- F5 Session Persistence ----

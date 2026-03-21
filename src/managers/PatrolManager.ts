@@ -390,6 +390,7 @@ export class PatrolManager {
     roll.advantageFaces = config.roll.dice.advantageFaces;
 
     if (config.extraFormula) {
+      breakdown.push({ label: 'Bono Situacional', value: config.extraFormula });
       const fullFormula = `${formula} + ${config.extraFormula}`;
       const complexRoll = new DualityRoll(fullFormula, rollData, options);
       complexRoll.advantageNumber = Number(config.roll.dice.advantageNumber);
