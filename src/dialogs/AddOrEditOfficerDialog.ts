@@ -37,9 +37,10 @@ export class AddOrEditOfficerDialog {
   public async showForm(
     mode: 'create' | 'edit',
     organizationId: string,
-    existingOfficer?: Officer
+    existingOfficer?: Officer,
+    personnelType: 'officer' | 'civilian' = 'officer'
   ): Promise<Officer | null> {
-    const form = new OfficerFormApplication(mode, organizationId, existingOfficer);
+    const form = new OfficerFormApplication(mode, organizationId, existingOfficer, undefined, personnelType);
     return form.show();
   }
 
@@ -776,23 +777,24 @@ export class AddOrEditOfficerDialog {
   public static async show(
     mode: 'create' | 'edit',
     organizationId?: string,
-    existingOfficer?: Officer
+    existingOfficer?: Officer,
+    personnelType: 'officer' | 'civilian' = 'officer'
   ): Promise<Officer | null> {
     const dialog = new AddOrEditOfficerDialog();
-    return dialog.showForm(mode, organizationId, existingOfficer);
+    return dialog.showForm(mode, organizationId, existingOfficer, personnelType);
   }
 
   /**
    * Static method for creating a new officer
    */
-  public static async create(organizationId?: string): Promise<Officer | null> {
-    return this.show('create', organizationId);
+  public static async create(organizationId?: string, personnelType: 'officer' | 'civilian' = 'officer'): Promise<Officer | null> {
+    return this.show('create', organizationId, undefined, personnelType);
   }
 
   /**
    * Static method for editing an existing officer
    */
-  public static async edit(officer: Officer): Promise<Officer | null> {
-    return this.show('edit', officer.organizationId, officer);
+  public static async edit(officer: Officer, personnelType: 'officer' | 'civilian' = 'officer'): Promise<Officer | null> {
+    return this.show('edit', officer.organizationId, officer, personnelType);
   }
 }

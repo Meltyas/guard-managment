@@ -9,14 +9,20 @@ interface PatrolDialogData {
   maxHope: number;
 }
 
+export type UnitType = 'patrol' | 'auxiliary';
+
 export class AddOrEditPatrolDialog {
   async show(
     mode: 'create' | 'edit',
     organizationId: string,
-    existing?: Patrol
+    existing?: Patrol,
+    unitType: UnitType = 'patrol'
   ): Promise<Patrol | null> {
-    const content = await this.generateContent(mode, organizationId, existing);
-    const title = mode === 'create' ? 'Nueva Patrulla' : 'Editar Patrulla';
+    const content = await this.generateContent(mode, organizationId, existing, unitType);
+    const labels = unitType === 'auxiliary'
+      ? { create: 'Nuevo Auxiliar', edit: 'Editar Auxiliar' }
+      : { create: 'Nueva Patrulla', edit: 'Editar Patrulla' };
+    const title = mode === 'create' ? labels.create : labels.edit;
     try {
       const DialogV2Class = (foundry as any).applications.api.DialogV2;
       if (!DialogV2Class) {
@@ -74,7 +80,9 @@ export class AddOrEditPatrolDialog {
               const gm = (window as any).GuardManagement;
               const orgMgr = gm?.guardOrganizationManager;
               if (!orgMgr) return 'cancel';
-              const patrolMgr = orgMgr.getPatrolManager();
+              const patrolMgr = unitType === 'auxiliary'
+                ? orgMgr.getAuxiliaryManager()
+                : orgMgr.getPatrolManager();
 
               if (mode === 'create') {
                 const created = await patrolMgr.createPatrol({
@@ -123,8 +131,10 @@ export class AddOrEditPatrolDialog {
   private async generateContent(
     mode: 'create' | 'edit',
     organizationId: string,
-    existing?: Patrol
+    existing?: Patrol,
+    unitType: UnitType = 'patrol'
   ): Promise<string> {
+    const soldierLabel = unitType === 'auxiliary' ? 'Subalterno' : 'Soldado';
     const data: PatrolDialogData = {
       name: existing?.name || '',
       subtitle: existing?.subtitle || '',
@@ -148,7 +158,7 @@ export class AddOrEditPatrolDialog {
 
     const slotOptions = Array.from({ length: 11 }, (_, i) => i + 1).map((n) => ({
       value: n,
-      label: `${n} Soldado${n > 1 ? 's' : ''}`,
+      label: `${n} ${soldierLabel}${n > 1 ? 's' : ''}`,
       selected: n === data.soldierSlots,
     }));
 
@@ -163,10 +173,10 @@ export class AddOrEditPatrolDialog {
     });
   }
 
-  static async create(organizationId: string) {
-    return new AddOrEditPatrolDialog().show('create', organizationId);
+  static async create(organizationId: string, unitType: UnitType = 'patrol') {
+    return new AddOrEditPatrolDialog().show('create', organizationId, undefined, unitType);
   }
-  static async edit(organizationId: string, patrol: Patrol) {
-    return new AddOrEditPatrolDialog().show('edit', organizationId, patrol);
+  static async edit(organizationId: string, patrol: Patrol, unitType: UnitType = 'patrol') {
+    return new AddOrEditPatrolDialog().show('edit', organizationId, patrol, unitType);
   }
 }

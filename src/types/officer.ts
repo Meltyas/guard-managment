@@ -70,3 +70,9 @@ export interface OfficerFormData {
   cons: Omit<OfficerTrait, 'id' | 'createdAt'>[];
   organizationId?: string;
 }
+
+/**
+ * Civilian entity - same structure as Officer for now
+ * Represents non-military personnel (merchants, craftsmen, informants, etc.)
+ */
+export type Civilian = Officer;

@@ -98,12 +98,22 @@
   "officer.edit": "Editar Oficial",
   "officer.delete": "Eliminar Oficial",
   "officer.view": "Ver Oficial",
-  "officer.warehouse": "Almacén de Oficiales",
+  "officer.warehouse": "Personal",
   "officer.actorRequired": "Debes asignar un Actor al oficial",
   "officer.titleRequired": "El título es obligatorio",
   "officer.created": "Oficial \"{name}\" creado exitosamente",
   "officer.updated": "Oficial \"{name}\" actualizado",
   "officer.deleted": "Oficial \"{name}\" eliminado",
   "officer.assignedToPatrol": "Oficial asignado a patrulla",
-  "officer.confirmDelete": "¿Estás seguro de que quieres eliminar al oficial \"{name}\"?"
+  "officer.confirmDelete": "¿Estás seguro de que quieres eliminar al oficial \"{name}\"?",
+
+  "civilian.title.label": "Título del Auxiliar",
+  "civilian.create": "Nuevo Auxiliar",
+  "civilian.edit": "Editar Auxiliar",
+  "civilian.delete": "Eliminar Auxiliar",
+  "civilian.view": "Ver Auxiliar",
+  "civilian.created": "Auxiliar \"{name}\" creado exitosamente",
+  "civilian.updated": "Auxiliar \"{name}\" actualizado",
+  "civilian.deleted": "Auxiliar \"{name}\" eliminado",
+  "civilian.confirmDelete": "¿Estás seguro de que quieres eliminar al auxiliar \"{name}\"?"
 }

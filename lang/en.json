@@ -98,12 +98,22 @@
   "officer.edit": "Edit Officer",
   "officer.delete": "Delete Officer",
   "officer.view": "View Officer",
-  "officer.warehouse": "Officer Warehouse",
+  "officer.warehouse": "Personnel",
   "officer.actorRequired": "You must assign an Actor to the officer",
   "officer.titleRequired": "Title is required",
   "officer.created": "Officer \"{name}\" created successfully",
   "officer.updated": "Officer \"{name}\" updated",
   "officer.deleted": "Officer \"{name}\" deleted",
   "officer.assignedToPatrol": "Officer assigned to patrol",
-  "officer.confirmDelete": "Are you sure you want to delete officer \"{name}\"?"
+  "officer.confirmDelete": "Are you sure you want to delete officer \"{name}\"?",
+
+  "civilian.title.label": "Auxiliary Title",
+  "civilian.create": "New Auxiliary",
+  "civilian.edit": "Edit Auxiliary",
+  "civilian.delete": "Delete Auxiliary",
+  "civilian.view": "View Auxiliary",
+  "civilian.created": "Auxiliary \"{name}\" created successfully",
+  "civilian.updated": "Auxiliary \"{name}\" updated",
+  "civilian.deleted": "Auxiliary \"{name}\" deleted",
+  "civilian.confirmDelete": "Are you sure you want to delete auxiliary \"{name}\"?"
 }

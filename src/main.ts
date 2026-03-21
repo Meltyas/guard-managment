@@ -10,6 +10,7 @@ import { registerHooks } from './hooks';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
+import { CivilianManager } from './managers/CivilianManager';
 import { SimpleModifierManager } from './managers/SimpleModifierManager';
 import { SimplePatrolEffectManager } from './managers/SimplePatrolEffectManager';
 import { SimpleReputationManager } from './managers/SimpleReputationManager';
@@ -94,6 +95,7 @@ class GuardManagementModule {
   public guardOrganizationManager: GuardOrganizationManager;
   public guardDialogManager: GuardDialogManager;
   public officerManager: OfficerManager;
+  public civilianManager: CivilianManager;
   public resourceManager: SimpleResourceManager;
   public reputationManager: SimpleReputationManager;
   public floatingPanel: FloatingGuardPanel;
@@ -105,6 +107,7 @@ class GuardManagementModule {
     this.guardOrganizationManager = new GuardOrganizationManager();
     this.guardDialogManager = new GuardDialogManager(this.guardOrganizationManager);
     this.officerManager = new OfficerManager();
+    this.civilianManager = new CivilianManager();
     this.resourceManager = new SimpleResourceManager();
     this.reputationManager = new SimpleReputationManager();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
@@ -127,6 +130,7 @@ class GuardManagementModule {
     await this.guardOrganizationManager.initialize();
     await this.guardDialogManager.initialize();
     await this.officerManager.initialize();
+    await this.civilianManager.initialize();
     await this.resourceManager.initialize();
     await this.reputationManager.initialize();
     await this.modifierManager.initialize();

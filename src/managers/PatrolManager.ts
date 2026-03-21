@@ -9,16 +9,20 @@ export type PatrolChangeOp = 'create' | 'update' | 'delete';
 export type PatrolChangeCallback = (patrol: Patrol, op: PatrolChangeOp, ctx?: any) => void;
 
 export class PatrolManager {
-  private patrols: Map<string, Patrol> = new Map();
+  protected patrols: Map<string, Patrol> = new Map();
   private onChange?: PatrolChangeCallback;
+  protected settingsKey: string;
+  protected logPrefix: string;
 
   /** Inicializa cargando desde settings (si existen). GuardOrganizationManager volverá a hidratar snapshots igualmente. */
   public async initialize(): Promise<void> {
     await this.loadFromSettings();
   }
 
-  constructor(onChange?: PatrolChangeCallback) {
+  constructor(onChange?: PatrolChangeCallback, settingsKey: string = 'patrols') {
     this.onChange = onChange;
+    this.settingsKey = settingsKey;
+    this.logPrefix = settingsKey === 'patrols' ? 'PatrolManager' : 'AuxiliaryManager';
   }
 
   public async createPatrol(
@@ -70,7 +74,7 @@ export class PatrolManager {
     if (!patrol) return undefined;
 
     if (text.includes('[object Object]')) {
-      console.warn('PatrolManager | updateLastOrder received [object Object], ignoring update');
+      console.warn(`${this.logPrefix} | updateLastOrder received [object Object], ignoring update`);
       return patrol;
     }
 
@@ -204,7 +208,7 @@ export class PatrolManager {
   }
 
   /** Persiste lista completa de patrol snapshots a game settings */
-  private async persistToSettings(): Promise<void> {
+  protected async persistToSettings(): Promise<void> {
     try {
       // Don't save if game is not ready yet (e.g. during init recalcDerived)
       if (!game?.ready) return;
@@ -216,18 +220,18 @@ export class PatrolManager {
       const data = this.getAll();
 
       // Save to world settings - automatically syncs to all clients
-      await game?.settings?.set('guard-management', 'patrols', data);
+      await game?.settings?.set('guard-management', this.settingsKey as any, data);
 
-      console.log(`PatrolManager | Saved ${data.length} patrols to settings`);
+      console.log(`${this.logPrefix} | Saved ${data.length} patrols to settings`);
     } catch (error) {
-      console.error('PatrolManager | Error saving patrols:', error);
+      console.error(`${this.logPrefix} | Error saving patrols:`, error);
     }
   }
 
   /** Carga (si existen) los patrols guardados previamente */
   public async loadFromSettings(): Promise<void> {
     try {
-      const stored = game?.settings?.get('guard-management', 'patrols') as any[];
+      const stored = game?.settings?.get('guard-management', this.settingsKey as any) as any[];
       if (Array.isArray(stored)) {
         this.patrols.clear();
         for (const p of stored) {
@@ -238,17 +242,17 @@ export class PatrolManager {
           // SANITIZE: Check for corrupted lastOrder
           if (p.lastOrder && typeof p.lastOrder.text === 'string') {
             if (p.lastOrder.text.includes('[object ')) {
-              console.warn(`PatrolManager | Sanitizing corrupted lastOrder for patrol ${p.id}`);
+              console.warn(`${this.logPrefix} | Sanitizing corrupted lastOrder for patrol ${p.id}`);
               p.lastOrder = null;
             }
           }
 
           this.patrols.set(p.id, p);
         }
-        console.log('PatrolManager | Loaded patrols from settings');
+        console.log(`${this.logPrefix} | Loaded patrols from settings`);
       }
     } catch (e) {
-      console.warn('PatrolManager | loadFromSettings failed:', e);
+      console.warn(`${this.logPrefix} | loadFromSettings failed:`, e);
     }
   }
 

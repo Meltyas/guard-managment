@@ -23,6 +23,9 @@
                 <button type="button" class="org-tab-btn {{#if (eq activeTab 'patrols')}}active{{/if}}" role="tab" data-tab="patrols">
                     <i class="fas fa-users"></i><span>Patrullas</span>
                 </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'auxiliaries')}}active{{/if}}" role="tab" data-tab="auxiliaries">
+                    <i class="fas fa-hands-helping"></i><span>Auxiliares</span>
+                </button>
                 <button type="button" class="org-tab-btn {{#if (eq activeTab 'resources')}}active{{/if}}" role="tab" data-tab="resources">
                     <i class="fas fa-coins"></i><span>Recursos</span>
                 </button>
@@ -38,6 +41,9 @@
                 </section>
                 <section class="org-tab-panel {{#if (eq activeTab 'patrols')}}active{{/if}}" role="tabpanel" data-tab-panel="patrols">
                     {{> "modules/guard-management/templates/panels/patrols.hbs" patrols=patrols}}
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'auxiliaries')}}active{{/if}}" role="tabpanel" data-tab-panel="auxiliaries">
+                    {{> "modules/guard-management/templates/panels/patrols.hbs" patrols=auxiliaries}}
                 </section>
                 <section class="org-tab-panel {{#if (eq activeTab 'resources')}}active{{/if}}" role="tabpanel" data-tab-panel="resources">
                     {{> "modules/guard-management/templates/panels/resources.hbs" organization=organization}}

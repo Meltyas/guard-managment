@@ -1,7 +1,7 @@
 // @ts-nocheck
 /**
  * OfficerWarehouseDialog
- * Dialog for managing all created officers
+ * Dialog for managing all personnel (officers + civilians)
  */
 
 import type { Officer } from '../types/officer';
@@ -32,7 +32,7 @@ export class OfficerWarehouseDialog {
   }
 
   /**
-   * Show the officer warehouse dialog
+   * Show the personnel warehouse dialog
    */
   public async show(pos?: { x?: number; y?: number }): Promise<void> {
     if (this.element && this.isOpen()) {
@@ -115,19 +115,20 @@ export class OfficerWarehouseDialog {
       flex-direction: column;
     `;
 
-    // Get officers from OfficerManager
+    // Get officers and civilians
     const officers = this.getOfficers().map(this.enrichOfficerStats);
+    const civilians = this.getCivilians().map(this.enrichOfficerStats);
     const isGM = (game as any)?.user?.isGM || false;
 
     // Render using Handlebars template
     const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-      { officers, isGM }
+      { officers, civilians, isGM }
     );
 
     dialog.innerHTML = `
       <header class="window-header" style="cursor: move; background: #1a1a1a; padding: 0.5rem 1rem; border-bottom: 2px solid #555; display: flex; justify-content: space-between; align-items: center;">
-        <h4 class="window-title" style="margin: 0; color: #fff; font-size: 1.2rem;">Almacén de Oficiales</h4>
+        <h4 class="window-title" style="margin: 0; color: #fff; font-size: 1.2rem;">Personal</h4>
         <a class="header-button close" title="Close" style="cursor: pointer; color: #fff; font-size: 1.2rem;">
           <i class="fas fa-times"></i>
         </a>
@@ -152,6 +153,20 @@ export class OfficerWarehouseDialog {
     const isGM = (game as any)?.user?.isGM || false;
     const all: Officer[] = gm.officerManager.list();
     return isGM ? all : all.filter((o) => o.visibleToPlayers === true);
+  }
+
+  /**
+   * Get civilians from CivilianManager (filtered by visibleToPlayers for non-GM)
+   */
+  private getCivilians(): Officer[] {
+    const gm = (window as any).GuardManagement;
+    if (!gm?.civilianManager) {
+      return [];
+    }
+
+    const isGM = (game as any)?.user?.isGM || false;
+    const all: Officer[] = gm.civilianManager.list();
+    return isGM ? all : all.filter((c) => c.visibleToPlayers === true);
   }
 
   /**
@@ -188,62 +203,81 @@ export class OfficerWarehouseDialog {
       header.addEventListener('mousedown', this.handleMouseDown);
     }
 
-    // Add officer button
-    const addButton = this.element.querySelector('.add-officer-btn');
-    addButton?.addEventListener('click', () => this.handleAddOfficer());
+    // ── Officer event listeners ──────────────────────────────────────────
 
-    // View officer buttons
-    const viewButtons = this.element.querySelectorAll('.view-officer-btn');
-    viewButtons.forEach((button) => {
-      button.addEventListener('click', (event) => {
-        const officerId = (button as HTMLElement).dataset.officerId;
-        if (officerId) {
-          this.handleViewOfficer(officerId);
-        }
-      });
-    });
+    // Add officer button
+    const addOfficerButton = this.element.querySelector('.add-officer-btn');
+    addOfficerButton?.addEventListener('click', () => this.handleAddOfficer());
 
     // Edit officer buttons
-    const editButtons = this.element.querySelectorAll('.edit-officer-btn');
-    editButtons.forEach((button) => {
-      button.addEventListener('click', (event) => {
+    const editOfficerButtons = this.element.querySelectorAll('.edit-officer-btn');
+    editOfficerButtons.forEach((button) => {
+      button.addEventListener('click', () => {
         const officerId = (button as HTMLElement).dataset.officerId;
-        if (officerId) {
-          this.handleEditOfficer(officerId);
-        }
+        if (officerId) this.handleEditOfficer(officerId);
       });
     });
 
     // Delete officer buttons
-    const deleteButtons = this.element.querySelectorAll('.delete-officer-btn');
-    deleteButtons.forEach((button) => {
-      button.addEventListener('click', (event) => {
+    const deleteOfficerButtons = this.element.querySelectorAll('.delete-officer-btn');
+    deleteOfficerButtons.forEach((button) => {
+      button.addEventListener('click', () => {
         const officerId = (button as HTMLElement).dataset.officerId;
-        if (officerId) {
-          this.handleDeleteOfficer(officerId);
-        }
+        if (officerId) this.handleDeleteOfficer(officerId);
       });
     });
 
-    // Send to chat buttons
-    const chatButtons = this.element.querySelectorAll('.send-officer-chat-btn');
-    chatButtons.forEach((button) => {
-      button.addEventListener('click', (event) => {
+    // Send officer to chat buttons
+    const chatOfficerButtons = this.element.querySelectorAll('.send-officer-chat-btn');
+    chatOfficerButtons.forEach((button) => {
+      button.addEventListener('click', () => {
         const officerId = (button as HTMLElement).dataset.officerId;
-        if (officerId) {
-          this.handleSendToChat(officerId);
-        }
+        if (officerId) this.handleSendToChat(officerId, 'officer');
+      });
+    });
+
+    // ── Civilian event listeners ─────────────────────────────────────────
+
+    // Add civilian button
+    const addCivilianButton = this.element.querySelector('.add-civilian-btn');
+    addCivilianButton?.addEventListener('click', () => this.handleAddCivilian());
+
+    // Edit civilian buttons
+    const editCivilianButtons = this.element.querySelectorAll('.edit-civilian-btn');
+    editCivilianButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const civilianId = (button as HTMLElement).dataset.civilianId;
+        if (civilianId) this.handleEditCivilian(civilianId);
+      });
+    });
+
+    // Delete civilian buttons
+    const deleteCivilianButtons = this.element.querySelectorAll('.delete-civilian-btn');
+    deleteCivilianButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const civilianId = (button as HTMLElement).dataset.civilianId;
+        if (civilianId) this.handleDeleteCivilian(civilianId);
+      });
+    });
+
+    // Send civilian to chat buttons
+    const chatCivilianButtons = this.element.querySelectorAll('.send-civilian-chat-btn');
+    chatCivilianButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const civilianId = (button as HTMLElement).dataset.civilianId;
+        if (civilianId) this.handleSendToChat(civilianId, 'civilian');
       });
     });
   }
 
   /**
-   * Setup drag and drop for officer cards
+   * Setup drag and drop for officer and civilian cards
    */
   private setupDragAndDrop(): void {
     if (!this.element) return;
 
-    const officerCards = this.element.querySelectorAll('.officer-card');
+    // Officer cards
+    const officerCards = this.element.querySelectorAll('.officers-list .officer-card');
     officerCards.forEach((card) => {
       card.addEventListener('dragstart', (event) => {
         const officerId = (card as HTMLElement).dataset.officerId;
@@ -261,23 +295,50 @@ export class OfficerWarehouseDialog {
 
         (event as DragEvent).dataTransfer?.setData('text/plain', JSON.stringify(dragData));
         (event as DragEvent).dataTransfer!.effectAllowed = 'copy';
-
-        // Visual feedback
         (card as HTMLElement).style.opacity = '0.6';
       });
 
-      card.addEventListener('dragend', (event) => {
+      card.addEventListener('dragend', () => {
+        (card as HTMLElement).style.opacity = '1';
+      });
+    });
+
+    // Civilian cards
+    const civilianCards = this.element.querySelectorAll('.civilians-list .civilian-card');
+    civilianCards.forEach((card) => {
+      card.addEventListener('dragstart', (event) => {
+        const civilianId = (card as HTMLElement).dataset.civilianId;
+        if (!civilianId) return;
+
+        const gm = (window as any).GuardManagement;
+        const civilian = gm?.civilianManager?.get(civilianId);
+        if (!civilian) return;
+
+        const dragData = {
+          type: 'Civilian',
+          civilianId: civilian.id,
+          civilianData: civilian,
+        };
+
+        (event as DragEvent).dataTransfer?.setData('text/plain', JSON.stringify(dragData));
+        (event as DragEvent).dataTransfer!.effectAllowed = 'copy';
+        (card as HTMLElement).style.opacity = '0.6';
+      });
+
+      card.addEventListener('dragend', () => {
         (card as HTMLElement).style.opacity = '1';
       });
     });
   }
+
+  // ── Officer CRUD handlers ──────────────────────────────────────────────
 
   /**
    * Handle adding a new officer
    */
   private async handleAddOfficer(): Promise<void> {
     try {
-      const newOfficer = await AddOrEditOfficerDialog.create();
+      const newOfficer = await AddOrEditOfficerDialog.create(undefined, 'officer');
 
       if (newOfficer) {
         await this.refresh();
@@ -295,90 +356,6 @@ export class OfficerWarehouseDialog {
   }
 
   /**
-   * Handle viewing an officer
-   */
-  private async handleViewOfficer(officerId: string): Promise<void> {
-    const gm = (window as any).GuardManagement;
-    const officer = gm?.officerManager?.get(officerId);
-
-    if (!officer) {
-      if (ui?.notifications) {
-        ui.notifications.error('Oficial no encontrado');
-      }
-      return;
-    }
-
-    // Show officer details in a dialog
-    const DialogV2Class = foundry.applications.api.DialogV2;
-    if (!DialogV2Class) return;
-
-    const content = `
-      <div class="officer-details">
-        <div class="officer-header">
-          <img src="${officer.actorImg}" alt="${officer.actorName}" class="officer-avatar-large" />
-          <div>
-            <h2>${officer.actorName}</h2>
-            <h3>${officer.title}</h3>
-          </div>
-        </div>
-        <div class="officer-traits">
-          <div class="pros-section">
-            <h4><i class="fas fa-thumbs-up"></i> Pros</h4>
-            ${
-              officer.pros.length > 0
-                ? officer.pros
-                    .map(
-                      (p) => `
-              <div class="trait-detail">
-                <strong>${p.title}</strong>
-                <p>${p.description}</p>
-              </div>
-            `
-                    )
-                    .join('')
-                : '<p>No hay pros</p>'
-            }
-          </div>
-          <div class="cons-section">
-            <h4><i class="fas fa-thumbs-down"></i> Cons</h4>
-            ${
-              officer.cons.length > 0
-                ? officer.cons
-                    .map(
-                      (c) => `
-              <div class="trait-detail">
-                <strong>${c.title}</strong>
-                <p>${c.description}</p>
-              </div>
-            `
-                    )
-                    .join('')
-                : '<p>No hay cons</p>'
-            }
-          </div>
-        </div>
-      </div>
-    `;
-
-    await DialogV2Class.wait({
-      window: {
-        title: `Oficial: ${officer.actorName}`,
-        resizable: true,
-      },
-      content,
-      buttons: [
-        {
-          action: 'close',
-          icon: 'fas fa-times',
-          label: 'Cerrar',
-        },
-      ],
-      rejectClose: false,
-      modal: true,
-    });
-  }
-
-  /**
    * Handle editing an officer
    */
   private async handleEditOfficer(officerId: string): Promise<void> {
@@ -393,7 +370,7 @@ export class OfficerWarehouseDialog {
         return;
       }
 
-      const updatedOfficer = await AddOrEditOfficerDialog.edit(officer);
+      const updatedOfficer = await AddOrEditOfficerDialog.edit(officer, 'officer');
 
       if (updatedOfficer) {
         await this.refresh();
@@ -424,7 +401,6 @@ export class OfficerWarehouseDialog {
       return;
     }
 
-    // Confirmation dialog
     const DialogV2Class = foundry.applications.api.DialogV2;
     if (!DialogV2Class) return;
 
@@ -432,7 +408,7 @@ export class OfficerWarehouseDialog {
       window: {
         title: 'Confirmar vaciar actor',
       },
-      content: `<p>¿Estás seguro de que quieres eliminar el actor del oficial "${officer.actorName}"?</p><p style="color: #f39c12; font-size: 0.9em;"><strong>⚠️ Aviso:</strong> El oficial se quedará sin actor asignado y necesitarás asignar uno nuevo.</p>`,
+      content: `<p>¿Estas seguro de que quieres eliminar el actor del oficial "${officer.actorName}"?</p><p style="color: #f39c12; font-size: 0.9em;"><strong>Warning:</strong> El oficial se quedara sin actor asignado y necesitaras asignar uno nuevo.</p>`,
       buttons: [
         {
           action: 'delete',
@@ -450,7 +426,6 @@ export class OfficerWarehouseDialog {
     });
 
     if (result === 'delete') {
-      // Clear the actor assignment instead of deleting the entire officer
       const updated = gm.officerManager.update(officerId, {
         actorId: '',
         actorName: '',
@@ -462,23 +437,141 @@ export class OfficerWarehouseDialog {
 
         if (ui?.notifications) {
           ui.notifications.warn(
-            `Actor del oficial vacío. Debes asignar un nuevo actor a este oficial.`
+            `Actor del oficial vacio. Debes asignar un nuevo actor a este oficial.`
           );
         }
       }
     }
   }
 
-  /**
-   * Send officer info to chat
-   */
-  private async handleSendToChat(officerId: string): Promise<void> {
-    const gm = (window as any).GuardManagement;
-    const officer = gm?.officerManager?.get(officerId);
-    if (!officer) return;
+  // ── Civilian CRUD handlers ─────────────────────────────────────────────
 
-    const skillsHtml = officer.skills?.length
-      ? officer.skills
+  /**
+   * Handle adding a new civilian
+   */
+  private async handleAddCivilian(): Promise<void> {
+    try {
+      const newCivilian = await AddOrEditOfficerDialog.create(undefined, 'civilian');
+
+      if (newCivilian) {
+        await this.refresh();
+
+        if (ui?.notifications) {
+          ui.notifications.info(`Auxiliar "${newCivilian.name}" creado exitosamente`);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating civilian:', error);
+      if (ui?.notifications) {
+        ui.notifications.error('Error al crear el auxiliar');
+      }
+    }
+  }
+
+  /**
+   * Handle editing a civilian
+   */
+  private async handleEditCivilian(civilianId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      const civilian = gm?.civilianManager?.get(civilianId);
+
+      if (!civilian) {
+        if (ui?.notifications) {
+          ui.notifications.error('Auxiliar no encontrado');
+        }
+        return;
+      }
+
+      const updatedCivilian = await AddOrEditOfficerDialog.edit(civilian, 'civilian');
+
+      if (updatedCivilian) {
+        await this.refresh();
+
+        if (ui?.notifications) {
+          ui.notifications.info(`Auxiliar "${updatedCivilian.name}" actualizado`);
+        }
+      }
+    } catch (error) {
+      console.error('Error editing civilian:', error);
+      if (ui?.notifications) {
+        ui.notifications.error('Error al editar el auxiliar');
+      }
+    }
+  }
+
+  /**
+   * Handle deleting a civilian
+   */
+  private async handleDeleteCivilian(civilianId: string): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    const civilian = gm?.civilianManager?.get(civilianId);
+
+    if (!civilian) {
+      if (ui?.notifications) {
+        ui.notifications.error('Auxiliar no encontrado');
+      }
+      return;
+    }
+
+    const DialogV2Class = foundry.applications.api.DialogV2;
+    if (!DialogV2Class) return;
+
+    const result = await DialogV2Class.wait({
+      window: {
+        title: 'Confirmar vaciar actor',
+      },
+      content: `<p>¿Estas seguro de que quieres eliminar el actor del auxiliar "${civilian.actorName}"?</p><p style="color: #f39c12; font-size: 0.9em;"><strong>Warning:</strong> El auxiliar se quedara sin actor asignado y necesitaras asignar uno nuevo.</p>`,
+      buttons: [
+        {
+          action: 'delete',
+          icon: 'fas fa-trash',
+          label: 'Vaciar actor',
+        },
+        {
+          action: 'cancel',
+          icon: 'fas fa-times',
+          label: 'Cancelar',
+        },
+      ],
+      rejectClose: false,
+      modal: true,
+    });
+
+    if (result === 'delete') {
+      const updated = gm.civilianManager.update(civilianId, {
+        actorId: '',
+        actorName: '',
+        actorImg: undefined,
+      });
+
+      if (updated) {
+        await this.refresh();
+
+        if (ui?.notifications) {
+          ui.notifications.warn(
+            `Actor del auxiliar vacio. Debes asignar un nuevo actor a este auxiliar.`
+          );
+        }
+      }
+    }
+  }
+
+  // ── Shared handlers ────────────────────────────────────────────────────
+
+  /**
+   * Send personnel info to chat
+   */
+  private async handleSendToChat(id: string, type: 'officer' | 'civilian'): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    const manager = type === 'civilian' ? gm?.civilianManager : gm?.officerManager;
+    const person = manager?.get(id);
+    if (!person) return;
+
+    const label = type === 'civilian' ? 'Auxiliar' : 'Oficial';
+
+    const skillsHtml = person.skills?.length
+      ? person.skills
           .map((s: any) => {
             const hearts =
               s.hopeCost > 0
@@ -494,8 +587,8 @@ export class OfficerWarehouseDialog {
           .join('')
       : '';
 
-    const prosHtml = officer.pros?.length
-      ? officer.pros
+    const prosHtml = person.pros?.length
+      ? person.pros
           .map(
             (p: any) =>
               `<div style="padding:2px 0;"><strong>${p.title}</strong>${p.description ? `: ${p.description}` : ''}</div>`
@@ -503,8 +596,8 @@ export class OfficerWarehouseDialog {
           .join('')
       : '<div style="opacity:0.5;">Ninguno</div>';
 
-    const consHtml = officer.cons?.length
-      ? officer.cons
+    const consHtml = person.cons?.length
+      ? person.cons
           .map(
             (c: any) =>
               `<div style="padding:2px 0;"><strong>${c.title}</strong>${c.description ? `: ${c.description}` : ''}</div>`
@@ -514,9 +607,9 @@ export class OfficerWarehouseDialog {
 
     const content = `
       <div class="guard-resource-chat">
-        ${officer.actorImg ? `<div style="text-align:center;margin-bottom:8px;"><img src="${officer.actorImg}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #555;" /></div>` : ''}
-        <div class="chat-header" style="font-weight:bold;font-size:1.2em;margin-bottom:2px;text-align:center;">${officer.actorName || 'Sin actor'}</div>
-        <div style="text-align:center;opacity:0.8;margin-bottom:8px;">${officer.title}</div>
+        ${person.actorImg ? `<div style="text-align:center;margin-bottom:8px;"><img src="${person.actorImg}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #555;" /></div>` : ''}
+        <div class="chat-header" style="font-weight:bold;font-size:1.2em;margin-bottom:2px;text-align:center;">${person.actorName || 'Sin actor'}</div>
+        <div style="text-align:center;opacity:0.8;margin-bottom:8px;">${person.title}</div>
         ${skillsHtml ? `<div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.1);border-radius:4px;"><div style="font-weight:bold;margin-bottom:4px;"><i class="fas fa-bolt"></i> Habilidades</div>${skillsHtml}</div>` : ''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div style="padding:6px;background:rgba(0,0,0,0.1);border-radius:4px;">
@@ -533,22 +626,23 @@ export class OfficerWarehouseDialog {
 
     await (ChatMessage as any).create({
       content,
-      speaker: { scene: null, actor: null, token: null, alias: 'Oficial' },
-      flags: { 'guard-management': { type: 'officer-info' } },
+      speaker: { scene: null, actor: null, token: null, alias: label },
+      flags: { 'guard-management': { type: `${type}-info` } },
     });
   }
 
   /**
    * Refresh the dialog content
    */
-  private async refresh(): Promise<void> {
+  public async refresh(): Promise<void> {
     if (!this.element) return;
 
     const officers = this.getOfficers().map(this.enrichOfficerStats);
+    const civilians = this.getCivilians().map(this.enrichOfficerStats);
     const isGM = (game as any)?.user?.isGM || false;
     const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-      { officers, isGM }
+      { officers, civilians, isGM }
     );
 
     const contentArea = this.element.querySelector('.window-content');

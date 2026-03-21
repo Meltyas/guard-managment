@@ -26,17 +26,20 @@ export class OfficerFormApplication extends FormApplication {
   private existingOfficer?: Officer;
   private currentData: Partial<OfficerFormData>;
   private resolvePromise?: (officer: Officer | null) => void;
+  private personnelType: 'officer' | 'civilian';
 
   constructor(
     mode: 'create' | 'edit',
     organizationId: string,
     existingOfficer?: Officer,
-    options?: any
+    options?: any,
+    personnelType: 'officer' | 'civilian' = 'officer'
   ) {
     super({}, options);
     this.mode = mode;
     this.organizationId = organizationId;
     this.existingOfficer = existingOfficer;
+    this.personnelType = personnelType;
 
     // Initialize current data
     this.currentData = {
@@ -67,7 +70,8 @@ export class OfficerFormApplication extends FormApplication {
   }
 
   get title() {
-    return this.mode === 'create' ? 'Crear Oficial' : 'Editar Oficial';
+    const label = this.personnelType === 'civilian' ? 'Auxiliar' : 'Oficial';
+    return this.mode === 'create' ? `Crear ${label}` : `Editar ${label}`;
   }
 
   async getData() {
@@ -610,9 +614,11 @@ export class OfficerFormApplication extends FormApplication {
     this.syncFormFields();
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.officerManager) {
-      console.error('OfficerManager not available');
-      ui.notifications?.error('Sistema de oficiales no disponible');
+    const manager = this.personnelType === 'civilian' ? gm?.civilianManager : gm?.officerManager;
+    const label = this.personnelType === 'civilian' ? 'Auxiliar' : 'Oficial';
+    if (!manager) {
+      console.error(`${label}Manager not available`);
+      ui.notifications?.error(`Sistema de ${label.toLowerCase()}es no disponible`);
       return;
     }
 
@@ -620,7 +626,7 @@ export class OfficerFormApplication extends FormApplication {
       let officer: Officer;
 
       if (this.mode === 'create') {
-        officer = await gm.officerManager.create({
+        officer = await manager.create({
           actorId: this.currentData.actorId!,
           actorName: this.currentData.actorName!,
           actorImg: this.currentData.actorImg,
@@ -644,9 +650,9 @@ export class OfficerFormApplication extends FormApplication {
           visibleToPlayers: formData.visibleToPlayers ?? false,
         });
 
-        ui.notifications?.info(`Oficial "${this.currentData.actorName}" creado`);
+        ui.notifications?.info(`${label} "${this.currentData.actorName}" creado`);
       } else {
-        const updated = gm.officerManager.update(this.existingOfficer!.id, {
+        const updated = manager.update(this.existingOfficer!.id, {
           actorId: this.currentData.actorId || '',
           actorName: this.currentData.actorName || '',
           actorImg: this.currentData.actorImg || undefined,
@@ -660,19 +666,19 @@ export class OfficerFormApplication extends FormApplication {
         });
 
         if (!updated) {
-          ui.notifications?.error('No se pudo actualizar el oficial');
+          ui.notifications?.error(`No se pudo actualizar el ${label.toLowerCase()}`);
           return;
         }
 
         officer = updated;
-        ui.notifications?.info(`Oficial "${this.currentData.actorName}" actualizado`);
+        ui.notifications?.info(`${label} "${this.currentData.actorName}" actualizado`);
       }
 
       this.resolvePromise?.(officer);
       this.close();
     } catch (error) {
-      console.error('Error al guardar oficial:', error);
-      ui.notifications?.error('Error al guardar el oficial');
+      console.error('Error al guardar:', error);
+      ui.notifications?.error(`Error al guardar el ${this.personnelType === 'civilian' ? 'auxiliar' : 'oficial'}`);
     }
   }
 

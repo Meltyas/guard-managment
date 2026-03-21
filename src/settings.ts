@@ -243,11 +243,63 @@ export function registerSettings(): void {
         gm.officerManager.loadFromSettings?.();
       }
 
-      // Refresh open officer warehouse dialog
+      // Refresh open personnel warehouse dialog
       const warehouse = (window as any).GuardManagement?.OfficerWarehouseDialog;
       if (warehouse?.instance?.isOpen?.()) {
         warehouse.instance.refresh();
       }
+    },
+  });
+
+  // Civilians data storage
+  game?.settings?.register('guard-management', 'civilians', {
+    name: 'Civilians Data',
+    hint: 'Stored civilian information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.civilianManager) {
+        gm.civilianManager.loadFromSettings?.();
+      }
+
+      // Refresh open personnel warehouse dialog
+      const warehouse = (window as any).GuardManagement?.OfficerWarehouseDialog;
+      if (warehouse?.instance?.isOpen?.()) {
+        warehouse.instance.refresh();
+      }
+    },
+  });
+
+  // Auxiliaries data storage (auxiliary patrol-like units led by civilians)
+  game?.settings?.register('guard-management', 'auxiliaries', {
+    name: 'Auxiliaries Data',
+    hint: 'Stored auxiliary unit information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      console.log('Settings onChange | Auxiliaries changed, reloading and refreshing UI...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.guardOrganizationManager) {
+        const auxMgr = gm.guardOrganizationManager.getAuxiliaryManager?.();
+        if (auxMgr) {
+          auxMgr.loadFromSettings?.();
+        }
+      }
+
+      // Refresh open CustomInfoDialog if exists
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          console.log('Settings onChange | Refreshing open CustomInfoDialog for auxiliaries');
+          dialog.refreshAuxiliariesPanel?.();
+        }
+      }
+      gm?.floatingPanel?.refreshPanel?.();
     },
   });
 

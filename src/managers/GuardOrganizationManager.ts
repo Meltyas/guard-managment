@@ -2,12 +2,14 @@ import { AddOrEditPatrolDialog } from '../dialogs/AddOrEditPatrolDialog';
 import { GuardOrganizationDialog } from '../dialogs/GuardOrganizationDialog';
 import { GuardRollDialog } from '../dialogs/GuardRollDialog';
 import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats, Patrol } from '../types/entities';
+import { AuxiliaryManager } from './AuxiliaryManager';
 import { PatrolChangeOp, PatrolManager } from './PatrolManager';
 
 export class GuardOrganizationManager {
   private organization: GuardOrganization | null = null; // Solo una organización
   private dialog: GuardOrganizationDialog;
   private patrolManager: PatrolManager; // Integration
+  private auxiliaryManager: AuxiliaryManager; // Auxiliary units
 
   constructor() {
     this.dialog = new GuardOrganizationDialog();
@@ -41,6 +43,35 @@ export class GuardOrganizationManager {
         console.warn('GuardOrganizationManager | patrol onChange sync failed', e);
       }
     });
+    this.auxiliaryManager = new AuxiliaryManager((aux, op: PatrolChangeOp, ctx) => {
+      try {
+        if (!this.organization) return;
+        if (aux.organizationId !== this.organization.id) return;
+        const auxList = this.organization.auxiliaries || [];
+        if (op === 'delete') {
+          const idx = auxList.indexOf(aux.id);
+          if (idx >= 0) auxList.splice(idx, 1);
+          this.organization.auxiliaries = auxList;
+          this.organization.updatedAt = new Date();
+          this.organization.version += 1;
+          this.saveOrganization(this.organization);
+          return;
+        }
+        if (!auxList.includes(aux.id)) {
+          auxList.push(aux.id);
+          this.organization.auxiliaries = auxList;
+        }
+        if (ctx?.field === 'derivedStats') return;
+        if (op === 'create' || ctx?.field === 'patrolEffects' || ctx?.field === 'baseStats') {
+          this.auxiliaryManager.recalcDerived(aux.id, this.calculateEffectiveOrgStats());
+        }
+        this.organization.updatedAt = new Date();
+        this.organization.version += 1;
+        this.saveOrganization(this.organization);
+      } catch (e) {
+        console.warn('GuardOrganizationManager | auxiliary onChange sync failed', e);
+      }
+    });
   }
 
   public async initialize(): Promise<void> {
@@ -50,6 +81,11 @@ export class GuardOrganizationManager {
       await this.patrolManager.initialize();
     } catch (e) {
       console.warn('GuardOrganizationManager | patrolManager initialize failed', e);
+    }
+    try {
+      await this.auxiliaryManager.initialize();
+    } catch (e) {
+      console.warn('GuardOrganizationManager | auxiliaryManager initialize failed', e);
     }
     await this.loadOrganization();
 
@@ -96,6 +132,7 @@ export class GuardOrganizationManager {
       resources: [],
       reputation: [],
       patrols: [],
+      auxiliaries: [],
       // patrolSnapshots eliminado: datos de patrulla se guardan centralizados en PatrolManager / flags
     } as any;
 
@@ -517,6 +554,10 @@ export class GuardOrganizationManager {
     return this.patrolManager;
   }
 
+  public getAuxiliaryManager(): AuxiliaryManager {
+    return this.auxiliaryManager;
+  }
+
   /** Upsert a patrol snapshot and ensure organization arrays updated & persisted */
   /** @deprecated snapshots eliminados */
   public upsertPatrolSnapshot(_patrol: Patrol): void {
@@ -587,11 +628,90 @@ export class GuardOrganizationManager {
     return true;
   }
 
+  // ── Auxiliary CRUD ──────────────────────────────────────────────────
+
+  public async createAuxiliaryForOrganization(data: {
+    name: string;
+    baseStats: GuardStats;
+  }): Promise<Patrol | null> {
+    if (!this.organization) {
+      console.warn('GuardOrganizationManager | No organization for auxiliary creation');
+      return null;
+    }
+    const aux = await this.auxiliaryManager.createPatrol({
+      name: data.name,
+      organizationId: this.organization.id,
+      baseStats: data.baseStats,
+    } as any);
+    const auxList = this.organization.auxiliaries || [];
+    if (!auxList.includes(aux.id)) auxList.push(aux.id);
+    this.organization.auxiliaries = auxList;
+    this.organization.updatedAt = new Date();
+    this.organization.version += 1;
+    this.saveOrganization(this.organization);
+    return aux;
+  }
+
+  public listOrganizationAuxiliaries(): Patrol[] {
+    if (!this.organization) return [];
+    const auxList = this.organization.auxiliaries || [];
+    const result: Patrol[] = [];
+    let changed = false;
+    for (const id of [...auxList]) {
+      const a = this.auxiliaryManager.getPatrol(id);
+      if (a) result.push(a);
+      else {
+        const idx = auxList.indexOf(id);
+        if (idx >= 0) {
+          auxList.splice(idx, 1);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      this.organization.auxiliaries = auxList;
+      this.organization.updatedAt = new Date();
+      this.organization.version += 1;
+      this.saveOrganization(this.organization, false);
+    }
+    return result;
+  }
+
+  public removeAuxiliary(auxId: string): boolean {
+    if (!this.organization) return false;
+    const auxList = this.organization.auxiliaries || [];
+    const idx = auxList.indexOf(auxId);
+    if (idx === -1) return false;
+    auxList.splice(idx, 1);
+    this.organization.auxiliaries = auxList;
+    this.organization.updatedAt = new Date();
+    this.organization.version += 1;
+    this.saveOrganization(this.organization);
+    return true;
+  }
+
+  public async openCreateAuxiliaryDialog(): Promise<Patrol | null> {
+    if (!this.organization) return null;
+    return AddOrEditPatrolDialog.create(this.organization.id, 'auxiliary');
+  }
+
+  public async openEditAuxiliaryDialog(auxId: string): Promise<Patrol | null> {
+    if (!this.organization) return null;
+    const aux = this.auxiliaryManager.getPatrol(auxId);
+    if (!aux) return null;
+    return AddOrEditPatrolDialog.edit(this.organization.id, aux, 'auxiliary');
+  }
+
+  // ── Recalc ──────────────────────────────────────────────────────────
+
   public recalcAllPatrols(orgModifiers?: Partial<GuardStats>) {
     if (!this.organization) return;
     const modifiers = orgModifiers || this.calculateEffectiveOrgStats();
     for (const pid of this.organization.patrols) {
       this.patrolManager.recalcDerived(pid, modifiers);
+    }
+    for (const aid of (this.organization.auxiliaries || [])) {
+      this.auxiliaryManager.recalcDerived(aid, modifiers);
     }
   }
 

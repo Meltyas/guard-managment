@@ -1,20 +1,25 @@
 import type { GuardStats, PatrolEffectInstance } from '../../types/entities';
 import { classifyLastOrderAge } from '../../utils/patrol-helpers.js';
 
+export type PanelUnitType = 'patrol' | 'auxiliary';
+
 export class PatrolsPanel {
   static get template() {
     return 'modules/guard-management/templates/panels/patrols.hbs';
   }
 
-  static async getData() {
+  static async getData(unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
-    const patrols = orgMgr ? orgMgr.listOrganizationPatrols() : [];
+    const patrols = unitType === 'auxiliary'
+      ? (orgMgr ? orgMgr.listOrganizationAuxiliaries() : [])
+      : (orgMgr ? orgMgr.listOrganizationPatrols() : []);
     const isGM = (globalThis as any).game?.user?.isGM ?? false;
 
     // Build actorId → officer map for quick lookup (name + skills)
     const officerByActorId = new Map<string, any>();
-    const allOfficers: any[] = gm?.officerManager?.list?.() || [];
+    const officerManager = unitType === 'auxiliary' ? gm?.civilianManager : gm?.officerManager;
+    const allOfficers: any[] = officerManager?.list?.() || [];
     for (const officer of allOfficers) {
       if (officer.actorId) {
         officerByActorId.set(officer.actorId, officer);
@@ -113,19 +118,21 @@ export class PatrolsPanel {
       };
     });
 
-    return { patrols: enrichedPatrols, isGM };
+    return { patrols: enrichedPatrols, isGM, unitType };
   }
 
-  static async render(container: HTMLElement) {
-    const data = await this.getData();
+  static async render(container: HTMLElement, unitType: PanelUnitType = 'patrol') {
+    const data = await this.getData(unitType);
     const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
 
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
-    this.activateListeners(container);
+    // Store unitType on container for handler access
+    container.dataset.unitType = unitType;
+    this.activateListeners(container, unitType);
   }
 
-  static activateListeners(container: HTMLElement) {
+  static activateListeners(container: HTMLElement, unitType: PanelUnitType = 'patrol') {
     const $html = $(container);
 
     // Defensive: strip GM-only controls for non-GM users
@@ -164,34 +171,34 @@ export class PatrolsPanel {
     };
 
     // Drag & Drop
-    this.setupPatrolZonesDnD(container, () => this.refresh(container));
-    this.setupPatrolCardDnD(container, () => this.refresh(container));
+    this.setupPatrolZonesDnD(container, () => this.refresh(container), unitType);
+    this.setupPatrolCardDnD(container, () => this.refresh(container), unitType);
 
     // Actions
     $html.find('[data-action="create-patrol"]').on('click', (ev) => {
       ev.preventDefault();
-      this.handleCreatePatrol(() => this.refresh(container));
+      this.handleCreatePatrol(() => this.refresh(container), unitType);
     });
     $html.find('[data-action="edit"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleEditPatrol(id, () => this.refresh(container));
+      if (id) this.handleEditPatrol(id, () => this.refresh(container), unitType);
     });
     $html.find('[data-action="delete"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleDeletePatrol(id, () => this.refresh(container));
+      if (id) this.handleDeletePatrol(id, () => this.refresh(container), unitType);
     });
     $html.find('[data-action="to-chat"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleSendPatrolToChat(id);
+      if (id) this.handleSendPatrolToChat(id, unitType);
     });
     $html.find('[data-action="edit-last-order"]').on('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleEditLastOrder(id, () => this.refresh(container));
+      if (id) this.handleEditLastOrder(id, () => this.refresh(container), unitType);
     });
     // Toggle last-order body visibility
     $html.find('.last-order-header').on('click', (ev) => {
@@ -234,13 +241,13 @@ export class PatrolsPanel {
     $html.find('[data-action="edit-officer"]').on('click', (ev) => {
       ev.preventDefault();
       const officerId = ev.currentTarget.dataset.officerId;
-      if (officerId) this.handleEditOfficer(officerId, () => this.refresh(container));
+      if (officerId) this.handleEditOfficer(officerId, () => this.refresh(container), unitType);
     });
     $html.find('[data-action="unassign-officer"]').on('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       const patrolId = ev.currentTarget.dataset.patrolId;
-      if (patrolId) this.handleUnassignOfficer(patrolId, () => this.refresh(container));
+      if (patrolId) this.handleUnassignOfficer(patrolId, () => this.refresh(container), unitType);
     });
     $html.find('[data-action="unassign-soldier"]').on('click', (ev) => {
       ev.preventDefault();
@@ -248,7 +255,7 @@ export class PatrolsPanel {
       const patrolId = ev.currentTarget.dataset.patrolId;
       const actorId = ev.currentTarget.dataset.actorId;
       if (patrolId && actorId)
-        this.handleUnassignSoldier(patrolId, actorId, () => this.refresh(container));
+        this.handleUnassignSoldier(patrolId, actorId, () => this.refresh(container), unitType);
     });
 
     // Stat interactions
@@ -263,7 +270,9 @@ export class PatrolsPanel {
       if (patrolId && statKey) {
         const gm = (window as any).GuardManagement;
         const orgMgr = gm?.guardOrganizationManager;
-        const pMgr = orgMgr?.getPatrolManager();
+        const pMgr = unitType === 'auxiliary'
+          ? orgMgr?.getAuxiliaryManager?.()
+          : orgMgr?.getPatrolManager?.();
         if (pMgr) {
           pMgr.rollStat(patrolId, statKey);
         }
@@ -284,7 +293,7 @@ export class PatrolsPanel {
       const target = ev.currentTarget;
       const patrolId = target.dataset.patrolId;
       const effectId = target.dataset.effectId;
-      if (patrolId && effectId) this.handleEffectClick(patrolId, effectId);
+      if (patrolId && effectId) this.handleEffectClick(patrolId, effectId, unitType);
     });
 
     $html.find('.effect-item').on('contextmenu', (ev) => {
@@ -293,7 +302,7 @@ export class PatrolsPanel {
       const patrolId = target.dataset.patrolId;
       const effectId = target.dataset.effectId;
       if (patrolId && effectId)
-        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container));
+        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container), unitType);
     });
 
     // Hope pip counter
@@ -303,7 +312,7 @@ export class PatrolsPanel {
       const el = ev.currentTarget;
       const patrolId = el.dataset.patrolId;
       const index = parseInt(el.dataset.value || '0', 10);
-      if (patrolId && index) this.handleHopePip(patrolId, index, () => this.refresh(container));
+      if (patrolId && index) this.handleHopePip(patrolId, index, () => this.refresh(container), unitType);
     });
 
     // Officer traits: toggle section + send to chat
@@ -339,7 +348,20 @@ export class PatrolsPanel {
   }
 
   static async refresh(container: HTMLElement) {
-    await this.render(container);
+    const unitType = (container.dataset.unitType as PanelUnitType) || 'patrol';
+    await this.render(container, unitType);
+  }
+
+  /**
+   * Get the right patrol/auxiliary manager based on unitType stored on container
+   */
+  private static getManagerForContainer(container: HTMLElement) {
+    const unitType = (container.dataset.unitType as PanelUnitType) || 'patrol';
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    return unitType === 'auxiliary'
+      ? orgMgr?.getAuxiliaryManager?.()
+      : orgMgr?.getPatrolManager?.();
   }
 
   private static computePatrolStatBreakdown(patrol: any, officerRecord?: any) {
@@ -464,17 +486,24 @@ export class PatrolsPanel {
     }
   }
 
-  /** Attach drag & drop to officer and soldier zones */
-  private static setupPatrolZonesDnD(container: HTMLElement, refreshCallback: () => void) {
+  /** Resolve the patrol/auxiliary manager lazily (safe for use inside event handlers) */
+  private static getPatrolMgr(unitType: PanelUnitType) {
     const gm: any = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
-    const pMgr = orgMgr?.getPatrolManager?.();
-    if (!pMgr) return;
+    return unitType === 'auxiliary'
+      ? orgMgr?.getAuxiliaryManager?.()
+      : orgMgr?.getPatrolManager?.();
+  }
+
+  /** Attach drag & drop to officer and soldier zones */
+  private static setupPatrolZonesDnD(container: HTMLElement, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
     const zones = Array.from(
       container.querySelectorAll(
-        '.patrol-card .officer-slot[data-drop], .patrol-card .soldiers-zone[data-drop]'
+        '.patrol-card .officer-section-toggle[data-drop], .patrol-card .soldiers-zone[data-drop]'
       )
     ) as HTMLElement[];
+
+    if (!zones.length) return;
 
     const isActorDrag = (ev: DragEvent) => {
       const types = Array.from(ev.dataTransfer?.types || []);
@@ -523,8 +552,30 @@ export class PatrolsPanel {
 
       // Handle Officer drag from OfficerWarehouseDialog
       if (data.type === 'Officer' && data.officerData?.actorId) {
-        const actor = g.actors?.get?.(data.officerData.actorId);
+        const actorId = data.officerData.actorId;
+        const actor = g.actors?.get?.(actorId) ||
+          g.actors?.contents?.find?.((a: any) => a.id === actorId);
         if (actor) return actor;
+        if (typeof (globalThis as any).fromUuid === 'function') {
+          try {
+            const doc = await (globalThis as any).fromUuid(actorId.startsWith('Actor.') ? actorId : `Actor.${actorId}`);
+            if (doc?.documentName === 'Actor') return doc;
+          } catch {}
+        }
+      }
+
+      // Handle Civilian drag from OfficerWarehouseDialog (auxiliaries)
+      if (data.type === 'Civilian' && data.civilianData?.actorId) {
+        const actorId = data.civilianData.actorId;
+        const actor = g.actors?.get?.(actorId) ||
+          g.actors?.contents?.find?.((a: any) => a.id === actorId);
+        if (actor) return actor;
+        if (typeof (globalThis as any).fromUuid === 'function') {
+          try {
+            const doc = await (globalThis as any).fromUuid(actorId.startsWith('Actor.') ? actorId : `Actor.${actorId}`);
+            if (doc?.documentName === 'Actor') return doc;
+          } catch {}
+        }
       }
 
       const directId = data.id || data.actorId || data._id;
@@ -560,8 +611,6 @@ export class PatrolsPanel {
     };
 
     zones.forEach((zone) => {
-      if ((zone as any)._gmDnD) return;
-      (zone as any)._gmDnD = true;
       const mode: 'officer' | 'soldier' =
         (zone.dataset.drop as any) === 'officer' ? 'officer' : 'soldier';
       const card = zone.closest('.patrol-card') as HTMLElement | null;
@@ -576,7 +625,7 @@ export class PatrolsPanel {
       zone.addEventListener('dragover', (ev) => {
         if (!isActorDrag(ev)) return;
         ev.preventDefault();
-        ev.dataTransfer!.dropEffect = 'copy';
+        if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
         zone.classList.add('dnd-hover');
         card?.classList.add('dnd-active');
       });
@@ -587,33 +636,62 @@ export class PatrolsPanel {
       zone.addEventListener('drop', async (ev) => {
         if (!isActorDrag(ev)) return;
         ev.preventDefault();
+        ev.stopPropagation();
         zone.classList.remove('dnd-hover');
         card?.classList.remove('dnd-active');
+
+        // Resolve manager lazily at drop time
+        const pMgr = this.getPatrolMgr(unitType);
+        if (!pMgr) {
+          console.warn('PatrolsPanel | drop: manager not available', { unitType });
+          return;
+        }
 
         // Officer slots only accept drags from the Officer Warehouse
         if (mode === 'officer') {
           const strings = pullAllDataStrings(ev);
           const isOfficerDrag = strings.some((raw) => {
             const d = parseCandidate(raw);
-            return d?.type === 'Officer';
+            return d?.type === 'Officer' || d?.type === 'Civilian';
           });
           if (!isOfficerDrag) {
+            const warehouseLabel = unitType === 'auxiliary' ? 'Personal (Auxiliares)' : 'Personal (Oficiales)';
             return ui?.notifications?.warn?.(
-              'Solo se pueden asignar oficiales desde el Almacén de Oficiales'
+              `Solo se pueden asignar desde ${warehouseLabel}`
+            );
+          }
+        }
+
+        // Soldier slots reject drags from the Officer Warehouse (officers/civilians are leaders, not soldiers)
+        if (mode === 'soldier') {
+          const strings = pullAllDataStrings(ev);
+          const isWarehouseDrag = strings.some((raw) => {
+            const d = parseCandidate(raw);
+            return d?.type === 'Officer' || d?.type === 'Civilian';
+          });
+          if (isWarehouseDrag) {
+            const leaderLabel = unitType === 'auxiliary' ? 'un Líder Auxiliar' : 'un Oficial';
+            const slotLabel = unitType === 'auxiliary' ? 'Subalterno' : 'Soldado';
+            return ui?.notifications?.warn?.(
+              `No puedes asignar ${leaderLabel} como ${slotLabel}. Arrástralo al slot de líder.`
             );
           }
         }
 
         const actor = await obtainActor(ev);
         if (!actor) {
-          console.warn('PatrolsPanel | Actor no resuelto desde drag data', ev.dataTransfer?.types);
+          const rawStrings = pullAllDataStrings(ev);
+          console.warn('PatrolsPanel | Actor no resuelto desde drag data', {
+            types: Array.from(ev.dataTransfer?.types || []),
+            rawData: rawStrings,
+            parsed: rawStrings.map(s => parseCandidate(s)),
+          });
           return ui?.notifications?.warn?.('Actor no encontrado');
         }
         try {
           const patrol = pMgr.getPatrol(pid);
           if (!patrol) return;
           if (mode === 'officer') {
-            // Warn before replacing an existing officer
             if (patrol.officer && patrol.officer.actorId !== actor.id) {
               const confirmed = await Dialog.confirm({
                 title: 'Reemplazar Oficial',
@@ -627,14 +705,14 @@ export class PatrolsPanel {
               img: actor.img,
               isLinked: actor.isOwner ?? true,
             });
-            ui?.notifications?.info?.(`Oficial asignado: ${actor.name}`);
+            ui?.notifications?.info?.(`${unitType === 'auxiliary' ? 'Auxiliar' : 'Oficial'} asignado: ${actor.name}`);
           } else {
-            // Warn about duplicate soldier
+            const soldierLabel = unitType === 'auxiliary' ? 'Subalterno' : 'Soldado';
             const isDuplicate = (patrol.soldiers as any[]).some((s: any) => s.actorId === actor.id);
             if (isDuplicate) {
               const confirmed = await Dialog.confirm({
-                title: 'Soldado duplicado',
-                content: `<p><strong>${actor.name}</strong> ya está en esta patrulla. ¿Añadir igualmente?</p>`,
+                title: `${soldierLabel} duplicado`,
+                content: `<p><strong>${actor.name}</strong> ya está en ${unitType === 'auxiliary' ? 'este auxiliar' : 'esta patrulla'}. ¿Añadir igualmente?</p>`,
               });
               if (!confirmed) return;
             }
@@ -645,7 +723,7 @@ export class PatrolsPanel {
               referenceType: 'linked',
               addedAt: Date.now(),
             });
-            ui?.notifications?.info?.(`Soldado añadido: ${actor.name}`);
+            ui?.notifications?.info?.(`${soldierLabel} añadido: ${actor.name}`);
           }
           refreshCallback();
         } catch (e) {
@@ -657,18 +735,13 @@ export class PatrolsPanel {
   }
 
   /** Attach drag & drop to patrol cards for effects */
-  private static setupPatrolCardDnD(container: HTMLElement, refreshCallback: () => void) {
-    const gm: any = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    const pMgr = orgMgr?.getPatrolManager?.();
-    if (!pMgr) return;
-
+  private static setupPatrolCardDnD(container: HTMLElement, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
     const cards = Array.from(container.querySelectorAll('.patrol-card')) as HTMLElement[];
+    if (!cards.length) return;
 
     const isEffectDrag = (ev: DragEvent) => {
       if (!ev.dataTransfer) return false;
       const types = Array.from(ev.dataTransfer.types);
-      // Check for our custom type or generic text
       return types.includes('text/plain');
     };
 
@@ -678,10 +751,6 @@ export class PatrolsPanel {
 
       card.addEventListener('dragenter', (ev) => {
         if (!isEffectDrag(ev)) return;
-        // Check if it's a patrol effect
-        // We can't check content here easily without reading data, which is only available on drop
-        // But we can check if we are dragging a patrol effect by checking a global flag or just allowing it
-        // For now, we'll allow it and validate on drop
         ev.preventDefault();
         card.classList.add('dnd-active-effect');
       });
@@ -707,11 +776,54 @@ export class PatrolsPanel {
 
         try {
           const data = JSON.parse(dataStr);
+
+          // Handle Officer/Civilian drops anywhere on card → assign as officer
+          if (data.type === 'Officer' || data.type === 'Civilian') {
+            const pMgr = this.getPatrolMgr(unitType);
+            if (!pMgr) return;
+
+            const g: any = (globalThis as any).game;
+            const actorId = data.type === 'Officer'
+              ? data.officerData?.actorId
+              : data.civilianData?.actorId;
+            if (!actorId) return;
+
+            const actor = g?.actors?.get?.(actorId) ||
+              g?.actors?.contents?.find?.((a: any) => a.id === actorId);
+            if (!actor) {
+              ui?.notifications?.warn?.('Actor no encontrado');
+              return;
+            }
+
+            const patrol = pMgr.getPatrol(pid);
+            if (!patrol) return;
+
+            if (patrol.officer && patrol.officer.actorId !== actor.id) {
+              const confirmed = await Dialog.confirm({
+                title: 'Reemplazar Oficial',
+                content: `<p>¿Reemplazar a <strong>${patrol.officer.name}</strong> con <strong>${actor.name}</strong>?</p>`,
+              });
+              if (!confirmed) return;
+            }
+            pMgr.assignOfficer(pid, {
+              actorId: actor.id,
+              name: actor.name,
+              img: actor.img,
+              isLinked: actor.isOwner ?? true,
+            });
+            ui?.notifications?.info?.(`${unitType === 'auxiliary' ? 'Auxiliar' : 'Oficial'} asignado: ${actor.name}`);
+            refreshCallback();
+            return;
+          }
+
           if (data.type !== 'patrol-effect' || !data.effectData) return;
+
+          // Resolve manager lazily at drop time
+          const pMgr = this.getPatrolMgr(unitType);
+          if (!pMgr) return;
 
           const effectData = data.effectData;
 
-          // Convert stat modifications to modifiers object
           const modifiers: Partial<GuardStats> = {};
           if (Array.isArray(effectData.statModifications)) {
             effectData.statModifications.forEach((mod: any) => {
@@ -746,34 +858,41 @@ export class PatrolsPanel {
     });
   }
 
-  public static async handleCreatePatrol(refreshCallback: () => void) {
+  public static async handleCreatePatrol(refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
     const org = orgMgr.getOrganization();
     if (!org) return;
-    const created = await orgMgr.openCreatePatrolDialog();
+    const label = unitType === 'auxiliary' ? 'Auxiliar' : 'Patrulla';
+    const created = unitType === 'auxiliary'
+      ? await orgMgr.openCreateAuxiliaryDialog()
+      : await orgMgr.openCreatePatrolDialog();
     if (created) {
-      ui?.notifications?.info('Patrulla creada');
+      ui?.notifications?.info(`${label} creada`);
       refreshCallback();
     }
   }
 
-  public static async handleEditPatrol(patrolId: string, refreshCallback: () => void) {
+  public static async handleEditPatrol(patrolId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const updated = await orgMgr.openEditPatrolDialog(patrolId);
+    const label = unitType === 'auxiliary' ? 'Auxiliar' : 'Patrulla';
+    const updated = unitType === 'auxiliary'
+      ? await orgMgr.openEditAuxiliaryDialog(patrolId)
+      : await orgMgr.openEditPatrolDialog(patrolId);
     if (updated) {
-      ui?.notifications?.info('Patrulla actualizada');
+      ui?.notifications?.info(`${label} actualizada`);
       refreshCallback();
     }
   }
 
-  public static async handleDeletePatrol(patrolId: string, refreshCallback: () => void) {
+  public static async handleDeletePatrol(patrolId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
+    const label = unitType === 'auxiliary' ? 'Auxiliar' : 'Patrulla';
     const confirm = await Dialog.confirm({
-      title: 'Eliminar Patrulla',
-      content: `<p>¿Seguro que deseas eliminar esta patrulla?</p>`,
+      title: `Eliminar ${label}`,
+      content: `<p>¿Seguro que deseas eliminar esta ${label.toLowerCase()}?</p>`,
     });
     if (!confirm) return;
     const gm = (window as any).GuardManagement;
@@ -781,23 +900,32 @@ export class PatrolsPanel {
     if (!orgMgr) return;
     const org = orgMgr.getOrganization();
     if (!org) return;
-    orgMgr.removePatrol(patrolId);
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = unitType === 'auxiliary'
+      ? orgMgr.getAuxiliaryManager()
+      : orgMgr.getPatrolManager();
+    if (unitType === 'auxiliary') {
+      orgMgr.removeAuxiliary(patrolId);
+    } else {
+      orgMgr.removePatrol(patrolId);
+    }
     await pMgr.deletePatrol(patrolId);
-    ui?.notifications?.warn('Patrulla eliminada');
+    ui?.notifications?.warn(`${label} eliminada`);
     refreshCallback();
   }
 
-  public static async handleSendPatrolToChat(patrolId: string) {
+  public static async handleSendPatrolToChat(patrolId: string, unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = unitType === 'auxiliary'
+      ? orgMgr.getAuxiliaryManager()
+      : orgMgr.getPatrolManager();
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
 
     // Look up officer record for stats
-    const allOfficers: any[] = gm?.officerManager?.list?.() || [];
+    const officerManager = unitType === 'auxiliary' ? gm?.civilianManager : gm?.officerManager;
+    const allOfficers: any[] = officerManager?.list?.() || [];
     const officerRecord = patrol.officer?.actorId
       ? allOfficers.find((o: any) => o.actorId === patrol.officer.actorId)
       : null;
@@ -893,16 +1021,18 @@ export class PatrolsPanel {
 
     await (ChatMessage as any).create({
       content: content,
-      speaker: { scene: null, actor: null, token: null, alias: 'Informe de Patrulla' },
+      speaker: { scene: null, actor: null, token: null, alias: unitType === 'auxiliary' ? 'Informe de Auxiliar' : 'Informe de Patrulla' },
       flags: { 'guard-management': { type: 'patrol-report' } },
     });
   }
 
-  public static async handleEditLastOrder(patrolId: string, refreshCallback: () => void) {
+  public static async handleEditLastOrder(patrolId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = unitType === 'auxiliary'
+      ? orgMgr.getAuxiliaryManager()
+      : orgMgr.getPatrolManager();
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
 
@@ -1072,24 +1202,27 @@ export class PatrolsPanel {
     });
   }
 
-  public static async handleEditOfficer(officerId: string, refreshCallback: () => void) {
+  public static async handleEditOfficer(officerId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
-    const officerManager = gm?.officerManager;
+    const officerManager = unitType === 'auxiliary' ? gm?.civilianManager : gm?.officerManager;
     if (!officerManager) return;
     const officer = officerManager.get(officerId);
     if (!officer) return;
 
     const { OfficerFormApplication } = await import('../../dialogs/OfficerFormApplication.js');
-    const app = new OfficerFormApplication('edit', officer.organizationId || '', officer);
+    const personnelType = unitType === 'auxiliary' ? 'civilian' : 'officer';
+    const app = new OfficerFormApplication('edit', officer.organizationId || '', officer, personnelType);
     const result = await app.show();
     if (result) {
       refreshCallback();
     }
   }
 
-  public static async handleUnassignOfficer(patrolId: string, refreshCallback: () => void) {
+  public static async handleUnassignOfficer(patrolId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
-    const pMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
+    const pMgr = unitType === 'auxiliary'
+      ? gm?.guardOrganizationManager?.getAuxiliaryManager?.()
+      : gm?.guardOrganizationManager?.getPatrolManager?.();
     if (!pMgr) return;
     await pMgr.updatePatrol(patrolId, { officer: null });
     refreshCallback();
@@ -1098,10 +1231,13 @@ export class PatrolsPanel {
   public static async handleUnassignSoldier(
     patrolId: string,
     actorId: string,
-    refreshCallback: () => void
+    refreshCallback: () => void,
+    unitType: PanelUnitType = 'patrol'
   ) {
     const gm = (window as any).GuardManagement;
-    const pMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
+    const pMgr = unitType === 'auxiliary'
+      ? gm?.guardOrganizationManager?.getAuxiliaryManager?.()
+      : gm?.guardOrganizationManager?.getPatrolManager?.();
     if (!pMgr) return;
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
@@ -1113,11 +1249,13 @@ export class PatrolsPanel {
     refreshCallback();
   }
 
-  public static async handleEffectClick(patrolId: string, effectId: string) {
+  public static async handleEffectClick(patrolId: string, effectId: string, unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = unitType === 'auxiliary'
+      ? orgMgr.getAuxiliaryManager()
+      : orgMgr.getPatrolManager();
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
     const effect = patrol.patrolEffects.find((e: any) => e.id === effectId);
@@ -1151,12 +1289,15 @@ export class PatrolsPanel {
   public static async handleRemoveEffect(
     patrolId: string,
     effectId: string,
-    refreshCallback: () => void
+    refreshCallback: () => void,
+    unitType: PanelUnitType = 'patrol'
   ) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = unitType === 'auxiliary'
+      ? orgMgr.getAuxiliaryManager()
+      : orgMgr.getPatrolManager();
 
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
@@ -1175,9 +1316,11 @@ export class PatrolsPanel {
     refreshCallback();
   }
 
-  public static async handleHopePip(patrolId: string, index: number, refreshCallback: () => void) {
+  public static async handleHopePip(patrolId: string, index: number, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
-    const pMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
+    const pMgr = unitType === 'auxiliary'
+      ? gm?.guardOrganizationManager?.getAuxiliaryManager?.()
+      : gm?.guardOrganizationManager?.getPatrolManager?.();
     if (!pMgr) return;
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;

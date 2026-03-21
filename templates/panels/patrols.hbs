@@ -1,9 +1,9 @@
 <div class="patrols-panel" data-patrols-panel>
     <div class="panel-header">
-        <h3><i class="fas fa-users"></i> Patrullas</h3>
+        <h3><i class="fas {{#if (eq unitType 'auxiliary')}}fa-hands-helping{{else}}fa-users{{/if}}"></i> {{#if (eq unitType 'auxiliary')}}Auxiliares{{else}}Patrullas{{/if}}</h3>
         {{#if isGM}}
         <button type="button" class="btn create-patrol" data-action="create-patrol">
-            <i class="fas fa-plus"></i> Nueva Patrulla
+            <i class="fas fa-plus"></i> {{#if (eq unitType 'auxiliary')}}Nuevo Auxiliar{{else}}Nueva Patrulla{{/if}}
         </button>
         {{/if}}
     </div>
@@ -82,11 +82,11 @@
                     {{/if}}
 
                     <!-- Officer slot -->
-                    <div class="officer-section-toggle">
+                    <div class="officer-section-toggle" data-drop="officer">
                         <div class="officer-section-header" data-action="toggle-officer-section">
                             <i class="fas fa-user-shield" style="color:#f3c267;font-size:0.75rem;"></i>
                             <span style="flex:1;font-size:0.78rem;font-family:'Cinzel',serif;letter-spacing:0.03em;">
-                                {{#if this.officer}}{{this.officerName}}{{else}}Sin Oficial{{/if}}
+                                {{#if this.officer}}{{this.officerName}}{{else}}{{#if (eq ../unitType 'auxiliary')}}Sin Auxiliar{{else}}Sin Oficial{{/if}}{{/if}}
                             </span>
                             {{#if this.hasOfficerStats}}
                             <div class="patrol-officer-stats" style="margin:0;">
@@ -98,7 +98,7 @@
                             <i class="fas fa-chevron-down officer-section-chevron"></i>
                         </div>
                         <div class="officer-section-body" style="display:none;">
-                    <div class="officer-slot" data-drop="officer">
+                    <div class="officer-slot">
                         {{#if this.officer}}
                         <div class="officer-slot-inner">
                             <div class="officer-avatar-wrap" style="position:relative;"
@@ -119,14 +119,14 @@
                             </div>
                             {{#if this.isGM}}
                             {{#if this.officerId}}
-                            <button type="button" class="officer-edit-btn" data-action="edit-officer" data-officer-id="{{this.officerId}}" data-tooltip="Editar Oficial">
+                            <button type="button" class="officer-edit-btn" data-action="edit-officer" data-officer-id="{{this.officerId}}" data-tooltip="{{#if (eq ../../unitType 'auxiliary')}}Editar Auxiliar{{else}}Editar Oficial{{/if}}">
                                 <i class="fas fa-user-edit"></i>
                             </button>
                             {{/if}}
                             {{/if}}
                         </div>
                         {{else}}
-                        <span class="empty">Sin Oficial</span>
+                        <span class="empty">{{#if (eq ../unitType 'auxiliary')}}Sin Auxiliar{{else}}Sin Oficial{{/if}}</span>
                         {{/if}}
                     </div>
 
@@ -142,7 +142,7 @@
                         </div>
                     </div>
 
-                    <div class="soldiers-zone" data-drop="soldier" data-tooltip="Arrastra Actores aquí para añadir Soldados">
+                    <div class="soldiers-zone" data-drop="soldier" data-tooltip="{{#if (eq ../unitType 'auxiliary')}}Arrastra Actores aquí para añadir Subalternos{{else}}Arrastra Actores aquí para añadir Soldados{{/if}}">
                         {{#each this.slots}}
                             {{#if (eq this.type "soldier")}}
                             <div class="soldier-wrapper">
@@ -251,10 +251,10 @@
                             <i class="fas fa-comment-alt"></i>
                         </button>
                         {{#if this.isGM}}
-                        <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}" data-tooltip="Editar Patrulla">
+                        <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}" data-tooltip="{{#if (eq ../unitType 'auxiliary')}}Editar Auxiliar{{else}}Editar Patrulla{{/if}}">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" class="delete-patrol" data-action="delete" data-patrol-id="{{this.id}}" data-tooltip="Eliminar Patrulla">
+                        <button type="button" class="delete-patrol" data-action="delete" data-patrol-id="{{this.id}}" data-tooltip="{{#if (eq ../unitType 'auxiliary')}}Eliminar Auxiliar{{else}}Eliminar Patrulla{{/if}}">
                             <i class="fas fa-trash"></i>
                         </button>
                         {{/if}}
@@ -263,7 +263,7 @@
                 {{/each}}
             </div>
         {{else}}
-            <p class="empty-state">No hay patrullas. Crea la primera.</p>
+            <p class="empty-state">{{#if (eq unitType 'auxiliary')}}No hay auxiliares. Crea el primero.{{else}}No hay patrullas. Crea la primera.{{/if}}</p>
         {{/if}}
     </div>
 </div>

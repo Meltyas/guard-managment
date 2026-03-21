@@ -47,6 +47,16 @@ export class CustomInfoDialog implements FocusableDialog {
         console.warn('CustomInfoDialog | patrols auto-refresh failed', e);
       }
     });
+    // Auto-refresh auxiliaries when data layer updates
+    window.addEventListener('guard-auxiliaries-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="auxiliaries"]');
+        if (activeTab) this.refreshAuxiliariesPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | auxiliaries auto-refresh failed', e);
+      }
+    });
   }
 
   /**
@@ -211,6 +221,14 @@ export class CustomInfoDialog implements FocusableDialog {
         if (patrolsContainer) {
           console.log('🔄 Rendering PatrolsPanel...');
           await PatrolsPanel.render(patrolsContainer);
+        }
+
+        const auxiliariesContainer = this.element.querySelector(
+          '[data-tab-panel="auxiliaries"]'
+        ) as HTMLElement;
+        if (auxiliariesContainer) {
+          console.log('🔄 Rendering AuxiliariesPanel...');
+          await PatrolsPanel.render(auxiliariesContainer, 'auxiliary');
         }
 
         const resourcesContainer = this.element.querySelector(
@@ -654,6 +672,15 @@ export class CustomInfoDialog implements FocusableDialog {
     if (!tabPanel) return;
 
     PatrolsPanel.render(tabPanel);
+  }
+
+  public refreshAuxiliariesPanel() {
+    const tabPanel = this.element?.querySelector(
+      '[data-tab-panel="auxiliaries"]'
+    ) as HTMLElement | null;
+    if (!tabPanel) return;
+
+    PatrolsPanel.render(tabPanel, 'auxiliary');
   }
 
   /**
@@ -1160,9 +1187,14 @@ export class CustomInfoDialog implements FocusableDialog {
       } catch {}
       positionBar(buttons.find((b) => b.dataset.tab === tab));
 
-      // Refresh patrols panel if activated
-      if (tab === 'patrols') {
-        this.refreshPatrolsPanel();
+      // Refresh panel when user clicks a tab (skip during initial setup to avoid race with refreshContent)
+      if (this.tabsInitialized) {
+        if (tab === 'patrols') {
+          this.refreshPatrolsPanel();
+        }
+        if (tab === 'auxiliaries') {
+          this.refreshAuxiliariesPanel();
+        }
       }
     };
 

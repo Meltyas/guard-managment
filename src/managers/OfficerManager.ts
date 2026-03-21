@@ -8,9 +8,18 @@ import type { Officer, OfficerSkill, OfficerTrait } from '../types/officer';
 export class OfficerManager {
   private officers: Map<string, Officer> = new Map();
   private onChange?: (officer: Officer, operation: 'create' | 'update' | 'delete') => void;
+  protected settingsKey: string;
 
-  constructor(onChange?: (officer: Officer, operation: 'create' | 'update' | 'delete') => void) {
+  constructor(
+    onChange?: (officer: Officer, operation: 'create' | 'update' | 'delete') => void,
+    settingsKey: string = 'officers'
+  ) {
     this.onChange = onChange;
+    this.settingsKey = settingsKey;
+  }
+
+  protected get logPrefix(): string {
+    return this.settingsKey === 'officers' ? 'OfficerManager' : 'CivilianManager';
   }
 
   public async initialize(): Promise<void> {
@@ -19,7 +28,7 @@ export class OfficerManager {
 
   public async loadFromSettings(): Promise<void> {
     try {
-      const officers = game?.settings?.get('guard-management', 'officers') as Officer[] | null;
+      const officers = game?.settings?.get('guard-management', this.settingsKey) as Officer[] | null;
       if (officers && Array.isArray(officers)) {
         const deserializedOfficers = officers.map((o) => ({
           ...o,
@@ -49,16 +58,16 @@ export class OfficerManager {
           })),
         }));
         this.load(deserializedOfficers);
-        console.log(`OfficerManager | Loaded ${officers.length} officers from settings`);
+        console.log(`${this.logPrefix} | Loaded ${officers.length} officers from settings`);
       }
     } catch (error) {
-      console.error('OfficerManager | Error loading officers:', error);
+      console.error(`${this.logPrefix} | Error loading officers:`, error);
     }
   }
 
   private saveToSettings(): void {
     this._saveToSettingsAsync().catch((error) => {
-      console.error('OfficerManager | Error in background save:', error);
+      console.error(`${this.logPrefix} | Error in background save:`, error);
     });
   }
 
@@ -100,10 +109,10 @@ export class OfficerManager {
         updatedAt: officer.updatedAt?.toISOString() ?? new Date().toISOString(),
       }));
 
-      await game?.settings?.set('guard-management', 'officers', officersData);
-      console.log(`OfficerManager | Saved ${this.officers.size} officers to settings`);
+      await game?.settings?.set('guard-management', this.settingsKey, officersData);
+      console.log(`${this.logPrefix} | Saved ${this.officers.size} officers to settings`);
     } catch (error) {
-      console.error('OfficerManager | Error saving officers:', error);
+      console.error(`${this.logPrefix} | Error saving officers:`, error);
     }
   }
 
