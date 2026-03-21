@@ -153,7 +153,7 @@ export class AddOrEditPatrolDialog {
     }));
 
     const templatePath = 'modules/guard-management/templates/dialogs/add-edit-patrol.hbs';
-    return await renderTemplate(templatePath, {
+    return await foundry.applications.handlebars.renderTemplate(templatePath, {
       ...data,
       stats,
       slotOptions,

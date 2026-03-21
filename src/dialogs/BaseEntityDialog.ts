@@ -151,7 +151,7 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
       entityId: mode === 'edit' ? existingEntity?.id : '',
     };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/base-entity.hbs',
       templateData
     );

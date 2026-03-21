@@ -128,7 +128,7 @@ export class CustomInfoDialog implements FocusableDialog {
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
     const templatePath = 'modules/guard-management/templates/dialogs/info-dialog.hbs';
-    const content = await renderTemplate(templatePath, {
+    const content = await foundry.applications.handlebars.renderTemplate(templatePath, {
       title: `Información: ${organization.name}`,
       initialTab: localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general',
     });

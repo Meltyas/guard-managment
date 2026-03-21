@@ -310,7 +310,7 @@ export class AddOrEditResourceDialog {
       isCreate: mode === 'create',
     };
 
-    return renderTemplate('modules/guard-management/templates/dialogs/add-edit-resource.hbs', data);
+    return foundry.applications.handlebars.renderTemplate('modules/guard-management/templates/dialogs/add-edit-resource.hbs', data);
   }
 
   /**

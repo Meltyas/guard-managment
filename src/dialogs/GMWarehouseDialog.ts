@@ -203,7 +203,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
     // Render using Handlebars template
-    const content = await renderTemplate(
+    const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/gm-warehouse.hbs',
       {}
     );
@@ -338,7 +338,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private async renderResourceTemplate(resource: any): Promise<string> {
     // Resource is already a plain object from resourceManager, no conversion needed
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/partials/warehouse-resource-item.hbs',
       resource
     );
@@ -360,7 +360,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       levelLabel: REPUTATION_LABELS[level as ReputationLevel] || `Level ${level}`,
     };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/partials/warehouse-reputation-item.hbs',
       reputationData
     );
@@ -379,7 +379,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       statModifications: effect.statModifications || [],
     };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/partials/warehouse-patrol-effect-item.hbs',
       effectData
     );
@@ -398,7 +398,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       statModifications: modifier.statModifications || [],
     };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/partials/warehouse-guard-modifier-item.hbs',
       modifierData
     );

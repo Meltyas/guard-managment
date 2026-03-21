@@ -326,7 +326,7 @@ export class AddOrEditReputationDialog {
       reputationLevels,
     };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/add-edit-reputation.hbs',
       data
     );

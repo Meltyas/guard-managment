@@ -142,7 +142,7 @@ export class AddOrEditPatrolEffectDialog {
 
     const templatePath =
       'modules/guard-management/templates/dialogs/add-edit-patrol-effect.hbs';
-    return await renderTemplate(templatePath, {
+    return await foundry.applications.handlebars.renderTemplate(templatePath, {
       ...data,
       statOptions,
       isCreate: mode === 'create',

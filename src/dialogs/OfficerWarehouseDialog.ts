@@ -120,7 +120,7 @@ export class OfficerWarehouseDialog {
     const isGM = (game as any)?.user?.isGM || false;
 
     // Render using Handlebars template
-    const content = await renderTemplate(
+    const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
       { officers, isGM }
     );
@@ -546,7 +546,7 @@ export class OfficerWarehouseDialog {
 
     const officers = this.getOfficers().map(this.enrichOfficerStats);
     const isGM = (game as any)?.user?.isGM || false;
-    const content = await renderTemplate(
+    const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
       { officers, isGM }
     );

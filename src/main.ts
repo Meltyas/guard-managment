@@ -227,7 +227,7 @@ class GuardManagementModule {
 Hooks.once('init', async () => {
   try {
     // Preload Handlebars templates
-    await loadTemplates([
+    await foundry.applications.handlebars.loadTemplates([
       'modules/guard-management/templates/panels/general.hbs',
       'modules/guard-management/templates/panels/patrols.hbs',
       'modules/guard-management/templates/panels/resources.hbs',

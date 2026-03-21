@@ -302,7 +302,7 @@ export class AddOrEditOfficerDialog {
       isCreate: mode === 'create',
     };
 
-    return renderTemplate('modules/guard-management/templates/dialogs/add-edit-officer.hbs', data);
+    return foundry.applications.handlebars.renderTemplate('modules/guard-management/templates/dialogs/add-edit-officer.hbs', data);
   }
 
   /**
@@ -476,7 +476,7 @@ export class AddOrEditOfficerDialog {
     const DialogV2Class = foundry.applications.api.DialogV2;
     if (!DialogV2Class) return;
 
-    const content = await renderTemplate(
+    const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/add-edit-trait.hbs',
       { title: '', description: '' }
     );
@@ -596,7 +596,7 @@ export class AddOrEditOfficerDialog {
     const DialogV2Class = foundry.applications.api.DialogV2;
     if (!DialogV2Class) return;
 
-    const content = await renderTemplate(
+    const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/add-edit-skill.hbs',
       { title: '', description: '', hopeCost: 0 }
     );
@@ -735,7 +735,7 @@ export class AddOrEditOfficerDialog {
       this.currentData.title = titleInput.value;
     }
 
-    const content = await renderTemplate(
+    const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/add-edit-officer.hbs',
       {
         dialogId: this.dialogId,

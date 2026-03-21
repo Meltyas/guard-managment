@@ -22,6 +22,11 @@ NEVER TOUCH THE DAGGERHEART WORKSPACE, IS JUST READ ONLY.
 | **Foundry VTT** | V13     | Target platform                        |
 | **Node.js**     | 20.11.0 | Required version (managed via nvm)     |
 
+### Foundry V13 API Notes
+
+- **Use** `foundry.applications.handlebars.loadTemplates(...)` instead of the deprecated global `loadTemplates(...)`
+- **Use** `foundry.applications.handlebars.renderTemplate(...)` instead of the deprecated global `renderTemplate(...)`
+
 ---
 
 ## 🏗️ Core Architecture
@@ -249,7 +254,9 @@ npm run test:watch   # Tests in watch mode
 
 ## 🔄 Synchronization Strategy
 
-### 🛡️ Settings-Based Persistence (MANDATORY PATTERN)
+### 🛡️ Settings-Based Persistence (MANDATORY — NO EXCEPTIONS)
+
+> **⚠️ CRITICAL RULE: ALL data MUST be stored in `game.settings`. NEVER use Foundry Actor documents, Item documents, `CONFIG.Actor.dataModels`, `CONFIG.Item.dataModels`, actor flags, or any other Foundry Document-based storage. Violating this rule causes crashes with Daggerheart (getRollData, isInventoryItem, updateActorsRangeDependentEffects) and orphaned document errors when the module is disabled. This was learned the hard way — do NOT revert to document-based storage under any circumstances.**
 
 **ALL data persistence MUST use `game.settings` with `scope: 'world'` for automatic synchronization.**
 
@@ -346,6 +353,9 @@ class GuardManagementModule {
 
 ### 🚫 PROHIBITED Patterns:
 
+❌ **NO Foundry Actor/Item documents for data storage** — causes Daggerheart crashes and orphaned document errors
+❌ **NO `CONFIG.Actor.dataModels` or `CONFIG.Item.dataModels`** — system calls getRollData, isInventoryItem, etc. on our models
+❌ **NO DocumentBasedManager or TypeDataModel subclasses** — removed permanently, do not recreate
 ❌ **NO version optimization** - Always save
 ❌ **NO .catch()** wrapping - Use await directly
 ❌ **NO queueSave()** debouncing - Save immediately
@@ -353,7 +363,7 @@ class GuardManagementModule {
 ❌ **NO sockets** - Foundry handles sync with `scope: 'world'`
 ❌ **NO private managers** - All managers must be accessible from `window.GuardManagement`
 
-### ✅ Currently Migrated Entities:
+### ✅ All Entities Migrated to Settings:
 
 | Entity | Manager | Settings Key | Status |
 |--------|---------|--------------|--------|
@@ -362,6 +372,8 @@ class GuardManagementModule {
 | Resources | SimpleResourceManager | `'resources'` | ✅ Migrated |
 | Reputations | SimpleReputationManager | `'reputations'` | ✅ Migrated |
 | Organization | GuardOrganizationManager | `'guardOrganization'` | ✅ Migrated |
+| Guard Modifiers | SimpleModifierManager | `'modifiers'` | ✅ Migrated |
+| Patrol Effects | SimplePatrolEffectManager | `'patrolEffects'` | ✅ Migrated |
 
 ### ⚖️ Conflict Resolution Priorities
 

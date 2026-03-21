@@ -256,7 +256,7 @@ export class GuardOrganizationDialog {
           maxStat: GUARD_STAT_MAX,
         };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/guard-organization.hbs',
       data
     );

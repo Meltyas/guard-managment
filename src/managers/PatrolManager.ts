@@ -206,11 +206,8 @@ export class PatrolManager {
   /** Persiste lista completa de patrol snapshots a game settings */
   private async persistToSettings(): Promise<void> {
     try {
-      // Don't save if game is not ready yet
-      if (!game?.ready) {
-        console.warn('PatrolManager | Cannot save - game not ready yet');
-        return;
-      }
+      // Don't save if game is not ready yet (e.g. during init recalcDerived)
+      if (!game?.ready) return;
 
       // Players can also save patrols (settings will sync automatically)
       // No GM check needed - Foundry handles permissions
