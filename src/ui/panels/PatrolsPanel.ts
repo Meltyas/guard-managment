@@ -93,6 +93,7 @@ export class PatrolsPanel {
         officerCons: officerRecord?.cons || [],
         officerStatsDisplay,
         hasOfficerStats: officerStatsDisplay.length > 0,
+        hasMembers: !!(p.officer?.actorId || (p.soldiers && p.soldiers.length > 0)),
         currentHope: p.currentHope ?? 0,
         maxHope: p.maxHope ?? 0,
         hopePips:
@@ -188,6 +189,11 @@ export class PatrolsPanel {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
       if (id) this.handleDeletePatrol(id, () => this.refresh(container), unitType);
+    });
+    $html.find('[data-action="call-patrol"]').on('click', (ev) => {
+      ev.preventDefault();
+      const id = ev.currentTarget.dataset.patrolId;
+      if (id) this.handleCallPatrol(id, unitType);
     });
     $html.find('[data-action="to-chat"]').on('click', (ev) => {
       ev.preventDefault();
@@ -1355,5 +1361,226 @@ export class PatrolsPanel {
       speaker: { scene: null, actor: null, token: null, alias: 'Rasgo de Oficial' },
       flags: { 'guard-management': { type: 'officer-trait' } },
     });
+  }
+
+  /**
+   * Handle the "Call Patrol" button: enter pick-location mode,
+   * then place tokens of all members in circular formation.
+   */
+  public static async handleCallPatrol(patrolId: string, unitType: PanelUnitType = 'patrol'): Promise<void> {
+    const g: any = (globalThis as any).game;
+    const cv: any = (globalThis as any).canvas;
+
+    if (!cv?.scene) {
+      ui?.notifications?.warn?.('No hay escena activa. Abre una escena primero.');
+      return;
+    }
+
+    const pMgr = this.getPatrolMgr(unitType);
+    if (!pMgr) return;
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+
+    // Collect all member actorIds
+    const members: Array<{ actorId: string; name: string; isOfficer: boolean }> = [];
+
+    if (patrol.officer?.actorId) {
+      members.push({
+        actorId: patrol.officer.actorId,
+        name: patrol.officer.name || 'Officer',
+        isOfficer: true,
+      });
+    }
+
+    for (const soldier of (patrol.soldiers || [])) {
+      if (soldier.actorId) {
+        members.push({
+          actorId: soldier.actorId,
+          name: soldier.name || 'Soldier',
+          isOfficer: false,
+        });
+      }
+    }
+
+    if (members.length === 0) {
+      const label = unitType === 'auxiliary' ? 'auxiliar' : 'patrulla';
+      ui?.notifications?.warn?.(`Esta ${label} no tiene miembros para colocar`);
+      return;
+    }
+
+    const label = unitType === 'auxiliary' ? 'auxiliar' : 'patrulla';
+    ui?.notifications?.info?.(`Haz clic en el canvas para colocar la ${label}. Clic derecho o Escape para cancelar.`);
+
+    try {
+      const position = await PatrolsPanel.pickCanvasLocation();
+      if (!position) {
+        ui?.notifications?.info?.('Colocación de tokens cancelada');
+        return;
+      }
+
+      const gridSize = cv.grid?.size || 100;
+      const tokenPositions = PatrolsPanel.calculateFormationPositions(
+        position.x,
+        position.y,
+        members,
+        gridSize
+      );
+
+      // Create token documents
+      const tokenDataArray: any[] = [];
+      const skipped: string[] = [];
+
+      for (const tp of tokenPositions) {
+        const actor = g.actors?.get?.(tp.actorId);
+        if (!actor) {
+          skipped.push(tp.name);
+          continue;
+        }
+
+        // Use getTokenDocument to resolve wildcard token images
+        const tokenDoc = await actor.getTokenDocument?.({ x: tp.x, y: tp.y });
+        if (tokenDoc) {
+          tokenDataArray.push(tokenDoc.toObject());
+        } else {
+          // Fallback for actors without getTokenDocument
+          const protoData = actor.prototypeToken?.toObject?.() || actor.prototypeToken || {};
+          tokenDataArray.push({
+            ...protoData,
+            name: protoData.name || actor.name,
+            actorId: actor.id,
+            x: tp.x,
+            y: tp.y,
+          });
+        }
+      }
+
+      if (tokenDataArray.length === 0) {
+        ui?.notifications?.error?.('No se encontraron actores para colocar');
+        return;
+      }
+
+      await cv.scene.createEmbeddedDocuments('Token', tokenDataArray);
+
+      if (skipped.length > 0) {
+        ui?.notifications?.warn?.(
+          `${tokenDataArray.length} tokens colocados. Actores no encontrados: ${skipped.join(', ')}`
+        );
+      } else {
+        ui?.notifications?.info?.(`${tokenDataArray.length} tokens colocados exitosamente`);
+      }
+    } catch (err) {
+      console.error('GuardManagement | Error placing patrol tokens:', err);
+      ui?.notifications?.error?.('Error al colocar tokens');
+    }
+  }
+
+  /**
+   * Enter crosshair pick mode on the canvas.
+   * Resolves with {x, y} when left-clicked, or null if cancelled (right-click / Escape).
+   */
+  private static pickCanvasLocation(): Promise<{ x: number; y: number } | null> {
+    return new Promise((resolve) => {
+      const cv: any = (globalThis as any).canvas;
+      if (!cv?.stage) {
+        resolve(null);
+        return;
+      }
+
+      const canvasElement = document.getElementById('board');
+      const originalCursor = canvasElement?.style.cursor || '';
+      if (canvasElement) canvasElement.style.cursor = 'crosshair';
+
+      let resolved = false;
+
+      const cleanup = () => {
+        if (resolved) return;
+        resolved = true;
+        if (canvasElement) canvasElement.style.cursor = originalCursor;
+        cv.stage.off('pointerdown', onPointerDown);
+        document.removeEventListener('keydown', onKeyDown);
+        document.removeEventListener('contextmenu', onContextMenu);
+      };
+
+      const onPointerDown = (event: any) => {
+        if (event.data?.button !== 0) return;
+
+        const point = event.data.getLocalPosition(cv.stage);
+
+        // Snap to grid center
+        const CONST_GRID = (globalThis as any).CONST;
+        const snapped = cv.grid?.getSnappedPoint?.(
+          { x: point.x, y: point.y },
+          { mode: CONST_GRID?.GRID_SNAPPING_MODES?.CENTER ?? 2 }
+        ) || cv.grid?.getSnappedPosition?.(point.x, point.y, 1)
+          || { x: point.x, y: point.y };
+
+        cleanup();
+        resolve(snapped);
+      };
+
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          cleanup();
+          resolve(null);
+        }
+      };
+
+      const onContextMenu = (event: MouseEvent) => {
+        event.preventDefault();
+        cleanup();
+        resolve(null);
+      };
+
+      cv.stage.on('pointerdown', onPointerDown);
+      document.addEventListener('keydown', onKeyDown);
+      document.addEventListener('contextmenu', onContextMenu, { once: true });
+    });
+  }
+
+  /**
+   * Calculate positions for a circular formation.
+   * Officer at center, soldiers distributed on a circle.
+   */
+  private static calculateFormationPositions(
+    centerX: number,
+    centerY: number,
+    members: Array<{ actorId: string; name: string; isOfficer: boolean }>,
+    gridSize: number
+  ): Array<{ actorId: string; name: string; x: number; y: number }> {
+    const result: Array<{ actorId: string; name: string; x: number; y: number }> = [];
+
+    const officer = members.find(m => m.isOfficer);
+    const soldiers = members.filter(m => !m.isOfficer);
+
+    // Officer at center
+    if (officer) {
+      result.push({
+        actorId: officer.actorId,
+        name: officer.name,
+        x: centerX,
+        y: centerY,
+      });
+    }
+
+    // Soldiers on a circle (tight formation)
+    if (soldiers.length > 0) {
+      const baseRadius = gridSize * 1.0;
+      const minArcLength = gridSize * 0.85;
+      const minRadiusForCount = (soldiers.length * minArcLength) / (2 * Math.PI);
+      const radius = Math.max(baseRadius, minRadiusForCount);
+
+      for (let i = 0; i < soldiers.length; i++) {
+        const angle = (2 * Math.PI * i) / soldiers.length - Math.PI / 2;
+        result.push({
+          actorId: soldiers[i].actorId,
+          name: soldiers[i].name,
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+        });
+      }
+    }
+
+    return result;
   }
 }

@@ -251,6 +251,11 @@
                             <i class="fas fa-comment-alt"></i>
                         </button>
                         {{#if this.isGM}}
+                        <button type="button" class="call-patrol" data-action="call-patrol" data-patrol-id="{{this.id}}"
+                                data-tooltip="{{#if (eq ../unitType 'auxiliary')}}Colocar tokens del auxiliar{{else}}Colocar tokens de la patrulla{{/if}}"
+                                {{#unless this.hasMembers}}disabled{{/unless}}>
+                            <i class="fas fa-bullhorn"></i>
+                        </button>
                         <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}" data-tooltip="{{#if (eq ../unitType 'auxiliary')}}Editar Auxiliar{{else}}Editar Patrulla{{/if}}">
                             <i class="fas fa-edit"></i>
                         </button>

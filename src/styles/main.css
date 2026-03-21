@@ -1472,6 +1472,19 @@
 .patrol-card .actions button:hover {
   background: #3a3a3a;
 }
+.patrol-card .actions .call-patrol {
+  color: #4ae89a;
+  border-color: rgba(74, 232, 154, 0.4);
+}
+.patrol-card .actions .call-patrol:hover:not(:disabled) {
+  background: rgba(74, 232, 154, 0.2);
+  border-color: #4ae89a;
+  color: #fff;
+}
+.patrol-card .actions .call-patrol:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 
 /* Active Effects on Patrol Card */
 .patrol-card .active-effects {
