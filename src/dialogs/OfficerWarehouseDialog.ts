@@ -114,7 +114,7 @@ export class OfficerWarehouseDialog {
     `;
 
     // Get officers from OfficerManager
-    const officers = this.getOfficers();
+    const officers = this.getOfficers().map(this.enrichOfficerStats);
     const isGM = (game as any)?.user?.isGM || false;
 
     // Render using Handlebars template
@@ -150,6 +150,23 @@ export class OfficerWarehouseDialog {
     const isGM = (game as any)?.user?.isGM || false;
     const all: Officer[] = gm.officerManager.list();
     return isGM ? all : all.filter((o) => o.visibleToPlayers === true);
+  }
+
+  /**
+   * Enrich officer with computed stats display data for templates
+   */
+  private enrichOfficerStats(officer: Officer): any {
+    const stats = officer.stats || {};
+    const entries = Object.entries(stats).filter(([, v]) => (v as number) !== 0);
+    return {
+      ...officer,
+      hasStats: entries.length > 0,
+      statsDisplay: entries.map(([key, value]) => ({
+        key,
+        value: (value as number) > 0 ? `+${value}` : `${value}`,
+        cssClass: (value as number) > 0 ? 'stat-positive' : (value as number) < 0 ? 'stat-negative' : '',
+      })),
+    };
   }
 
   /**
@@ -201,6 +218,17 @@ export class OfficerWarehouseDialog {
         const officerId = (button as HTMLElement).dataset.officerId;
         if (officerId) {
           this.handleDeleteOfficer(officerId);
+        }
+      });
+    });
+
+    // Send to chat buttons
+    const chatButtons = this.element.querySelectorAll('.send-officer-chat-btn');
+    chatButtons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        const officerId = (button as HTMLElement).dataset.officerId;
+        if (officerId) {
+          this.handleSendToChat(officerId);
         }
       });
     });
@@ -437,12 +465,66 @@ export class OfficerWarehouseDialog {
   }
 
   /**
+   * Send officer info to chat
+   */
+  private async handleSendToChat(officerId: string): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    const officer = gm?.officerManager?.get(officerId);
+    if (!officer) return;
+
+    const skillsHtml = officer.skills?.length
+      ? officer.skills
+          .map((s: any) => {
+            const hearts = s.hopeCost > 0
+              ? new Array(s.hopeCost).fill('<i class="fas fa-diamond" style="color:#e84a4a;font-size:0.75rem;"></i>').join(' ')
+              : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
+            const img = s.image ? `<img src="${s.image}" style="width:18px;height:18px;border:none;vertical-align:middle;margin-right:4px;" />` : '';
+            return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">${img}<span>${s.name}</span><span style="margin-left:auto;">${hearts}</span></div>`;
+          })
+          .join('')
+      : '';
+
+    const prosHtml = officer.pros?.length
+      ? officer.pros.map((p: any) => `<div style="padding:2px 0;"><strong>${p.title}</strong>${p.description ? `: ${p.description}` : ''}</div>`).join('')
+      : '<div style="opacity:0.5;">Ninguno</div>';
+
+    const consHtml = officer.cons?.length
+      ? officer.cons.map((c: any) => `<div style="padding:2px 0;"><strong>${c.title}</strong>${c.description ? `: ${c.description}` : ''}</div>`).join('')
+      : '<div style="opacity:0.5;">Ninguno</div>';
+
+    const content = `
+      <div class="guard-resource-chat">
+        ${officer.actorImg ? `<div style="text-align:center;margin-bottom:8px;"><img src="${officer.actorImg}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #555;" /></div>` : ''}
+        <div class="chat-header" style="font-weight:bold;font-size:1.2em;margin-bottom:2px;text-align:center;">${officer.actorName || 'Sin actor'}</div>
+        <div style="text-align:center;opacity:0.8;margin-bottom:8px;">${officer.title}</div>
+        ${skillsHtml ? `<div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.1);border-radius:4px;"><div style="font-weight:bold;margin-bottom:4px;"><i class="fas fa-bolt"></i> Habilidades</div>${skillsHtml}</div>` : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="padding:6px;background:rgba(0,0,0,0.1);border-radius:4px;">
+            <div style="font-weight:bold;color:#4caf50;margin-bottom:4px;"><i class="fas fa-plus-circle"></i> Pros</div>
+            ${prosHtml}
+          </div>
+          <div style="padding:6px;background:rgba(0,0,0,0.1);border-radius:4px;">
+            <div style="font-weight:bold;color:#f44336;margin-bottom:4px;"><i class="fas fa-minus-circle"></i> Cons</div>
+            ${consHtml}
+          </div>
+        </div>
+      </div>
+    `;
+
+    await (ChatMessage as any).create({
+      content,
+      speaker: { scene: null, actor: null, token: null, alias: 'Oficial' },
+      flags: { 'guard-management': { type: 'officer-info' } },
+    });
+  }
+
+  /**
    * Refresh the dialog content
    */
   private async refresh(): Promise<void> {
     if (!this.element) return;
 
-    const officers = this.getOfficers();
+    const officers = this.getOfficers().map(this.enrichOfficerStats);
     const isGM = (game as any)?.user?.isGM || false;
     const content = await renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',

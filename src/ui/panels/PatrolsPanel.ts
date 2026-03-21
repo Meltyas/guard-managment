@@ -27,7 +27,11 @@ export class PatrolsPanel {
       const ageClass = lastOrder
         ? classifyLastOrderAge({ issuedAt: lastOrder.issuedAt })
         : 'normal';
-      const bd = this.computePatrolStatBreakdown(p);
+      // Resolve officer record from officerManager to get name + skills
+      const officerRecord = p.officer?.actorId ? officerByActorId.get(p.officer.actorId) : null;
+
+      // Compute stat breakdown (including officer stats if assigned)
+      const bd = this.computePatrolStatBreakdown(p, officerRecord);
 
       // Format stats breakdown for template
       const statsBreakdown: Record<string, any> = {};
@@ -47,8 +51,14 @@ export class PatrolsPanel {
         }
       }
 
-      // Resolve officer record from officerManager to get name + skills
-      const officerRecord = p.officer?.actorId ? officerByActorId.get(p.officer.actorId) : null;
+      // Build officer stats display for template
+      const officerStats = officerRecord?.stats || {};
+      const officerStatsEntries = Object.entries(officerStats).filter(([, v]) => (v as number) !== 0);
+      const officerStatsDisplay = officerStatsEntries.map(([key, value]) => ({
+        key,
+        value: (value as number) > 0 ? `+${value}` : `${value}`,
+        cssClass: (value as number) > 0 ? 'stat-positive' : (value as number) < 0 ? 'stat-negative' : '',
+      }));
 
       // Format last order date
       let lastOrderDate: string | null = null;
@@ -69,6 +79,8 @@ export class PatrolsPanel {
         officerSkills: officerRecord?.skills?.length ? officerRecord.skills : [],
         officerPros: officerRecord?.pros || [],
         officerCons: officerRecord?.cons || [],
+        officerStatsDisplay,
+        hasOfficerStats: officerStatsDisplay.length > 0,
         currentHope: p.currentHope ?? 0,
         maxHope: p.maxHope ?? 0,
         hopePips: (p.maxHope ?? 0) > 0
@@ -93,7 +105,7 @@ export class PatrolsPanel {
       };
     });
 
-    return { patrols: enrichedPatrols };
+    return { patrols: enrichedPatrols, isGM };
   }
 
   static async render(container: HTMLElement) {
@@ -107,6 +119,16 @@ export class PatrolsPanel {
 
   static activateListeners(container: HTMLElement) {
     const $html = $(container);
+
+    // Defensive: strip GM-only controls for non-GM users
+    const userIsGM = (globalThis as any).game?.user?.isGM ?? false;
+    if (!userIsGM) {
+      $html.find('[data-action="edit-officer"]').remove();
+      $html.find('[data-action="edit"]').remove();
+      $html.find('[data-action="delete"]').remove();
+      $html.find('[data-action="edit-last-order"]').remove();
+      $html.find('[data-action="create-patrol"]').remove();
+    }
 
     // Shift-key tracking: show unassign buttons over avatars when Shift is held
     const prevHandlers = (container as any)._guardShiftHandlers;
@@ -168,7 +190,19 @@ export class PatrolsPanel {
       const id = ev.currentTarget.dataset.actorId;
       if (id) this.handleOpenActorSheet(id);
     });
-    $html.find('[data-action="skill-to-chat"]').on('click', (ev) => {
+    $html.find('.skill-toggle-header').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const header = ev.currentTarget as HTMLElement;
+      const body = header.nextElementSibling as HTMLElement | null;
+      const chevron = header.querySelector('.skill-toggle-chevron');
+      if (body) {
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        if (chevron) chevron.classList.toggle('open', !isOpen);
+      }
+    });
+    $html.find('.skill-to-chat-btn').on('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       const el = ev.currentTarget;
@@ -263,6 +297,16 @@ export class PatrolsPanel {
       body.style.display = isHidden ? 'block' : 'none';
       header.querySelector('.patrol-traits-chevron')?.classList.toggle('open', isHidden);
     });
+
+    // Officer section toggle (hidden by default)
+    $html.find('.officer-section-header').on('click', (ev) => {
+      const header = ev.currentTarget as HTMLElement;
+      const body = header.nextElementSibling as HTMLElement | null;
+      if (!body) return;
+      const isHidden = body.style.display === 'none' || body.style.display === '';
+      body.style.display = isHidden ? 'block' : 'none';
+      header.querySelector('.officer-section-chevron')?.classList.toggle('open', isHidden);
+    });
     $html.find('[data-action="trait-to-chat"]').on('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
@@ -280,7 +324,7 @@ export class PatrolsPanel {
     await this.render(container);
   }
 
-  private static computePatrolStatBreakdown(patrol: any) {
+  private static computePatrolStatBreakdown(patrol: any, officerRecord?: any) {
     try {
       // Get Organization Modifiers (item-level modifiers with name + value)
       const gm = (window as any).GuardManagement;
@@ -327,6 +371,9 @@ export class PatrolsPanel {
         }
       }
 
+      // Officer stats contribution
+      const officerStats: Record<string, number> = officerRecord?.stats || {};
+
       const breakdown: Record<
         string,
         {
@@ -337,6 +384,9 @@ export class PatrolsPanel {
           orgBase: number;
           orgMods: number;
           orgModList: any[];
+          officer: number;
+          officerName: string;
+          officerImg: string;
           total: number;
           totalClass: string;
         }
@@ -352,7 +402,9 @@ export class PatrolsPanel {
         const orgBase = orgContrib - orgMods;
         const orgModList = orgModDetails[key] || [];
 
-        const total = base + orgContrib + effects; // always from live data
+        const officerContrib = officerStats[key] || 0;
+
+        const total = base + orgContrib + effects + officerContrib;
 
         // Color class: green = only positive, red = only negative, yellow = mixed
         const allModValues: number[] = [
@@ -360,6 +412,7 @@ export class PatrolsPanel {
           ...effectList.map((e: any) => e.value),
         ];
         if (orgBase !== 0) allModValues.push(orgBase);
+        if (officerContrib !== 0) allModValues.push(officerContrib);
         const hasPos = allModValues.some((v) => v > 0);
         const hasNeg = allModValues.some((v) => v < 0);
         const totalClass = hasPos && hasNeg ? 'stat-mixed' : hasPos ? 'stat-positive' : hasNeg ? 'stat-negative' : '';
@@ -372,6 +425,9 @@ export class PatrolsPanel {
           orgBase,
           orgMods,
           orgModList,
+          officer: officerContrib,
+          officerName: officerRecord?.actorName || officerRecord?.name || '',
+          officerImg: officerRecord?.actorImg || '',
           total,
           totalClass,
         };
@@ -712,7 +768,13 @@ export class PatrolsPanel {
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
 
-    const breakdown = this.computePatrolStatBreakdown(patrol);
+    // Look up officer record for stats
+    const allOfficers: any[] = gm?.officerManager?.list?.() || [];
+    const officerRecord = patrol.officer?.actorId
+      ? allOfficers.find((o: any) => o.actorId === patrol.officer.actorId)
+      : null;
+
+    const breakdown = this.computePatrolStatBreakdown(patrol, officerRecord);
 
     // Format stats for display
     const statsHtml = Object.entries(breakdown)
@@ -959,7 +1021,7 @@ export class PatrolsPanel {
     const heartIcons =
       skill.hopeCost > 0
         ? Array(skill.hopeCost)
-            .fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>')
+            .fill('<i class="fas fa-diamond" style="color:#e84a4a;font-size:0.8rem;"></i>')
             .join(' ')
         : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
 

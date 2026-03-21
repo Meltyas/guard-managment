@@ -145,6 +145,7 @@ export class GeneralPanel {
       for (const skill of off.skills) {
         officerSkills.push({
           skillName: skill.name,
+          skillDescription: skill.description || '',
           skillImage: skill.image,
           skillHopeCost: skill.hopeCost ?? 0,
           officerName: off.actorName || off.name || 'Oficial',
@@ -194,8 +195,22 @@ export class GeneralPanel {
       }
     });
 
-    // Skill to chat listener
-    $html.off('click', '.skill-to-chat').on('click', '.skill-to-chat', (ev) => {
+    // Skill toggle (collapsible — Última Orden style)
+    $html.off('click', '.skill-toggle-header').on('click', '.skill-toggle-header', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const header = ev.currentTarget as HTMLElement;
+      const body = header.nextElementSibling as HTMLElement | null;
+      const chevron = header.querySelector('.skill-toggle-chevron');
+      if (body) {
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        if (chevron) chevron.classList.toggle('open', !isOpen);
+      }
+    });
+
+    // Skill to chat button listener
+    $html.off('click', '.skill-to-chat-btn').on('click', '.skill-to-chat-btn', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       const el = ev.currentTarget;
@@ -279,7 +294,7 @@ export class GeneralPanel {
     const heartIcons =
       skill.hopeCost > 0
         ? Array(skill.hopeCost)
-            .fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>')
+            .fill('<i class="fas fa-diamond" style="color:#e84a4a;font-size:0.8rem;"></i>')
             .join(' ')
         : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
 

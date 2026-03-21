@@ -10,18 +10,20 @@
             <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
             {{/each}}
         </select>
-        <label>Hope Máximo <small style="opacity:0.6;">(0–6)</small></label>
+        <label style="margin-top: 0.75rem;">Hope Máximo <small style="opacity:0.6;">(0–6)</small></label>
         <input type="number" name="maxHope" value="{{maxHope}}" min="0" max="6" style="width:72px;" />
     </div>
 
     <div class="section stats">
         <h4>Estadísticas Base</h4>
-        {{#each stats}}
-        <div class="stat-input">
-            <label>{{this.label}}</label>
-            <input type="number" name="stat_{{this.key}}" value="{{this.value}}" min="{{../minStat}}" max="{{../maxStat}}" />
+        <div style="display:flex;gap:0.75rem;">
+            {{#each stats}}
+            <div style="flex:1;display:flex;flex-direction:column;gap:0.25rem;">
+                <label style="font-size:0.85rem;font-weight:bold;text-align:center;">{{this.label}}</label>
+                <input type="number" name="stat_{{this.key}}" value="{{this.value}}" min="{{../minStat}}" max="{{../maxStat}}" style="text-align:center;" />
+            </div>
+            {{/each}}
         </div>
-        {{/each}}
     </div>
 
     <input type="hidden" name="organizationId" value="{{organizationId}}" />

@@ -315,6 +315,28 @@ Hooks.once('init', async () => {
         }
       }
 
+      // Officer Stats
+      if (stat.officer && stat.officer !== 0) {
+        const offSign = stat.officer >= 0 ? '+' : '';
+        let offColor = '#ffffff';
+        if (stat.officer > 0) offColor = '#4ae89a';
+        else if (stat.officer < 0) offColor = '#e84a4a';
+
+        const offImgHtml = stat.officerImg
+          ? `<img src='${stat.officerImg}' style='width: 24px; height: 24px; border: none; border-radius: 50%; object-fit: cover; vertical-align: middle;' />`
+          : '<i class="fas fa-user-shield" style="font-size: 14px; opacity: 0.7;"></i>';
+
+        html += `<tr>
+          <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold; color: ${offColor};">${offSign}${stat.officer}</td>
+          <td style="padding: 2px 0;">
+            <div style="display: inline-flex; align-items: center; gap: 6px;">
+              ${offImgHtml}
+              <span>${stat.officerName || 'Oficial'}</span>
+            </div>
+          </td>
+        </tr>`;
+      }
+
       // Effects Header
       html += `<tr>
         <td style="text-align: center; padding: 2px 8px 2px 0; font-weight: bold; color: ${effColor};">${effSign}${stat.effects}</td>

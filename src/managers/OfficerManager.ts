@@ -36,6 +36,7 @@ export class OfficerManager {
                   },
                 ]
               : []),
+          stats: (o as any).stats || {},
           createdAt: o.createdAt ? new Date(o.createdAt) : new Date(),
           updatedAt: o.updatedAt ? new Date(o.updatedAt) : new Date(),
           pros: (o.pros || []).map((p) => ({
@@ -72,9 +73,11 @@ export class OfficerManager {
         actorName: officer.actorName,
         actorImg: officer.actorImg,
         title: officer.title,
+        stats: officer.stats || {},
         skills: (officer.skills || []).map((s) => ({
           id: s.id,
           name: s.name,
+          description: s.description,
           image: s.image,
           hopeCost: s.hopeCost,
         })),
@@ -109,6 +112,7 @@ export class OfficerManager {
     actorName: string;
     actorImg?: string;
     title: string;
+    stats?: Partial<import('../types/entities').GuardStats>;
     skills?: Omit<OfficerSkill, 'id'>[];
     pros?: Omit<OfficerTrait, 'id' | 'createdAt'>[];
     cons?: Omit<OfficerTrait, 'id' | 'createdAt'>[];
@@ -125,6 +129,7 @@ export class OfficerManager {
       actorName: data.actorName,
       actorImg: data.actorImg,
       title: data.title,
+      stats: data.stats || {},
       skills: (data.skills || []).map((s) => ({
         ...s,
         id: foundry.utils.randomID(),
@@ -169,6 +174,7 @@ export class OfficerManager {
     id: string,
     updates: {
       title?: string;
+      stats?: Partial<import('../types/entities').GuardStats>;
       skills?: OfficerSkill[];
       pros?: OfficerTrait[];
       cons?: OfficerTrait[];
@@ -183,6 +189,7 @@ export class OfficerManager {
     if (!officer) return undefined;
 
     if (updates.title !== undefined) officer.title = updates.title;
+    if (updates.stats !== undefined) officer.stats = updates.stats;
     if (updates.skills !== undefined) officer.skills = updates.skills;
     if (updates.pros !== undefined) officer.pros = updates.pros;
     if (updates.cons !== undefined) officer.cons = updates.cons;

@@ -11,6 +11,27 @@ import {
 } from '../../types/entities.js';
 
 export class PatrolModel extends foundry.abstract.TypeDataModel {
+  /** Daggerheart compatibility metadata – exposed on both the class and instances */
+  static get metadata() {
+    return {
+      label: 'Patrol',
+      type: 'guard-management.patrol',
+      isNPC: false,
+      settingSheet: null,
+      hasResistances: false,
+      hasAttribution: false,
+      hasLimitedView: false,
+      usesSize: false,
+    };
+  }
+  get metadata() { return (this.constructor as any).metadata; }
+
+  /** Daggerheart compatibility: called unconditionally by DhpActor.getRollData() */
+  getRollData() { return { ...this }; }
+
+  /** Daggerheart compatibility: called without guard in actor sheet code */
+  isItemAvailable(_item: any) { return true; }
+
   // Declare schema properties
   declare leaderId: string;
   declare unitCount: number;

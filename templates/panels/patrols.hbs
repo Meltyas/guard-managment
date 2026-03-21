@@ -1,9 +1,11 @@
 <div class="patrols-panel" data-patrols-panel>
     <div class="panel-header">
         <h3><i class="fas fa-users"></i> Patrullas</h3>
+        {{#if isGM}}
         <button type="button" class="btn create-patrol" data-action="create-patrol">
             <i class="fas fa-plus"></i> Nueva Patrulla
         </button>
+        {{/if}}
     </div>
     <div class="patrols-dynamic" data-patrols-container>
         {{#if patrols.length}}
@@ -80,6 +82,22 @@
                     {{/if}}
 
                     <!-- Officer slot -->
+                    <div class="officer-section-toggle">
+                        <div class="officer-section-header" data-action="toggle-officer-section">
+                            <i class="fas fa-user-shield" style="color:#f3c267;font-size:0.75rem;"></i>
+                            <span style="flex:1;font-size:0.78rem;font-family:'Cinzel',serif;letter-spacing:0.03em;">
+                                {{#if this.officer}}{{this.officerName}}{{else}}Sin Oficial{{/if}}
+                            </span>
+                            {{#if this.hasOfficerStats}}
+                            <div class="patrol-officer-stats" style="margin:0;">
+                                {{#each this.officerStatsDisplay}}
+                                <span class="patrol-officer-stat {{this.cssClass}}">{{this.key}} {{this.value}}</span>
+                                {{/each}}
+                            </div>
+                            {{/if}}
+                            <i class="fas fa-chevron-down officer-section-chevron"></i>
+                        </div>
+                        <div class="officer-section-body" style="display:none;">
                     <div class="officer-slot" data-drop="officer">
                         {{#if this.officer}}
                         <div class="officer-slot-inner">
@@ -110,6 +128,18 @@
                         {{else}}
                         <span class="empty">Sin Oficial</span>
                         {{/if}}
+                    </div>
+
+                    {{#if this.hasOfficerStats}}
+                    <div class="patrol-officer-stats-full" style="padding: 4px 8px;">
+                        {{#each this.officerStatsDisplay}}
+                        <span class="patrol-officer-stat {{this.cssClass}}">
+                            <span class="stat-key">{{this.key}}:</span> {{this.value}}
+                        </span>
+                        {{/each}}
+                    </div>
+                    {{/if}}
+                        </div>
                     </div>
 
                     <div class="soldiers-zone" data-drop="soldier" data-tooltip="Arrastra Actores aquí para añadir Soldados">
@@ -186,23 +216,31 @@
                     <div class="patrol-officer-skills">
                         <div class="patrol-officer-skills-label"><i class="fas fa-bolt"></i> Habilidades</div>
                         {{#each this.officerSkills}}
-                        <div class="patrol-skill-item skill-to-chat-trigger"
-                             data-action="skill-to-chat"
-                             data-skill-name="{{this.name}}"
-                             data-skill-image="{{this.image}}"
-                             data-skill-hope-cost="{{this.hopeCost}}"
-                             data-officer-name="{{../officerName}}"
-                             data-tooltip="Clic para enviar al chat"
-                             style="cursor: pointer;">
-                            {{#if this.image}}
-                            <img src="{{this.image}}" alt="{{this.name}}" class="patrol-skill-img" />
-                            {{else}}
-                            <span class="patrol-skill-icon"><i class="fas fa-bolt"></i></span>
-                            {{/if}}
-                            <span class="patrol-skill-name">{{this.name}}</span>
-                            <span class="patrol-skill-hope">
-                                <i class="fas fa-heart"></i> {{this.hopeCost}}
-                            </span>
+                        <div class="skill-toggle-container">
+                            <div class="skill-toggle-header" data-action="toggle-skill">
+                                {{#if this.image}}
+                                <img src="{{this.image}}" alt="{{this.name}}" class="skill-toggle-img" />
+                                {{else}}
+                                <i class="fas fa-bolt"></i>
+                                {{/if}}
+                                <span class="skill-toggle-name">{{this.name}}</span>
+                                <span class="skill-toggle-hope">
+                                    <i class="fa-solid fa-diamond"></i> {{this.hopeCost}}
+                                </span>
+                                <i class="fas fa-chevron-down skill-toggle-chevron"></i>
+                            </div>
+                            <div class="skill-toggle-body">
+                                {{#if this.description}}
+                                <div class="skill-toggle-description">{{{this.description}}}</div>
+                                {{/if}}
+                                <button type="button" class="skill-to-chat-btn"
+                                        data-skill-name="{{this.name}}"
+                                        data-skill-image="{{this.image}}"
+                                        data-skill-hope-cost="{{this.hopeCost}}"
+                                        data-officer-name="{{../officerName}}">
+                                    <i class="fas fa-comment"></i> Enviar al chat
+                                </button>
+                            </div>
                         </div>
                         {{/each}}
                     </div>
@@ -212,12 +250,14 @@
                         <button type="button" class="to-chat-patrol" data-action="to-chat" data-patrol-id="{{this.id}}" data-tooltip="Enviar al chat">
                             <i class="fas fa-comment-alt"></i>
                         </button>
+                        {{#if this.isGM}}
                         <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}" data-tooltip="Editar Patrulla">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button type="button" class="delete-patrol" data-action="delete" data-patrol-id="{{this.id}}" data-tooltip="Eliminar Patrulla">
                             <i class="fas fa-trash"></i>
                         </button>
+                        {{/if}}
                     </div>
                 </div>
                 {{/each}}

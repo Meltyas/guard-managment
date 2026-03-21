@@ -4,9 +4,24 @@ import { DEFAULT_GUARD_STATS } from '../../types/entities.js';
 /**
  * DataModel for Guard Modifiers
  */
-export class GuardModifierModel extends foundry.abstract.DataModel {
-  /** Metadata for Daggerheart compatibility - these are NOT inventory items */
-  static metadata = { isInventoryItem: false, label: 'Guard Modifier' };
+export class GuardModifierModel extends foundry.abstract.TypeDataModel {
+  /** Daggerheart compatibility metadata – exposed on both the class and instances */
+  static get metadata() {
+    return {
+      label: 'Guard Modifier',
+      type: 'guard-management.guard-modifier',
+      hasDescription: false,
+      hasResource: false,
+      isQuantifiable: false,
+      isInventoryItem: false,
+      hasActions: false,
+      hasAttribution: false,
+    };
+  }
+  get metadata() { return (this.constructor as any).metadata; }
+
+  /** Daggerheart compatibility */
+  getRollData() { return { ...this }; }
 
   static defineSchema() {
     const fields = foundry.data.fields;

@@ -33,6 +33,14 @@
             {{/if}}
           </div>
           <div class='officer-actions'>
+            <button
+              type='button'
+              class='send-officer-chat-btn icon-btn'
+              title='Enviar al chat'
+              data-officer-id='{{this.id}}'
+            >
+              <i class='fas fa-comment'></i>
+            </button>
             {{#if ../isGM}}
             <button
               type='button'
@@ -65,8 +73,19 @@
             <span class='skill-preview-icon'><i class='fas fa-bolt'></i></span>
             {{/if}}
             <span class='skill-preview-name'>{{this.name}}</span>
-            <span class='skill-preview-cost'><i class='fas fa-heart'></i> {{this.hopeCost}}</span>
+            <span class='skill-preview-cost'><i class='fas fa-diamond'></i> {{this.hopeCost}}</span>
           </div>
+          {{/each}}
+        </div>
+        {{/if}}
+
+        {{#if this.hasStats}}
+        <div class='officer-stats-preview'>
+          {{#each this.statsDisplay}}
+          <span class='officer-stat-badge {{this.cssClass}}'>
+            <span class='stat-key'>{{this.key}}:</span>
+            {{this.value}}
+          </span>
           {{/each}}
         </div>
         {{/if}}

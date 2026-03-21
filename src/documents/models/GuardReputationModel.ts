@@ -6,8 +6,23 @@
 import { REPUTATION_LABELS, ReputationLevel } from '../../types/entities.js';
 
 export class GuardReputationModel extends foundry.abstract.TypeDataModel {
-  /** Metadata for Daggerheart compatibility - these are NOT inventory items */
-  static metadata = { isInventoryItem: false, label: 'Guard Reputation' };
+  /** Daggerheart compatibility metadata – exposed on both the class and instances */
+  static get metadata() {
+    return {
+      label: 'Guard Reputation',
+      type: 'guard-management.guard-reputation',
+      hasDescription: false,
+      hasResource: false,
+      isQuantifiable: false,
+      isInventoryItem: false,
+      hasActions: false,
+      hasAttribution: false,
+    };
+  }
+  get metadata() { return (this.constructor as any).metadata; }
+
+  /** Daggerheart compatibility */
+  getRollData() { return { ...this }; }
 
   // Declare schema properties
   declare description: string;

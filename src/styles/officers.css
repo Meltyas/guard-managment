@@ -24,6 +24,29 @@
   padding: 1rem;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
+  position: relative;
+}
+
+.officer-actor-clear-btn {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background: rgba(200, 50, 50, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  transition: background 0.2s;
+}
+
+.officer-actor-clear-btn:hover {
+  background: rgba(220, 30, 30, 1);
 }
 
 .officer-actor-image {
@@ -221,6 +244,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  overflow: hidden;
 }
 
 .traits-column {
@@ -230,6 +254,8 @@
   padding: 1rem;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .traits-column h3 {
@@ -256,6 +282,7 @@
   min-height: 100px;
   max-height: 300px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .trait-item {
@@ -263,6 +290,8 @@
   background: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   border-left: 3px solid transparent;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .pros-list .trait-item {
@@ -333,6 +362,8 @@
   font-size: 0.85rem;
   color: var(--color-text-light-secondary);
   line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .empty-traits {
@@ -756,6 +787,140 @@
   }
 }
 
+/* ==================== Collapsible Skills (Última Orden style) ==================== */
+
+.skill-toggle-container {
+  margin-top: 4px;
+  border-radius: 5px;
+  border: 1px solid rgba(243, 194, 103, 0.2);
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.skill-toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: rgba(243, 194, 103, 0.7);
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.03em;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.skill-toggle-header:hover {
+  background: rgba(243, 194, 103, 0.07);
+  color: #f3c267;
+}
+
+.skill-toggle-img {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  object-fit: cover;
+  border: none;
+  flex-shrink: 0;
+}
+
+.skill-toggle-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-toggle-hope {
+  font-size: 0.7rem;
+  color: #e84a4a;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.skill-toggle-hope i {
+  font-size: 0.6rem;
+}
+
+.skill-toggle-chevron {
+  font-size: 0.6rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+}
+
+.skill-toggle-chevron.open {
+  transform: rotate(180deg);
+}
+
+.skill-toggle-body {
+  display: none;
+  padding: 7px 9px 8px;
+  border-top: 1px solid rgba(243, 194, 103, 0.12);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.45;
+}
+
+.skill-toggle-description {
+  margin-bottom: 6px;
+  padding: 4px 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.skill-officer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
+.officer-mini-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(243, 194, 103, 0.4);
+  flex-shrink: 0;
+}
+
+.officer-info-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-to-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: rgba(24, 22, 46, 0.6);
+  border: 1px solid rgba(243, 194, 103, 0.35);
+  border-radius: 4px;
+  color: #f3c267;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: 'Cinzel', serif;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.skill-to-chat-btn:hover {
+  background: rgba(243, 194, 103, 0.15);
+  border-color: #f3c267;
+  color: #ffd280;
+}
+
 /* ==================== Rich Text Editor Styles ==================== */
 
 /* Shared editor styles for traits and skills */
@@ -1108,6 +1273,12 @@
   font-size: 11px;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  display: none; /* Hidden by default */
+}
+
+/* Only show when user is GM */
+body.guard-is-gm .officer-edit-btn {
+  display: inline-flex;
 }
 
 .officer-edit-btn:hover {
@@ -1248,4 +1419,165 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ==================== Officer Stats (Editor Form) ==================== */
+
+.officer-stats-section {
+  margin-bottom: 1rem;
+}
+
+.officer-stats-section h3 {
+  margin: 0 0 0.75rem 0;
+  color: #64b5f6;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.officer-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.officer-stat-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.officer-stat-input label {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.officer-stat-input input[type='number'] {
+  width: 60px;
+  text-align: center;
+  font-size: 0.9rem;
+  padding: 0.25rem;
+}
+
+/* ==================== Officer Stats (Warehouse Card) ==================== */
+
+.officer-stats-preview {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 0.5rem;
+}
+
+.officer-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(100, 181, 246, 0.1);
+  border: 1px solid rgba(100, 181, 246, 0.25);
+  color: #90caf9;
+}
+
+.officer-stat-badge.stat-positive {
+  background: rgba(74, 232, 154, 0.1);
+  border-color: rgba(74, 232, 154, 0.3);
+  color: #4ae89a;
+}
+
+.officer-stat-badge.stat-negative {
+  background: rgba(232, 74, 74, 0.1);
+  border-color: rgba(232, 74, 74, 0.3);
+  color: #e84a4a;
+}
+
+.officer-stat-badge .stat-key {
+  text-transform: capitalize;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+/* ==================== Officer Stats (Patrol Card) ==================== */
+
+.patrol-officer-stats {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.patrol-officer-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(100, 181, 246, 0.08);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  color: #90caf9;
+}
+
+.patrol-officer-stat.stat-positive {
+  color: #4ae89a;
+  background: rgba(74, 232, 154, 0.08);
+  border-color: rgba(74, 232, 154, 0.2);
+}
+
+.patrol-officer-stat.stat-negative {
+  color: #e84a4a;
+  background: rgba(232, 74, 74, 0.08);
+  border-color: rgba(232, 74, 74, 0.2);
+}
+
+/* ==================== Officer Section Toggle (Patrol Card) ==================== */
+
+.officer-section-toggle {
+  border-radius: 5px;
+  border: 1px solid rgba(243, 194, 103, 0.2);
+  background: rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.officer-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: rgba(243, 194, 103, 0.7);
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.officer-section-header:hover {
+  background: rgba(243, 194, 103, 0.07);
+  color: #f3c267;
+}
+
+.officer-section-chevron {
+  font-size: 0.6rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+}
+
+.officer-section-chevron.open {
+  transform: rotate(180deg);
+}
+
+.officer-section-body {
+  border-top: 1px solid rgba(243, 194, 103, 0.12);
+}
+
+.patrol-officer-stats-full {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
 }

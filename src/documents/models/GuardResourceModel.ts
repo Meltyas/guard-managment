@@ -4,8 +4,23 @@
  */
 
 export class GuardResourceModel extends foundry.abstract.TypeDataModel {
-  /** Metadata for Daggerheart compatibility - these are NOT inventory items */
-  static metadata = { isInventoryItem: false, label: 'Guard Resource' };
+  /** Daggerheart compatibility metadata – exposed on both the class and instances */
+  static get metadata() {
+    return {
+      label: 'Guard Resource',
+      type: 'guard-management.guard-resource',
+      hasDescription: false,
+      hasResource: false,
+      isQuantifiable: false,
+      isInventoryItem: false,
+      hasActions: false,
+      hasAttribution: false,
+    };
+  }
+  get metadata() { return (this.constructor as any).metadata; }
+
+  /** Daggerheart compatibility */
+  getRollData() { return { ...this }; }
 
   // Declare schema properties
   declare description: string;

@@ -3,7 +3,7 @@
  * System for managing patrol officers with actor assignment, title, and pros/cons
  */
 
-import { BaseEntity } from './entities';
+import { BaseEntity, GuardStats } from './entities';
 
 /**
  * Patrol skill with hope cost – multiple per officer
@@ -11,6 +11,7 @@ import { BaseEntity } from './entities';
 export interface OfficerSkill {
   id: string;
   name: string;
+  description?: string; // Rich text
   image?: string;
   hopeCost: number; // 0-5
 }
@@ -26,6 +27,9 @@ export interface Officer extends BaseEntity {
 
   // Custom title for the officer
   title: string;
+
+  // Officer stats (same keys as guard stats)
+  stats?: Partial<GuardStats>;
 
   // Skills shown in patrol card and general panel
   skills: OfficerSkill[];

@@ -5,12 +5,14 @@
  */
 
 import type { Officer, OfficerSkill, OfficerTrait } from '../types/officer';
+import type { GuardStats } from '../types/entities';
 
 interface OfficerFormData {
   actorId: string;
   actorName: string;
   actorImg?: string;
   title: string;
+  stats: Partial<GuardStats>;
   skills: OfficerSkill[];
   pros: OfficerTrait[];
   cons: OfficerTrait[];
@@ -42,6 +44,7 @@ export class OfficerFormApplication extends FormApplication {
       actorName: existingOfficer?.actorName || '',
       actorImg: existingOfficer?.actorImg || '',
       title: existingOfficer?.title || '',
+      stats: existingOfficer?.stats || {},
       skills: existingOfficer?.skills ? [...existingOfficer.skills] : [],
       pros: existingOfficer?.pros || [],
       cons: existingOfficer?.cons || [],
@@ -81,8 +84,9 @@ export class OfficerFormApplication extends FormApplication {
   activateListeners(html: JQuery) {
     super.activateListeners(html);
 
-    // Setup actor drop zone
+    // Setup actor drop zone and clear button
     this.setupActorDropZone(html);
+    this.setupActorClearButton(html);
 
     // Setup officer skills (multiple)
     this.setupSkillButtons(html);
@@ -103,14 +107,23 @@ export class OfficerFormApplication extends FormApplication {
 
   /** Sync title (and visibleToPlayers) from DOM into currentData before re-rendering */
   private syncFormFields(): void {
-    const titleInput = this.element?.querySelector('#officer-title') as HTMLInputElement | null;
+    const el = this.element instanceof $ ? (this.element as JQuery)[0] : this.element as HTMLElement;
+    if (!el) return;
+    const titleInput = el.querySelector('#officer-title') as HTMLInputElement | null;
     if (titleInput) this.currentData.title = titleInput.value;
-    const visibleCheck = this.element?.querySelector('input[name="visibleToPlayers"]') as HTMLInputElement | null;
+    const visibleCheck = el.querySelector('input[name="visibleToPlayers"]') as HTMLInputElement | null;
     if (visibleCheck) this.currentData.visibleToPlayers = visibleCheck.checked;
+    // Sync stats
+    const stats: Partial<GuardStats> = {};
+    for (const key of ['robustismo', 'analitica', 'subterfugio', 'elocuencia']) {
+      const input = el.querySelector(`input[name="stat-${key}"]`) as HTMLInputElement | null;
+      if (input) stats[key] = parseInt(input.value || '0', 10) || 0;
+    }
+    this.currentData.stats = stats;
   }
 
   private setupActorDropZone(html: JQuery) {
-    const dropZone = html.find('.officer-actor-dropzone')[0];
+    const dropZone = html.find('.officer-actor-dropzone')[0] || html.find('.officer-actor-preview')[0];
     if (!dropZone) return;
 
     dropZone.addEventListener('dragover', (event: DragEvent) => {
@@ -144,6 +157,17 @@ export class OfficerFormApplication extends FormApplication {
       } catch (error) {
         console.error('Error handling actor drop:', error);
       }
+    });
+  }
+
+  private setupActorClearButton(html: JQuery) {
+    html.find('.officer-actor-clear-btn').on('click', (event) => {
+      event.preventDefault();
+      this.currentData.actorId = '';
+      this.currentData.actorName = '';
+      this.currentData.actorImg = '';
+      this.syncFormFields();
+      this.render(false);
     });
   }
 
@@ -187,12 +211,17 @@ export class OfficerFormApplication extends FormApplication {
           <label>Coste de Hope (0–5)</label>
           <input type="number" id="skill-hope-cost" value="0" min="0" max="5" style="width:80px;" />
         </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="skill-description" rows="3" style="width:100%;resize:vertical;" placeholder="Describe el efecto de esta habilidad..."></textarea>
+        </div>
       </div>
     `;
 
     let resolvedName = '';
     let resolvedImage = '';
     let resolvedHopeCost = 0;
+    let resolvedDescription = '';
 
     const result = await DialogV2Class.wait({
       window: { title: 'Agregar Habilidad' },
@@ -225,6 +254,7 @@ export class OfficerFormApplication extends FormApplication {
             const hopeCostInput = dialog.element?.querySelector(
               '#skill-hope-cost'
             ) as HTMLInputElement;
+            const descInput = dialog.element?.querySelector('#skill-description') as HTMLTextAreaElement;
 
             const name = nameInput?.value?.trim();
             if (!name) {
@@ -238,6 +268,7 @@ export class OfficerFormApplication extends FormApplication {
               5,
               Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0)
             );
+            resolvedDescription = descInput?.value?.trim() || '';
             return 'add';
           },
         },
@@ -249,6 +280,7 @@ export class OfficerFormApplication extends FormApplication {
       const newSkill: OfficerSkill = {
         id: foundry.utils.randomID(),
         name: resolvedName,
+        description: resolvedDescription || undefined,
         image: resolvedImage || undefined,
         hopeCost: resolvedHopeCost,
       };
@@ -277,6 +309,7 @@ export class OfficerFormApplication extends FormApplication {
     const DialogV2Class = foundry.applications?.api?.DialogV2;
     if (!DialogV2Class) return;
 
+    const escapedDesc = (skill.description || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const content = `
       <div class="guard-dialog" style="padding: 0.5rem;">
         <div class="form-group">
@@ -296,12 +329,17 @@ export class OfficerFormApplication extends FormApplication {
           <label>Coste de Hope (0–5)</label>
           <input type="number" id="skill-hope-cost" value="${skill.hopeCost}" min="0" max="5" style="width:80px;" />
         </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="skill-description" rows="3" style="width:100%;resize:vertical;" placeholder="Describe el efecto de esta habilidad...">${escapedDesc}</textarea>
+        </div>
       </div>
     `;
 
     let resolvedName = '';
     let resolvedImage = '';
     let resolvedHopeCost = 0;
+    let resolvedDescription = '';
 
     const result = await DialogV2Class.wait({
       window: { title: 'Editar Habilidad' },
@@ -331,6 +369,7 @@ export class OfficerFormApplication extends FormApplication {
             const nameInput = dialog.element?.querySelector('#skill-name') as HTMLInputElement;
             const imageInput = dialog.element?.querySelector('#skill-image') as HTMLInputElement;
             const hopeCostInput = dialog.element?.querySelector('#skill-hope-cost') as HTMLInputElement;
+            const descInput = dialog.element?.querySelector('#skill-description') as HTMLTextAreaElement;
 
             const name = nameInput?.value?.trim();
             if (!name) {
@@ -341,6 +380,7 @@ export class OfficerFormApplication extends FormApplication {
             resolvedName = name;
             resolvedImage = imageInput?.value?.trim() || '';
             resolvedHopeCost = Math.min(5, Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0));
+            resolvedDescription = descInput?.value?.trim() || '';
             return 'save';
           },
         },
@@ -351,7 +391,7 @@ export class OfficerFormApplication extends FormApplication {
     if (result === 'save' && resolvedName) {
       this.currentData.skills = (this.currentData.skills || []).map((s) =>
         s.id === skill.id
-          ? { ...s, name: resolvedName, image: resolvedImage || undefined, hopeCost: resolvedHopeCost }
+          ? { ...s, name: resolvedName, description: resolvedDescription || undefined, image: resolvedImage || undefined, hopeCost: resolvedHopeCost }
           : s
       );
       this.syncFormFields();
@@ -537,15 +577,13 @@ export class OfficerFormApplication extends FormApplication {
   // ── Submit ──────────────────────────────────────────────────────────────────
 
   async _updateObject(_event: Event, formData: any) {
-    if (!this.currentData.actorId?.trim()) {
-      ui.notifications?.error('Debes asignar un Actor al oficial');
-      return;
-    }
-
     if (!formData.title?.trim()) {
       ui.notifications?.error('El título es obligatorio');
       return;
     }
+
+    // Sync stats from form inputs
+    this.syncFormFields();
 
     const gm = (window as any).GuardManagement;
     if (!gm?.officerManager) {
@@ -563,8 +601,10 @@ export class OfficerFormApplication extends FormApplication {
           actorName: this.currentData.actorName!,
           actorImg: this.currentData.actorImg,
           title: formData.title.trim(),
+          stats: this.currentData.stats || {},
           skills: (this.currentData.skills || []).map((s) => ({
             name: s.name,
+            description: s.description,
             image: s.image,
             hopeCost: s.hopeCost,
           })),
@@ -583,7 +623,11 @@ export class OfficerFormApplication extends FormApplication {
         ui.notifications?.info(`Oficial "${this.currentData.actorName}" creado`);
       } else {
         const updated = gm.officerManager.update(this.existingOfficer!.id, {
+          actorId: this.currentData.actorId || '',
+          actorName: this.currentData.actorName || '',
+          actorImg: this.currentData.actorImg || undefined,
           title: formData.title.trim(),
+          stats: this.currentData.stats || {},
           skills: this.currentData.skills || [],
           pros: this.currentData.pros,
           cons: this.currentData.cons,

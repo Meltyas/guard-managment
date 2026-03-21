@@ -47,67 +47,6 @@ export function registerHooks(): void {
     }
   );
 
-  // Wrap Daggerheart's Actor class to handle our custom types
-  // This runs in setup to ensure it happens after Daggerheart initializes
-  Hooks.once('ready', () => {
-    const OriginalActorClass = CONFIG.Actor.documentClass;
-
-    class GuardManagementActor extends OriginalActorClass {
-      async _preCreate(data: any, options: any, user: any) {
-        // Skip Daggerheart validation for Guard Management types
-        if (this.type?.startsWith('guard-management.')) {
-          console.log(`GuardManagement | Bypassing Daggerheart _preCreate for Actor ${this.type}`);
-          // Don't call Daggerheart's _preCreate at all for our types
-          // Just set up minimal structure and return
-          return true;
-        }
-        // For Daggerheart types, use their validation
-        return await super._preCreate(data, options, user);
-      }
-
-      prepareData() {
-        if (this.type?.startsWith('guard-management.')) {
-          // Use base Foundry prepare for our types
-          Actor.prototype.prepareData.call(this);
-        } else {
-          // Use Daggerheart's prepare for their types
-          super.prepareData();
-        }
-      }
-    }
-
-    CONFIG.Actor.documentClass = GuardManagementActor as any;
-
-    // Do the same for Items
-    const OriginalItemClass = CONFIG.Item.documentClass;
-
-    class GuardManagementItem extends OriginalItemClass {
-      async _preCreate(data: any, options: any, user: any) {
-        // Skip Daggerheart validation for Guard Management types
-        if (this.type?.startsWith('guard-management.')) {
-          console.log(`GuardManagement | Bypassing Daggerheart _preCreate for Item ${this.type}`);
-          return true;
-        }
-        // For Daggerheart types, use their validation
-        return await super._preCreate(data, options, user);
-      }
-
-      prepareData() {
-        if (this.type?.startsWith('guard-management.')) {
-          // Use base Foundry prepare for our types
-          Item.prototype.prepareData.call(this);
-        } else {
-          // Use Daggerheart's prepare for their types
-          super.prepareData();
-        }
-      }
-    }
-
-    CONFIG.Item.documentClass = GuardManagementItem as any;
-
-    console.log('GuardManagement | Wrapped Daggerheart Document classes');
-  });
-
   // Patch ChatMessage.getRollData to return {} for Guard Management messages.
   // Foundry V13's speakerActor getter falls back to this.author?.character even when
   // speaker fields are null, which causes DhpActor.getRollData to crash for some
@@ -153,8 +92,14 @@ export function registerHooks(): void {
           get(this: any) {
             const items = originalGet.call(this);
             // Filter out Guard Management items from the collection to prevent Daggerheart processing
+            // Return a new Collection (not Array) so .get() and other Collection methods still work
             if (items && typeof items.filter === 'function') {
-              const filtered = items.filter((item: any) => !item?.type?.startsWith('guard-management.'));
+              const filtered = new (foundry as any).utils.Collection() as any;
+              for (const item of items) {
+                if (!item?.type?.startsWith('guard-management.')) {
+                  filtered.set(item.id, item);
+                }
+              }
               return filtered;
             }
             return items;
@@ -220,13 +165,19 @@ export function registerHooks(): void {
     }
   });
 
+  // Register keybindings during init (Foundry requires this before ready)
+  registerKeybindings();
+
   // Hook for when the game is ready - register macro and keybindings
   Hooks.once('ready', () => {
     console.log('GuardManagement | Game ready, setting up Guard Management');
 
-    // Register global access
-    const guardManagement = (window as any).guardManagementInstance;
-    (window as any).GuardManagement = guardManagement;
+    // Add body class for GM/player CSS scoping
+    if (game?.user?.isGM) {
+      document.body.classList.add('guard-is-gm');
+    }
+
+    const guardManagement = (window as any).GuardManagement;
 
     // Setup socket listener for organization sync
     if (game?.socket && guardManagement?.guardOrganizationManager) {
@@ -234,11 +185,6 @@ export function registerHooks(): void {
         await guardManagement.guardOrganizationManager.handleSocketMessage(data);
       });
       console.log('GuardManagement | Socket listener registered for organization sync');
-    }
-
-    // Register keybindings
-    if (guardManagement) {
-      registerKeybindings(guardManagement);
     }
 
     // Create chat command
@@ -423,14 +369,14 @@ export function registerHooks(): void {
   hideGuardDocs();
 
   // Hook to inject custom modifier breakdown into chat messages
-  Hooks.on('renderChatMessage', (message: any, html: any, _data: any) => {
+  Hooks.on('renderChatMessageHTML', (message: any, html: HTMLElement, _data: any) => {
     try {
       const breakdown = message.getFlag('guard-management', 'breakdown');
       if (!breakdown || !Array.isArray(breakdown)) return;
 
       // Find the roll content container
-      const rollContent = html.find('.roll-part-content.dice-result');
-      if (!rollContent.length) return;
+      const rollContent = html.querySelector('.roll-part-content.dice-result');
+      if (!rollContent) return;
 
       // Generate HTML for breakdown
       let breakdownHtml =
@@ -473,7 +419,7 @@ export function registerHooks(): void {
       breakdownHtml += '</div>';
 
       // Append to the roll content
-      rollContent.append(breakdownHtml);
+      rollContent.insertAdjacentHTML('beforeend', breakdownHtml);
     } catch (e) {
       console.error('GuardManagement | Error rendering chat breakdown:', e);
     }
@@ -578,7 +524,7 @@ export function registerHooks(): void {
 /**
  * Register keybindings for Guard Management
  */
-function registerKeybindings(guardManagement: any): void {
+function registerKeybindings(): void {
   // Register keybinding to toggle floating panel
   game?.keybindings?.register('guard-management', 'togglePanel', {
     name: 'Alternar Panel de Guardias',
@@ -590,7 +536,7 @@ function registerKeybindings(guardManagement: any): void {
       },
     ],
     onDown: () => {
-      guardManagement?.toggleFloatingPanel();
+      (window as any).GuardManagement?.toggleFloatingPanel();
     },
     restricted: false,
   });
@@ -606,7 +552,7 @@ function registerKeybindings(guardManagement: any): void {
       },
     ],
     onDown: () => {
-      guardManagement?.showCreateOrganizationDialog();
+      (window as any).GuardManagement?.showCreateOrganizationDialog();
     },
     restricted: false,
   });
