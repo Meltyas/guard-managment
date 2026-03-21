@@ -18,10 +18,14 @@ export class PatrolEffectModel extends foundry.abstract.TypeDataModel {
       hasAttribution: false,
     };
   }
-  get metadata() { return (this.constructor as any).metadata; }
+  get metadata() {
+    return (this.constructor as any).metadata;
+  }
 
   /** Daggerheart compatibility */
-  getRollData() { return { ...this }; }
+  getRollData() {
+    return { ...this };
+  }
 
   static defineSchema() {
     const fields = foundry.data.fields;

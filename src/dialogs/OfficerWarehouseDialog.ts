@@ -49,7 +49,9 @@ export class OfficerWarehouseDialog {
           const p = JSON.parse(saved);
           resolvedPos = p;
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     this.element = await this.createElement();
@@ -164,7 +166,8 @@ export class OfficerWarehouseDialog {
       statsDisplay: entries.map(([key, value]) => ({
         key,
         value: (value as number) > 0 ? `+${value}` : `${value}`,
-        cssClass: (value as number) > 0 ? 'stat-positive' : (value as number) < 0 ? 'stat-negative' : '',
+        cssClass:
+          (value as number) > 0 ? 'stat-positive' : (value as number) < 0 ? 'stat-negative' : '',
       })),
     };
   }
@@ -458,7 +461,9 @@ export class OfficerWarehouseDialog {
         await this.refresh();
 
         if (ui?.notifications) {
-          ui.notifications.warn(`Actor del oficial vacío. Debes asignar un nuevo actor a este oficial.`);
+          ui.notifications.warn(
+            `Actor del oficial vacío. Debes asignar un nuevo actor a este oficial.`
+          );
         }
       }
     }
@@ -475,21 +480,36 @@ export class OfficerWarehouseDialog {
     const skillsHtml = officer.skills?.length
       ? officer.skills
           .map((s: any) => {
-            const hearts = s.hopeCost > 0
-              ? new Array(s.hopeCost).fill('<i class="fas fa-diamond" style="color:#e84a4a;font-size:0.75rem;"></i>').join(' ')
-              : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
-            const img = s.image ? `<img src="${s.image}" style="width:18px;height:18px;border:none;vertical-align:middle;margin-right:4px;" />` : '';
+            const hearts =
+              s.hopeCost > 0
+                ? new Array(s.hopeCost)
+                    .fill('<i class="fas fa-diamond" style="color:#e84a4a;font-size:0.75rem;"></i>')
+                    .join(' ')
+                : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
+            const img = s.image
+              ? `<img src="${s.image}" style="width:18px;height:18px;border:none;vertical-align:middle;margin-right:4px;" />`
+              : '';
             return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">${img}<span>${s.name}</span><span style="margin-left:auto;">${hearts}</span></div>`;
           })
           .join('')
       : '';
 
     const prosHtml = officer.pros?.length
-      ? officer.pros.map((p: any) => `<div style="padding:2px 0;"><strong>${p.title}</strong>${p.description ? `: ${p.description}` : ''}</div>`).join('')
+      ? officer.pros
+          .map(
+            (p: any) =>
+              `<div style="padding:2px 0;"><strong>${p.title}</strong>${p.description ? `: ${p.description}` : ''}</div>`
+          )
+          .join('')
       : '<div style="opacity:0.5;">Ninguno</div>';
 
     const consHtml = officer.cons?.length
-      ? officer.cons.map((c: any) => `<div style="padding:2px 0;"><strong>${c.title}</strong>${c.description ? `: ${c.description}` : ''}</div>`).join('')
+      ? officer.cons
+          .map(
+            (c: any) =>
+              `<div style="padding:2px 0;"><strong>${c.title}</strong>${c.description ? `: ${c.description}` : ''}</div>`
+          )
+          .join('')
       : '<div style="opacity:0.5;">Ninguno</div>';
 
     const content = `
@@ -580,8 +600,13 @@ export class OfficerWarehouseDialog {
     if (this.isDragging && this.element) {
       const r = this.element.getBoundingClientRect();
       try {
-        localStorage.setItem(OfficerWarehouseDialog.POS_LS_KEY, JSON.stringify({ x: r.left, y: r.top }));
-      } catch { /* ignore */ }
+        localStorage.setItem(
+          OfficerWarehouseDialog.POS_LS_KEY,
+          JSON.stringify({ x: r.left, y: r.top })
+        );
+      } catch {
+        /* ignore */
+      }
     }
     this.isDragging = false;
     document.removeEventListener('mousemove', this.handleMouseMove);

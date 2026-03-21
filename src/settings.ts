@@ -170,6 +170,64 @@ export function registerSettings(): void {
     },
   });
 
+  // Guard Modifiers data storage
+  game?.settings?.register('guard-management', 'modifiers', {
+    name: 'Guard Modifiers Data',
+    hint: 'Stored guard modifier information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.modifierManager) {
+        gm.modifierManager.loadFromSettings?.();
+      }
+      // Refresh GMWarehouseDialog modifiers tab
+      const gmWarehouse = (window as any).GuardManagement?.GMWarehouseDialog;
+      if (gmWarehouse?.instance?.isOpen?.()) {
+        gmWarehouse.instance.refreshGuardModifiersTab?.();
+      }
+      // Refresh organization stats that depend on modifiers
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshContent?.();
+      }
+      gm?.floatingPanel?.refreshPanel?.();
+    },
+  });
+
+  // Patrol Effects data storage
+  game?.settings?.register('guard-management', 'patrolEffects', {
+    name: 'Patrol Effects Data',
+    hint: 'Stored patrol effect template information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.patrolEffectManager) {
+        gm.patrolEffectManager.loadFromSettings?.();
+      }
+      // Refresh GMWarehouseDialog patrol effects tab
+      const gmWarehouse = (window as any).GuardManagement?.GMWarehouseDialog;
+      if (gmWarehouse?.instance?.isOpen?.()) {
+        gmWarehouse.instance.refreshPatrolEffectsTab?.();
+      }
+      gm?.floatingPanel?.refreshPanel?.();
+    },
+  });
+
+  // Migration version tracking
+  game?.settings?.register('guard-management', 'migrationVersion', {
+    name: 'Migration Version',
+    hint: 'Tracks data migration state',
+    scope: 'world',
+    config: false,
+    type: Number,
+    default: 0,
+  });
+
   // Officers data storage
   game?.settings?.register('guard-management', 'officers', {
     name: 'Officers Data',

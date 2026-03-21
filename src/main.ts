@@ -7,13 +7,14 @@ import { GMWarehouseDialog } from './dialogs/GMWarehouseDialog';
 import { OfficerWarehouseDialog } from './dialogs/OfficerWarehouseDialog';
 import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
-import { DocumentBasedManager } from './managers/DocumentBasedManager';
-import { DocumentEventManager } from './managers/DocumentEventManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
+import { SimpleModifierManager } from './managers/SimpleModifierManager';
+import { SimplePatrolEffectManager } from './managers/SimplePatrolEffectManager';
 import { SimpleReputationManager } from './managers/SimpleReputationManager';
 import { SimpleResourceManager } from './managers/SimpleResourceManager';
+import { runMigrationIfNeeded } from './migration';
 import { registerSettings } from './settings';
 import './styles/custom-info-dialog.css';
 import './styles/gm-warehouse.css';
@@ -88,8 +89,8 @@ function setupModuleWatchdog(moduleInstance: GuardManagementModule): void {
 }
 
 class GuardManagementModule {
-  public documentManager: DocumentBasedManager;
-  public documentEventManager: DocumentEventManager;
+  public modifierManager: SimpleModifierManager;
+  public patrolEffectManager: SimplePatrolEffectManager;
   public guardOrganizationManager: GuardOrganizationManager;
   public guardDialogManager: GuardDialogManager;
   public officerManager: OfficerManager;
@@ -99,8 +100,8 @@ class GuardManagementModule {
   public isInitialized: boolean = false;
 
   constructor() {
-    this.documentManager = new DocumentBasedManager();
-    this.documentEventManager = new DocumentEventManager(this.documentManager);
+    this.modifierManager = new SimpleModifierManager();
+    this.patrolEffectManager = new SimplePatrolEffectManager();
     this.guardOrganizationManager = new GuardOrganizationManager();
     this.guardDialogManager = new GuardDialogManager(this.guardOrganizationManager);
     this.officerManager = new OfficerManager();
@@ -113,7 +114,7 @@ class GuardManagementModule {
    * Initialize the module
    */
   public async initialize(): Promise<void> {
-    // Register custom DataModels
+    // Register custom types (for migration, no DataModels)
     registerDataModels();
 
     // Register module settings
@@ -123,13 +124,13 @@ class GuardManagementModule {
     registerHooks();
 
     // Initialize managers
-    await this.documentManager.initialize();
-    await this.documentEventManager.initialize();
     await this.guardOrganizationManager.initialize();
     await this.guardDialogManager.initialize();
-    await this.officerManager.initialize(); // Load officers from settings
-    await this.resourceManager.initialize(); // Load resources from settings
-    await this.reputationManager.initialize(); // Load reputations from settings
+    await this.officerManager.initialize();
+    await this.resourceManager.initialize();
+    await this.reputationManager.initialize();
+    await this.modifierManager.initialize();
+    await this.patrolEffectManager.initialize();
 
     // Initialize floating panel (but don't show it yet)
     this.floatingPanel.initialize();
@@ -187,7 +188,8 @@ class GuardManagementModule {
   public debugModuleState(): void {
     console.log('=== GUARD MANAGEMENT MODULE DEBUG ===');
     console.log('Module instance:', {
-      documentManager: !!this.documentManager,
+      modifierManager: !!this.modifierManager,
+      patrolEffectManager: !!this.patrolEffectManager,
       guardOrganizationManager: !!this.guardOrganizationManager,
       guardDialogManager: !!this.guardDialogManager,
       floatingPanel: !!this.floatingPanel,
@@ -206,19 +208,6 @@ class GuardManagementModule {
   }
 
   /**
-   * Fix permissions for all Guard Management documents
-   * This ensures all users can edit all entities
-   */
-  public async fixDocumentPermissions(): Promise<void> {
-    if (!this.isInitialized || !this.documentManager) {
-      console.error('Guard Management | Module not initialized - cannot fix permissions');
-      return;
-    }
-
-    await this.documentManager.fixAllDocumentPermissions();
-  }
-
-  /**
    * Clean up resources when the module is disabled
    */
   public cleanup(): void {
@@ -231,7 +220,6 @@ class GuardManagementModule {
     this.floatingPanel.cleanup();
     this.guardDialogManager.cleanup();
     this.guardOrganizationManager?.cleanup?.();
-    this.documentManager.cleanup();
   }
 }
 
@@ -410,7 +398,6 @@ Hooks.once('init', async () => {
       (window as any).GuardManagement = {
         isInitialized: false,
         error: error.message,
-        documentManager: null,
       };
     } else {
       console.error('Guard Management | Unknown error type:', typeof error);
@@ -419,7 +406,6 @@ Hooks.once('init', async () => {
       (window as any).GuardManagement = {
         isInitialized: false,
         error: 'Unknown initialization error',
-        documentManager: null,
       };
     }
   }
@@ -467,22 +453,10 @@ Hooks.once('ready', async () => {
 
   // Refresh floating panel to ensure GM status is correct
   if (guardManagementModule && guardManagementModule.floatingPanel) {
+    // Run migration if needed (GM-only)
+    await runMigrationIfNeeded();
+
     guardManagementModule.refreshFloatingPanel();
     guardManagementModule.floatingPanel.show();
-
-    // Check if there are any organizations, if not create sample data
-    const organizations = guardManagementModule.documentManager.getGuardOrganizations();
-    if (organizations.length === 0) {
-      try {
-        await guardManagementModule.documentManager.createSampleData();
-
-        // Update the floating panel to show the new organizations
-        setTimeout(() => {
-          guardManagementModule.floatingPanel.updateOrganizationList();
-        }, 500);
-      } catch (error) {
-        console.error('Guard Management | Error creating sample data:', error);
-      }
-    }
   }
 });

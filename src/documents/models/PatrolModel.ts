@@ -24,13 +24,19 @@ export class PatrolModel extends foundry.abstract.TypeDataModel {
       usesSize: false,
     };
   }
-  get metadata() { return (this.constructor as any).metadata; }
+  get metadata() {
+    return (this.constructor as any).metadata;
+  }
 
   /** Daggerheart compatibility: called unconditionally by DhpActor.getRollData() */
-  getRollData() { return { ...this }; }
+  getRollData() {
+    return { ...this };
+  }
 
   /** Daggerheart compatibility: called without guard in actor sheet code */
-  isItemAvailable(_item: any) { return true; }
+  isItemAvailable(_item: any) {
+    return true;
+  }
 
   // Declare schema properties
   declare leaderId: string;

@@ -1581,7 +1581,9 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   user-select: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .last-order-header:hover {
@@ -1609,9 +1611,15 @@
   flex-shrink: 0;
 }
 
-.last-order-age-dot.normal  { background: #9acd32; }
-.last-order-age-dot.warning { background: #ffae42; }
-.last-order-age-dot.danger  { background: #ff5a5a; }
+.last-order-age-dot.normal {
+  background: #9acd32;
+}
+.last-order-age-dot.warning {
+  background: #ffae42;
+}
+.last-order-age-dot.danger {
+  background: #ff5a5a;
+}
 
 .last-order-chevron {
   font-size: 0.6rem;
@@ -1650,7 +1658,9 @@
   color: rgba(243, 194, 103, 0.8);
   cursor: pointer;
   font-size: 0.68rem;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .last-order-edit-btn:hover {
@@ -1707,7 +1717,9 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: rgba(255, 80, 80, 0.3);
-  transition: color 0.15s, transform 0.1s;
+  transition:
+    color 0.15s,
+    transform 0.1s;
   line-height: 1;
 }
 
@@ -1826,4 +1838,3 @@
 .patrol-trait-con {
   color: #ffaaaa;
 }
-

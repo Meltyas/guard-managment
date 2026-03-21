@@ -200,10 +200,10 @@ export class AddOrEditResourceDialog {
                   updatedAt: new Date(),
                 };
 
-                // Usar DocumentBasedManager para persistir el recurso
+                // Usar ResourceManager para persistir el recurso
                 const gm = (window as any).GuardManagement;
-                if (!gm?.documentManager) {
-                  console.error('DocumentBasedManager not available');
+                if (!gm?.resourceManager) {
+                  console.error('ResourceManager not available');
                   if (ui?.notifications) {
                     ui.notifications.error('Sistema no disponible para guardar recursos');
                   }

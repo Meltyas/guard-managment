@@ -324,12 +324,12 @@ export class PatrolManager {
         }
 
         // 3b. Organization Modifiers
-        if (gm?.documentManager && organization.activeModifiers?.length) {
-          const allModifiers = gm.documentManager.getGuardModifiers();
+        if (gm?.modifierManager && organization.activeModifiers?.length) {
+          const allModifiers = gm.modifierManager.getAllModifiers();
           for (const modId of organization.activeModifiers) {
             const mod = allModifiers.find((m: any) => m.id === modId);
-            if (mod && mod.system?.statModifications) {
-              for (const change of mod.system.statModifications) {
+            if (mod && mod.statModifications) {
+              for (const change of mod.statModifications) {
                 if (change.statName === stat && change.value !== 0) {
                   formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[Org. ${mod.name}]`;
                   orgNode.children.push({ label: mod.name, value: change.value });

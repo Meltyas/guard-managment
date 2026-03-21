@@ -527,7 +527,7 @@ export class FloatingGuardPanel {
         return;
       }
 
-      if (!gm.documentManager) {
+      if (!gm.isInitialized) {
         if (ui?.notifications) {
           ui.notifications.warn(
             'Sistema de datos aún no está listo. Intenta de nuevo en un momento.'
@@ -640,7 +640,8 @@ export class FloatingGuardPanel {
       moduleExists: !!gm,
       guardManager: !!gm?.guardManager,
       dialogManager: !!gm?.dialogManager,
-      documentManager: !!gm?.documentManager,
+      modifierManager: !!gm?.modifierManager,
+      patrolEffectManager: !!gm?.patrolEffectManager,
       floatingPanel: !!gm?.floatingPanel,
     });
 
@@ -698,11 +699,15 @@ export class FloatingGuardPanel {
     }
     console.log('🔑 Guard Management Storage:', guardKeys);
 
-    // 6. Document Storage Debug
-    if (gm?.documentManager) {
-      console.log('📄 Document Manager:', {
-        allDocuments: gm.documentManager.getGuardOrganizations(),
-        documentCount: gm.documentManager.getGuardOrganizations()?.length || 0,
+    // 6. Settings-based Storage Debug
+    if (gm?.modifierManager) {
+      console.log('📄 Modifier Manager:', {
+        modifierCount: gm.modifierManager.getAllModifiers()?.length || 0,
+      });
+    }
+    if (gm?.patrolEffectManager) {
+      console.log('📄 Patrol Effect Manager:', {
+        effectCount: gm.patrolEffectManager.getAllEffects()?.length || 0,
       });
     }
 

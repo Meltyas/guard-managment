@@ -21,7 +21,8 @@ export class GuardManagementHelpers {
     if (gm) {
       console.log('Module state:', {
         isInitialized: gm.isInitialized,
-        documentManager: !!gm.documentManager,
+        modifierManager: !!gm.modifierManager,
+        patrolEffectManager: !!gm.patrolEffectManager,
         guardOrganizationManager: !!gm.guardOrganizationManager,
         guardDialogManager: !!gm.guardDialogManager,
         floatingPanel: !!gm.floatingPanel,
@@ -228,8 +229,7 @@ export class GuardManagementHelpers {
     }
 
     console.log('Creating sample data...');
-    await gm.documentManager.createSampleData();
-    console.log('Sample data created successfully!');
+    console.log('Sample data creation via console is no longer supported. Use the UI instead.');
   }
 
   /**
@@ -239,19 +239,17 @@ export class GuardManagementHelpers {
     const gm = window.GuardManagement;
     if (!gm) return [];
 
-    const orgs = gm.documentManager.getGuardOrganizations();
+    const org = gm.guardOrganizationManager?.getOrganization?.();
+    const orgs = org ? [org] : [];
     console.table(
-      orgs.map((org: any) => ({
-        id: org.id,
-        name: org.name,
-        subtitle: org.system.subtitle,
-        robustismo: org.system.baseStats.robustismo,
-        analitica: org.system.baseStats.analitica,
-        subterfugio: org.system.baseStats.subterfugio,
-        elocuencia: org.system.baseStats.elocuencia,
-        patrols: org.system.patrols.length,
-        resources: org.system.resources.length,
-        reputation: org.system.reputation.length,
+      orgs.map((o: any) => ({
+        id: o.id,
+        name: o.name,
+        subtitle: o.subtitle,
+        robustismo: o.baseStats?.robustismo,
+        analitica: o.baseStats?.analitica,
+        subterfugio: o.baseStats?.subterfugio,
+        elocuencia: o.baseStats?.elocuencia,
       }))
     );
 
@@ -297,15 +295,15 @@ export class GuardManagementHelpers {
     const gm = window.GuardManagement;
     if (!gm) return [];
 
-    const patrols = gm.documentManager.getPatrols();
+    const patrolMgr = gm.guardOrganizationManager?.getPatrolManager?.();
+    const patrols = patrolMgr?.list?.() || [];
     console.table(
       patrols.map((patrol: any) => ({
         id: patrol.id,
         name: patrol.name,
-        organizationId: patrol.system.organizationId,
-        unitCount: patrol.system.unitCount,
-        status: patrol.system.status,
-        leaderId: patrol.system.leaderId || 'None',
+        organizationId: patrol.organizationId,
+        soldiers: patrol.soldiers?.length || 0,
+        effects: patrol.patrolEffects?.length || 0,
       }))
     );
 
@@ -319,14 +317,14 @@ export class GuardManagementHelpers {
     const gm = window.GuardManagement;
     if (!gm) return [];
 
-    const resources = gm.documentManager.getGuardResources();
+    const resources = gm.resourceManager?.getAllResources?.() || [];
     console.table(
       resources.map((resource: any) => ({
         id: resource.id,
         name: resource.name,
-        description: resource.system.description,
-        quantity: resource.system.quantity,
-        organizationId: resource.system.organizationId,
+        description: resource.description,
+        quantity: resource.quantity,
+        organizationId: resource.organizationId,
       }))
     );
 
@@ -340,15 +338,14 @@ export class GuardManagementHelpers {
     const gm = window.GuardManagement;
     if (!gm) return [];
 
-    const reputation = gm.documentManager.getGuardReputations();
+    const reputation = gm.reputationManager?.getAllReputations?.() || [];
     console.table(
       reputation.map((rep: any) => ({
         id: rep.id,
         name: rep.name,
-        description: rep.system.description,
-        level: rep.system.level,
-        levelLabel: rep.system.levelLabel,
-        organizationId: rep.system.organizationId,
+        description: rep.description,
+        level: rep.level,
+        organizationId: rep.organizationId,
       }))
     );
 
@@ -375,7 +372,8 @@ export class GuardManagementHelpers {
     const gm = window.GuardManagement;
     if (!gm) return null;
 
-    const org = await gm.documentManager.createGuardOrganization({
+    console.log('Creating test organization via settings...');
+    await gm.guardOrganizationManager?.createOrganization?.({
       name: name,
       subtitle: 'Test organization for development',
       baseStats: {
@@ -386,8 +384,8 @@ export class GuardManagementHelpers {
       },
     });
 
-    console.log(`Created organization: ${org.name} (${org.id})`);
-    return org;
+    console.log(`Created organization: ${name}`);
+    return gm.guardOrganizationManager?.getOrganization?.();
   }
 
   /**
@@ -397,14 +395,17 @@ export class GuardManagementHelpers {
     const gm = window.GuardManagement;
     if (!gm) return null;
 
-    const patrol = await gm.documentManager.createPatrol({
+    const patrolMgr = gm.guardOrganizationManager?.getPatrolManager?.();
+    if (!patrolMgr) return null;
+
+    const patrol = await patrolMgr.createPatrol({
       name: name,
       organizationId: organizationId,
-      unitCount: Math.floor(Math.random() * 8) + 1,
-      status: 'idle',
     });
 
-    console.log(`Created patrol: ${patrol.name} (${patrol.id}) for organization ${organizationId}`);
+    console.log(
+      `Created patrol: ${patrol?.name} (${patrol?.id}) for organization ${organizationId}`
+    );
     return patrol;
   }
 
@@ -415,41 +416,18 @@ export class GuardManagementHelpers {
     const gm = window.GuardManagement;
     if (!gm) return;
 
-    const orgs = gm.documentManager.getGuardOrganizations();
-
-    for (const org of orgs) {
-      console.log(`Deleting organization: ${org.name}`);
-      await gm.documentManager.deleteGuardOrganization(org.id);
-    }
-
-    console.log('All test data cleaned up!');
+    console.log('Cleanup via console is no longer supported. Data is stored in settings.');
+    console.log('Use Foundry settings menu or the module UI to manage data.');
   }
 
   /**
    * Fix permissions for all Guard Management documents
    */
   static async fixPermissions() {
-    console.log('=== FIXING DOCUMENT PERMISSIONS ===');
-    const gm = window.GuardManagement;
-
-    if (!gm) {
-      console.error('GuardManagement module not found');
-      return false;
-    }
-
-    if (!gm.isInitialized) {
-      console.error('GuardManagement module not initialized');
-      return false;
-    }
-
-    try {
-      await gm.fixDocumentPermissions();
-      console.log('✅ Document permissions fixed successfully');
-      return true;
-    } catch (error) {
-      console.error('❌ Error fixing permissions:', error);
-      return false;
-    }
+    console.log('=== DOCUMENT PERMISSIONS ===');
+    console.log('Document-based storage has been removed. All data is in settings.');
+    console.log('No document permissions to fix.');
+    return true;
   }
 
   /**
@@ -491,8 +469,9 @@ Cleanup:
 - GuardManagementHelpers.cleanupTestData()       // Delete all test data
 
 Access the main module:
-- window.GuardManagement.documentManager         // Main document manager
-- window.GuardManagement.guardDialogManager      // Dialog manager
+- window.GuardManagement.modifierManager           // Guard modifiers (settings)
+- window.GuardManagement.patrolEffectManager       // Patrol effects (settings)
+- window.GuardManagement.guardDialogManager        // Dialog manager
     `);
   }
 }

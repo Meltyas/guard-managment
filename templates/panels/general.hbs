@@ -68,13 +68,14 @@
               {{/if}}
               <span class='skill-toggle-name'>{{this.skillName}}</span>
               <span class='skill-toggle-hope'>
-                <i class='fa-solid fa-diamond'></i> {{this.skillHopeCost}}
+                <i class='fa-solid fa-diamond'></i>
+                {{this.skillHopeCost}}
               </span>
               <i class='fas fa-chevron-down skill-toggle-chevron'></i>
             </div>
             <div class='skill-toggle-body'>
               {{#if this.skillDescription}}
-              <div class='skill-toggle-description'>{{{this.skillDescription}}}</div>
+                <div class='skill-toggle-description'>{{{this.skillDescription}}}</div>
               {{/if}}
               <div class='skill-officer'>
                 {{#if this.officerImg}}
@@ -94,7 +95,8 @@
                 data-skill-hope-cost='{{this.skillHopeCost}}'
                 data-officer-name='{{this.officerName}}'
               >
-                <i class='fas fa-comment'></i> Enviar al chat
+                <i class='fas fa-comment'></i>
+                Enviar al chat
               </button>
             </div>
           </div>

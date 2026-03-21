@@ -210,10 +210,10 @@ const statCalculationExtension: EntityExtension<ExtendedPatrol> = {
   extend: async (entity: ExtendedPatrol, _context?: any) => {
     // Complex logic to calculate derived stats from organization base stats
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) return entity;
+    if (!gm?.guardOrganizationManager) return entity;
 
     try {
-      const organization = await gm.documentManager.getGuardOrganization(entity.organizationId);
+      const organization = gm.guardOrganizationManager.getOrganization();
       if (!organization) return entity;
 
       // Calculate derived stats (simplified example)

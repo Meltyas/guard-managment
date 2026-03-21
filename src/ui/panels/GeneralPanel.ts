@@ -67,22 +67,21 @@ export class GeneralPanel {
     const processedModifiers = activeModifiers
       .map((mod: any) => {
         const netValue =
-          mod.system?.statModifications?.reduce((acc: number, curr: any) => acc + curr.value, 0) ||
-          0;
+          mod.statModifications?.reduce((acc: number, curr: any) => acc + curr.value, 0) || 0;
         let borderClass = 'neutral-border';
         if (netValue > 0) borderClass = 'positive-border';
         else if (netValue < 0) borderClass = 'negative-border';
 
         // Generate tooltip
         let tooltip = `<strong>${mod.name}</strong><br/>`;
-        if (mod.system.description) {
-          tooltip += `<div style="margin-bottom:5px; font-size:0.9em; font-style:italic;">${mod.system.description}</div>`;
+        if (mod.description) {
+          tooltip += `<div style="margin-bottom:5px; font-size:0.9em; font-style:italic;">${mod.description}</div>`;
         }
 
-        if (mod.system.statModifications && mod.system.statModifications.length > 0) {
+        if (mod.statModifications && mod.statModifications.length > 0) {
           tooltip +=
             '<div class="tooltip-modifiers" style="margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
-          for (const m of mod.system.statModifications) {
+          for (const m of mod.statModifications) {
             const val = m.value;
             const valStr = val >= 0 ? `+${val}` : `${val}`;
             let color = '#ffffff'; // Neutral
@@ -97,13 +96,10 @@ export class GeneralPanel {
 
         tooltip += '<hr>Left Click: Send to Chat<br/>Right Click: Remove';
 
-        // Create a plain object with all necessary properties explicitly
-        // This handles cases where 'mod' is a Foundry Document (where id/name/img are getters)
         return {
-          id: mod.id || mod._id,
+          id: mod.id,
           name: mod.name,
-          img: mod.img || mod.texture?.src || 'icons/svg/item-bag.svg',
-          system: mod.system,
+          img: mod.image || 'icons/svg/item-bag.svg',
           netValue,
           borderClass,
           tooltip,
@@ -225,12 +221,12 @@ export class GeneralPanel {
 
   static async handleModifierClick(modifierId: string) {
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) {
-      console.warn('Guard Management | DocumentManager not found');
+    if (!gm?.modifierManager) {
+      console.warn('Guard Management | ModifierManager not found');
       return;
     }
 
-    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
+    const modifier = gm.modifierManager.getModifier(modifierId);
     if (!modifier) {
       console.warn('Guard Management | Modifier not found:', modifierId);
       return;
@@ -240,14 +236,14 @@ export class GeneralPanel {
     const content = `
       <div class="guard-resource-chat">
         <div class="resource-image" style="margin-bottom: 8px;">
-            <img src="${modifier.img}" style="max-width: 64px; border: none;" />
+            <img src="${modifier.image || ''}" style="max-width: 64px; border: none;" />
         </div>
         <div class="chat-header" style="font-weight: bold; font-size: 1.2em; margin-bottom: 5px;">${modifier.name}</div>
         <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
-          ${modifier.system.description || 'Sin descripción'}
+          ${modifier.description || 'Sin descripción'}
         </div>
         <div class="stat-modifiers">
-            ${(modifier.system.statModifications || [])
+            ${(modifier.statModifications || [])
               .map(
                 (m: any) =>
                   `<div><strong>${m.statName}:</strong> ${m.value > 0 ? '+' : ''}${m.value}</div>`
@@ -266,12 +262,12 @@ export class GeneralPanel {
 
   static async handleRemoveModifier(modifierId: string, onRefresh?: () => void) {
     const gm = (window as any).GuardManagement;
-    if (!gm?.guardOrganizationManager || !gm?.documentManager) {
+    if (!gm?.guardOrganizationManager || !gm?.modifierManager) {
       console.warn('Guard Management | Managers not found');
       return;
     }
 
-    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
+    const modifier = gm.modifierManager.getModifier(modifierId);
     const modifierName = modifier?.name || 'Modificador';
 
     const confirm = await Dialog.confirm({

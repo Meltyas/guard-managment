@@ -613,9 +613,9 @@ export class GuardOrganizationManager {
   public getActiveModifiers(): any[] {
     if (!this.organization || !this.organization.activeModifiers?.length) return [];
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) return [];
+    if (!gm?.modifierManager) return [];
 
-    const allModifiers = gm.documentManager.getGuardModifiers();
+    const allModifiers = gm.modifierManager.getAllModifiers();
     return allModifiers.filter((m: any) => this.organization!.activeModifiers.includes(m.id));
   }
 
@@ -665,18 +665,18 @@ export class GuardOrganizationManager {
     };
 
     const gm = (window as any).GuardManagement;
-    if (gm?.documentManager && this.organization.activeModifiers?.length) {
-      const allModifiers = gm.documentManager.getGuardModifiers();
+    if (gm?.modifierManager && this.organization.activeModifiers?.length) {
+      const allModifiers = gm.modifierManager.getAllModifiers();
 
       for (const modId of this.organization.activeModifiers) {
         const modifier = allModifiers.find((m: any) => m.id === modId);
-        if (modifier && modifier.system?.statModifications) {
-          for (const mod of modifier.system.statModifications) {
+        if (modifier && modifier.statModifications) {
+          for (const mod of modifier.statModifications) {
             if (total[mod.statName] !== undefined) {
               total[mod.statName] += mod.value;
               modifiers[mod.statName].push({
                 name: modifier.name,
-                img: modifier.img,
+                img: modifier.image || '',
                 value: mod.value,
               });
             }
@@ -697,13 +697,13 @@ export class GuardOrganizationManager {
     const stats = { ...this.organization.baseStats };
     const gm = (window as any).GuardManagement;
 
-    if (gm?.documentManager && this.organization.activeModifiers?.length) {
-      const modifiers = gm.documentManager.getGuardModifiers();
+    if (gm?.modifierManager && this.organization.activeModifiers?.length) {
+      const modifiers = gm.modifierManager.getAllModifiers();
 
       for (const modId of this.organization.activeModifiers) {
         const modifier = modifiers.find((m: any) => m.id === modId);
-        if (modifier && modifier.system?.statModifications) {
-          for (const mod of modifier.system.statModifications) {
+        if (modifier && modifier.statModifications) {
+          for (const mod of modifier.statModifications) {
             if (stats[mod.statName] !== undefined) {
               stats[mod.statName] += mod.value;
             }
@@ -750,12 +750,12 @@ export class GuardOrganizationManager {
 
       // 2. Active Modifiers
       const gm = (window as any).GuardManagement;
-      if (gm?.documentManager && this.organization!.activeModifiers?.length) {
-        const allModifiers = gm.documentManager.getGuardModifiers();
+      if (gm?.modifierManager && this.organization!.activeModifiers?.length) {
+        const allModifiers = gm.modifierManager.getAllModifiers();
         for (const modId of this.organization!.activeModifiers) {
           const mod = allModifiers.find((m: any) => m.id === modId);
-          if (mod && mod.system?.statModifications) {
-            for (const change of mod.system.statModifications) {
+          if (mod && mod.statModifications) {
+            for (const change of mod.statModifications) {
               if (change.statName === stat && change.value !== 0) {
                 formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[${mod.name}]`;
               }

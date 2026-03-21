@@ -1,5 +1,4 @@
 import { Reputation, REPUTATION_LABELS } from '../types/entities';
-import { convertFoundryDocumentToReputation } from '../utils/resource-converter.js';
 
 export interface ReputationTemplateOptions {
   showActions?: boolean;
@@ -21,13 +20,10 @@ export class ReputationTemplate {
 
     try {
       const gm = (window as any).GuardManagement;
-      if (gm?.documentManager) {
-        const reputation = gm.documentManager
-          .getGuardReputations()
-          ?.find((r: any) => r.id === reputationId);
+      if (gm?.reputationManager) {
+        const reputation = gm.reputationManager.getReputation(reputationId);
         if (reputation) {
-          // Convert Foundry document to our Reputation type for consistent image handling
-          reputationData = convertFoundryDocumentToReputation(reputation);
+          reputationData = reputation;
         }
       }
     } catch (error) {

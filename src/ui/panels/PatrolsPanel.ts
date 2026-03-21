@@ -53,18 +53,25 @@ export class PatrolsPanel {
 
       // Build officer stats display for template
       const officerStats = officerRecord?.stats || {};
-      const officerStatsEntries = Object.entries(officerStats).filter(([, v]) => (v as number) !== 0);
+      const officerStatsEntries = Object.entries(officerStats).filter(
+        ([, v]) => (v as number) !== 0
+      );
       const officerStatsDisplay = officerStatsEntries.map(([key, value]) => ({
         key,
         value: (value as number) > 0 ? `+${value}` : `${value}`,
-        cssClass: (value as number) > 0 ? 'stat-positive' : (value as number) < 0 ? 'stat-negative' : '',
+        cssClass:
+          (value as number) > 0 ? 'stat-positive' : (value as number) < 0 ? 'stat-negative' : '',
       }));
 
       // Format last order date
       let lastOrderDate: string | null = null;
       if (lastOrder?.issuedAt) {
         const d = new Date(lastOrder.issuedAt);
-        lastOrderDate = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+        lastOrderDate = d.toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        });
       }
 
       return {
@@ -83,12 +90,13 @@ export class PatrolsPanel {
         hasOfficerStats: officerStatsDisplay.length > 0,
         currentHope: p.currentHope ?? 0,
         maxHope: p.maxHope ?? 0,
-        hopePips: (p.maxHope ?? 0) > 0
-          ? Array.from({ length: p.maxHope ?? 0 }, (_, i) => ({
-              filled: i < (p.currentHope ?? 0),
-              index: i + 1,
-            }))
-          : [],
+        hopePips:
+          (p.maxHope ?? 0) > 0
+            ? Array.from({ length: p.maxHope ?? 0 }, (_, i) => ({
+                filled: i < (p.currentHope ?? 0),
+                index: i + 1,
+              }))
+            : [],
         lastOrderDate,
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
@@ -137,14 +145,23 @@ export class PatrolsPanel {
       document.removeEventListener('keyup', prevHandlers.up);
       window.removeEventListener('blur', prevHandlers.blur);
     }
-    const patrolPanel = container.querySelector('[data-patrols-panel]') as HTMLElement | null ?? container;
-    const handlerDown = (e: KeyboardEvent) => { if (e.key === 'Shift') patrolPanel.classList.add('shift-held'); };
-    const handlerUp = (e: KeyboardEvent) => { if (e.key === 'Shift') patrolPanel.classList.remove('shift-held'); };
+    const patrolPanel =
+      (container.querySelector('[data-patrols-panel]') as HTMLElement | null) ?? container;
+    const handlerDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') patrolPanel.classList.add('shift-held');
+    };
+    const handlerUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') patrolPanel.classList.remove('shift-held');
+    };
     const handlerBlur = () => patrolPanel.classList.remove('shift-held');
     document.addEventListener('keydown', handlerDown);
     document.addEventListener('keyup', handlerUp);
     window.addEventListener('blur', handlerBlur);
-    (container as any)._guardShiftHandlers = { down: handlerDown, up: handlerUp, blur: handlerBlur };
+    (container as any)._guardShiftHandlers = {
+      down: handlerDown,
+      up: handlerUp,
+      blur: handlerBlur,
+    };
 
     // Drag & Drop
     this.setupPatrolZonesDnD(container, () => this.refresh(container));
@@ -230,7 +247,8 @@ export class PatrolsPanel {
       ev.stopPropagation();
       const patrolId = ev.currentTarget.dataset.patrolId;
       const actorId = ev.currentTarget.dataset.actorId;
-      if (patrolId && actorId) this.handleUnassignSoldier(patrolId, actorId, () => this.refresh(container));
+      if (patrolId && actorId)
+        this.handleUnassignSoldier(patrolId, actorId, () => this.refresh(container));
     });
 
     // Stat interactions
@@ -352,7 +370,8 @@ export class PatrolsPanel {
       }
 
       // Get full org contribution (org baseStats + modifiers) — always live, not stale
-      const orgStats: Record<string, number> = (orgMgr?.calculateEffectiveOrgStats?.() as any) || {};
+      const orgStats: Record<string, number> =
+        (orgMgr?.calculateEffectiveOrgStats?.() as any) || {};
 
       const effectTotals: Record<string, number> = {};
       const effectDetails: Record<string, Array<{ name: string; img: string; value: number }>> = {};
@@ -415,7 +434,14 @@ export class PatrolsPanel {
         if (officerContrib !== 0) allModValues.push(officerContrib);
         const hasPos = allModValues.some((v) => v > 0);
         const hasNeg = allModValues.some((v) => v < 0);
-        const totalClass = hasPos && hasNeg ? 'stat-mixed' : hasPos ? 'stat-positive' : hasNeg ? 'stat-negative' : '';
+        const totalClass =
+          hasPos && hasNeg
+            ? 'stat-mixed'
+            : hasPos
+              ? 'stat-positive'
+              : hasNeg
+                ? 'stat-negative'
+                : '';
 
         breakdown[key] = {
           base,
@@ -572,7 +598,9 @@ export class PatrolsPanel {
             return d?.type === 'Officer';
           });
           if (!isOfficerDrag) {
-            return ui?.notifications?.warn?.('Solo se pueden asignar oficiales desde el Almacén de Oficiales');
+            return ui?.notifications?.warn?.(
+              'Solo se pueden asignar oficiales desde el Almacén de Oficiales'
+            );
           }
         }
 
@@ -1147,11 +1175,7 @@ export class PatrolsPanel {
     refreshCallback();
   }
 
-  public static async handleHopePip(
-    patrolId: string,
-    index: number,
-    refreshCallback: () => void
-  ) {
+  public static async handleHopePip(patrolId: string, index: number, refreshCallback: () => void) {
     const gm = (window as any).GuardManagement;
     const pMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
     if (!pMgr) return;

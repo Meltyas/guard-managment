@@ -209,10 +209,10 @@ export class AddOrEditReputationDialog {
                   updatedAt: new Date(),
                 };
 
-                // Usar DocumentBasedManager para persistir la reputación
+                // Usar ReputationManager para persistir la reputación
                 const gm = (window as any).GuardManagement;
-                if (!gm?.documentManager) {
-                  console.error('DocumentBasedManager not available');
+                if (!gm?.reputationManager) {
+                  console.error('ReputationManager not available');
                   if (ui?.notifications) {
                     ui.notifications.error('Sistema no disponible para guardar reputaciones');
                   }

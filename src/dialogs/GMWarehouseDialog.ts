@@ -104,15 +104,6 @@ export class GMWarehouseDialog implements FocusableDialog {
       return;
     }
 
-    if (!gm.documentManager) {
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error(
-          'Document manager not available. Please reload the module.'
-        );
-      }
-      return;
-    }
-
     // Create the dialog element
     this.element = await this.createElement(options);
 
@@ -222,7 +213,7 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Get resource templates from DocumentBasedManager
+   * Get resource templates from ResourceManager
    */
   private async getResourceTemplates(): Promise<any[]> {
     try {
@@ -237,14 +228,14 @@ export class GMWarehouseDialog implements FocusableDialog {
       this.resourceTemplates = gm.resourceManager.getAllResources() || [];
       return this.resourceTemplates;
     } catch (error) {
-      console.error('Error loading resource templates from DocumentBasedManager:', error);
+      console.error('Error loading resource templates:', error);
       this.resourceTemplates = [];
       return this.resourceTemplates;
     }
   }
 
   /**
-   * Get reputation templates from DocumentBasedManager
+   * Get reputation templates from ReputationManager
    */
   private async getReputationTemplates(): Promise<any[]> {
     try {
@@ -259,25 +250,25 @@ export class GMWarehouseDialog implements FocusableDialog {
       this.reputationTemplates = gm.reputationManager.getAllReputations() || [];
       return this.reputationTemplates;
     } catch (error) {
-      console.error('Error loading reputation templates from DocumentBasedManager:', error);
+      console.error('Error loading reputation templates:', error);
       this.reputationTemplates = [];
       return this.reputationTemplates;
     }
   }
 
   /**
-   * Get patrol effect templates from DocumentBasedManager
+   * Get patrol effect templates from PatrolEffectManager
    */
   private async getPatrolEffectTemplates(): Promise<any[]> {
     try {
       const gm = (window as any).GuardManagement;
 
-      if (!gm || !gm.isInitialized || !gm.documentManager) {
+      if (!gm || !gm.isInitialized || !gm.patrolEffectManager) {
         this.patrolEffectTemplates = [];
         return this.patrolEffectTemplates;
       }
 
-      this.patrolEffectTemplates = await gm.documentManager.getPatrolEffects();
+      this.patrolEffectTemplates = gm.patrolEffectManager.getAllEffects();
       return this.patrolEffectTemplates;
     } catch (error) {
       console.error('Error loading patrol effect templates:', error);
@@ -287,18 +278,18 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Get guard modifier templates from DocumentBasedManager
+   * Get guard modifier templates from ModifierManager
    */
   private async getGuardModifierTemplates(): Promise<any[]> {
     try {
       const gm = (window as any).GuardManagement;
 
-      if (!gm || !gm.isInitialized || !gm.documentManager) {
+      if (!gm || !gm.isInitialized || !gm.modifierManager) {
         this.guardModifierTemplates = [];
         return this.guardModifierTemplates;
       }
 
-      this.guardModifierTemplates = await gm.documentManager.getGuardModifiers();
+      this.guardModifierTemplates = gm.modifierManager.getAllModifiers();
       return this.guardModifierTemplates;
     } catch (error) {
       console.error('Error loading guard modifier templates:', error);
@@ -382,10 +373,10 @@ export class GMWarehouseDialog implements FocusableDialog {
     const effectData = {
       id: effect.id,
       name: effect.name,
-      description: effect.system?.description || '',
-      type: effect.system?.type || 'neutral',
-      image: effect.img || '',
-      statModifications: effect.system?.statModifications || [],
+      description: effect.description || '',
+      type: effect.type || 'neutral',
+      image: effect.image || '',
+      statModifications: effect.statModifications || [],
     };
 
     return renderTemplate(
@@ -401,10 +392,10 @@ export class GMWarehouseDialog implements FocusableDialog {
     const modifierData = {
       id: modifier.id,
       name: modifier.name,
-      description: modifier.system?.description || '',
-      type: modifier.system?.type || 'neutral',
-      image: modifier.img || '',
-      statModifications: modifier.system?.statModifications || [],
+      description: modifier.description || '',
+      type: modifier.type || 'neutral',
+      image: modifier.image || '',
+      statModifications: modifier.statModifications || [],
     };
 
     return renderTemplate(
@@ -791,9 +782,9 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (newEffect) {
         const gm = (window as any).GuardManagement;
-        if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+        if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
 
-        await gm.documentManager.createPatrolEffect(newEffect);
+        await gm.patrolEffectManager.createEffect(newEffect);
         await this.refreshPatrolEffectsTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -820,9 +811,9 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (newModifier) {
         const gm = (window as any).GuardManagement;
-        if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+        if (!gm?.modifierManager) throw new Error('ModifierManager not available');
 
-        await gm.documentManager.createGuardModifier(newModifier);
+        await gm.modifierManager.createModifier(newModifier);
         await this.refreshGuardModifiersTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -1258,18 +1249,18 @@ export class GMWarehouseDialog implements FocusableDialog {
     if (!effectId) return;
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) return;
+    if (!gm?.patrolEffectManager) return;
 
-    const effect = gm.documentManager.getPatrolEffects().find((e: any) => e.id === effectId);
+    const effect = gm.patrolEffectManager.getAllEffects().find((e: any) => e.id === effectId);
     if (!effect) return;
 
     const effectData = {
       id: effect.id,
       name: effect.name,
-      description: effect.system?.description || '',
-      type: effect.system?.type || 'neutral',
-      image: effect.img || '',
-      statModifications: effect.system?.statModifications || [],
+      description: effect.description || '',
+      type: effect.type || 'neutral',
+      image: effect.image || '',
+      statModifications: effect.statModifications || [],
     };
 
     const dragData = {
@@ -1311,18 +1302,18 @@ export class GMWarehouseDialog implements FocusableDialog {
     if (!modifierId) return;
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) return;
+    if (!gm?.modifierManager) return;
 
-    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
+    const modifier = gm.modifierManager.getAllModifiers().find((m: any) => m.id === modifierId);
     if (!modifier) return;
 
     const modifierData = {
       id: modifier.id,
       name: modifier.name,
-      description: modifier.system?.description || '',
-      type: modifier.system?.type || 'neutral',
-      image: modifier.img || '',
-      statModifications: modifier.system?.statModifications || [],
+      description: modifier.description || '',
+      type: modifier.type || 'neutral',
+      image: modifier.image || '',
+      statModifications: modifier.statModifications || [],
     };
 
     const dragData = {
@@ -1405,9 +1396,9 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleEditPatrolEffectTemplate(effectId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+      if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
 
-      const effects = gm.documentManager.getPatrolEffects();
+      const effects = gm.patrolEffectManager.getAllEffects();
       const effect = effects.find((e: any) => e.id === effectId);
 
       if (!effect) throw new Error('Patrol effect not found');
@@ -1415,11 +1406,11 @@ export class GMWarehouseDialog implements FocusableDialog {
       const effectData = {
         id: effect.id,
         name: effect.name,
-        description: effect.system?.description || '',
-        type: effect.system?.type || 'neutral',
-        image: effect.img || '',
-        statModifications: effect.system?.statModifications || [],
-        version: effect.system?.version || 1,
+        description: effect.description || '',
+        type: effect.type || 'neutral',
+        image: effect.image || '',
+        statModifications: effect.statModifications || [],
+        version: effect.version || 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1428,7 +1419,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       const updatedEffect = await AddOrEditPatrolEffectDialog.edit(effectData as any);
 
       if (updatedEffect) {
-        await gm.documentManager.updatePatrolEffect(updatedEffect.id, updatedEffect);
+        await gm.patrolEffectManager.updateEffect(updatedEffect.id, updatedEffect);
         await this.refreshPatrolEffectsTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -1581,9 +1572,9 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleEditGuardModifierTemplate(modifierId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+      if (!gm?.modifierManager) throw new Error('ModifierManager not available');
 
-      const modifiers = gm.documentManager.getGuardModifiers();
+      const modifiers = gm.modifierManager.getAllModifiers();
       const modifier = modifiers.find((m: any) => m.id === modifierId);
 
       if (!modifier) throw new Error('Guard modifier not found');
@@ -1591,11 +1582,11 @@ export class GMWarehouseDialog implements FocusableDialog {
       const modifierData = {
         id: modifier.id,
         name: modifier.name,
-        description: modifier.system?.description || '',
-        type: modifier.system?.type || 'neutral',
-        image: modifier.img || '',
-        statModifications: modifier.system?.statModifications || [],
-        version: modifier.system?.version || 1,
+        description: modifier.description || '',
+        type: modifier.type || 'neutral',
+        image: modifier.image || '',
+        statModifications: modifier.statModifications || [],
+        version: modifier.version || 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1604,7 +1595,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       const updatedModifier = await AddOrEditGuardModifierDialog.edit(modifierData as any);
 
       if (updatedModifier) {
-        await gm.documentManager.updateGuardModifier(updatedModifier.id, updatedModifier);
+        await gm.modifierManager.updateModifier(updatedModifier.id, updatedModifier);
         await this.refreshGuardModifiersTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -1704,17 +1695,17 @@ export class GMWarehouseDialog implements FocusableDialog {
       }
 
       // Check if resource is assigned to any organization before deleting
-      const organizations = gm.documentManager.getGuardOrganizations();
+      const organizations = gm.guardOrganizationManager?.getAllOrganizations() || [];
       const assignedOrganizations = organizations.filter((org: any) =>
-        org.system?.resources?.includes(resourceId)
+        org.resources?.includes(resourceId)
       );
 
       if (assignedOrganizations.length > 0) {
-        console.log(`🔍 Resource is assigned to ${assignedOrganizations.length} organizations`);
+        console.log(`Resource is assigned to ${assignedOrganizations.length} organizations`);
       }
 
-      // Use the DocumentBasedManager method to delete the resource and clean up references
-      const deleted = await gm.documentManager.deleteGuardResource(resourceId);
+      // Use the ResourceManager to delete the resource and clean up references
+      const deleted = await gm.resourceManager.deleteResource(resourceId);
 
       if (!deleted) {
         console.error('❌ Failed to delete resource');
@@ -1773,7 +1764,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       if (!confirmed) return;
 
       // Delete the reputation
-      const deleteSuccess = await gm.documentManager.deleteGuardReputation(reputationId);
+      const deleteSuccess = await gm.reputationManager.deleteReputation(reputationId);
       if (!deleteSuccess) {
         throw new Error('Failed to delete reputation from database');
       }
@@ -1801,9 +1792,9 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleDeletePatrolEffectTemplate(effectId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+      if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
 
-      const effects = gm.documentManager.getPatrolEffects();
+      const effects = gm.patrolEffectManager.getAllEffects();
       const effect = effects.find((e: any) => e.id === effectId);
       const effectName = effect?.name || 'Unknown Effect';
 
@@ -1815,7 +1806,7 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (!confirmed) return;
 
-      await gm.documentManager.deletePatrolEffect(effectId);
+      await gm.patrolEffectManager.deleteEffect(effectId);
       await this.refreshPatrolEffectsTab();
 
       if ((globalThis as any).ui?.notifications) {
@@ -1837,9 +1828,9 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleDeleteGuardModifierTemplate(modifierId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+      if (!gm?.modifierManager) throw new Error('ModifierManager not available');
 
-      const modifiers = gm.documentManager.getGuardModifiers();
+      const modifiers = gm.modifierManager.getAllModifiers();
       const modifier = modifiers.find((m: any) => m.id === modifierId);
       const modifierName = modifier?.name || 'Unknown Modifier';
 
@@ -1851,7 +1842,7 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (!confirmed) return;
 
-      await gm.documentManager.deleteGuardModifier(modifierId);
+      await gm.modifierManager.deleteModifier(modifierId);
       await this.refreshGuardModifiersTab();
 
       if ((globalThis as any).ui?.notifications) {
