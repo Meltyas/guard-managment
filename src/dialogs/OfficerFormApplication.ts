@@ -15,6 +15,7 @@ interface OfficerFormData {
   pros: OfficerTrait[];
   cons: OfficerTrait[];
   organizationId: string;
+  visibleToPlayers: boolean;
 }
 
 export class OfficerFormApplication extends FormApplication {
@@ -45,6 +46,7 @@ export class OfficerFormApplication extends FormApplication {
       pros: existingOfficer?.pros || [],
       cons: existingOfficer?.cons || [],
       organizationId: existingOfficer?.organizationId || organizationId,
+      visibleToPlayers: existingOfficer?.visibleToPlayers ?? false,
     };
   }
 
@@ -85,16 +87,26 @@ export class OfficerFormApplication extends FormApplication {
     // Setup officer skills (multiple)
     this.setupSkillButtons(html);
     this.setupSkillRemoveButtons(html);
+    this.setupSkillEditButtons(html);
 
     // Setup trait buttons
     this.setupTraitButtons(html);
     this.setupTraitRemoveButtons(html);
+    this.setupTraitEditButtons(html);
 
     // Cancel button
     html.find('.cancel-button').on('click', () => {
       this.resolvePromise?.(null);
       this.close();
     });
+  }
+
+  /** Sync title (and visibleToPlayers) from DOM into currentData before re-rendering */
+  private syncFormFields(): void {
+    const titleInput = this.element?.querySelector('#officer-title') as HTMLInputElement | null;
+    if (titleInput) this.currentData.title = titleInput.value;
+    const visibleCheck = this.element?.querySelector('input[name="visibleToPlayers"]') as HTMLInputElement | null;
+    if (visibleCheck) this.currentData.visibleToPlayers = visibleCheck.checked;
   }
 
   private setupActorDropZone(html: JQuery) {
@@ -210,7 +222,9 @@ export class OfficerFormApplication extends FormApplication {
           callback: (event: any, button: any, dialog: any) => {
             const nameInput = dialog.element?.querySelector('#skill-name') as HTMLInputElement;
             const imageInput = dialog.element?.querySelector('#skill-image') as HTMLInputElement;
-            const hopeCostInput = dialog.element?.querySelector('#skill-hope-cost') as HTMLInputElement;
+            const hopeCostInput = dialog.element?.querySelector(
+              '#skill-hope-cost'
+            ) as HTMLInputElement;
 
             const name = nameInput?.value?.trim();
             if (!name) {
@@ -220,7 +234,10 @@ export class OfficerFormApplication extends FormApplication {
 
             resolvedName = name;
             resolvedImage = imageInput?.value?.trim() || '';
-            resolvedHopeCost = Math.min(5, Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0));
+            resolvedHopeCost = Math.min(
+              5,
+              Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0)
+            );
             return 'add';
           },
         },
@@ -236,13 +253,110 @@ export class OfficerFormApplication extends FormApplication {
         hopeCost: resolvedHopeCost,
       };
       this.currentData.skills = [...(this.currentData.skills || []), newSkill];
+      this.syncFormFields();
       this.render(false);
     }
   }
 
   private removeSkill(skillId: string) {
     this.currentData.skills = (this.currentData.skills || []).filter((s) => s.id !== skillId);
+    this.syncFormFields();
     this.render(false);
+  }
+
+  private setupSkillEditButtons(html: JQuery) {
+    html.find('.skill-edit-btn').on('click', async (event) => {
+      event.preventDefault();
+      const skillId = $(event.currentTarget).data('skill-id');
+      const skill = (this.currentData.skills || []).find((s) => s.id === skillId);
+      if (skill) await this.showEditSkillDialog(skill);
+    });
+  }
+
+  private async showEditSkillDialog(skill: OfficerSkill) {
+    const DialogV2Class = foundry.applications?.api?.DialogV2;
+    if (!DialogV2Class) return;
+
+    const content = `
+      <div class="guard-dialog" style="padding: 0.5rem;">
+        <div class="form-group">
+          <label>Nombre <span style="color:#e84a4a">*</span></label>
+          <input type="text" id="skill-name" value="${skill.name.replace(/"/g, '&quot;')}" autofocus />
+        </div>
+        <div class="form-group">
+          <label>Imagen</label>
+          <div class="file-picker-wrapper">
+            <input type="text" id="skill-image" value="${(skill.image || '').replace(/"/g, '&quot;')}" placeholder="icons/..." />
+            <button type="button" id="skill-image-picker-btn" class="file-picker-btn" title="Seleccionar imagen">
+              <i class="fas fa-folder-open"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Coste de Hope (0–5)</label>
+          <input type="number" id="skill-hope-cost" value="${skill.hopeCost}" min="0" max="5" style="width:80px;" />
+        </div>
+      </div>
+    `;
+
+    let resolvedName = '';
+    let resolvedImage = '';
+    let resolvedHopeCost = 0;
+
+    const result = await DialogV2Class.wait({
+      window: { title: 'Editar Habilidad' },
+      content,
+      render: (event: any, dialog: any) => {
+        const pickerBtn = dialog.element?.querySelector('#skill-image-picker-btn');
+        if (pickerBtn) {
+          pickerBtn.addEventListener('click', () => {
+            const imageInput = dialog.element?.querySelector('#skill-image') as HTMLInputElement;
+            const picker = new FilePicker({
+              type: 'image',
+              current: imageInput?.value || '',
+              callback: (path: string) => {
+                if (imageInput) imageInput.value = path;
+              },
+            });
+            picker.browse();
+          });
+        }
+      },
+      buttons: [
+        {
+          action: 'save',
+          icon: 'fas fa-save',
+          label: 'Guardar',
+          callback: (event: any, button: any, dialog: any) => {
+            const nameInput = dialog.element?.querySelector('#skill-name') as HTMLInputElement;
+            const imageInput = dialog.element?.querySelector('#skill-image') as HTMLInputElement;
+            const hopeCostInput = dialog.element?.querySelector('#skill-hope-cost') as HTMLInputElement;
+
+            const name = nameInput?.value?.trim();
+            if (!name) {
+              ui.notifications?.error('El nombre de la habilidad es obligatorio');
+              return false;
+            }
+
+            resolvedName = name;
+            resolvedImage = imageInput?.value?.trim() || '';
+            resolvedHopeCost = Math.min(5, Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0));
+            return 'save';
+          },
+        },
+        { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
+      ],
+    });
+
+    if (result === 'save' && resolvedName) {
+      this.currentData.skills = (this.currentData.skills || []).map((s) =>
+        s.id === skill.id
+          ? { ...s, name: resolvedName, image: resolvedImage || undefined, hopeCost: resolvedHopeCost }
+          : s
+      );
+      this.syncFormFields();
+      this.render(false);
+    }
   }
 
   // ── Traits ──────────────────────────────────────────────────────────────────
@@ -294,7 +408,9 @@ export class OfficerFormApplication extends FormApplication {
           label: 'Agregar',
           callback: (event: any, button: any, dialog: any) => {
             const titleInput = dialog.element?.querySelector('#trait-title') as HTMLInputElement;
-            const descInput = dialog.element?.querySelector('#trait-description') as HTMLTextAreaElement;
+            const descInput = dialog.element?.querySelector(
+              '#trait-description'
+            ) as HTMLTextAreaElement;
 
             const title = titleInput?.value?.trim();
             editorContent = descInput?.value || '';
@@ -325,6 +441,7 @@ export class OfficerFormApplication extends FormApplication {
       } else {
         this.currentData.cons = [...(this.currentData.cons || []), newTrait];
       }
+      this.syncFormFields();
       this.render(false);
     }
   }
@@ -335,7 +452,86 @@ export class OfficerFormApplication extends FormApplication {
     } else {
       this.currentData.cons = (this.currentData.cons || []).filter((c) => c.id !== traitId);
     }
+    this.syncFormFields();
     this.render(false);
+  }
+
+  private setupTraitEditButtons(html: JQuery) {
+    html.find('.trait-edit-btn').on('click', async (event) => {
+      event.preventDefault();
+      const traitId = $(event.currentTarget).data('trait-id');
+      const traitType = $(event.currentTarget).data('trait-type') as 'pro' | 'con';
+      const list = traitType === 'pro' ? this.currentData.pros : this.currentData.cons;
+      const trait = (list || []).find((t) => t.id === traitId);
+      if (trait) await this.showEditTraitDialog(traitType, trait);
+    });
+  }
+
+  private async showEditTraitDialog(type: 'pro' | 'con', trait: OfficerTrait) {
+    const DialogV2Class = foundry.applications?.api?.DialogV2;
+    if (!DialogV2Class) return;
+
+    const escapedTitle = trait.title.replace(/"/g, '&quot;');
+    const escapedDesc = trait.description.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const content = `
+      <div class="guard-dialog" style="padding: 0.5rem;">
+        <div class="form-group">
+          <label>Título <span style="color:#e84a4a">*</span></label>
+          <input type="text" id="trait-title" value="${escapedTitle}" autofocus />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="trait-description" rows="4">${escapedDesc}</textarea>
+        </div>
+      </div>
+    `;
+
+    let resolvedTitle = '';
+    let editorContent = '';
+
+    const result = await DialogV2Class.wait({
+      window: { title: type === 'pro' ? 'Editar Pro' : 'Editar Con' },
+      content,
+      buttons: [
+        {
+          action: 'save',
+          icon: 'fas fa-save',
+          label: 'Guardar',
+          callback: (event: any, button: any, dialog: any) => {
+            const titleInput = dialog.element?.querySelector('#trait-title') as HTMLInputElement;
+            const descInput = dialog.element?.querySelector('#trait-description') as HTMLTextAreaElement;
+
+            const title = titleInput?.value?.trim();
+            editorContent = descInput?.value || '';
+
+            if (!title) {
+              ui.notifications?.error('El título es obligatorio');
+              return false;
+            }
+
+            resolvedTitle = title;
+            return 'save';
+          },
+        },
+        { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
+      ],
+    });
+
+    if (result === 'save' && resolvedTitle) {
+      const update = (list: OfficerTrait[]) =>
+        list.map((t) =>
+          t.id === trait.id ? { ...t, title: resolvedTitle, description: editorContent } : t
+        );
+
+      if (type === 'pro') {
+        this.currentData.pros = update(this.currentData.pros || []);
+      } else {
+        this.currentData.cons = update(this.currentData.cons || []);
+      }
+      this.syncFormFields();
+      this.render(false);
+    }
   }
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -381,6 +577,7 @@ export class OfficerFormApplication extends FormApplication {
             description: c.description,
           })),
           organizationId: this.currentData.organizationId!,
+          visibleToPlayers: formData.visibleToPlayers ?? false,
         });
 
         ui.notifications?.info(`Oficial "${this.currentData.actorName}" creado`);
@@ -391,6 +588,7 @@ export class OfficerFormApplication extends FormApplication {
           pros: this.currentData.pros,
           cons: this.currentData.cons,
           organizationId: this.currentData.organizationId,
+          visibleToPlayers: formData.visibleToPlayers ?? false,
         });
 
         if (!updated) {

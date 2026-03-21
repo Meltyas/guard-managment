@@ -23,6 +23,7 @@ export class CustomInfoDialog implements FocusableDialog {
   private currentOrganization: GuardOrganization | null = null;
   // Tab state keys
   private static readonly TAB_LS_KEY = 'guard-management.infoDialog.selectedTab';
+  private static readonly POS_LS_KEY = 'guard-management.orgDialog.pos';
   private tabsInitialized = false;
   private resourceEventHandler: ((event: Event) => void) | null = null;
   private uiRefreshHandler?: (event: Event) => void;
@@ -67,6 +68,17 @@ export class CustomInfoDialog implements FocusableDialog {
     this.onEditCallback = options.onEdit;
     this.onCloseCallback = options.onClose;
 
+    // Load saved position from localStorage if no explicit position given
+    if (options.x == null && options.y == null) {
+      try {
+        const saved = localStorage.getItem(CustomInfoDialog.POS_LS_KEY);
+        if (saved) {
+          const pos = JSON.parse(saved);
+          options = { ...options, x: pos.x, y: pos.y, width: pos.width ?? options.width, height: pos.height ?? options.height };
+        }
+      } catch { /* ignore */ }
+    }
+
     // Create the dialog element directly with organization content
     this.element = await this.createOrganizationDialogElement(organization, options);
 
@@ -83,7 +95,7 @@ export class CustomInfoDialog implements FocusableDialog {
     DialogFocusManager.getInstance().setFocus(this);
 
     // Center on screen if no position specified
-    if (!options.x && !options.y) {
+    if (options.x == null && options.y == null) {
       this.centerOnScreen();
     }
 
@@ -104,8 +116,8 @@ export class CustomInfoDialog implements FocusableDialog {
     // Set initial size and position
     const width = options.width || 500;
     const height = options.height || 400;
-    const x = options.x || (window.innerWidth - width) / 2;
-    const y = options.y || (window.innerHeight - height) / 2;
+    const x = options.x ?? (window.innerWidth - width) / 2;
+    const y = options.y ?? (window.innerHeight - height) / 2;
 
     // Only set position and size, all other styles come from CSS
     dialog.style.left = `${x}px`;
@@ -835,6 +847,12 @@ export class CustomInfoDialog implements FocusableDialog {
   private handleMouseUp(): void {
     if (this.element) {
       this.element.style.cursor = '';
+      if ((this.isDragging || this.isResizing) && this.element) {
+        const r = this.element.getBoundingClientRect();
+        try {
+          localStorage.setItem(CustomInfoDialog.POS_LS_KEY, JSON.stringify({ x: r.left, y: r.top, width: r.width, height: r.height }));
+        } catch { /* ignore */ }
+      }
     }
     this.isDragging = false;
     this.isResizing = false;

@@ -106,6 +106,10 @@ export interface Patrol extends BaseEntity {
   // Effects applied directly to this patrol
   patrolEffects: PatrolEffectInstance[]; // Replaces customModifiers/activeEffects
 
+  // Hope pool for this patrol
+  currentHope?: number; // 0 to maxHope
+  maxHope?: number;     // 0-6, default 0 (inherited from org or per-patrol)
+
   // Last order issued to patrol
   lastOrder: PatrolLastOrder | null;
 

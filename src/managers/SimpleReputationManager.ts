@@ -17,10 +17,9 @@ export class SimpleReputationManager {
    */
   public async loadFromSettings(): Promise<void> {
     try {
-      const reputations = game?.settings?.get(
-        'guard-management',
-        'reputations'
-      ) as Reputation[] | null;
+      const reputations = game?.settings?.get('guard-management', 'reputations') as
+        | Reputation[]
+        | null;
       if (reputations && Array.isArray(reputations)) {
         this.reputations.clear();
         for (const r of reputations) {

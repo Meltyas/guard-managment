@@ -150,7 +150,9 @@ export class GuardOrganizationManager {
       // Obtener los managers de los managers globales
       const gm = (window as any).GuardManagement;
       if (!gm?.resourceManager || !gm?.reputationManager) {
-        console.error('GuardOrganizationManager | resourceManager or reputationManager not available');
+        console.error(
+          'GuardOrganizationManager | resourceManager or reputationManager not available'
+        );
         return;
       }
 
@@ -354,7 +356,7 @@ export class GuardOrganizationManager {
         resources: this.organization?.resources?.length,
         reputation: this.organization?.reputation?.length,
       });
-      
+
       if (broadcast) this.broadcastOrganization();
     } catch (error) {
       // Si hay error de permisos con settings, simplemente continuar con la sincronización
@@ -522,7 +524,10 @@ export class GuardOrganizationManager {
   }
 
   // Helper: create patrol and attach to organization
-  public async createPatrolForOrganization(data: { name: string; baseStats: GuardStats }): Promise<Patrol | null> {
+  public async createPatrolForOrganization(data: {
+    name: string;
+    baseStats: GuardStats;
+  }): Promise<Patrol | null> {
     if (!this.organization) {
       console.warn('GuardOrganizationManager | No organization for patrol creation');
       return null;

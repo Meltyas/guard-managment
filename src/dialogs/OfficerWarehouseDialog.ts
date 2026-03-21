@@ -9,6 +9,7 @@ import { AddOrEditOfficerDialog } from './AddOrEditOfficerDialog.js';
 
 export class OfficerWarehouseDialog {
   private static instance: OfficerWarehouseDialog | null = null;
+  private static readonly POS_LS_KEY = 'guard-management.officerWarehouse.pos';
   private element: HTMLElement | null = null;
   private isDragging = false;
   private dragOffset = { x: 0, y: 0 };
@@ -16,12 +17,12 @@ export class OfficerWarehouseDialog {
   /**
    * Static method to show the singleton instance
    */
-  public static async show(): Promise<void> {
+  public static async show(pos?: { x?: number; y?: number }): Promise<void> {
     if (!OfficerWarehouseDialog.instance) {
       OfficerWarehouseDialog.instance = new OfficerWarehouseDialog();
     }
 
-    await OfficerWarehouseDialog.instance.show();
+    await OfficerWarehouseDialog.instance.show(pos);
   }
 
   constructor() {
@@ -33,14 +34,32 @@ export class OfficerWarehouseDialog {
   /**
    * Show the officer warehouse dialog
    */
-  public async show(): Promise<void> {
+  public async show(pos?: { x?: number; y?: number }): Promise<void> {
     if (this.element && this.isOpen()) {
       this.bringToFront();
       return;
     }
 
+    // Load saved position from localStorage if no explicit position given
+    let resolvedPos = pos;
+    if (resolvedPos?.x == null) {
+      try {
+        const saved = localStorage.getItem(OfficerWarehouseDialog.POS_LS_KEY);
+        if (saved) {
+          const p = JSON.parse(saved);
+          resolvedPos = p;
+        }
+      } catch { /* ignore */ }
+    }
+
     this.element = await this.createElement();
     document.body.appendChild(this.element);
+
+    if (resolvedPos?.x !== undefined && resolvedPos?.y !== undefined) {
+      this.element.style.transform = 'none';
+      this.element.style.left = resolvedPos.x + 'px';
+      this.element.style.top = resolvedPos.y + 'px';
+    }
 
     this.addEventListeners();
     this.setupDragAndDrop();
@@ -120,7 +139,7 @@ export class OfficerWarehouseDialog {
   }
 
   /**
-   * Get officers from OfficerManager
+   * Get officers from OfficerManager (filtered by visibleToPlayers for non-GM)
    */
   private getOfficers(): Officer[] {
     const gm = (window as any).GuardManagement;
@@ -128,7 +147,9 @@ export class OfficerWarehouseDialog {
       return [];
     }
 
-    return gm.officerManager.list();
+    const isGM = (game as any)?.user?.isGM || false;
+    const all: Officer[] = gm.officerManager.list();
+    return isGM ? all : all.filter((o) => o.visibleToPlayers === true);
   }
 
   /**
@@ -378,14 +399,14 @@ export class OfficerWarehouseDialog {
 
     const result = await DialogV2Class.wait({
       window: {
-        title: 'Confirmar eliminación',
+        title: 'Confirmar vaciar actor',
       },
-      content: `<p>¿Estás seguro de que quieres eliminar al oficial "${officer.actorName}"?</p>`,
+      content: `<p>¿Estás seguro de que quieres eliminar el actor del oficial "${officer.actorName}"?</p><p style="color: #f39c12; font-size: 0.9em;"><strong>⚠️ Aviso:</strong> El oficial se quedará sin actor asignado y necesitarás asignar uno nuevo.</p>`,
       buttons: [
         {
           action: 'delete',
           icon: 'fas fa-trash',
-          label: 'Eliminar',
+          label: 'Vaciar actor',
         },
         {
           action: 'cancel',
@@ -398,13 +419,18 @@ export class OfficerWarehouseDialog {
     });
 
     if (result === 'delete') {
-      const deleted = gm.officerManager.delete(officerId);
+      // Clear the actor assignment instead of deleting the entire officer
+      const updated = gm.officerManager.update(officerId, {
+        actorId: '',
+        actorName: '',
+        actorImg: undefined,
+      });
 
-      if (deleted) {
+      if (updated) {
         await this.refresh();
 
         if (ui?.notifications) {
-          ui.notifications.info(`Oficial "${officer.actorName}" eliminado`);
+          ui.notifications.warn(`Actor del oficial vacío. Debes asignar un nuevo actor a este oficial.`);
         }
       }
     }
@@ -469,6 +495,12 @@ export class OfficerWarehouseDialog {
    * Handle mouse up (end drag)
    */
   private handleMouseUp(): void {
+    if (this.isDragging && this.element) {
+      const r = this.element.getBoundingClientRect();
+      try {
+        localStorage.setItem(OfficerWarehouseDialog.POS_LS_KEY, JSON.stringify({ x: r.left, y: r.top }));
+      } catch { /* ignore */ }
+    }
     this.isDragging = false;
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);

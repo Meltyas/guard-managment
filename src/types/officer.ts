@@ -38,6 +38,9 @@ export interface Officer extends BaseEntity {
 
   // Optional metadata
   organizationId?: string;
+
+  // Visibility: if true, players can see this officer in the warehouse
+  visibleToPlayers?: boolean;
 }
 
 /**

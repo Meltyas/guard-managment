@@ -44,7 +44,7 @@ export class GuardDialogManager {
   /**
    * Show the organization management dialog (mostrar información de la organización)
    */
-  public async showManageOrganizationsDialog(): Promise<void> {
+  public async showManageOrganizationsDialog(pos?: { x?: number; y?: number; width?: number; height?: number }): Promise<void> {
     const organization = this.guardOrganizationManager.getOrganization();
 
     if (!organization) {
@@ -53,13 +53,13 @@ export class GuardDialogManager {
     }
 
     // Mostrar diálogo de información con botón para editar
-    await this.showOrganizationInfoDialog(organization);
+    await this.showOrganizationInfoDialog(organization, pos);
   }
 
   /**
    * Mostrar diálogo de información de la organización (Custom HTML Dialog)
    */
-  private async showOrganizationInfoDialog(organization: GuardOrganization): Promise<void> {
+  private async showOrganizationInfoDialog(organization: GuardOrganization, pos?: { x?: number; y?: number; width?: number; height?: number }): Promise<void> {
     try {
       // Cerrar diálogo anterior si existe
       if (this.customInfoDialog && this.customInfoDialog.isOpen()) {
@@ -71,8 +71,10 @@ export class GuardDialogManager {
 
       // Mostrar el diálogo con la organización
       this.customInfoDialog.showOrganizationInfo(organization, {
-        width: 600,
-        height: 500,
+        width: pos?.width ?? 600,
+        height: pos?.height ?? 500,
+        x: pos?.x,
+        y: pos?.y,
         onEdit: async () => {
           // Abrir diálogo de edición
           const updatedOrg = await this.showEditOrganizationDialog();

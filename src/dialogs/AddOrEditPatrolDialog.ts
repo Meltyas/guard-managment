@@ -6,6 +6,7 @@ interface PatrolDialogData {
   baseStats: GuardStats;
   organizationId: string;
   soldierSlots: number;
+  maxHope: number;
 }
 
 export class AddOrEditPatrolDialog {
@@ -44,6 +45,7 @@ export class AddOrEditPatrolDialog {
                 subtitle: (fd.get('subtitle') as string) || '',
                 organizationId: fd.get('organizationId') as string,
                 soldierSlots: parseInt(fd.get('soldierSlots') as string) || 5,
+                maxHope: Math.min(6, Math.max(0, parseInt(fd.get('maxHope') as string) || 0)),
                 baseStats: {
                   robustismo: (() => {
                     const v = parseInt(fd.get('stat_robustismo') as string);
@@ -81,6 +83,8 @@ export class AddOrEditPatrolDialog {
                   organizationId: data.organizationId,
                   baseStats: data.baseStats,
                   soldierSlots: data.soldierSlots,
+                  maxHope: data.maxHope,
+                  currentHope: 0,
                 } as any);
                 // persist via manager helper
                 orgMgr.upsertPatrolSnapshot(patrolMgr.getPatrol(created.id)!);
@@ -91,6 +95,7 @@ export class AddOrEditPatrolDialog {
                   subtitle: data.subtitle.trim(),
                   baseStats: data.baseStats,
                   soldierSlots: data.soldierSlots,
+                  maxHope: data.maxHope,
                 });
                 const updated = patrolMgr.getPatrol(existing.id) || null;
                 if (updated) {
@@ -125,6 +130,7 @@ export class AddOrEditPatrolDialog {
       subtitle: existing?.subtitle || '',
       organizationId,
       soldierSlots: existing?.soldierSlots || 5,
+      maxHope: existing?.maxHope ?? 0,
       baseStats: existing?.baseStats || {
         robustismo: 0,
         analitica: 0,

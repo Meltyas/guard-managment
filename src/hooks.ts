@@ -21,25 +21,31 @@ export function registerHooks(): void {
 
   // Intercept preCreate for Guard Management actors/items BEFORE Daggerheart processes them
   // By returning false from a preCreate hook, we prevent the default creation and do it ourselves
-  (Hooks as any).on('preCreateActor', async (document: any, _data: any, options: any, _userId: string) => {
-    if (document.type?.startsWith('guard-management.')) {
-      console.log(`GuardManagement | Intercepting actor creation: ${document.type}`);
-      // Mark as handled so we don't create it again
-      options._guardManagementHandled = true;
-      // Allow the creation to proceed without Daggerheart interference
-      return true;
+  (Hooks as any).on(
+    'preCreateActor',
+    async (document: any, _data: any, options: any, _userId: string) => {
+      if (document.type?.startsWith('guard-management.')) {
+        console.log(`GuardManagement | Intercepting actor creation: ${document.type}`);
+        // Mark as handled so we don't create it again
+        options._guardManagementHandled = true;
+        // Allow the creation to proceed without Daggerheart interference
+        return true;
+      }
     }
-  });
+  );
 
-  (Hooks as any).on('preCreateItem', async (document: any, _data: any, options: any, _userId: string) => {
-    if (document.type?.startsWith('guard-management.')) {
-      console.log(`GuardManagement | Intercepting item creation: ${document.type}`);
-      // Mark as handled
-      options._guardManagementHandled = true;
-      // Allow the creation to proceed without Daggerheart interference
-      return true;
+  (Hooks as any).on(
+    'preCreateItem',
+    async (document: any, _data: any, options: any, _userId: string) => {
+      if (document.type?.startsWith('guard-management.')) {
+        console.log(`GuardManagement | Intercepting item creation: ${document.type}`);
+        // Mark as handled
+        options._guardManagementHandled = true;
+        // Allow the creation to proceed without Daggerheart interference
+        return true;
+      }
     }
-  });
+  );
 
   // Wrap Daggerheart's Actor class to handle our custom types
   // This runs in setup to ensure it happens after Daggerheart initializes
@@ -95,6 +101,24 @@ export function registerHooks(): void {
           super.prepareData();
         }
       }
+
+      /**
+       * Add isInventoryItem getter for Daggerheart compatibility
+       * This prevents errors when Daggerheart tries to filter items
+       */
+      get isInventoryItem(): boolean {
+        // Guard Management items are NEVER inventory items
+        if (this.type?.startsWith('guard-management.')) {
+          return false;
+        }
+        // For other types, check parent implementation
+        const parentDescriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(OriginalItemClass.prototype), 'isInventoryItem');
+        if (parentDescriptor?.get) {
+          return parentDescriptor.get.call(this);
+        }
+        // Fallback: assume it's not an inventory item if no parent implementation
+        return false;
+      }
     }
 
     CONFIG.Item.documentClass = GuardManagementItem as any;
@@ -116,12 +140,48 @@ export function registerHooks(): void {
       if (typeof originalGetRollData === 'function') {
         ChatMessageImpl.prototype.getRollData = function (this: any) {
           if (this.flags?.['guard-management']) return {};
-          return originalGetRollData.call(this);
+          try {
+            return originalGetRollData.call(this);
+          } catch (e) {
+            // Gracefully handle deleted actors or Daggerheart system types
+            // that don't implement getRollData (e.g. after actor deletion)
+            return {};
+          }
         };
-        console.log('GuardManagement | Patched ChatMessage.getRollData to skip actor resolution for module messages');
+        console.log(
+          'GuardManagement | Patched ChatMessage.getRollData to skip actor resolution for module messages'
+        );
       }
     } catch (e) {
       console.warn('GuardManagement | Could not patch ChatMessage.getRollData:', e);
+    }
+  });
+
+  // Patch Actor.items getter to filter out Guard Management items when accessed by Daggerheart
+  // This prevents Daggerheart from trying to process our custom item types
+  Hooks.once('ready', () => {
+    try {
+      const OriginalActorClass = CONFIG.Actor.documentClass;
+      const originalItemsGetter = Object.getOwnPropertyDescriptor(OriginalActorClass.prototype, 'items');
+
+      if (originalItemsGetter?.get) {
+        const originalGet = originalItemsGetter.get;
+        Object.defineProperty(OriginalActorClass.prototype, 'items', {
+          get(this: any) {
+            const items = originalGet.call(this);
+            // Filter out Guard Management items from the collection to prevent Daggerheart processing
+            if (items && typeof items.filter === 'function') {
+              return items.filter((item: any) => !item.type?.startsWith('guard-management.'));
+            }
+            return items;
+          },
+          configurable: true,
+          enumerable: true,
+        });
+        console.log('GuardManagement | Patched Actor.items getter to filter Guard Management items');
+      }
+    } catch (e) {
+      console.warn('GuardManagement | Could not patch Actor.items getter:', e);
     }
   });
 
@@ -176,6 +236,46 @@ export function registerHooks(): void {
       }
     } catch (err) {
       console.error('GuardManagement | Token update handling error', err);
+    }
+  });
+
+  // When an actor is deleted, clean up any patrol references to it
+  Hooks.on('deleteActor', async (actor: any) => {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm) return;
+
+      const deletedActorId: string = actor.id;
+      const orgMgr = gm?.guardOrganizationManager;
+      const pMgr = orgMgr?.getPatrolManager?.();
+      if (!pMgr) return;
+
+      for (const patrol of pMgr.list() as any[]) {
+        const updates: Record<string, any> = {};
+
+        // Clear officer slot if it references the deleted actor
+        if (patrol.officer?.actorId === deletedActorId) {
+          updates.officer = null;
+        }
+
+        // Remove soldiers that reference the deleted actor
+        const before = (patrol.soldiers as any[]).length;
+        const filteredSoldiers = (patrol.soldiers as any[]).filter(
+          (s: any) => s.actorId !== deletedActorId
+        );
+        if (filteredSoldiers.length !== before) {
+          updates.soldiers = filteredSoldiers;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await pMgr.updatePatrol(patrol.id, updates);
+          console.log(
+            `GuardManagement | Cleaned patrol "${patrol.name}" after actor deletion (${deletedActorId})`
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('GuardManagement | Error cleaning up after actor deletion:', e);
     }
   });
 
@@ -342,6 +442,99 @@ export function registerHooks(): void {
     } catch (e) {
       console.error('GuardManagement | Error rendering chat breakdown:', e);
     }
+  });
+
+  // ---- F5 Session Persistence ----
+  const SESSION_KEY = 'guard-management.session';
+
+  /** Collect which dialogs are open and their positions, save to localStorage */
+  function saveSessionState() {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm) return;
+      const session: Record<string, any> = {};
+
+      // Organization info dialog
+      const infoDialog = gm.guardDialogManager?.customInfoDialog;
+      if (infoDialog?.isOpen?.() && infoDialog.element) {
+        const r = infoDialog.element.getBoundingClientRect();
+        session.orgDialog = { open: true, x: r.left, y: r.top, width: r.width, height: r.height };
+      }
+
+      // Officer warehouse
+      const OWH = gm.OfficerWarehouseDialog ?? (window as any).GuardManagement?.OfficerWarehouseDialog;
+      const offInst = OWH?.instance;
+      if (offInst?.isOpen?.() && offInst.element) {
+        const r = offInst.element.getBoundingClientRect();
+        session.officerWarehouse = { open: true, x: r.left, y: r.top };
+      }
+
+      // GM warehouse
+      const GMWH = gm.GMWarehouseDialog ?? (window as any).GuardManagement?.GMWarehouseDialog;
+      const gmInst = GMWH?.instance;
+      if (gmInst?.isOpen?.() && gmInst.element) {
+        const r = gmInst.element.getBoundingClientRect();
+        session.gmWarehouse = { open: true, x: r.left, y: r.top, width: r.width, height: r.height };
+      }
+
+      if (Object.keys(session).length > 0) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
+    } catch (e) {
+      console.warn('GuardManagement | Error saving session state:', e);
+    }
+  }
+
+  /** Restore open dialogs from saved session state */
+  async function restoreSessionState() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      localStorage.removeItem(SESSION_KEY);
+      const session = JSON.parse(raw);
+
+      const gm = (window as any).GuardManagement;
+      if (!gm?.isInitialized) return;
+
+      if (session.orgDialog?.open) {
+        await gm.guardDialogManager?.showManageOrganizationsDialog({
+          x: session.orgDialog.x,
+          y: session.orgDialog.y,
+          width: session.orgDialog.width,
+          height: session.orgDialog.height,
+        });
+      }
+
+      if (session.officerWarehouse?.open) {
+        const OWH = gm.OfficerWarehouseDialog;
+        if (OWH) {
+          await OWH.show({ x: session.officerWarehouse.x, y: session.officerWarehouse.y });
+        }
+      }
+
+      if (session.gmWarehouse?.open) {
+        const GMWH = gm.GMWarehouseDialog;
+        if (GMWH) {
+          await GMWH.show({
+            x: session.gmWarehouse.x,
+            y: session.gmWarehouse.y,
+            width: session.gmWarehouse.width,
+            height: session.gmWarehouse.height,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('GuardManagement | Error restoring session state:', e);
+    }
+  }
+
+  Hooks.once('ready', () => {
+    // Register beforeunload to save open dialogs
+    window.addEventListener('beforeunload', saveSessionState);
+    // Restore after a brief delay to let the module finish initializing
+    setTimeout(() => restoreSessionState(), 800);
   });
 
   console.log('GuardManagement | Hooks registered successfully');

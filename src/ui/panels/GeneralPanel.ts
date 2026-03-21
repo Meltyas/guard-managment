@@ -139,7 +139,9 @@ export class GeneralPanel {
 
     for (const off of allOfficers) {
       if (!off.skills?.length) continue;
-      const patrolName = off.actorId ? (patrolNameByActorId.get(off.actorId) || 'Sin patrulla') : 'Sin patrulla';
+      const patrolName = off.actorId
+        ? patrolNameByActorId.get(off.actorId) || 'Sin patrulla'
+        : 'Sin patrulla';
       for (const skill of off.skills) {
         officerSkills.push({
           skillName: skill.name,
@@ -158,7 +160,7 @@ export class GeneralPanel {
       statsDisplay,
       officerSkills,
     });
-    
+
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
 
@@ -274,9 +276,12 @@ export class GeneralPanel {
     hopeCost: number;
     officerName?: string;
   }) {
-    const heartIcons = skill.hopeCost > 0
-      ? Array(skill.hopeCost).fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>').join(' ')
-      : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
+    const heartIcons =
+      skill.hopeCost > 0
+        ? Array(skill.hopeCost)
+            .fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>')
+            .join(' ')
+        : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
 
     const content = `
       <div class="guard-resource-chat">

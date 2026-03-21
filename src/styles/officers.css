@@ -157,6 +157,22 @@
   border-color: #f44336;
 }
 
+.skill-edit-btn {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #81c784;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.skill-edit-btn:hover {
+  background: rgba(76, 175, 80, 0.3);
+  border-color: #4caf50;
+}
+
 .skill-description {
   font-size: 0.9rem;
   line-height: 1.5;
@@ -281,6 +297,38 @@
   color: #f44336;
 }
 
+.trait-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-light-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.2s ease;
+}
+
+.trait-edit-btn:hover {
+  color: #81c784;
+}
+
+.form-group-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group-checkbox label {
+  margin: 0;
+  cursor: pointer;
+  flex: 1;
+}
+
+.form-group-checkbox input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .trait-description {
   font-size: 0.85rem;
   color: var(--color-text-light-secondary);
@@ -357,14 +405,15 @@
 
 .officers-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 1rem;
 }
 
 .officer-card {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -383,77 +432,197 @@
   cursor: grabbing;
 }
 
+.officer-card-top {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
 .officer-avatar {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--color-border-highlight);
   flex-shrink: 0;
 }
 
+.officer-avatar img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .officer-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .officer-name {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: bold;
 }
 
 .officer-title {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--color-text-light-secondary);
   font-style: italic;
 }
 
-.officer-traits-summary {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
+.visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-top: 2px;
+  width: fit-content;
 }
 
-.pros-count {
-  color: #4caf50;
+.visibility-badge.visible {
+  background: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+  border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
-.cons-count {
-  color: #f44336;
+.visibility-badge.hidden {
+  background: rgba(120, 120, 120, 0.15);
+  color: #aaa;
+  border: 1px solid rgba(120, 120, 120, 0.25);
 }
 
 .officer-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 4px;
   flex-shrink: 0;
 }
 
-.officer-actions button {
-  padding: 0.5rem;
+/* Compact icon-only buttons */
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.8rem;
 }
 
-.view-officer-btn:hover {
-  background: rgba(33, 150, 243, 0.2);
-  border-color: #2196f3;
-}
-
-.edit-officer-btn:hover {
+.icon-btn:hover {
   background: rgba(76, 175, 80, 0.2);
   border-color: #4caf50;
 }
 
-.delete-officer-btn:hover {
+.icon-btn.icon-btn-danger:hover {
   background: rgba(244, 67, 54, 0.2);
   border-color: #f44336;
+}
+
+/* Skills preview in warehouse card */
+.officer-skills-preview {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 0.5rem;
+}
+
+.preview-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 4px;
+}
+
+.officer-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 0.8rem;
+}
+
+.skill-preview-img {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: cover;
+  border: none;
+  flex-shrink: 0;
+}
+
+.skill-preview-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.skill-preview-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.skill-preview-cost {
+  font-size: 0.72rem;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #ff8080;
+}
+
+/* Traits preview in warehouse card */
+.officer-traits-preview {
+  display: flex;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 0.5rem;
+}
+
+.traits-preview-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.pros-label {
+  color: #81c784;
+}
+
+.cons-label {
+  color: #e57373;
+}
+
+.trait-preview-item {
+  font-size: 0.78rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pro-item {
+  color: #a5d6a7;
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.con-item {
+  color: #ef9a9a;
+  background: rgba(244, 67, 54, 0.08);
 }
 
 /* ==================== Officer Details View ==================== */
@@ -901,6 +1070,7 @@
   width: 40px;
   height: 40px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .officer-avatar-img {
@@ -943,6 +1113,46 @@
 .officer-edit-btn:hover {
   background: #f3c267;
   color: #18162e;
+}
+
+/* ==================== Shift-mode unassign overlay ==================== */
+
+.soldier-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Small × badge shown on avatars when Shift is held */
+.shift-unassign {
+  display: none;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  background: #c0392b;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 8px;
+  cursor: pointer;
+  z-index: 20;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+[data-patrols-panel].shift-held .officer-avatar-wrap:hover .shift-unassign,
+[data-patrols-panel].shift-held .soldier-wrapper:hover .shift-unassign {
+  display: flex;
+}
+
+.shift-unassign:hover {
+  background: #e74c3c;
+  transform: scale(1.15);
 }
 
 /* ==================== Patrol Card: Officer Skills at bottom ==================== */
@@ -1039,4 +1249,3 @@
   align-items: center;
   gap: 6px;
 }
-

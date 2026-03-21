@@ -31,9 +31,9 @@ export class PatrolsPanel {
 
       // Format stats breakdown for template
       const statsBreakdown: Record<string, any> = {};
-      Object.entries(p.derivedStats || p.baseStats || {}).forEach(([k, v]) => {
-        const b = (bd as any)[k] || { base: 0, effects: 0, effectList: [], org: 0, total: v };
-        statsBreakdown[k] = { ...b, total: v as number };
+      Object.keys(p.baseStats || {}).forEach((k) => {
+        const b = (bd as any)[k];
+        if (b) statsBreakdown[k] = b;
       });
 
       // Prepare slots
@@ -50,6 +50,13 @@ export class PatrolsPanel {
       // Resolve officer record from officerManager to get name + skills
       const officerRecord = p.officer?.actorId ? officerByActorId.get(p.officer.actorId) : null;
 
+      // Format last order date
+      let lastOrderDate: string | null = null;
+      if (lastOrder?.issuedAt) {
+        const d = new Date(lastOrder.issuedAt);
+        lastOrderDate = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+
       return {
         ...p,
         ageClass,
@@ -60,6 +67,17 @@ export class PatrolsPanel {
         officerId: officerRecord?.id || null,
         officerImgDisplay: officerRecord?.actorImg || p.officer?.img || null,
         officerSkills: officerRecord?.skills?.length ? officerRecord.skills : [],
+        officerPros: officerRecord?.pros || [],
+        officerCons: officerRecord?.cons || [],
+        currentHope: p.currentHope ?? 0,
+        maxHope: p.maxHope ?? 0,
+        hopePips: (p.maxHope ?? 0) > 0
+          ? Array.from({ length: p.maxHope ?? 0 }, (_, i) => ({
+              filled: i < (p.currentHope ?? 0),
+              index: i + 1,
+            }))
+          : [],
+        lastOrderDate,
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
           ? {
@@ -81,7 +99,7 @@ export class PatrolsPanel {
   static async render(container: HTMLElement) {
     const data = await this.getData();
     const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-    
+
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
     this.activateListeners(container);
@@ -89,6 +107,22 @@ export class PatrolsPanel {
 
   static activateListeners(container: HTMLElement) {
     const $html = $(container);
+
+    // Shift-key tracking: show unassign buttons over avatars when Shift is held
+    const prevHandlers = (container as any)._guardShiftHandlers;
+    if (prevHandlers) {
+      document.removeEventListener('keydown', prevHandlers.down);
+      document.removeEventListener('keyup', prevHandlers.up);
+      window.removeEventListener('blur', prevHandlers.blur);
+    }
+    const patrolPanel = container.querySelector('[data-patrols-panel]') as HTMLElement | null ?? container;
+    const handlerDown = (e: KeyboardEvent) => { if (e.key === 'Shift') patrolPanel.classList.add('shift-held'); };
+    const handlerUp = (e: KeyboardEvent) => { if (e.key === 'Shift') patrolPanel.classList.remove('shift-held'); };
+    const handlerBlur = () => patrolPanel.classList.remove('shift-held');
+    document.addEventListener('keydown', handlerDown);
+    document.addEventListener('keyup', handlerUp);
+    window.addEventListener('blur', handlerBlur);
+    (container as any)._guardShiftHandlers = { down: handlerDown, up: handlerUp, blur: handlerBlur };
 
     // Drag & Drop
     this.setupPatrolZonesDnD(container, () => this.refresh(container));
@@ -116,10 +150,18 @@ export class PatrolsPanel {
     });
     $html.find('[data-action="edit-last-order"]').on('click', (ev) => {
       ev.preventDefault();
-      // Handle click on the line or the icon
-      const target = ev.currentTarget;
-      const id = target.dataset.patrolId;
+      ev.stopPropagation();
+      const id = ev.currentTarget.dataset.patrolId;
       if (id) this.handleEditLastOrder(id, () => this.refresh(container));
+    });
+    // Toggle last-order body visibility
+    $html.find('.last-order-header').on('click', (ev) => {
+      const header = ev.currentTarget as HTMLElement;
+      const body = header.nextElementSibling as HTMLElement | null;
+      if (!body) return;
+      const isHidden = body.style.display === 'none' || body.style.display === '';
+      body.style.display = isHidden ? 'block' : 'none';
+      header.querySelector('.last-order-chevron')?.classList.toggle('open', isHidden);
     });
     $html.find('[data-action="open-sheet"]').on('click', (ev) => {
       ev.preventDefault();
@@ -142,6 +184,19 @@ export class PatrolsPanel {
       ev.preventDefault();
       const officerId = ev.currentTarget.dataset.officerId;
       if (officerId) this.handleEditOfficer(officerId, () => this.refresh(container));
+    });
+    $html.find('[data-action="unassign-officer"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const patrolId = ev.currentTarget.dataset.patrolId;
+      if (patrolId) this.handleUnassignOfficer(patrolId, () => this.refresh(container));
+    });
+    $html.find('[data-action="unassign-soldier"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const patrolId = ev.currentTarget.dataset.patrolId;
+      const actorId = ev.currentTarget.dataset.actorId;
+      if (patrolId && actorId) this.handleUnassignSoldier(patrolId, actorId, () => this.refresh(container));
     });
 
     // Stat interactions
@@ -188,6 +243,37 @@ export class PatrolsPanel {
       if (patrolId && effectId)
         this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container));
     });
+
+    // Hope pip counter
+    $html.find('[data-action="hope-pip"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const el = ev.currentTarget;
+      const patrolId = el.dataset.patrolId;
+      const index = parseInt(el.dataset.value || '0', 10);
+      if (patrolId && index) this.handleHopePip(patrolId, index, () => this.refresh(container));
+    });
+
+    // Officer traits: toggle section + send to chat
+    $html.find('.patrol-traits-header').on('click', (ev) => {
+      const header = ev.currentTarget as HTMLElement;
+      const body = header.nextElementSibling as HTMLElement | null;
+      if (!body) return;
+      const isHidden = body.style.display === 'none' || body.style.display === '';
+      body.style.display = isHidden ? 'block' : 'none';
+      header.querySelector('.patrol-traits-chevron')?.classList.toggle('open', isHidden);
+    });
+    $html.find('[data-action="trait-to-chat"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const el = ev.currentTarget as HTMLElement;
+      this.handleTraitToChat({
+        title: el.dataset.traitTitle || '',
+        description: el.dataset.traitDescription || '',
+        type: (el.dataset.traitType as 'pro' | 'con') || 'pro',
+        officerName: el.dataset.officerName || '',
+      });
+    });
   }
 
   static async refresh(container: HTMLElement) {
@@ -196,9 +282,7 @@ export class PatrolsPanel {
 
   private static computePatrolStatBreakdown(patrol: any) {
     try {
-      const derived = patrol.derivedStats || patrol.baseStats || {};
-
-      // Get Organization Modifiers
+      // Get Organization Modifiers (item-level modifiers with name + value)
       const gm = (window as any).GuardManagement;
       const orgMgr = gm?.guardOrganizationManager;
       const activeModifiers = orgMgr?.getActiveModifiers() || [];
@@ -222,6 +306,9 @@ export class PatrolsPanel {
           }
         }
       }
+
+      // Get full org contribution (org baseStats + modifiers) — always live, not stale
+      const orgStats: Record<string, number> = (orgMgr?.calculateEffectiveOrgStats?.() as any) || {};
 
       const effectTotals: Record<string, number> = {};
       const effectDetails: Record<string, Array<{ name: string; img: string; value: number }>> = {};
@@ -251,28 +338,42 @@ export class PatrolsPanel {
           orgMods: number;
           orgModList: any[];
           total: number;
+          totalClass: string;
         }
       > = {};
-      for (const key of Object.keys(derived)) {
+
+      for (const key of Object.keys(patrol.baseStats || {})) {
         const base = patrol.baseStats?.[key] ?? 0;
         const effects = effectTotals[key] || 0;
         const effectList = effectDetails[key] || [];
-        const total = derived[key] ?? 0; // preserve negatives
 
-        const orgTotal = total - base - effects;
+        const orgContrib = orgStats[key] ?? 0; // full live org contribution (base + mods)
         const orgMods = orgModTotals[key] || 0;
-        const orgBase = orgTotal - orgMods;
+        const orgBase = orgContrib - orgMods;
         const orgModList = orgModDetails[key] || [];
+
+        const total = base + orgContrib + effects; // always from live data
+
+        // Color class: green = only positive, red = only negative, yellow = mixed
+        const allModValues: number[] = [
+          ...orgModList.map((m: any) => m.value),
+          ...effectList.map((e: any) => e.value),
+        ];
+        if (orgBase !== 0) allModValues.push(orgBase);
+        const hasPos = allModValues.some((v) => v > 0);
+        const hasNeg = allModValues.some((v) => v < 0);
+        const totalClass = hasPos && hasNeg ? 'stat-mixed' : hasPos ? 'stat-positive' : hasNeg ? 'stat-negative' : '';
 
         breakdown[key] = {
           base,
           effects,
           effectList,
-          org: orgTotal,
+          org: orgContrib,
           orgBase,
           orgMods,
           orgModList,
           total,
+          totalClass,
         };
       }
       return breakdown;
@@ -406,6 +507,19 @@ export class PatrolsPanel {
         ev.preventDefault();
         zone.classList.remove('dnd-hover');
         card?.classList.remove('dnd-active');
+
+        // Officer slots only accept drags from the Officer Warehouse
+        if (mode === 'officer') {
+          const strings = pullAllDataStrings(ev);
+          const isOfficerDrag = strings.some((raw) => {
+            const d = parseCandidate(raw);
+            return d?.type === 'Officer';
+          });
+          if (!isOfficerDrag) {
+            return ui?.notifications?.warn?.('Solo se pueden asignar oficiales desde el Almacén de Oficiales');
+          }
+        }
+
         const actor = await obtainActor(ev);
         if (!actor) {
           console.warn('PatrolsPanel | Actor no resuelto desde drag data', ev.dataTransfer?.types);
@@ -415,6 +529,14 @@ export class PatrolsPanel {
           const patrol = pMgr.getPatrol(pid);
           if (!patrol) return;
           if (mode === 'officer') {
+            // Warn before replacing an existing officer
+            if (patrol.officer && patrol.officer.actorId !== actor.id) {
+              const confirmed = await Dialog.confirm({
+                title: 'Reemplazar Oficial',
+                content: `<p>¿Reemplazar a <strong>${patrol.officer.name}</strong> con <strong>${actor.name}</strong>?</p>`,
+              });
+              if (!confirmed) return;
+            }
             pMgr.assignOfficer(pid, {
               actorId: actor.id,
               name: actor.name,
@@ -423,6 +545,15 @@ export class PatrolsPanel {
             });
             ui?.notifications?.info?.(`Oficial asignado: ${actor.name}`);
           } else {
+            // Warn about duplicate soldier
+            const isDuplicate = (patrol.soldiers as any[]).some((s: any) => s.actorId === actor.id);
+            if (isDuplicate) {
+              const confirmed = await Dialog.confirm({
+                title: 'Soldado duplicado',
+                content: `<p><strong>${actor.name}</strong> ya está en esta patrulla. ¿Añadir igualmente?</p>`,
+              });
+              if (!confirmed) return;
+            }
             pMgr.addSoldier(pid, {
               actorId: actor.id,
               name: actor.name,
@@ -781,7 +912,12 @@ export class PatrolsPanel {
 
                 await (ChatMessage as any).create({
                   content: content,
-                  speaker: { scene: null, actor: null, token: null, alias: 'Comandante de la Guardia' },
+                  speaker: {
+                    scene: null,
+                    actor: null,
+                    token: null,
+                    alias: 'Comandante de la Guardia',
+                  },
                   flags: { 'guard-management': { type: 'last-order' } },
                 });
               }
@@ -820,9 +956,12 @@ export class PatrolsPanel {
     hopeCost: number;
     officerName?: string;
   }) {
-    const heartIcons = skill.hopeCost > 0
-      ? Array(skill.hopeCost).fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>').join(' ')
-      : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
+    const heartIcons =
+      skill.hopeCost > 0
+        ? Array(skill.hopeCost)
+            .fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>')
+            .join(' ')
+        : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
 
     const content = `
       <div class="guard-resource-chat">
@@ -856,6 +995,32 @@ export class PatrolsPanel {
     if (result) {
       refreshCallback();
     }
+  }
+
+  public static async handleUnassignOfficer(patrolId: string, refreshCallback: () => void) {
+    const gm = (window as any).GuardManagement;
+    const pMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
+    if (!pMgr) return;
+    await pMgr.updatePatrol(patrolId, { officer: null });
+    refreshCallback();
+  }
+
+  public static async handleUnassignSoldier(
+    patrolId: string,
+    actorId: string,
+    refreshCallback: () => void
+  ) {
+    const gm = (window as any).GuardManagement;
+    const pMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
+    if (!pMgr) return;
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+    // Remove first matching soldier
+    const idx = patrol.soldiers.findIndex((s: any) => s.actorId === actorId);
+    if (idx === -1) return;
+    const updatedSoldiers = [...patrol.soldiers.slice(0, idx), ...patrol.soldiers.slice(idx + 1)];
+    await pMgr.updatePatrol(patrolId, { soldiers: updatedSoldiers });
+    refreshCallback();
   }
 
   public static async handleEffectClick(patrolId: string, effectId: string) {
@@ -918,5 +1083,48 @@ export class PatrolsPanel {
     pMgr.removeEffect(patrolId, effectId);
     ui?.notifications?.info('Efecto eliminado');
     refreshCallback();
+  }
+
+  public static async handleHopePip(
+    patrolId: string,
+    index: number,
+    refreshCallback: () => void
+  ) {
+    const gm = (window as any).GuardManagement;
+    const pMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
+    if (!pMgr) return;
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+    const current = patrol.currentHope ?? 0;
+    const max = patrol.maxHope ?? 0;
+    // Click filled pip → decrease to index-1; click empty pip → fill up to index
+    const newHope = current >= index ? index - 1 : Math.min(index, max);
+    if (newHope === current) return;
+    await pMgr.updatePatrol(patrolId, { currentHope: newHope });
+    refreshCallback();
+  }
+
+  public static async handleTraitToChat(trait: {
+    title: string;
+    description: string;
+    type: 'pro' | 'con';
+    officerName: string;
+  }) {
+    const icon =
+      trait.type === 'pro'
+        ? '<i class="fas fa-plus-circle" style="color:#9acd32"></i>'
+        : '<i class="fas fa-minus-circle" style="color:#ff6b6b"></i>';
+    const content = `
+      <div class="guard-resource-chat">
+        <div class="chat-header">${icon} ${trait.title}</div>
+        ${trait.officerName ? `<div style="font-size:0.85em;opacity:0.75;"><i class="fas fa-user"></i> ${trait.officerName}</div>` : ''}
+        <div class="resource-description">${trait.description || ''}</div>
+      </div>
+    `;
+    await (ChatMessage as any).create({
+      content,
+      speaker: { scene: null, actor: null, token: null, alias: 'Rasgo de Oficial' },
+      flags: { 'guard-management': { type: 'officer-trait' } },
+    });
   }
 }

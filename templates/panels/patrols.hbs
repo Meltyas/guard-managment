@@ -14,20 +14,87 @@
                         <span class="name">{{this.name}}</span>
                         {{#if this.subtitle}}<span class="subtitle">{{this.subtitle}}</span>{{/if}}
                     </div>
+
+                    {{#if this.hopePips.length}}
+                    <div class="patrol-hope-section">
+                        <div class="hope-pips">
+                            {{#each this.hopePips}}
+                            <span class="hope-pip {{#if this.filled}}filled{{/if}}"
+                                  data-action="hope-pip"
+                                  data-patrol-id="{{../id}}"
+                                  data-value="{{this.index}}">
+                                {{#if this.filled}}<i class="fa-solid fa-diamond"></i>{{else}}<i class="fa-regular fa-circle"></i>{{/if}}
+                            </span>
+                            {{/each}}
+                        </div>
+                        <span class="hope-label">HOPE</span>
+                    </div>
+                    {{/if}}
+
                     <div class="stats-mini">
                         {{#each this.statsBreakdown as |stat key|}}
                         <span class="stat clickable-stat" data-stat="{{key}}" data-tooltip="{{patrolStatTooltip stat}}">
-                            {{key}}: {{stat.total}}
+                            {{key}}: {{stat.base}} <span class="stat-total {{stat.totalClass}}">({{stat.total}})</span>
                         </span>
                         {{/each}}
                     </div>
 
-                    <!-- Officer slot: image + name + GM edit button -->
+                    {{#if this.officerName}}
+                    {{#if (or this.officerPros.length this.officerCons.length)}}
+                    <div class="patrol-traits-section">
+                        <div class="patrol-traits-header">
+                            <i class="fas fa-scroll"></i>
+                            <span>Rasgos de {{this.officerName}}</span>
+                            <i class="fas fa-chevron-down patrol-traits-chevron"></i>
+                        </div>
+                        <div class="patrol-traits-body" style="display:none;">
+                            {{#each this.officerPros}}
+                            <div class="patrol-trait-item patrol-trait-pro"
+                                 data-action="trait-to-chat"
+                                 data-trait-title="{{this.title}}"
+                                 data-trait-description="{{this.description}}"
+                                 data-trait-type="pro"
+                                 data-officer-name="{{../officerName}}"
+                                 data-tooltip="Clic para enviar al chat"
+                                 style="cursor:pointer;">
+                                <i class="fas fa-plus-circle" style="color:#9acd32"></i>
+                                <span>{{this.title}}</span>
+                            </div>
+                            {{/each}}
+                            {{#each this.officerCons}}
+                            <div class="patrol-trait-item patrol-trait-con"
+                                 data-action="trait-to-chat"
+                                 data-trait-title="{{this.title}}"
+                                 data-trait-description="{{this.description}}"
+                                 data-trait-type="con"
+                                 data-officer-name="{{../officerName}}"
+                                 data-tooltip="Clic para enviar al chat"
+                                 style="cursor:pointer;">
+                                <i class="fas fa-minus-circle" style="color:#ff6b6b"></i>
+                                <span>{{this.title}}</span>
+                            </div>
+                            {{/each}}
+                        </div>
+                    </div>
+                    {{/if}}
+                    {{/if}}
+
+                    <!-- Officer slot -->
                     <div class="officer-slot" data-drop="officer">
                         {{#if this.officer}}
                         <div class="officer-slot-inner">
-                            <div class="clickable-actor officer-avatar-wrap" data-action="open-sheet" data-actor-id="{{this.officer.actorId}}" style="cursor: pointer;">
+                            <div class="officer-avatar-wrap" style="position:relative;"
+                                 data-action="open-sheet"
+                                 data-actor-id="{{this.officer.actorId}}"
+                                 style="cursor:pointer;"
+                                 data-tooltip="{{this.officerName}}<hr style='margin:3px 0;border-color:rgba(255,255,255,0.15)'><small style='opacity:0.55'>Shift+clic: desasignar</small>">
                                 <img src="{{this.officerImgDisplay}}" alt="oficial" class="officer-avatar-img" />
+                                <button type="button" class="shift-unassign"
+                                        data-action="unassign-officer"
+                                        data-patrol-id="{{this.id}}"
+                                        tabindex="-1">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                             <div class="officer-slot-info">
                                 <span class="officer-slot-name">{{this.officerName}}</span>
@@ -48,8 +115,21 @@
                     <div class="soldiers-zone" data-drop="soldier" data-tooltip="Arrastra Actores aquí para añadir Soldados">
                         {{#each this.slots}}
                             {{#if (eq this.type "soldier")}}
-                            <div class="clickable-actor soldier-wrapper" data-action="open-sheet" data-actor-id="{{this.data.actorId}}" style="display: inline-block; cursor: pointer;">
-                                <img class="soldier-avatar" src="{{this.data.img}}" alt="{{this.data.name}}" data-tooltip="{{this.data.name}}" />
+                            <div class="soldier-wrapper">
+                                <div class="clickable-actor"
+                                     data-action="open-sheet"
+                                     data-actor-id="{{this.data.actorId}}"
+                                     style="cursor:pointer;"
+                                     data-tooltip="{{this.data.name}}<hr style='margin:3px 0;border-color:rgba(255,255,255,0.15)'><small style='opacity:0.55'>Shift+clic: desasignar</small>">
+                                    <img class="soldier-avatar" src="{{this.data.img}}" alt="{{this.data.name}}" />
+                                </div>
+                                <button type="button" class="shift-unassign shift-unassign-soldier"
+                                        data-action="unassign-soldier"
+                                        data-patrol-id="{{../id}}"
+                                        data-actor-id="{{this.data.actorId}}"
+                                        tabindex="-1">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                             {{else}}
                             <div class="soldier-slot-empty" style="display: inline-block; width: 32px; height: 32px; border: 1px dashed #ccc; border-radius: 4px; margin: 2px;"></div>
@@ -60,19 +140,32 @@
                         {{/if}}
                     </div>
 
-                    <div class="last-order-line {{this.ageClass}}" data-action="edit-last-order" data-patrol-id="{{this.id}}" >
-                        <i class="fas fa-scroll"></i>
-                        <div class="last-order-content">
-                            <span class="last-order-label">Última Orden:</span>
+                    <!-- Última Orden (collapsible) -->
+                    <div class="last-order-container {{this.ageClass}}">
+                        <div class="last-order-header">
+                            <i class="fas fa-scroll"></i>
+                            <span class="last-order-header-text">Última Orden</span>
+                            {{#if this.lastOrderDate}}<small class="last-order-date">{{this.lastOrderDate}}</small>{{/if}}
+                            {{#if this.lastOrder}}<span class="last-order-age-dot {{this.ageClass}}"></span>{{/if}}
+                            <i class="fas fa-chevron-down last-order-chevron"></i>
+                        </div>
+                        <div class="last-order-body">
                             <div class="last-order-text">
                                 {{#if this.lastOrder}}
                                     {{{this.lastOrder.text}}}
                                 {{else}}
-                                    — (sin orden)
+                                    <em style="opacity:0.6">— (sin orden)</em>
                                 {{/if}}
                             </div>
+                            {{#if this.isGM}}
+                            <button type="button" class="last-order-edit-btn"
+                                    data-action="edit-last-order"
+                                    data-patrol-id="{{this.id}}"
+                                    data-tooltip="Editar Última Orden">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            {{/if}}
                         </div>
-                        {{#if this.lastOrder}}<span class="age-indicator {{this.ageClass}}"></span>{{/if}}
                     </div>
 
                     {{#if this.patrolEffects.length}}

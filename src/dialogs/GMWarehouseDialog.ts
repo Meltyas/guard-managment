@@ -1181,7 +1181,9 @@ export class GMWarehouseDialog implements FocusableDialog {
       return;
     }
 
-    const reputation = gm.reputationManager.getAllReputations()?.find((r: any) => r.id === reputationId);
+    const reputation = gm.reputationManager
+      .getAllReputations()
+      ?.find((r: any) => r.id === reputationId);
     if (!reputation) {
       console.error('Reputation not found for drag operation:', reputationId);
       return;

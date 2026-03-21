@@ -24,7 +24,18 @@ export class OfficerManager {
         const deserializedOfficers = officers.map((o) => ({
           ...o,
           // Migrate legacy single skill to skills array
-          skills: ((o as any).skills || (((o as any).skill) ? [{ id: foundry.utils.randomID(), name: (o as any).skill.name, image: (o as any).skill.image, hopeCost: 0 }] : [])),
+          skills:
+            (o as any).skills ||
+            ((o as any).skill
+              ? [
+                  {
+                    id: foundry.utils.randomID(),
+                    name: (o as any).skill.name,
+                    image: (o as any).skill.image,
+                    hopeCost: 0,
+                  },
+                ]
+              : []),
           createdAt: o.createdAt ? new Date(o.createdAt) : new Date(),
           updatedAt: o.updatedAt ? new Date(o.updatedAt) : new Date(),
           pros: (o.pros || []).map((p) => ({
@@ -80,6 +91,7 @@ export class OfficerManager {
           createdAt: c.createdAt.toISOString(),
         })),
         organizationId: officer.organizationId,
+        visibleToPlayers: officer.visibleToPlayers ?? false,
         version: officer.version,
         createdAt: officer.createdAt?.toISOString() ?? new Date().toISOString(),
         updatedAt: officer.updatedAt?.toISOString() ?? new Date().toISOString(),
@@ -101,6 +113,7 @@ export class OfficerManager {
     pros?: Omit<OfficerTrait, 'id' | 'createdAt'>[];
     cons?: Omit<OfficerTrait, 'id' | 'createdAt'>[];
     organizationId?: string;
+    visibleToPlayers?: boolean;
   }): Promise<Officer> {
     const id = foundry.utils.randomID();
     const now = new Date();
@@ -127,6 +140,7 @@ export class OfficerManager {
         createdAt: now,
       })),
       organizationId: data.organizationId,
+      visibleToPlayers: data.visibleToPlayers ?? false,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -159,6 +173,10 @@ export class OfficerManager {
       pros?: OfficerTrait[];
       cons?: OfficerTrait[];
       organizationId?: string;
+      visibleToPlayers?: boolean;
+      actorId?: string;
+      actorName?: string;
+      actorImg?: string;
     }
   ): Officer | undefined {
     const officer = this.officers.get(id);
@@ -169,6 +187,10 @@ export class OfficerManager {
     if (updates.pros !== undefined) officer.pros = updates.pros;
     if (updates.cons !== undefined) officer.cons = updates.cons;
     if (updates.organizationId !== undefined) officer.organizationId = updates.organizationId;
+    if (updates.visibleToPlayers !== undefined) officer.visibleToPlayers = updates.visibleToPlayers;
+    if (updates.actorId !== undefined) officer.actorId = updates.actorId;
+    if (updates.actorName !== undefined) officer.actorName = updates.actorName;
+    if (updates.actorImg !== undefined) officer.actorImg = updates.actorImg;
 
     officer.version += 1;
     officer.updatedAt = new Date();
@@ -188,7 +210,10 @@ export class OfficerManager {
     return true;
   }
 
-  public addPro(officerId: string, trait: Omit<OfficerTrait, 'id' | 'createdAt'>): Officer | undefined {
+  public addPro(
+    officerId: string,
+    trait: Omit<OfficerTrait, 'id' | 'createdAt'>
+  ): Officer | undefined {
     const officer = this.officers.get(officerId);
     if (!officer) return undefined;
     officer.pros.push({ ...trait, id: foundry.utils.randomID(), createdAt: new Date() });
@@ -210,7 +235,10 @@ export class OfficerManager {
     return officer;
   }
 
-  public addCon(officerId: string, trait: Omit<OfficerTrait, 'id' | 'createdAt'>): Officer | undefined {
+  public addCon(
+    officerId: string,
+    trait: Omit<OfficerTrait, 'id' | 'createdAt'>
+  ): Officer | undefined {
     const officer = this.officers.get(officerId);
     if (!officer) return undefined;
     officer.cons.push({ ...trait, id: foundry.utils.randomID(), createdAt: new Date() });

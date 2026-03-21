@@ -16,7 +16,7 @@ export function registerSettings(): void {
     onChange: async (_value) => {
       console.log('Settings onChange | GuardOrganization changed, reloading and refreshing UI...');
       const gm = (window as any).GuardManagement;
-      
+
       // CRITICAL: Load all data SEQUENTIALLY with await to ensure it's ready
       if (gm?.guardOrganizationManager) {
         await gm.guardOrganizationManager.loadFromSettings?.();
@@ -26,7 +26,7 @@ export function registerSettings(): void {
         console.log('📦 Reloading resources due to organization change...');
         await gm.resourceManager.loadFromSettings?.();
       }
-      
+
       if (gm?.reputationManager) {
         console.log('🏆 Reloading reputations due to organization change...');
         await gm.reputationManager.loadFromSettings?.();

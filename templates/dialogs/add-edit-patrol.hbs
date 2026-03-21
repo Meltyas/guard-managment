@@ -10,6 +10,8 @@
             <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
             {{/each}}
         </select>
+        <label>Hope Máximo <small style="opacity:0.6;">(0–6)</small></label>
+        <input type="number" name="maxHope" value="{{maxHope}}" min="0" max="6" style="width:72px;" />
     </div>
 
     <div class="section stats">
