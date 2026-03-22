@@ -465,6 +465,39 @@ RepDebug.setup(); // Run normal setup
 
 ---
 
+## 👁️ Player Presence System
+
+The module includes a **real-time player presence system** that shows which players are viewing which tab/element in the organization dialog. This system uses **Foundry User Flags** for cross-client sync (NOT sockets, NOT game.settings).
+
+### Architecture
+
+| Component | File | Purpose |
+|---|---|---|
+| **PresenceIndicator** | `src/ui/PresenceIndicator.ts` | Core class: flag management, avatar rendering, hover tracking, highlight diffing |
+| **Presence CSS** | `src/styles/presence.css` | Floating avatars, hover overlay styling |
+| **Toggle button** | `templates/dialogs/info-dialog.hbs` | Eye toggle in dialog header `.custom-dialog-controls` |
+| **Integration** | `src/ui/CustomInfoDialog.ts` | 5 integration points (attach, detach, tab switch, drag, resize) |
+
+### Key Design Decisions
+
+- **User Flags** (`game.user.setFlag/getFlag/unsetFlag`) for presence sync — Foundry handles cross-client propagation automatically via `Hooks.on('updateUser', ...)`
+- **Overlay-based highlights** — Hover highlights use an absolutely positioned `<div class="gm-presence-hover-overlay">` with `inset: 0` inside the target element, NOT border changes on the element itself (which cause layout reflow)
+- **Diff-based DOM updates** — `updateHighlights()` tracks `activeHighlights: Map<selector, overlayElement>` and only modifies DOM when actual state changes, avoiding thrashing from frequent `updateUser` hook fires
+- **Separated rendering** — `renderAvatars()` (lightweight, floating container only) and `updateHighlights()` (diff-based, content DOM) are independent methods
+- **Visibility toggle** — Local-only toggle (localStorage key `guard-management.presence.visible`) hides incoming avatars/overlays but does NOT stop broadcasting your own presence. Alt key inverts the toggle while held
+- **Fine-grained patrol hover** — `PATROL_SUB_SELECTORS` detect sub-sections within patrol/auxiliary cards (officer, soldiers, stats, etc.) before falling back to the whole card
+- **Multi-player segmented borders** — When multiple players hover the same element, a `conic-gradient(from 225deg, ...)` with `border-image` divides the border by player count using each player's `user.color`
+- **3-minute inactivity** — Players are marked inactive after 3 minutes without clicks inside the dialog
+
+### When Modifying
+
+- If adding new entity types/panels, add their selectors to `ENTITY_SELECTORS` array in `PresenceIndicator.ts`
+- If adding sub-sections to patrol cards, add them to `PATROL_SUB_SELECTORS`
+- The overlay approach (`position: absolute; inset: 0`) requires the parent element to NOT be `position: static` — the code sets `position: relative` automatically when needed and cleans it up on removal
+- Never use direct border/outline modifications for highlights — always use the overlay div pattern to avoid layout shifts
+
+---
+
 ## 📝 Project Notes
 
 > **Note**: This module is primarily for testing synchronization patterns in Foundry VTT. Focus on clear, well-tested code that demonstrates different sync scenarios rather than production features.

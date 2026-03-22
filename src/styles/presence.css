@@ -38,3 +38,14 @@
   transform: scale(1.15);
   z-index: 52;
 }
+
+/* Hover highlight — overlay that floats above the element without affecting layout */
+.gm-presence-hover-overlay {
+  position: absolute;
+  inset: 0;
+  border: 3px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 10;
+  transition: border-image 0.2s;
+}
