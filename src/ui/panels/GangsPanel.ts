@@ -4,6 +4,7 @@
  */
 import type { Gang, GangMember } from '../../types/gangs';
 import { GANG_STATUS_LABELS } from '../../types/gangs';
+import { GuardModal } from '../GuardModal.js';
 
 export class GangsPanel {
   static get template() {
@@ -333,42 +334,40 @@ export class GangsPanel {
   // --- Dialogs ---
 
   private static async showAddGangDialog(container: HTMLElement): Promise<void> {
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
-
     let selectedImage = '';
 
-    await DialogV2.wait({
-      window: { title: 'Registrar Nueva Banda' },
-      content: `
-        <div class="gang-dialog" style="padding: 10px;">
-          <div class="form-group">
-            <label for="gang-name">Nombre de la banda</label>
-            <input type="text" id="gang-name" name="name" placeholder="Ej: Los Cuervos, Hermandad de la Sombra..." required />
-          </div>
-          <div class="form-group">
-            <label>Imagen</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <input type="text" id="gang-img" name="img" placeholder="Ruta de imagen..." style="flex: 1;" />
-              <button type="button" id="gang-img-picker" class="gangs-btn" style="white-space: nowrap;">
-                <i class="fas fa-file-image"></i> Buscar
-              </button>
-            </div>
-            <div id="gang-img-preview" style="margin-top: 6px; text-align: center;"></div>
-          </div>
-          <div class="form-group stacked">
-            <label for="gang-notes">Notas</label>
-            <prose-mirror name="gang-notes" value="">
-            </prose-mirror>
-          </div>
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="gang-name"><i class="fas fa-users"></i> Nombre de la banda</label>
+          <input type="text" id="gang-name" placeholder="Ej: Los Cuervos, Hermandad de la Sombra..." />
         </div>
-      `,
-      render: (_event: any, html: any) => {
-        const el = html instanceof HTMLElement ? html : html?.element;
-        if (!el) return;
-        const imgInput = el.querySelector('#gang-img') as HTMLInputElement;
-        const imgPreview = el.querySelector('#gang-img-preview') as HTMLElement;
-        const imgPicker = el.querySelector('#gang-img-picker');
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" id="gang-img" placeholder="Ruta de imagen..." style="flex: 1;" />
+            <button type="button" id="gang-img-picker" class="gangs-btn" style="white-space: nowrap;">
+              <i class="fas fa-file-image"></i> Buscar
+            </button>
+          </div>
+          <div id="gang-img-preview" style="margin-top: 6px; text-align: center;"></div>
+        </div>
+        <div class="guard-modal-row">
+          <label for="gang-notes"><i class="fas fa-sticky-note"></i> Notas</label>
+          <textarea id="gang-notes" rows="4" placeholder="Notas sobre la banda..."></textarea>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: 'Registrar Nueva Banda',
+      icon: 'fas fa-users',
+      body,
+      saveLabel: 'Registrar',
+      onRender: (bodyEl) => {
+        const imgInput = bodyEl.querySelector('#gang-img') as HTMLInputElement;
+        const imgPreview = bodyEl.querySelector('#gang-img-preview') as HTMLElement;
+        const imgPicker = bodyEl.querySelector('#gang-img-picker');
 
         imgPicker?.addEventListener('click', () => {
           new (globalThis as any).FilePicker({
@@ -390,49 +389,30 @@ export class GangsPanel {
             imgPreview.innerHTML = `<img src="${imgInput.value}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
           }
         });
+
+        (bodyEl.querySelector('#gang-name') as HTMLInputElement)?.focus();
       },
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        {
-          action: 'save',
-          label: 'Registrar',
-          icon: 'fas fa-check',
-          default: true,
-          callback: async (_event: any, _button: any, dialog: any) => {
-            const dialogEl = dialog?.element || dialog;
-            if (!dialogEl) return;
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#gang-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          (globalThis as any).ui?.notifications?.warn('El nombre de la banda es obligatorio.');
+          return false;
+        }
 
-            const name = (dialogEl.querySelector('#gang-name') as HTMLInputElement)?.value?.trim();
-            if (!name) {
-              (globalThis as any).ui?.notifications?.warn('El nombre de la banda es obligatorio.');
-              return;
-            }
+        const notes = (bodyEl.querySelector('#gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
 
-            // Read ProseMirror content
-            let notes = '';
-            const proseMirror = dialogEl.querySelector('.editor-content.ProseMirror') as HTMLElement;
-            if (proseMirror) {
-              notes = proseMirror.innerHTML || '';
-            } else {
-              const pmEl = dialogEl.querySelector('prose-mirror') as any;
-              if (pmEl?.value) notes = pmEl.value;
-            }
+        const gm = (window as any).GuardManagement;
+        if (!gm?.gangManager) return false;
 
-            const gm = (window as any).GuardManagement;
-            if (!gm?.gangManager) return;
+        await gm.gangManager.addGang({
+          name,
+          img: selectedImage || undefined,
+          notes,
+        });
 
-            await gm.gangManager.addGang({
-              name,
-              img: selectedImage || undefined,
-              notes,
-            });
-
-            window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
-            await GangsPanel.render(container);
-          },
-        },
-      ],
-      modal: false,
+        window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
+        await GangsPanel.render(container);
+      },
     });
   }
 
@@ -442,45 +422,44 @@ export class GangsPanel {
     const gang = gm.gangManager.getGang(gangId);
     if (!gang) return;
 
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
-
     let selectedImage = gang.img || '';
 
-    await DialogV2.wait({
-      window: { title: `Editar Banda: ${gang.name}` },
-      content: `
-        <div class="gang-dialog" style="padding: 10px;">
-          <div class="form-group">
-            <label for="gang-name">Nombre de la banda</label>
-            <input type="text" id="gang-name" name="name" value="${gang.name.replace(/"/g, '&quot;')}" required />
+    // Strip HTML tags from notes for textarea
+    const plainNotes = (gang.notes || '').replace(/<[^>]*>/g, '');
+
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="gang-name"><i class="fas fa-users"></i> Nombre de la banda</label>
+          <input type="text" id="gang-name" value="${gang.name.replace(/"/g, '&quot;')}" />
+        </div>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" id="gang-img" value="${gang.img || ''}" style="flex: 1;" />
+            <button type="button" id="gang-img-picker" class="gangs-btn" style="white-space: nowrap;">
+              <i class="fas fa-file-image"></i> Buscar
+            </button>
           </div>
-          <div class="form-group">
-            <label>Imagen</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <input type="text" id="gang-img" name="img" value="${gang.img || ''}" style="flex: 1;" />
-              <button type="button" id="gang-img-picker" class="gangs-btn" style="white-space: nowrap;">
-                <i class="fas fa-file-image"></i> Buscar
-              </button>
-            </div>
-            <div id="gang-img-preview" style="margin-top: 6px; text-align: center;">
-              ${gang.img ? `<img src="${gang.img}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />` : ''}
-            </div>
-          </div>
-          <div class="form-group stacked">
-            <label for="gang-notes">Notas</label>
-            <prose-mirror name="gang-notes" value="${(gang.notes || '').replace(/"/g, '&quot;')}">
-              ${gang.notes || ''}
-            </prose-mirror>
+          <div id="gang-img-preview" style="margin-top: 6px; text-align: center;">
+            ${gang.img ? `<img src="${gang.img}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />` : ''}
           </div>
         </div>
-      `,
-      render: (_event: any, html: any) => {
-        const el = html instanceof HTMLElement ? html : html?.element;
-        if (!el) return;
-        const imgInput = el.querySelector('#gang-img') as HTMLInputElement;
-        const imgPreview = el.querySelector('#gang-img-preview') as HTMLElement;
-        const imgPicker = el.querySelector('#gang-img-picker');
+        <div class="guard-modal-row">
+          <label for="gang-notes"><i class="fas fa-sticky-note"></i> Notas</label>
+          <textarea id="gang-notes" rows="4">${plainNotes}</textarea>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: `Editar Banda: ${gang.name}`,
+      icon: 'fas fa-edit',
+      body,
+      onRender: (bodyEl) => {
+        const imgInput = bodyEl.querySelector('#gang-img') as HTMLInputElement;
+        const imgPreview = bodyEl.querySelector('#gang-img-preview') as HTMLElement;
+        const imgPicker = bodyEl.querySelector('#gang-img-picker');
 
         imgPicker?.addEventListener('click', () => {
           new (globalThis as any).FilePicker({
@@ -500,48 +479,27 @@ export class GangsPanel {
           selectedImage = imgInput.value;
         });
       },
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        {
-          action: 'save',
-          label: 'Guardar',
-          icon: 'fas fa-check',
-          default: true,
-          callback: async (_event: any, _button: any, dialog: any) => {
-            const dialogEl = dialog?.element || dialog;
-            if (!dialogEl) return;
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#gang-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          (globalThis as any).ui?.notifications?.warn('El nombre de la banda es obligatorio.');
+          return false;
+        }
 
-            const name = (dialogEl.querySelector('#gang-name') as HTMLInputElement)?.value?.trim();
-            if (!name) {
-              (globalThis as any).ui?.notifications?.warn('El nombre de la banda es obligatorio.');
-              return;
-            }
+        const notes = (bodyEl.querySelector('#gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
 
-            // Read ProseMirror
-            let notes = '';
-            const proseMirror = dialogEl.querySelector('.editor-content.ProseMirror') as HTMLElement;
-            if (proseMirror) {
-              notes = proseMirror.innerHTML || '';
-            } else {
-              const pmEl = dialogEl.querySelector('prose-mirror') as any;
-              if (pmEl?.value) notes = pmEl.value;
-            }
+        const updates: any = { notes };
+        if (name !== gang.name) {
+          updates.name = name;
+        }
+        if (selectedImage !== (gang.img || '')) {
+          updates.img = selectedImage || undefined;
+        }
 
-            const updates: any = { notes };
-            if (name !== gang.name) {
-              updates.name = name;
-            }
-            if (selectedImage !== (gang.img || '')) {
-              updates.img = selectedImage || undefined;
-            }
-
-            await gm.gangManager.updateGang(gangId, updates);
-            window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
-            await GangsPanel.render(container);
-          },
-        },
-      ],
-      modal: false,
+        await gm.gangManager.updateGang(gangId, updates);
+        window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
+        await GangsPanel.render(container);
+      },
     });
   }
 
@@ -551,42 +509,58 @@ export class GangsPanel {
     const gang = gm.gangManager.getGang(gangId);
     if (!gang) return;
 
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
-
     const statuses = ['active', 'disbanded', 'arrested', 'unknown'] as const;
-    const buttons = statuses
+    const statusIcons: Record<string, string> = {
+      active: 'fas fa-check-circle',
+      disbanded: 'fas fa-ban',
+      arrested: 'fas fa-handcuffs',
+      unknown: 'fas fa-question-circle',
+    };
+
+    const statusButtons = statuses
       .filter((s) => s !== gang.status)
-      .map((s) => ({
-        action: s,
-        label: GANG_STATUS_LABELS[s],
-        icon:
-          s === 'active'
-            ? 'fas fa-check-circle'
-            : s === 'disbanded'
-              ? 'fas fa-ban'
-              : s === 'arrested'
-                ? 'fas fa-handcuffs'
-                : 'fas fa-question-circle',
-      }));
+      .map(
+        (s) => `
+        <button type="button" class="guard-modal-btn save status-btn" data-status="${s}" style="flex: 1;">
+          <i class="${statusIcons[s]}"></i> ${GANG_STATUS_LABELS[s]}
+        </button>`
+      )
+      .join('');
 
-    const result = await DialogV2.wait({
-      window: { title: `Cambiar Estado: ${gang.name}` },
-      content: `
-        <div style="padding: 10px; text-align: center;">
-          <p>Estado actual: <strong>${GANG_STATUS_LABELS[gang.status as keyof typeof GANG_STATUS_LABELS]}</strong></p>
-          <p style="font-size: 0.85em; color: #ccc;">Selecciona el nuevo estado:</p>
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <div class="guard-modal-row" style="align-items: center;">
+          <label>Estado actual</label>
+          <strong>${GANG_STATUS_LABELS[gang.status as keyof typeof GANG_STATUS_LABELS]}</strong>
         </div>
-      `,
-      buttons: [{ action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' }, ...buttons],
-      modal: false,
+        <div class="guard-modal-row" style="align-items: center;">
+          <label>Selecciona el nuevo estado:</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">${statusButtons}</div>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: `Cambiar Estado: ${gang.name}`,
+      icon: 'fas fa-exchange-alt',
+      body,
+      showFooter: false,
+      onSave: async () => {},
+      onRender: (bodyEl) => {
+        bodyEl.querySelectorAll('.status-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const newStatus = (btn as HTMLElement).dataset.status;
+            if (!newStatus) return;
+            await gm.gangManager.changeStatus(gangId, newStatus);
+            window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
+            await GangsPanel.render(container);
+            // Find and close the modal
+            const modal = btn.closest('.guard-modal');
+            if (modal) modal.remove();
+          });
+        });
+      },
     });
-
-    if (result === 'cancel' || !result) return;
-
-    await gm.gangManager.changeStatus(gangId, result);
-    window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
-    await GangsPanel.render(container);
   }
 
   private static async handleDeleteGang(gangId: string, container: HTMLElement): Promise<void> {
@@ -595,30 +569,25 @@ export class GangsPanel {
     const gang = gm.gangManager.getGang(gangId);
     if (!gang) return;
 
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <p><i class="fas fa-exclamation-triangle" style="color: #e84a4a; font-size: 1.5em;"></i></p>
+        <p>¿Eliminar la banda <strong>"${gang.name}"</strong>?</p>
+        <p style="font-size: 0.85em; color: #ccc;">Esta acción no se puede deshacer.</p>
+      </div>
+    `;
 
-    const result = await DialogV2.wait({
-      window: { title: 'Eliminar Banda' },
-      content: `
-        <div style="padding: 10px; text-align: center;">
-          <p><i class="fas fa-exclamation-triangle" style="color: #e84a4a; font-size: 1.5em;"></i></p>
-          <p>¿Eliminar la banda <strong>"${gang.name}"</strong>?</p>
-          <p style="font-size: 0.85em; color: #ccc;">Esta acción no se puede deshacer.</p>
-        </div>
-      `,
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        { action: 'delete', label: 'Eliminar', icon: 'fas fa-trash' },
-      ],
-      modal: false,
+    GuardModal.open({
+      title: 'Eliminar Banda',
+      icon: 'fas fa-trash',
+      body,
+      saveLabel: 'Eliminar',
+      onSave: async () => {
+        await gm.gangManager.deleteGang(gangId);
+        window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
+        await GangsPanel.render(container);
+      },
     });
-
-    if (result !== 'delete') return;
-
-    await gm.gangManager.deleteGang(gangId);
-    window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
-    await GangsPanel.render(container);
   }
 
   // --- Send to Chat ---

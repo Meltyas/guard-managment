@@ -5,6 +5,7 @@
 import type { Crime } from '../../types/crimes';
 import type { PersonOfInterest, PoiStatus } from '../../types/poi';
 import { POI_STATUS_LABELS } from '../../types/poi';
+import { GuardModal } from '../GuardModal.js';
 
 export class PoiPanel {
   static get template() {
@@ -195,48 +196,49 @@ export class PoiPanel {
 
   // --- Drag and drop ---
 
-  private static setupDragAndDrop(container: HTMLElement): void {
-    const dropZones = container.querySelectorAll('[data-drop="actor"]');
+  private static async resolveActorFromDrop(ev: DragEvent): Promise<any | null> {
+    const raw = ev.dataTransfer?.getData('text/plain') || '';
+    let data: any;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return null;
+    }
 
-    dropZones.forEach((zone) => {
+    let actor: any = null;
+    if (data.type === 'Actor' && data.uuid) {
+      actor = await (globalThis as any).fromUuid(data.uuid);
+    } else if (data.type === 'Actor' && data.id) {
+      actor = (game as any).actors.get(data.id);
+    }
+    if (!actor && data.tokenId && data.sceneId) {
+      const scene = (game as any).scenes.get(data.sceneId);
+      const token = scene?.tokens?.get(data.tokenId);
+      actor = token?.actor;
+    }
+    return actor;
+  }
+
+  private static setupDragAndDrop(container: HTMLElement): void {
+    // Drop on existing POI image -> link actor
+    const imageDropZones = container.querySelectorAll('[data-drop="actor"]');
+    imageDropZones.forEach((zone) => {
       zone.addEventListener('dragenter', (ev) => {
         ev.preventDefault();
         (zone as HTMLElement).classList.add('dnd-hover');
       });
-
       zone.addEventListener('dragover', (ev) => {
         ev.preventDefault();
         (zone as HTMLElement).classList.add('dnd-hover');
       });
-
       zone.addEventListener('dragleave', () => {
         (zone as HTMLElement).classList.remove('dnd-hover');
       });
-
       zone.addEventListener('drop', async (ev) => {
         ev.preventDefault();
         (zone as HTMLElement).classList.remove('dnd-hover');
 
-        const raw = (ev as DragEvent).dataTransfer?.getData('text/plain') || '';
-        let data: any;
-        try {
-          data = JSON.parse(raw);
-        } catch {
-          return;
-        }
-
-        // Resolve actor
-        let actor: any = null;
-        if (data.type === 'Actor' && data.uuid) {
-          actor = await (globalThis as any).fromUuid(data.uuid);
-        } else if (data.type === 'Actor' && data.id) {
-          actor = (game as any).actors.get(data.id);
-        }
-        if (!actor && data.tokenId && data.sceneId) {
-          const scene = (game as any).scenes.get(data.sceneId);
-          const token = scene?.tokens?.get(data.tokenId);
-          actor = token?.actor;
-        }
+        const actor = await PoiPanel.resolveActorFromDrop(ev as DragEvent);
         if (!actor) {
           (globalThis as any).ui?.notifications?.warn('No se pudo resolver el actor arrastrado.');
           return;
@@ -255,6 +257,47 @@ export class PoiPanel {
         );
         window.dispatchEvent(new CustomEvent('guard-poi-updated'));
         await PoiPanel.render(container);
+      });
+    });
+
+    // Drop on "new-poi" zones -> create new POI from actor
+    const newPoiDropZones = container.querySelectorAll('[data-drop="new-poi"]');
+    newPoiDropZones.forEach((zone) => {
+      zone.addEventListener('dragenter', (ev) => {
+        ev.preventDefault();
+        (zone as HTMLElement).classList.add('dnd-hover');
+      });
+      zone.addEventListener('dragover', (ev) => {
+        ev.preventDefault();
+        (zone as HTMLElement).classList.add('dnd-hover');
+      });
+      zone.addEventListener('dragleave', () => {
+        (zone as HTMLElement).classList.remove('dnd-hover');
+      });
+      zone.addEventListener('drop', async (ev) => {
+        ev.preventDefault();
+        (zone as HTMLElement).classList.remove('dnd-hover');
+
+        const actor = await PoiPanel.resolveActorFromDrop(ev as DragEvent);
+        if (!actor) {
+          (globalThis as any).ui?.notifications?.warn('No se pudo resolver el actor arrastrado.');
+          return;
+        }
+
+        const gm = (window as any).GuardManagement;
+        if (!gm?.poiManager) return;
+
+        await gm.poiManager.addPoi({
+          name: actor.name,
+          img: actor.img || actor.prototypeToken?.texture?.src,
+          actorId: actor.id,
+        });
+
+        window.dispatchEvent(new CustomEvent('guard-poi-updated'));
+        await PoiPanel.render(container);
+        (globalThis as any).ui?.notifications?.info(
+          `"${actor.name}" registrado como persona de interés.`
+        );
       });
     });
   }
@@ -286,43 +329,86 @@ export class PoiPanel {
   // --- Dialogs ---
 
   private static async showAddPoiDialog(container: HTMLElement): Promise<void> {
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
-
     let selectedImage = '';
+    let linkedActorId = '';
 
-    await DialogV2.wait({
-      window: { title: 'Registrar Persona de Interés' },
-      content: `
-        <div class="poi-dialog" style="padding: 10px;">
-          <div class="form-group">
-            <label for="poi-name">Nombre</label>
-            <input type="text" id="poi-name" name="name" placeholder="Nombre de la persona..." required />
-          </div>
-          <div class="form-group">
-            <label>Imagen</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <input type="text" id="poi-img" name="img" placeholder="Ruta de imagen..." style="flex: 1;" />
-              <button type="button" id="poi-img-picker" class="poi-btn" style="white-space: nowrap;">
-                <i class="fas fa-file-image"></i> Buscar
-              </button>
-            </div>
-            <div id="poi-img-preview" style="margin-top: 6px; text-align: center;"></div>
-          </div>
-          <div class="form-group stacked">
-            <label for="poi-notes">Notas</label>
-            <prose-mirror name="poi-notes" value="">
-            </prose-mirror>
-          </div>
+    const body = `
+      <div class="guard-modal-form">
+        <div class="poi-dialog-dropzone" id="poi-actor-drop">
+          <i class="fas fa-user-plus"></i>
+          <span>Arrastra un actor aquí para rellenar los datos</span>
         </div>
-      `,
-      render: (_event: any, html: any) => {
-        const el = html instanceof HTMLElement ? html : html?.element;
-        if (!el) return;
-        const imgInput = el.querySelector('#poi-img') as HTMLInputElement;
-        const imgPreview = el.querySelector('#poi-img-preview') as HTMLElement;
-        const imgPicker = el.querySelector('#poi-img-picker');
+        <div class="guard-modal-row">
+          <label for="poi-name"><i class="fas fa-user"></i> Nombre</label>
+          <input type="text" id="poi-name" placeholder="Nombre de la persona..." />
+        </div>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" id="poi-img" placeholder="Ruta de imagen..." style="flex: 1;" />
+            <button type="button" id="poi-img-picker" class="poi-btn" style="white-space: nowrap;">
+              <i class="fas fa-file-image"></i> Buscar
+            </button>
+          </div>
+          <div id="poi-img-preview" style="margin-top: 6px; text-align: center;"></div>
+        </div>
+        <div class="guard-modal-row">
+          <label for="poi-notes"><i class="fas fa-sticky-note"></i> Notas</label>
+          <textarea id="poi-notes" rows="3" placeholder="Notas opcionales..."></textarea>
+        </div>
+      </div>
+    `;
 
+    GuardModal.open({
+      title: 'Registrar Persona de Interés',
+      icon: 'fas fa-user-secret',
+      body,
+      saveLabel: 'Registrar',
+      onRender: (bodyEl) => {
+        const imgInput = bodyEl.querySelector('#poi-img') as HTMLInputElement;
+        const imgPreview = bodyEl.querySelector('#poi-img-preview') as HTMLElement;
+        const imgPicker = bodyEl.querySelector('#poi-img-picker');
+        const nameInput = bodyEl.querySelector('#poi-name') as HTMLInputElement;
+
+        // Actor drop zone
+        const dropZone = bodyEl.querySelector('#poi-actor-drop') as HTMLElement;
+        if (dropZone) {
+          dropZone.addEventListener('dragenter', (ev) => {
+            ev.preventDefault();
+            dropZone.classList.add('dnd-hover');
+          });
+          dropZone.addEventListener('dragover', (ev) => {
+            ev.preventDefault();
+            dropZone.classList.add('dnd-hover');
+          });
+          dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dnd-hover');
+          });
+          dropZone.addEventListener('drop', async (ev) => {
+            ev.preventDefault();
+            dropZone.classList.remove('dnd-hover');
+
+            const actor = await PoiPanel.resolveActorFromDrop(ev as DragEvent);
+            if (!actor) {
+              (globalThis as any).ui?.notifications?.warn(
+                'No se pudo resolver el actor arrastrado.'
+              );
+              return;
+            }
+
+            if (nameInput) nameInput.value = actor.name;
+            const actorImg = actor.img || actor.prototypeToken?.texture?.src || '';
+            if (imgInput) imgInput.value = actorImg;
+            selectedImage = actorImg;
+            linkedActorId = actor.id;
+            if (imgPreview && actorImg) {
+              imgPreview.innerHTML = `<img src="${actorImg}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
+            }
+            dropZone.innerHTML = `<i class="fas fa-check-circle" style="color: #4ae89a;"></i><span>Actor vinculado: ${actor.name}</span>`;
+          });
+        }
+
+        // File picker
         imgPicker?.addEventListener('click', () => {
           new (globalThis as any).FilePicker({
             type: 'image',
@@ -343,50 +429,32 @@ export class PoiPanel {
             imgPreview.innerHTML = `<img src="${imgInput.value}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
           }
         });
+
+        nameInput?.focus();
       },
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        {
-          action: 'save',
-          label: 'Registrar',
-          icon: 'fas fa-check',
-          default: true,
-          callback: async (_event: any, _button: any, dialog: any) => {
-            const dialogEl = dialog?.element || dialog;
-            if (!dialogEl) return;
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#poi-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          (globalThis as any).ui?.notifications?.warn('El nombre es obligatorio.');
+          return false;
+        }
 
-            const name = (dialogEl.querySelector('#poi-name') as HTMLInputElement)?.value?.trim();
-            if (!name) {
-              (globalThis as any).ui?.notifications?.warn('El nombre es obligatorio.');
-              return;
-            }
+        const notes =
+          (bodyEl.querySelector('#poi-notes') as HTMLTextAreaElement)?.value?.trim() || '';
 
-            let notes = '';
-            const proseMirror = dialogEl.querySelector(
-              '.editor-content.ProseMirror'
-            ) as HTMLElement;
-            if (proseMirror) {
-              notes = proseMirror.innerHTML || '';
-            } else {
-              const pmEl = dialogEl.querySelector('prose-mirror') as any;
-              if (pmEl?.value) notes = pmEl.value;
-            }
+        const gm = (window as any).GuardManagement;
+        if (!gm?.poiManager) return false;
 
-            const gm = (window as any).GuardManagement;
-            if (!gm?.poiManager) return;
+        await gm.poiManager.addPoi({
+          name,
+          img: selectedImage || undefined,
+          actorId: linkedActorId || undefined,
+          notes,
+        });
 
-            await gm.poiManager.addPoi({
-              name,
-              img: selectedImage || undefined,
-              notes,
-            });
-
-            window.dispatchEvent(new CustomEvent('guard-poi-updated'));
-            await PoiPanel.render(container);
-          },
-        },
-      ],
-      modal: false,
+        window.dispatchEvent(new CustomEvent('guard-poi-updated'));
+        await PoiPanel.render(container);
+      },
     });
   }
 
@@ -396,45 +464,41 @@ export class PoiPanel {
     const poi = gm.poiManager.getPoi(poiId);
     if (!poi) return;
 
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
-
     let selectedImage = poi.img || '';
 
-    await DialogV2.wait({
-      window: { title: `Editar: ${poi.name}` },
-      content: `
-        <div class="poi-dialog" style="padding: 10px;">
-          <div class="form-group">
-            <label for="poi-name">Nombre</label>
-            <input type="text" id="poi-name" name="name" value="${poi.name.replace(/"/g, '&quot;')}" required />
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="poi-name"><i class="fas fa-user"></i> Nombre</label>
+          <input type="text" id="poi-name" value="${poi.name.replace(/"/g, '&quot;')}" />
+        </div>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" id="poi-img" value="${poi.img || ''}" style="flex: 1;" />
+            <button type="button" id="poi-img-picker" class="poi-btn" style="white-space: nowrap;">
+              <i class="fas fa-file-image"></i> Buscar
+            </button>
           </div>
-          <div class="form-group">
-            <label>Imagen</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <input type="text" id="poi-img" name="img" value="${poi.img || ''}" style="flex: 1;" />
-              <button type="button" id="poi-img-picker" class="poi-btn" style="white-space: nowrap;">
-                <i class="fas fa-file-image"></i> Buscar
-              </button>
-            </div>
-            <div id="poi-img-preview" style="margin-top: 6px; text-align: center;">
-              ${poi.img ? `<img src="${poi.img}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />` : ''}
-            </div>
-          </div>
-          <div class="form-group stacked">
-            <label for="poi-notes">Notas</label>
-            <prose-mirror name="poi-notes" value="${(poi.notes || '').replace(/"/g, '&quot;')}">
-              ${poi.notes || ''}
-            </prose-mirror>
+          <div id="poi-img-preview" style="margin-top: 6px; text-align: center;">
+            ${poi.img ? `<img src="${poi.img}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />` : ''}
           </div>
         </div>
-      `,
-      render: (_event: any, html: any) => {
-        const el = html instanceof HTMLElement ? html : html?.element;
-        if (!el) return;
-        const imgInput = el.querySelector('#poi-img') as HTMLInputElement;
-        const imgPreview = el.querySelector('#poi-img-preview') as HTMLElement;
-        const imgPicker = el.querySelector('#poi-img-picker');
+        <div class="guard-modal-row">
+          <label for="poi-notes"><i class="fas fa-sticky-note"></i> Notas</label>
+          <textarea id="poi-notes" rows="3">${poi.notes || ''}</textarea>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: `Editar: ${poi.name}`,
+      icon: 'fas fa-edit',
+      body,
+      onRender: (bodyEl) => {
+        const imgInput = bodyEl.querySelector('#poi-img') as HTMLInputElement;
+        const imgPreview = bodyEl.querySelector('#poi-img-preview') as HTMLElement;
+        const imgPicker = bodyEl.querySelector('#poi-img-picker');
 
         imgPicker?.addEventListener('click', () => {
           new (globalThis as any).FilePicker({
@@ -454,49 +518,28 @@ export class PoiPanel {
           selectedImage = imgInput.value;
         });
       },
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        {
-          action: 'save',
-          label: 'Guardar',
-          icon: 'fas fa-check',
-          default: true,
-          callback: async (_event: any, _button: any, dialog: any) => {
-            const dialogEl = dialog?.element || dialog;
-            if (!dialogEl) return;
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#poi-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          (globalThis as any).ui?.notifications?.warn('El nombre es obligatorio.');
+          return false;
+        }
 
-            const name = (dialogEl.querySelector('#poi-name') as HTMLInputElement)?.value?.trim();
-            if (!name) {
-              (globalThis as any).ui?.notifications?.warn('El nombre es obligatorio.');
-              return;
-            }
+        const notes =
+          (bodyEl.querySelector('#poi-notes') as HTMLTextAreaElement)?.value?.trim() || '';
 
-            let notes = '';
-            const proseMirror = dialogEl.querySelector(
-              '.editor-content.ProseMirror'
-            ) as HTMLElement;
-            if (proseMirror) {
-              notes = proseMirror.innerHTML || '';
-            } else {
-              const pmEl = dialogEl.querySelector('prose-mirror') as any;
-              if (pmEl?.value) notes = pmEl.value;
-            }
+        const updates: any = { notes };
+        if (name !== poi.name) {
+          updates.name = name;
+        }
+        if (selectedImage !== (poi.img || '')) {
+          updates.img = selectedImage || undefined;
+        }
 
-            const updates: any = { notes };
-            if (name !== poi.name) {
-              updates.name = name;
-            }
-            if (selectedImage !== (poi.img || '')) {
-              updates.img = selectedImage || undefined;
-            }
-
-            await gm.poiManager.updatePoi(poiId, updates);
-            window.dispatchEvent(new CustomEvent('guard-poi-updated'));
-            await PoiPanel.render(container);
-          },
-        },
-      ],
-      modal: false,
+        await gm.poiManager.updatePoi(poiId, updates);
+        window.dispatchEvent(new CustomEvent('guard-poi-updated'));
+        await PoiPanel.render(container);
+      },
     });
   }
 
@@ -505,9 +548,6 @@ export class PoiPanel {
     if (!gm?.poiManager) return;
     const poi = gm.poiManager.getPoi(poiId);
     if (!poi) return;
-
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
 
     const statuses: PoiStatus[] = ['active', 'released', 'imprisoned', 'deceased', 'unknown'];
     const statusIcons: Record<PoiStatus, string> = {
@@ -518,31 +558,49 @@ export class PoiPanel {
       unknown: 'fas fa-question-circle',
     };
 
-    const buttons = statuses
+    const statusButtons = statuses
       .filter((s) => s !== poi.status)
-      .map((s) => ({
-        action: s,
-        label: POI_STATUS_LABELS[s],
-        icon: statusIcons[s],
-      }));
+      .map(
+        (s) => `
+        <button type="button" class="guard-modal-btn save status-btn" data-status="${s}" style="flex: 1;">
+          <i class="${statusIcons[s]}"></i> ${POI_STATUS_LABELS[s]}
+        </button>`
+      )
+      .join('');
 
-    const result = await DialogV2.wait({
-      window: { title: `Cambiar Estado: ${poi.name}` },
-      content: `
-        <div style="padding: 10px; text-align: center;">
-          <p>Estado actual: <strong>${POI_STATUS_LABELS[poi.status as keyof typeof POI_STATUS_LABELS]}</strong></p>
-          <p style="font-size: 0.85em; color: #ccc;">Selecciona el nuevo estado:</p>
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <div class="guard-modal-row" style="align-items: center;">
+          <label>Estado actual</label>
+          <strong>${POI_STATUS_LABELS[poi.status as keyof typeof POI_STATUS_LABELS]}</strong>
         </div>
-      `,
-      buttons: [{ action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' }, ...buttons],
-      modal: false,
+        <div class="guard-modal-row" style="align-items: center;">
+          <label>Selecciona el nuevo estado:</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">${statusButtons}</div>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: `Cambiar Estado: ${poi.name}`,
+      icon: 'fas fa-exchange-alt',
+      body,
+      showFooter: false,
+      onSave: async () => {},
+      onRender: (bodyEl) => {
+        bodyEl.querySelectorAll('.status-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const newStatus = (btn as HTMLElement).dataset.status as PoiStatus;
+            if (!newStatus) return;
+            await gm.poiManager.changeStatus(poiId, newStatus);
+            window.dispatchEvent(new CustomEvent('guard-poi-updated'));
+            await PoiPanel.render(container);
+            const modal = btn.closest('.guard-modal');
+            if (modal) modal.remove();
+          });
+        });
+      },
     });
-
-    if (result === 'cancel' || !result) return;
-
-    await gm.poiManager.changeStatus(poiId, result as PoiStatus);
-    window.dispatchEvent(new CustomEvent('guard-poi-updated'));
-    await PoiPanel.render(container);
   }
 
   private static async handleDeletePoi(poiId: string, container: HTMLElement): Promise<void> {
@@ -551,30 +609,25 @@ export class PoiPanel {
     const poi = gm.poiManager.getPoi(poiId);
     if (!poi) return;
 
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <p><i class="fas fa-exclamation-triangle" style="color: #e84a4a; font-size: 1.5em;"></i></p>
+        <p>¿Eliminar a <strong>"${poi.name}"</strong> del registro?</p>
+        <p style="font-size: 0.85em; color: #ccc;">Esta acción no se puede deshacer.</p>
+      </div>
+    `;
 
-    const result = await DialogV2.wait({
-      window: { title: 'Eliminar Persona de Interés' },
-      content: `
-        <div style="padding: 10px; text-align: center;">
-          <p><i class="fas fa-exclamation-triangle" style="color: #e84a4a; font-size: 1.5em;"></i></p>
-          <p>¿Eliminar a <strong>"${poi.name}"</strong> del registro?</p>
-          <p style="font-size: 0.85em; color: #ccc;">Esta acción no se puede deshacer.</p>
-        </div>
-      `,
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        { action: 'delete', label: 'Eliminar', icon: 'fas fa-trash' },
-      ],
-      modal: false,
+    GuardModal.open({
+      title: 'Eliminar Persona de Interés',
+      icon: 'fas fa-trash',
+      body,
+      saveLabel: 'Eliminar',
+      onSave: async () => {
+        await gm.poiManager.deletePoi(poiId);
+        window.dispatchEvent(new CustomEvent('guard-poi-updated'));
+        await PoiPanel.render(container);
+      },
     });
-
-    if (result !== 'delete') return;
-
-    await gm.poiManager.deletePoi(poiId);
-    window.dispatchEvent(new CustomEvent('guard-poi-updated'));
-    await PoiPanel.render(container);
   }
 
   // --- Assign crimes dialog ---
@@ -587,9 +640,6 @@ export class PoiPanel {
     if (!gm?.poiManager || !gm?.crimeManager) return;
     const poi = gm.poiManager.getPoi(poiId);
     if (!poi) return;
-
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
 
     const allCrimes = gm.crimeManager.getAllCrimes();
     const currentCrimeIds = new Set(poi.possibleCrimes || []);
@@ -605,61 +655,50 @@ export class PoiPanel {
       )
       .join('');
 
-    await DialogV2.wait({
-      window: { title: `Posibles Crímenes: ${poi.name}`, resizable: true },
-      content: `
-        <div class="poi-crimes-dialog" style="padding: 10px;">
-          <p style="font-size: 0.85em; color: #ccc; margin-bottom: 8px;">Selecciona los posibles crímenes asociados a esta persona:</p>
-          <table class="poi-crimes-table" style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr>
-                <th style="width: 30px;"></th>
-                <th style="text-align: left;">Crimen</th>
-                <th style="text-align: left; width: 80px;">Tipo</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${crimeRows || '<tr><td colspan="3" style="text-align:center; color:#888; padding:12px;">No hay crímenes registrados en el catálogo.</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      `,
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        {
-          action: 'save',
-          label: 'Aplicar',
-          icon: 'fas fa-check',
-          default: true,
-          callback: async (_event: any, _button: any, dialog: any) => {
-            const dialogEl = dialog?.element || dialog;
-            if (!dialogEl) return;
+    const body = `
+      <div class="guard-modal-form">
+        <p style="font-size: 0.85em; color: #ccc; margin-bottom: 8px;">Selecciona los posibles crímenes asociados a esta persona:</p>
+        <table class="poi-crimes-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="width: 30px;"></th>
+              <th style="text-align: left;">Crimen</th>
+              <th style="text-align: left; width: 80px;">Tipo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${crimeRows || '<tr><td colspan="3" style="text-align:center; color:#888; padding:12px;">No hay crímenes registrados en el catálogo.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
 
-            const selectedIds = new Set<string>();
-            dialogEl.querySelectorAll('.poi-crime-checkbox:checked').forEach((cb: any) => {
-              const crimeId = cb.dataset.crimeId;
-              if (crimeId) selectedIds.add(crimeId);
-            });
+    GuardModal.open({
+      title: `Posibles Crímenes: ${poi.name}`,
+      icon: 'fas fa-gavel',
+      body,
+      saveLabel: 'Aplicar',
+      onSave: async (bodyEl) => {
+        const selectedIds = new Set<string>();
+        bodyEl.querySelectorAll('.poi-crime-checkbox:checked').forEach((cb: any) => {
+          const crimeId = cb.dataset.crimeId;
+          if (crimeId) selectedIds.add(crimeId);
+        });
 
-            // Add new crimes
-            for (const crimeId of selectedIds) {
-              if (!currentCrimeIds.has(crimeId)) {
-                await gm.poiManager.addCrime(poiId, crimeId);
-              }
-            }
-            // Remove unchecked crimes
-            for (const crimeId of currentCrimeIds) {
-              if (!selectedIds.has(crimeId)) {
-                await gm.poiManager.removeCrime(poiId, crimeId);
-              }
-            }
+        for (const crimeId of selectedIds) {
+          if (!currentCrimeIds.has(crimeId)) {
+            await gm.poiManager.addCrime(poiId, crimeId);
+          }
+        }
+        for (const crimeId of currentCrimeIds) {
+          if (!selectedIds.has(crimeId)) {
+            await gm.poiManager.removeCrime(poiId, crimeId);
+          }
+        }
 
-            window.dispatchEvent(new CustomEvent('guard-poi-updated'));
-            await PoiPanel.render(container);
-          },
-        },
-      ],
-      modal: false,
+        window.dispatchEvent(new CustomEvent('guard-poi-updated'));
+        await PoiPanel.render(container);
+      },
     });
   }
 
@@ -670,9 +709,6 @@ export class PoiPanel {
     if (!gm?.poiManager || !gm?.gangManager) return;
     const poi = gm.poiManager.getPoi(poiId);
     if (!poi) return;
-
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
 
     const allGangs = gm.gangManager.getAllGangs();
     const currentGangIds = new Set(poi.gangIds || []);
@@ -688,61 +724,50 @@ export class PoiPanel {
       )
       .join('');
 
-    await DialogV2.wait({
-      window: { title: `Bandas: ${poi.name}`, resizable: true },
-      content: `
-        <div class="poi-gangs-dialog" style="padding: 10px;">
-          <p style="font-size: 0.85em; color: #ccc; margin-bottom: 8px;">Selecciona las bandas a las que pertenece esta persona:</p>
-          <table class="poi-gangs-table" style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr>
-                <th style="width: 30px;"></th>
-                <th style="text-align: left;">Banda</th>
-                <th style="text-align: left; width: 80px;">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${gangRows || '<tr><td colspan="3" style="text-align:center; color:#888; padding:12px;">No hay bandas registradas.</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      `,
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        {
-          action: 'save',
-          label: 'Aplicar',
-          icon: 'fas fa-check',
-          default: true,
-          callback: async (_event: any, _button: any, dialog: any) => {
-            const dialogEl = dialog?.element || dialog;
-            if (!dialogEl) return;
+    const body = `
+      <div class="guard-modal-form">
+        <p style="font-size: 0.85em; color: #ccc; margin-bottom: 8px;">Selecciona las bandas a las que pertenece esta persona:</p>
+        <table class="poi-gangs-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="width: 30px;"></th>
+              <th style="text-align: left;">Banda</th>
+              <th style="text-align: left; width: 80px;">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${gangRows || '<tr><td colspan="3" style="text-align:center; color:#888; padding:12px;">No hay bandas registradas.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
 
-            const selectedIds = new Set<string>();
-            dialogEl.querySelectorAll('.poi-gang-checkbox:checked').forEach((cb: any) => {
-              const gangId = cb.dataset.gangId;
-              if (gangId) selectedIds.add(gangId);
-            });
+    GuardModal.open({
+      title: `Bandas: ${poi.name}`,
+      icon: 'fas fa-users',
+      body,
+      saveLabel: 'Aplicar',
+      onSave: async (bodyEl) => {
+        const selectedIds = new Set<string>();
+        bodyEl.querySelectorAll('.poi-gang-checkbox:checked').forEach((cb: any) => {
+          const gangId = cb.dataset.gangId;
+          if (gangId) selectedIds.add(gangId);
+        });
 
-            // Add new gangs
-            for (const gangId of selectedIds) {
-              if (!currentGangIds.has(gangId)) {
-                await gm.poiManager.addGang(poiId, gangId);
-              }
-            }
-            // Remove unchecked gangs
-            for (const gangId of currentGangIds) {
-              if (!selectedIds.has(gangId)) {
-                await gm.poiManager.removeGang(poiId, gangId);
-              }
-            }
+        for (const gangId of selectedIds) {
+          if (!currentGangIds.has(gangId)) {
+            await gm.poiManager.addGang(poiId, gangId);
+          }
+        }
+        for (const gangId of currentGangIds) {
+          if (!selectedIds.has(gangId)) {
+            await gm.poiManager.removeGang(poiId, gangId);
+          }
+        }
 
-            window.dispatchEvent(new CustomEvent('guard-poi-updated'));
-            await PoiPanel.render(container);
-          },
-        },
-      ],
-      modal: false,
+        window.dispatchEvent(new CustomEvent('guard-poi-updated'));
+        await PoiPanel.render(container);
+      },
     });
   }
 

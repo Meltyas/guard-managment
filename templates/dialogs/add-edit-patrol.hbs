@@ -1,33 +1,41 @@
-<form class="patrol-form guard-dialog">
-    <div class="section identity">
-        <label>Nombre</label>
+<form class="guard-modal-form">
+    <div class="guard-modal-row">
+        <label><i class="fas fa-tag"></i> Nombre</label>
         <input type="text" name="name" value="{{name}}" required maxlength="50" />
-        <label>Subtítulo</label>
-        <input type="text" name="subtitle" value="{{subtitle}}" maxlength="80" />
-        <label>Capacidad de Soldados</label>
-        <select name="soldierSlots">
-            {{#each slotOptions}}
-            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-            {{/each}}
-        </select>
-        <label style="margin-top: 0.75rem;">Hope Máximo <small style="opacity:0.6;">(0–6)</small></label>
-        <input type="number" name="maxHope" value="{{maxHope}}" min="0" max="6" style="width:72px;" />
     </div>
 
-    <div class="section stats">
-        <h4>Estadísticas Base</h4>
-        <div style="display:flex;gap:0.75rem;">
-            {{#each stats}}
-            <div style="flex:1;display:flex;flex-direction:column;gap:0.25rem;">
-                <label style="font-size:0.85rem;font-weight:bold;text-align:center;">{{this.label}}</label>
-                <input type="number" name="stat_{{this.key}}" value="{{this.value}}" min="{{../minStat}}" max="{{../maxStat}}" style="text-align:center;" />
-            </div>
-            {{/each}}
+    <div class="guard-modal-row">
+        <label><i class="fas fa-pen"></i> Subtítulo</label>
+        <input type="text" name="subtitle" value="{{subtitle}}" maxlength="80" />
+    </div>
+
+    <div class="guard-modal-split">
+        <div class="guard-modal-row">
+            <label><i class="fas fa-users"></i> Capacidad de Soldados</label>
+            <select name="soldierSlots">
+                {{#each slotOptions}}
+                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                {{/each}}
+            </select>
+        </div>
+        <div class="guard-modal-row">
+            <label><i class="fas fa-diamond"></i> Hope Máximo (0–6)</label>
+            <input type="number" name="maxHope" value="{{maxHope}}" min="0" max="6" />
         </div>
     </div>
 
+    <h4 style="color:#f3c267;font-family:'Cinzel',serif;margin:0.5rem 0 0;">Estadísticas Base</h4>
+    <div class="guard-modal-split">
+        {{#each stats}}
+        <div class="guard-modal-row">
+            <label>{{this.label}}</label>
+            <input type="number" name="stat_{{this.key}}" value="{{this.value}}" min="{{../minStat}}" max="{{../maxStat}}" style="text-align:center;" />
+        </div>
+        {{/each}}
+    </div>
+
     <input type="hidden" name="organizationId" value="{{organizationId}}" />
-    <p class="hint">
+    <p class="guard-modal-hint">
         {{#if isCreate}}
         Crear nueva patrulla para organización.
         {{else}}

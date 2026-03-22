@@ -16,7 +16,9 @@ export class PoiManager {
 
   public async loadFromSettings(): Promise<void> {
     try {
-      const pois = game?.settings?.get('guard-management', 'poi' as any) as PersonOfInterest[] | null;
+      const pois = game?.settings?.get('guard-management', 'poi' as any) as
+        | PersonOfInterest[]
+        | null;
       if (pois && Array.isArray(pois)) {
         this.pois.clear();
         for (const p of pois) {
@@ -128,7 +130,10 @@ export class PoiManager {
     return poi;
   }
 
-  public async updatePoi(id: string, updates: Partial<PersonOfInterest>): Promise<PersonOfInterest | null> {
+  public async updatePoi(
+    id: string,
+    updates: Partial<PersonOfInterest>
+  ): Promise<PersonOfInterest | null> {
     const poi = this.pois.get(id);
     if (!poi) return null;
     const updated: PersonOfInterest = {
@@ -239,7 +244,11 @@ export class PoiManager {
 
   // --- Actor linking ---
 
-  public async linkActor(id: string, actorId: string, img?: string): Promise<PersonOfInterest | null> {
+  public async linkActor(
+    id: string,
+    actorId: string,
+    img?: string
+  ): Promise<PersonOfInterest | null> {
     const poi = this.pois.get(id);
     if (!poi) return null;
     poi.actorId = actorId;

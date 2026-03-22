@@ -1,6 +1,6 @@
-<div class='skill-content'>
-  <div class='form-group'>
-    <label for='skill-title'>Título</label>
+<div class='guard-modal-form'>
+  <div class='guard-modal-row'>
+    <label><i class='fas fa-tag'></i> Título</label>
     <input
       type='text'
       id='skill-title'
@@ -11,8 +11,8 @@
     />
   </div>
 
-  <div class='form-group'>
-    <label for='skill-hope-cost'>Coste de Hope (0-5)</label>
+  <div class='guard-modal-row'>
+    <label><i class='fas fa-diamond'></i> Coste de Hope (0-5)</label>
     <input
       type='number'
       id='skill-hope-cost'
@@ -24,10 +24,8 @@
     />
   </div>
 
-  <div class='form-group stacked'>
-    <label for='skill-description'>Descripción</label>
-    <prose-mirror name='skill-description' value='{{description}}'>
-      {{{description}}}
-    </prose-mirror>
+  <div class='guard-modal-row'>
+    <label><i class='fas fa-align-left'></i> Descripción</label>
+    <textarea name='skill-description' placeholder='Describe la habilidad...'>{{description}}</textarea>
   </div>
 </div>

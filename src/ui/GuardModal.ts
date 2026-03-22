@@ -18,7 +18,7 @@ export interface GuardModalOptions {
   icon: string;
   /** HTML string for the modal body */
   body: string;
-  /** Initial width in px (default 440) */
+  /** Initial width in px (default 600) */
   width?: number;
   /** Minimum width in px (default 320) */
   minWidth?: number;
@@ -28,6 +28,8 @@ export interface GuardModalOptions {
   onSave: (bodyEl: HTMLElement) => Promise<boolean | void>;
   /** Called after the modal DOM is created but before it's shown */
   onRender?: (bodyEl: HTMLElement) => void;
+  /** Called when the modal is closed (cancel, X, or Escape) */
+  onClose?: () => void;
   /** Save button label (default 'Guardar') */
   saveLabel?: string;
   /** Cancel button label (default 'Cancelar') */
@@ -84,6 +86,36 @@ export class GuardModal {
     return new GuardModal(opts);
   }
 
+  /**
+   * Open a GuardModal and return a Promise that resolves when:
+   *  - Save is clicked and onSave does NOT return false → resolves with 'save'
+   *  - Cancel/Close/Escape → resolves with null
+   * Useful for dialogs that need to await a result.
+   */
+  static openAsync<T = 'save'>(
+    opts: Omit<GuardModalOptions, 'onSave' | 'onClose'> & {
+      onSave: (bodyEl: HTMLElement) => Promise<T | false>;
+    }
+  ): Promise<T | null> {
+    return new Promise((resolve) => {
+      let resolved = false;
+      const modal = new GuardModal({
+        ...opts,
+        onSave: async (bodyEl) => {
+          const result = await opts.onSave(bodyEl);
+          if (result === false) return false;
+          resolved = true;
+          resolve(result as T);
+        },
+        onClose: () => {
+          if (!resolved) resolve(null);
+        },
+      });
+      // Return the modal instance for external reference if needed
+      void modal;
+    });
+  }
+
   // ---- Instance methods ----
 
   public close(): void {
@@ -94,6 +126,8 @@ export class GuardModal {
 
     const idx = openModals.indexOf(this);
     if (idx !== -1) openModals.splice(idx, 1);
+
+    this.opts.onClose?.();
   }
 
   // ---- Internals ----
@@ -101,7 +135,7 @@ export class GuardModal {
   private buildElement(): HTMLElement {
     const el = document.createElement('div');
     el.className = 'guard-modal';
-    const width = this.opts.width ?? 440;
+    const width = this.opts.width ?? 600;
     el.style.width = `${width}px`;
 
     const showFooter = this.opts.showFooter !== false;
@@ -158,7 +192,9 @@ export class GuardModal {
     this.element.querySelector('.guard-modal-close')?.addEventListener('click', () => this.close());
 
     // Cancel button
-    this.element.querySelector('.guard-modal-btn.cancel')?.addEventListener('click', () => this.close());
+    this.element
+      .querySelector('.guard-modal-btn.cancel')
+      ?.addEventListener('click', () => this.close());
 
     // Save button
     this.element.querySelector('.guard-modal-btn.save')?.addEventListener('click', async () => {

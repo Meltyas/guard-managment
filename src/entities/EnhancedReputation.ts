@@ -312,9 +312,9 @@ export class ReputationDialog extends BaseWarehouseItemDialog<Reputation> {
    */
   private generateDialogContent(existingItem?: Reputation): string {
     return `
-      <form class="reputation-form warehouse-item-form">
-        <div class="form-group">
-          <label for="reputation-name">Nombre de la Facción:</label>
+      <form class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-flag"></i> Nombre de la Facción</label>
           <input
             type="text"
             id="reputation-name"
@@ -325,38 +325,38 @@ export class ReputationDialog extends BaseWarehouseItemDialog<Reputation> {
           />
         </div>
 
-        <div class="form-group">
-          <label for="reputation-description">Descripción:</label>
-          <prose-mirror name="description" value="${(existingItem?.description || '').replace(/"/g, '&quot;')}">
-            ${existingItem?.description || ''}
-          </prose-mirror>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea name="description" placeholder="Descripción de la facción...">${existingItem?.description || ''}</textarea>
         </div>
 
-        <div class="form-group">
-          <label for="reputation-level">Nivel de Reputación:</label>
-          <select id="reputation-level" name="level" required>
-            ${Object.entries(REPUTATION_LABELS)
-              .map(
-                ([value, label]) =>
-                  `<option value="${value}" ${existingItem?.level == parseInt(value) ? 'selected' : ''}>${label}</option>`
-              )
-              .join('')}
-          </select>
+        <div class="guard-modal-split">
+          <div class="guard-modal-row">
+            <label><i class="fas fa-heart"></i> Nivel de Reputación</label>
+            <select id="reputation-level" name="level" required>
+              ${Object.entries(REPUTATION_LABELS)
+                .map(
+                  ([value, label]) =>
+                    `<option value="${value}" ${existingItem?.level == parseInt(value) ? 'selected' : ''}>${label}</option>`
+                )
+                .join('')}
+            </select>
+          </div>
+
+          <div class="guard-modal-row">
+            <label><i class="fas fa-users"></i> Tipo de Facción</label>
+            <input
+              type="text"
+              id="reputation-faction"
+              name="faction"
+              value="${existingItem?.faction || ''}"
+              placeholder="ej: Gremio, Gobierno, Criminal..."
+            />
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="reputation-faction">Tipo de Facción:</label>
-          <input
-            type="text"
-            id="reputation-faction"
-            name="faction"
-            value="${existingItem?.faction || ''}"
-            placeholder="ej: Gremio, Gobierno, Criminal..."
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="reputation-relationship">Relación:</label>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-handshake"></i> Relación</label>
           <input
             type="text"
             id="reputation-relationship"
@@ -366,16 +366,14 @@ export class ReputationDialog extends BaseWarehouseItemDialog<Reputation> {
           />
         </div>
 
-        <div class="form-group">
-          <label for="reputation-notes">Notas:</label>
-          <prose-mirror name="notes" value="${(existingItem?.notes || '').replace(/"/g, '&quot;')}">
-            ${existingItem?.notes || ''}
-          </prose-mirror>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-sticky-note"></i> Notas</label>
+          <textarea name="notes" placeholder="Notas adicionales...">${existingItem?.notes || ''}</textarea>
         </div>
 
-        <div class="form-group">
-          <label for="reputation-image">Imagen:</label>
-          <div class="file-picker-container">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div class="file-picker-wrapper">
             <input
               type="text"
               id="reputation-image"

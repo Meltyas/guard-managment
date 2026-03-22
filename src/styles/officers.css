@@ -5,13 +5,6 @@
 
 /* ==================== Officer Form Dialog ==================== */
 
-.officer-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-}
-
 .officer-actor-section {
   margin-bottom: 1rem;
 }
@@ -337,25 +330,6 @@
 
 .trait-edit-btn:hover {
   color: #81c784;
-}
-
-.form-group-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.form-group-checkbox label {
-  margin: 0;
-  cursor: pointer;
-  flex: 1;
-}
-
-.form-group-checkbox input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  flex-shrink: 0;
 }
 
 .trait-description {

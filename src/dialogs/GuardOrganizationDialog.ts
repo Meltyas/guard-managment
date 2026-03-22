@@ -1,10 +1,10 @@
-// @ts-nocheck
 /**
- * Guard Organization Dialog - Create/Edit Guard Organizations using DialogV2
+ * Guard Organization Dialog - Create/Edit Guard Organizations using GuardModal
  */
 
 import type { GuardOrganization, GuardStats } from '../types/entities';
 import { DEFAULT_GUARD_STATS, GUARD_STAT_MAX, GUARD_STAT_MIN } from '../types/entities';
+import { GuardModal } from '../ui/GuardModal.js';
 
 export interface GuardOrganizationDialogData {
   name: string;
@@ -41,191 +41,34 @@ export class GuardOrganizationDialog {
       mode === 'create' ? 'Nueva Organización de Guardias' : 'Editar Organización de Guardias';
 
     try {
-      // Usar la forma oficial de acceder a DialogV2 en Foundry V13
-      const DialogV2Class = foundry.applications.api.DialogV2;
+      const data = await GuardModal.openAsync<GuardOrganizationDialogData>({
+        title,
+        icon: 'fas fa-shield-alt',
+        body: content,
+        saveLabel: mode === 'create' ? 'Crear' : 'Guardar',
+        onSave: async (bodyEl) => {
+          const form = bodyEl.querySelector('form.guard-modal-form') as HTMLFormElement;
+          if (!form) {
+            ui?.notifications?.error('No se pudo encontrar el formulario');
+            return false;
+          }
 
-      if (!DialogV2Class) {
-        console.warn('DialogV2 no está disponible, usando Dialog estándar como fallback');
-        return this.showWithStandardDialog(mode, existingOrganization, content);
-      }
+          const formData = new FormData(form);
+          const data = this.extractFormData(formData);
 
-      const result = await DialogV2Class.wait({
-        window: {
-          title,
-          resizable: true,
+          const validationResult = this.validateDataWithDetails(data);
+          if (!validationResult.isValid) {
+            this.highlightErrorFields(form, validationResult.errorFields);
+            ui?.notifications?.error(validationResult.errorMessage);
+            return false;
+          }
+
+          return data;
         },
-        content,
-        buttons: [
-          {
-            action: 'save',
-            icon: 'fas fa-save',
-            label: mode === 'create' ? 'Crear' : 'Guardar',
-            default: true,
-            callback: (event: Event, button: any, dialog: any) => {
-              try {
-                console.log('Dialog callback triggered', { dialog, event, button });
-                console.log('Dialog properties:', Object.keys(dialog));
-                console.log('Event target:', event.target);
-                console.log('Event currentTarget:', event.currentTarget);
-
-                // En DialogV2, necesitamos usar diferentes métodos para acceder al contenido
-                let form: HTMLFormElement | null = null;
-
-                // Primero intentar con el event target
-                if (event.target && event.target instanceof Element) {
-                  form = event.target.closest('form') as HTMLFormElement;
-                  if (!form) {
-                    // Buscar el formulario en el elemento padre
-                    const dialogElement = event.target.closest('.dialog');
-                    if (dialogElement) {
-                      form = dialogElement.querySelector('form.guard-organization-form');
-                    }
-                  }
-                }
-
-                // Si no encontramos el formulario con el event, intentar con el dialog
-                if (!form && dialog.form) {
-                  form = dialog.form;
-                } else if (!form && dialog.element) {
-                  form = dialog.element.querySelector('form.guard-organization-form');
-                } else if (!form && dialog.contentElement) {
-                  form = dialog.contentElement.querySelector('form.guard-organization-form');
-                } else if (!form) {
-                  // Buscar en el DOM usando el ID del diálogo
-                  const dialogElement =
-                    document.querySelector(`[data-appid="${dialog.id}"]`) ||
-                    document.querySelector('.dialog.window-app:last-child') ||
-                    document.querySelector('[data-app-id]:last-child');
-
-                  if (dialogElement) {
-                    form = dialogElement.querySelector('form.guard-organization-form');
-                  }
-
-                  // Último recurso: buscar en todo el documento
-                  if (!form) {
-                    const allForms = document.querySelectorAll('form.guard-organization-form');
-                    form = allForms[allForms.length - 1] as HTMLFormElement; // Tomar el último formulario
-                  }
-                }
-
-                console.log('Form found:', form);
-                console.log('Form element type:', form?.constructor.name);
-
-                if (!form || !(form instanceof HTMLFormElement)) {
-                  console.error('No se encontró un HTMLFormElement válido', {
-                    form,
-                    dialog,
-                    dialogId: dialog.id,
-                    dialogElement: dialog.element,
-                    allForms: document.querySelectorAll('form'),
-                    allGuardForms: document.querySelectorAll('form.guard-organization-form'),
-                  });
-
-                  // Alternativa: extraer datos directamente por ID de campos
-                  console.log('Intentando extraer datos directamente por ID de campos...');
-                  const nameInput = document.getElementById('name') as HTMLInputElement;
-                  const subtitleInput = document.getElementById('subtitle') as HTMLInputElement;
-                  const robustismoInput = document.getElementById('robustismo') as HTMLInputElement;
-                  const analiticaInput = document.getElementById('analitica') as HTMLInputElement;
-                  const subterfugioInput = document.getElementById(
-                    'subterfugio'
-                  ) as HTMLInputElement;
-                  const elocuenciaInput = document.getElementById('elocuencia') as HTMLInputElement;
-
-                  if (
-                    nameInput &&
-                    robustismoInput &&
-                    analiticaInput &&
-                    subterfugioInput &&
-                    elocuenciaInput
-                  ) {
-                    console.log('Datos extraídos directamente de los campos');
-                    const data = {
-                      name: nameInput.value || '',
-                      subtitle: subtitleInput?.value || '',
-                      robustismo:
-                        robustismoInput.value !== ''
-                          ? parseInt(robustismoInput.value)
-                          : DEFAULT_GUARD_STATS.robustismo,
-                      analitica:
-                        analiticaInput.value !== ''
-                          ? parseInt(analiticaInput.value)
-                          : DEFAULT_GUARD_STATS.analitica,
-                      subterfugio:
-                        subterfugioInput.value !== ''
-                          ? parseInt(subterfugioInput.value)
-                          : DEFAULT_GUARD_STATS.subterfugio,
-                      elocuencia:
-                        elocuenciaInput.value !== ''
-                          ? parseInt(elocuenciaInput.value)
-                          : DEFAULT_GUARD_STATS.elocuencia,
-                    };
-
-                    console.log('Data extracted directly:', data);
-
-                    // Validar datos
-                    const validationResult = this.validateDataWithDetails(data);
-                    if (!validationResult.isValid) {
-                      console.error('Validation failed:', validationResult);
-                      ui?.notifications?.error(validationResult.errorMessage);
-                      return false;
-                    }
-
-                    return data;
-                  }
-
-                  ui?.notifications?.error('No se pudo encontrar el formulario ni los campos');
-                  return false;
-                }
-
-                const formData = new FormData(form);
-                console.log('FormData created:', formData);
-
-                // Log de todos los valores del formulario para debug
-                for (const [key, value] of formData.entries()) {
-                  console.log(`FormData ${key}:`, value);
-                }
-
-                const data = this.extractFormData(formData);
-                console.log('Data extracted:', data);
-
-                // Validar datos
-                const validationResult = this.validateDataWithDetails(data);
-                if (!validationResult.isValid) {
-                  console.error('Validation failed:', validationResult);
-
-                  // Resaltar campos con errores
-                  this.highlightErrorFields(form, validationResult.errorFields);
-
-                  ui?.notifications?.error(validationResult.errorMessage);
-                  return false;
-                }
-
-                return data;
-              } catch (error) {
-                console.error('Error in dialog callback:', error);
-                if (error instanceof Error) {
-                  console.error('Error stack:', error.stack);
-                }
-                ui?.notifications?.error('Error al procesar el formulario');
-                return false;
-              }
-            },
-          },
-          {
-            action: 'cancel',
-            icon: 'fas fa-times',
-            label: 'Cancelar',
-            callback: () => null,
-          },
-        ],
       });
 
-      // If user cancelled or callback returned false, just return null
-      if (!result || typeof result !== 'object') {
-        return null;
-      }
-      return this.createOrganizationFromData(result as any, mode, existingOrganization);
+      if (!data) return null;
+      return this.createOrganizationFromData(data, mode, existingOrganization);
     } catch (error) {
       console.error('GuardOrganizationDialog | Error showing dialog:', error);
       ui?.notifications?.error('Error al mostrar el diálogo de organización');
@@ -311,13 +154,11 @@ export class GuardOrganizationDialog {
     const errorFields: string[] = [];
     const errors: string[] = [];
 
-    // Check required fields
     if (!data.name || data.name.trim().length === 0) {
       errorFields.push('name');
       errors.push('El nombre es requerido');
     }
 
-    // Check stat ranges
     const statChecks = [
       { value: data.robustismo, name: 'robustismo', label: 'Robustismo' },
       { value: data.analitica, name: 'analitica', label: 'Analítica' },
@@ -343,14 +184,12 @@ export class GuardOrganizationDialog {
    * Highlight error fields in the form
    */
   private highlightErrorFields(form: HTMLFormElement, errorFields: string[]): void {
-    // Clear previous error highlights
     const allInputs = form.querySelectorAll('input');
     allInputs.forEach((input) => {
       input.classList.remove('error');
       input.style.borderColor = '';
     });
 
-    // Highlight error fields
     errorFields.forEach((fieldName) => {
       const field = form.querySelector(`input[name="${fieldName}"]`) as HTMLInputElement;
       if (field) {
@@ -397,68 +236,5 @@ export class GuardOrganizationDialog {
         patrols: [],
       };
     }
-  }
-
-  /**
-   * Fallback method using standard Dialog when DialogV2 is not available
-   */
-  private async showWithStandardDialog(
-    mode: 'create' | 'edit',
-    existingOrganization?: GuardOrganization,
-    content?: string
-  ): Promise<GuardOrganization | null> {
-    const dialogContent = content || (await this.generateContent(mode, existingOrganization));
-    const title =
-      mode === 'create' ? 'Nueva Organización de Guardias' : 'Editar Organización de Guardias';
-
-    return new Promise((resolve) => {
-      const dialog = new Dialog({
-        title,
-        content: dialogContent,
-        buttons: {
-          save: {
-            icon: 'fas fa-save',
-            label: mode === 'create' ? 'Crear' : 'Guardar',
-            callback: (html: JQuery) => {
-              const formData = new FormData(html.find('form')[0] as HTMLFormElement);
-              const data = this.extractFormData(formData);
-
-              // Validar con detalles
-              const validationResult = this.validateDataWithDetails(data);
-              if (!validationResult.isValid) {
-                ui?.notifications?.error(validationResult.errorMessage);
-
-                // Resaltar campos con errores
-                const form = html.find('form')[0] as HTMLFormElement;
-                this.highlightErrorFields(form, validationResult.errorFields);
-
-                // No cerrar el diálogo - crear uno nuevo
-                setTimeout(() => {
-                  this.showWithStandardDialog(mode, existingOrganization, dialogContent).then(
-                    resolve
-                  );
-                }, 100);
-                return;
-              }
-
-              const organization = this.createOrganizationFromData(
-                data,
-                mode,
-                existingOrganization
-              );
-              resolve(organization);
-            },
-          },
-          cancel: {
-            icon: 'fas fa-times',
-            label: 'Cancelar',
-            callback: () => resolve(null),
-          },
-        },
-        default: 'save',
-      });
-
-      dialog.render(true);
-    });
   }
 }

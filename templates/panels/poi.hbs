@@ -21,6 +21,11 @@
       <button class="poi-filter-btn" data-filter-status="unknown">Desconocido</button>
     </div>
 
+    <div class="poi-drop-zone" data-drop="new-poi">
+      <i class="fas fa-user-plus"></i>
+      <span>Arrastra un actor aquí para registrarlo como persona de interés</span>
+    </div>
+
     {{#if pois.length}}
       <div class="poi-cards">
         {{#each pois}}
@@ -136,10 +141,10 @@
         {{poiCount}} persona(s) de interés registrada(s)
       </div>
     {{else}}
-      <div class="poi-empty-state">
+      <div class="poi-empty-state" data-drop="new-poi">
         <i class="fas fa-user-secret"></i>
         <p>No hay personas de interés registradas</p>
-        <p class="poi-empty-hint">Usa el botón "Nuevo" para registrar una persona de interés.</p>
+        <p class="poi-empty-hint">Usa el botón "Nuevo" o arrastra un actor aquí para registrar una persona de interés.</p>
       </div>
     {{/if}}
   </div>

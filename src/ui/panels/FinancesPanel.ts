@@ -540,10 +540,10 @@ export class FinancesPanel {
 
     const illegalSection = showIllegal
       ? `
-      <div class="finance-form-row">
-        <label class="finance-checkbox-label">
+      <div class="guard-modal-row">
+        <label class="guard-modal-checkbox">
           <input type="checkbox" id="fm-illegal" ${existing?.illegal ? 'checked' : ''} />
-          <span class="finance-checkbox-custom"></span>
+          <span class="guard-modal-checkbox-icon"></span>
           <span><i class="fas fa-mask"></i> ${isIncome ? 'Entrada ilegal' : 'Gasto ilegal'}</span>
         </label>
       </div>`
@@ -552,27 +552,27 @@ export class FinancesPanel {
     const refPickerHTML = FinancesPanel.buildReferencePickerHTML(existing?.reference);
 
     const body = `
-      <div class="finance-form">
-        <div class="finance-form-row">
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
           <label for="fm-name"><i class="fas fa-tag"></i> Nombre</label>
           <input type="text" id="fm-name" placeholder="${isIncome ? 'Ej: Impuestos del mercado...' : 'Ej: Salario de guardias...'}" value="${existing?.name || ''}" />
         </div>
-        <div class="finance-form-row">
+        <div class="guard-modal-row">
           <label for="fm-desc"><i class="fas fa-align-left"></i> Descripción</label>
           <textarea id="fm-desc" rows="2" placeholder="Descripción opcional...">${existing?.description || ''}</textarea>
         </div>
-        <div class="finance-form-split">
-          <div class="finance-form-row">
+        <div class="guard-modal-split">
+          <div class="guard-modal-row">
             <label for="fm-amount"><i class="fas fa-coins"></i> Cantidad</label>
             <input type="number" id="fm-amount" min="0" step="1" value="${existing?.amount || 0}" />
           </div>
-          <div class="finance-form-row">
+          <div class="guard-modal-row">
             <label for="fm-type"><i class="fas fa-layer-group"></i> Tipo</label>
             <select id="fm-type">${typeOptions}</select>
           </div>
         </div>
         ${illegalSection}
-        <div class="finance-form-row">
+        <div class="guard-modal-row">
           <label><i class="fas fa-link"></i> Referencia</label>
           ${refPickerHTML}
         </div>
@@ -669,12 +669,12 @@ export class FinancesPanel {
       title: 'Ajustar Presupuesto Total',
       icon: 'fas fa-edit',
       body: `
-        <div class="finance-form">
-          <div class="finance-form-row">
+        <div class="guard-modal-form">
+          <div class="guard-modal-row">
             <label for="fm-total"><i class="fas fa-coins"></i> Presupuesto Total</label>
             <input type="number" id="fm-total" step="1" value="${current}" />
           </div>
-          <p class="finance-form-hint"><i class="fas fa-exclamation-triangle"></i> Esto sobrescribe el total actual.</p>
+          <p class="guard-modal-hint"><i class="fas fa-exclamation-triangle"></i> Esto sobrescribe el total actual.</p>
         </div>
       `,
       onRender: (bodyEl) => {

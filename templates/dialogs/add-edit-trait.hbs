@@ -1,6 +1,6 @@
-<div class='trait-content'>
-  <div class='form-group'>
-    <label for='trait-title'>Título</label>
+<div class='guard-modal-form'>
+  <div class='guard-modal-row'>
+    <label><i class='fas fa-tag'></i> Título</label>
     <input
       type='text'
       id='trait-title'
@@ -11,10 +11,8 @@
     />
   </div>
 
-  <div class='form-group stacked'>
-    <label for='trait-description'>Descripción</label>
-    <prose-mirror name='trait-description' value='{{description}}'>
-      {{{description}}}
-    </prose-mirror>
+  <div class='guard-modal-row'>
+    <label><i class='fas fa-align-left'></i> Descripción</label>
+    <textarea name='trait-description' placeholder='Describe la característica...'>{{description}}</textarea>
   </div>
 </div>

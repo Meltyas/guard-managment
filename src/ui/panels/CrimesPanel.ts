@@ -7,6 +7,7 @@ import type { Crime, OffenseType } from '../../types/crimes';
 import { OFFENSE_LABELS, OFFENSE_TYPES, OFFENSE_TYPE_FROM_SPANISH } from '../../types/crimes';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
+import { GuardModal } from '../GuardModal.js';
 
 export class CrimesPanel {
   static get template() {
@@ -196,80 +197,53 @@ export class CrimesPanel {
       (t) => `<option value="${t}">${OFFENSE_LABELS[t]}</option>`
     ).join('');
 
-    const content = `
-      <div class="guard-dialog" style="padding: 0.5rem;">
-        <div class="form-group">
-          <label for="crime-name">Nombre del crimen:</label>
-          <input type="text" id="crime-name" name="name" placeholder="Ej: Asesinato" autofocus />
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="crime-name"><i class="fas fa-gavel"></i> Nombre del crimen</label>
+          <input type="text" id="crime-name" placeholder="Ej: Asesinato" />
         </div>
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label for="crime-type">Tipo de ofensa:</label>
-          <select id="crime-type" name="offenseType">${offenseOptions}</select>
+        <div class="guard-modal-row">
+          <label for="crime-type"><i class="fas fa-balance-scale"></i> Tipo de ofensa</label>
+          <select id="crime-type">${offenseOptions}</select>
         </div>
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label for="crime-sentence">Sentencia personalizada: <span style="color: #888; font-size: 0.8em;">(vacío = usar tipo por defecto)</span></label>
-          <input type="text" id="crime-sentence" name="customSentence" placeholder="Ej: 5 turnos + 2 Handfuls" />
+        <div class="guard-modal-row">
+          <label for="crime-sentence"><i class="fas fa-clock"></i> Sentencia personalizada <span style="color: #888; font-size: 0.8em;">(vacío = usar tipo por defecto)</span></label>
+          <input type="text" id="crime-sentence" placeholder="Ej: 5 turnos + 2 Handfuls" />
         </div>
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label>Descripción:</label>
-          <div class="crime-editor-wrapper">
-            <prose-mirror name="description" value="">
-            </prose-mirror>
-          </div>
+        <div class="guard-modal-row">
+          <label for="crime-description"><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="crime-description" rows="4" placeholder="Descripción del crimen..."></textarea>
         </div>
       </div>
     `;
 
-    try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (DialogV2Class) {
-        await DialogV2Class.wait({
-          window: { title: 'Añadir Crimen', resizable: true },
-          content,
-          buttons: [
-            {
-              action: 'save',
-              icon: 'fas fa-save',
-              label: 'Guardar',
-              callback: async (_event: any, _button: any, dialog: any) => {
-                const dialogEl = dialog?.element || dialog;
-                if (!dialogEl) return;
-                const name = (
-                  dialogEl.querySelector('#crime-name') as HTMLInputElement
-                )?.value?.trim();
-                const offenseType = (dialogEl.querySelector('#crime-type') as HTMLSelectElement)
-                  ?.value as OffenseType;
-                const customSentence =
-                  (dialogEl.querySelector('#crime-sentence') as HTMLInputElement)?.value?.trim() ||
-                  '';
-                if (!name) {
-                  NotificationService.warn('El nombre del crimen es obligatorio');
-                  return;
-                }
-                const description = this.readProseMirrorContent(dialogEl);
-                const gm = (window as any).GuardManagement;
-                const result = await gm.crimeManager.createCrime(
-                  name,
-                  offenseType,
-                  description,
-                  customSentence
-                );
-                if (!result) {
-                  NotificationService.warn(`Ya existe un crimen con el nombre "${name}"`);
-                  return;
-                }
-                NotificationService.info(`Crimen "${name}" creado`);
-              },
-            },
-            { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-          ],
-          rejectClose: false,
-          modal: false,
-        });
-      }
-    } catch (error) {
-      console.error('CrimesPanel | Add crime dialog error:', error);
-    }
+    GuardModal.open({
+      title: 'Añadir Crimen',
+      icon: 'fas fa-gavel',
+      body,
+      saveLabel: 'Guardar',
+      onRender: (bodyEl) => {
+        (bodyEl.querySelector('#crime-name') as HTMLInputElement)?.focus();
+      },
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#crime-name') as HTMLInputElement)?.value?.trim();
+        const offenseType = (bodyEl.querySelector('#crime-type') as HTMLSelectElement)?.value as OffenseType;
+        const customSentence = (bodyEl.querySelector('#crime-sentence') as HTMLInputElement)?.value?.trim() || '';
+        if (!name) {
+          NotificationService.warn('El nombre del crimen es obligatorio');
+          return false;
+        }
+        const description = (bodyEl.querySelector('#crime-description') as HTMLTextAreaElement)?.value?.trim() || '';
+        const gm = (window as any).GuardManagement;
+        const result = await gm.crimeManager.createCrime(name, offenseType, description, customSentence);
+        if (!result) {
+          NotificationService.warn(`Ya existe un crimen con el nombre "${name}"`);
+          return false;
+        }
+        NotificationService.info(`Crimen "${name}" creado`);
+      },
+    });
   }
 
   private static async showEditCrimeDialog(crimeId: string): Promise<void> {
@@ -282,84 +256,55 @@ export class CrimesPanel {
         `<option value="${t}" ${t === crime.offenseType ? 'selected' : ''}>${OFFENSE_LABELS[t]}</option>`
     ).join('');
 
-    const escapedDesc = (crime.description || '').replace(/"/g, '&quot;');
-    const descContent = crime.description || '';
-    const escapedSentence = (crime.customSentence || '').replace(/"/g, '&quot;');
+    const plainDesc = (crime.description || '').replace(/<[^>]*>/g, '');
 
-    const content = `
-      <div class="guard-dialog" style="padding: 0.5rem;">
-        <div class="form-group">
-          <label for="crime-name">Nombre del crimen:</label>
-          <input type="text" id="crime-name" name="name" value="${crime.name}" />
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="crime-name"><i class="fas fa-gavel"></i> Nombre del crimen</label>
+          <input type="text" id="crime-name" value="${crime.name}" />
         </div>
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label for="crime-type">Tipo de ofensa:</label>
-          <select id="crime-type" name="offenseType">${offenseOptions}</select>
+        <div class="guard-modal-row">
+          <label for="crime-type"><i class="fas fa-balance-scale"></i> Tipo de ofensa</label>
+          <select id="crime-type">${offenseOptions}</select>
         </div>
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label for="crime-sentence">Sentencia personalizada: <span style="color: #888; font-size: 0.8em;">(vacío = usar tipo por defecto)</span></label>
-          <input type="text" id="crime-sentence" name="customSentence" value="${escapedSentence}" placeholder="Ej: 5 turnos + 2 Handfuls" />
+        <div class="guard-modal-row">
+          <label for="crime-sentence"><i class="fas fa-clock"></i> Sentencia personalizada <span style="color: #888; font-size: 0.8em;">(vacío = usar tipo por defecto)</span></label>
+          <input type="text" id="crime-sentence" value="${(crime.customSentence || '').replace(/"/g, '&quot;')}" placeholder="Ej: 5 turnos + 2 Handfuls" />
         </div>
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label>Descripción:</label>
-          <div class="crime-editor-wrapper">
-            <prose-mirror name="description" value="${escapedDesc}">
-              ${descContent}
-            </prose-mirror>
-          </div>
+        <div class="guard-modal-row">
+          <label for="crime-description"><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="crime-description" rows="4">${plainDesc}</textarea>
         </div>
       </div>
     `;
 
-    try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (DialogV2Class) {
-        await DialogV2Class.wait({
-          window: { title: `Editar: ${crime.name}`, resizable: true },
-          content,
-          buttons: [
-            {
-              action: 'save',
-              icon: 'fas fa-save',
-              label: 'Guardar',
-              callback: async (_event: any, _button: any, dialog: any) => {
-                const dialogEl = dialog?.element || dialog;
-                if (!dialogEl) return;
-                const name = (
-                  dialogEl.querySelector('#crime-name') as HTMLInputElement
-                )?.value?.trim();
-                const offenseType = (dialogEl.querySelector('#crime-type') as HTMLSelectElement)
-                  ?.value as OffenseType;
-                const customSentence =
-                  (dialogEl.querySelector('#crime-sentence') as HTMLInputElement)?.value?.trim() ||
-                  '';
-                if (!name) {
-                  NotificationService.warn('El nombre del crimen es obligatorio');
-                  return;
-                }
-                const description = this.readProseMirrorContent(dialogEl);
-                const result = await gm.crimeManager.updateCrime(crimeId, {
-                  name,
-                  offenseType,
-                  description,
-                  customSentence,
-                });
-                if (!result) {
-                  NotificationService.warn(`Ya existe un crimen con el nombre "${name}"`);
-                  return;
-                }
-                NotificationService.info(`Crimen "${name}" actualizado`);
-              },
-            },
-            { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-          ],
-          rejectClose: false,
-          modal: false,
+    GuardModal.open({
+      title: `Editar: ${crime.name}`,
+      icon: 'fas fa-edit',
+      body,
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#crime-name') as HTMLInputElement)?.value?.trim();
+        const offenseType = (bodyEl.querySelector('#crime-type') as HTMLSelectElement)?.value as OffenseType;
+        const customSentence = (bodyEl.querySelector('#crime-sentence') as HTMLInputElement)?.value?.trim() || '';
+        if (!name) {
+          NotificationService.warn('El nombre del crimen es obligatorio');
+          return false;
+        }
+        const description = (bodyEl.querySelector('#crime-description') as HTMLTextAreaElement)?.value?.trim() || '';
+        const result = await gm.crimeManager.updateCrime(crimeId, {
+          name,
+          offenseType,
+          description,
+          customSentence,
         });
-      }
-    } catch (error) {
-      console.error('CrimesPanel | Edit crime dialog error:', error);
-    }
+        if (!result) {
+          NotificationService.warn(`Ya existe un crimen con el nombre "${name}"`);
+          return false;
+        }
+        NotificationService.info(`Crimen "${name}" actualizado`);
+      },
+    });
   }
 
   // --- Delete Crime ---
@@ -387,8 +332,8 @@ export class CrimesPanel {
   // --- Bulk Import Dialog ---
 
   private static async showBulkImportDialog(): Promise<void> {
-    const content = `
-      <div class="guard-dialog crimes-import-dialog" style="padding: 0.5rem;">
+    const body = `
+      <div class="guard-modal-form">
         <div class="import-example" style="display: block !important;">
           <label style="display: block !important;"><i class="fas fa-info-circle"></i> Formato esperado:</label>
           <div class="import-example-text" style="display: block !important; white-space: pre-line; font-family: monospace; font-size: 0.8em; color: #bbb; margin: 0.3rem 0 0 0;">[Asesinato, Capital, Matar intencionalmente, Ejecución]
@@ -398,84 +343,66 @@ export class CrimesPanel {
 [Comercio Ilegal, Multa]</div>
           <div style="margin-top: 0.3rem; font-size: 0.75em; color: #888; font-style: italic;">Descripción y sentencia son opcionales. Si un crimen ya existe, se actualizará.</div>
         </div>
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label for="import-text">Pega el texto aquí:</label>
-          <textarea id="import-text" name="importText" rows="10" style="width: 100%; font-family: monospace; font-size: 0.85em;" placeholder="[NombreCrimen, TipoOfensa]&#10;[NombreCrimen, TipoOfensa, Descripción]&#10;[NombreCrimen, TipoOfensa, Descripción, Sentencia]"></textarea>
+        <div class="guard-modal-row">
+          <label for="import-text"><i class="fas fa-file-import"></i> Pega el texto aquí</label>
+          <textarea id="import-text" rows="10" style="font-family: monospace; font-size: 0.85em;" placeholder="[NombreCrimen, TipoOfensa]&#10;[NombreCrimen, TipoOfensa, Descripción]&#10;[NombreCrimen, TipoOfensa, Descripción, Sentencia]"></textarea>
         </div>
-        <div id="import-preview" class="import-preview" style="margin-top: 0.5rem; display: none;">
+        <div id="import-preview" class="import-preview" style="display: none;">
           <span class="import-preview-text"></span>
         </div>
       </div>
     `;
 
-    try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (DialogV2Class) {
-        await DialogV2Class.wait({
-          window: { title: 'Importar Crímenes', resizable: true },
-          content,
-          buttons: [
-            {
-              action: 'import',
-              icon: 'fas fa-file-import',
-              label: 'Importar',
-              callback: async (_event: any, _button: any, dialog: any) => {
-                const dialogEl = dialog?.element || dialog;
-                if (!dialogEl) return;
-                const text =
-                  (dialogEl.querySelector('#import-text') as HTMLTextAreaElement)?.value || '';
-                await this.processBulkImport(text);
-              },
-            },
-            { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-          ],
-          rejectClose: false,
-          modal: false,
-          render: (_event: any, html: any) => {
-            const el = html instanceof HTMLElement ? html : html?.element;
-            if (!el) return;
-            const textarea = el.querySelector('#import-text') as HTMLTextAreaElement;
-            const preview = el.querySelector('#import-preview') as HTMLElement;
-            const previewText = el.querySelector('.import-preview-text') as HTMLElement;
-            if (textarea && preview && previewText) {
-              textarea.addEventListener('input', () => {
-                const parsed = this.parseBulkText(textarea.value);
-                if (parsed.length > 0) {
-                  const gm = (window as any).GuardManagement;
-                  const existingNames = new Set(
-                    (gm?.crimeManager?.getAllCrimes() || []).map((c: Crime) =>
-                      c.name.trim().toLowerCase()
-                    )
-                  );
-                  const seenNames = new Set<string>();
-                  let newCount = 0;
-                  let updateCount = 0;
-                  for (const entry of parsed) {
-                    const norm = entry.name.trim().toLowerCase();
-                    if (seenNames.has(norm)) continue;
-                    seenNames.add(norm);
-                    if (existingNames.has(norm)) {
-                      updateCount++;
-                    } else {
-                      newCount++;
-                    }
-                  }
-                  preview.style.display = '';
-                  const parts: string[] = [];
-                  if (newCount > 0) parts.push(`${newCount} nuevo(s)`);
-                  if (updateCount > 0) parts.push(`${updateCount} a actualizar`);
-                  previewText.textContent = `Se procesarán ${parsed.length} crimen(es): ${parts.join(', ')}`;
+    GuardModal.open({
+      title: 'Importar Crímenes',
+      icon: 'fas fa-file-import',
+      body,
+      saveLabel: 'Importar',
+      width: 520,
+      onRender: (bodyEl) => {
+        const textarea = bodyEl.querySelector('#import-text') as HTMLTextAreaElement;
+        const preview = bodyEl.querySelector('#import-preview') as HTMLElement;
+        const previewText = bodyEl.querySelector('.import-preview-text') as HTMLElement;
+        if (textarea && preview && previewText) {
+          textarea.addEventListener('input', () => {
+            const parsed = this.parseBulkText(textarea.value);
+            if (parsed.length > 0) {
+              const gm = (window as any).GuardManagement;
+              const existingNames = new Set(
+                (gm?.crimeManager?.getAllCrimes() || []).map((c: Crime) =>
+                  c.name.trim().toLowerCase()
+                )
+              );
+              const seenNames = new Set<string>();
+              let newCount = 0;
+              let updateCount = 0;
+              for (const entry of parsed) {
+                const norm = entry.name.trim().toLowerCase();
+                if (seenNames.has(norm)) continue;
+                seenNames.add(norm);
+                if (existingNames.has(norm)) {
+                  updateCount++;
                 } else {
-                  preview.style.display = 'none';
+                  newCount++;
                 }
-              });
+              }
+              preview.style.display = '';
+              const parts: string[] = [];
+              if (newCount > 0) parts.push(`${newCount} nuevo(s)`);
+              if (updateCount > 0) parts.push(`${updateCount} a actualizar`);
+              previewText.textContent = `Se procesarán ${parsed.length} crimen(es): ${parts.join(', ')}`;
+            } else {
+              preview.style.display = 'none';
             }
-          },
-        });
-      }
-    } catch (error) {
-      console.error('CrimesPanel | Bulk import dialog error:', error);
-    }
+          });
+        }
+        textarea?.focus();
+      },
+      onSave: async (bodyEl) => {
+        const text = (bodyEl.querySelector('#import-text') as HTMLTextAreaElement)?.value || '';
+        await this.processBulkImport(text);
+      },
+    });
   }
 
   /**
@@ -547,8 +474,6 @@ export class CrimesPanel {
     const lines = crimes.map((c: Crime) => {
       const typeLabel = OFFENSE_LABELS[c.offenseType] || c.offenseType;
       const parts = [c.name, typeLabel];
-      // Include description and sentence if they exist
-      // If sentence exists but no description, still include empty description slot
       if (c.description || c.customSentence) {
         const plainDesc = c.description ? c.description.replace(/<[^>]*>/g, '').trim() : '';
         parts.push(plainDesc);
@@ -561,65 +486,50 @@ export class CrimesPanel {
 
     const exportText = lines.join('\n');
 
-    const content = `
-      <div class="guard-dialog" style="padding: 0.5rem;">
-        <div style="margin-bottom: 0.5rem; font-size: 0.8em; color: #888;">
-          ${crimes.length} crimen(es) exportados en formato compatible con el importador.
-          Puedes copiar, modificar y reimportar.
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-info-circle"></i> ${crimes.length} crimen(es) exportados</label>
+          <span style="font-size: 0.8em; color: #888;">Formato compatible con el importador. Puedes copiar, modificar y reimportar.</span>
         </div>
-        <textarea id="export-text" rows="15" style="width: 100%; font-family: monospace; font-size: 0.8em;" readonly>${exportText}</textarea>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-file-export"></i> Datos</label>
+          <textarea id="export-text" rows="15" style="font-family: monospace; font-size: 0.8em;" readonly>${exportText}</textarea>
+        </div>
       </div>
     `;
 
-    try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (DialogV2Class) {
-        await DialogV2Class.wait({
-          window: { title: 'Exportar Crímenes', resizable: true },
-          content,
-          buttons: [
-            {
-              action: 'copy',
-              icon: 'fas fa-copy',
-              label: 'Copiar',
-              callback: async (_event: any, _button: any, dialog: any) => {
-                const dialogEl = dialog?.element || dialog;
-                const textarea = dialogEl?.querySelector('#export-text') as HTMLTextAreaElement;
-                if (textarea) {
-                  try {
-                    if (navigator.clipboard?.writeText) {
-                      await navigator.clipboard.writeText(textarea.value);
-                    } else {
-                      // Fallback for non-HTTPS contexts
-                      textarea.select();
-                      document.execCommand('copy');
-                    }
-                    NotificationService.info('Crímenes copiados al portapapeles');
-                  } catch {
-                    textarea.select();
-                    document.execCommand('copy');
-                    NotificationService.info('Crímenes copiados al portapapeles');
-                  }
-                }
-              },
-            },
-            { action: 'close', icon: 'fas fa-times', label: 'Cerrar' },
-          ],
-          rejectClose: false,
-          modal: false,
-          render: (_event: any, html: any) => {
-            const el = html instanceof HTMLElement ? html : html?.element;
-            if (!el) return;
-            const textarea = el.querySelector('#export-text') as HTMLTextAreaElement;
-            if (textarea) {
-              textarea.addEventListener('click', () => textarea.select());
+    GuardModal.open({
+      title: 'Exportar Crímenes',
+      icon: 'fas fa-file-export',
+      body,
+      saveLabel: 'Copiar',
+      onRender: (bodyEl) => {
+        const textarea = bodyEl.querySelector('#export-text') as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.addEventListener('click', () => textarea.select());
+        }
+      },
+      onSave: async (bodyEl) => {
+        const textarea = bodyEl.querySelector('#export-text') as HTMLTextAreaElement;
+        if (textarea) {
+          try {
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(textarea.value);
+            } else {
+              textarea.select();
+              document.execCommand('copy');
             }
-          },
-        });
-      }
-    } catch (error) {
-      console.error('CrimesPanel | Export dialog error:', error);
-    }
+            NotificationService.info('Crímenes copiados al portapapeles');
+          } catch {
+            textarea.select();
+            document.execCommand('copy');
+            NotificationService.info('Crímenes copiados al portapapeles');
+          }
+        }
+        return false; // Don't close on copy
+      },
+    });
   }
 
   // --- Sentence Config Dialog ---
@@ -632,13 +542,11 @@ export class CrimesPanel {
     const config = sentenceManager.getConfig();
     const currencyLabels = sentenceManager.getCurrencyLabels();
 
-    // Build currency header cells
     const currencyHeaders = currencyLabels
       .filter((c: any) => c.enabled)
       .map((c: any) => `<th><i class="${c.icon}"></i> ${c.label}</th>`)
       .join('');
 
-    // Build rows
     const rows = OFFENSE_TYPES.map((type) => {
       const entry = config[type];
       const turnsValue = typeof entry.turns === 'number' ? entry.turns : '';
@@ -674,8 +582,8 @@ export class CrimesPanel {
       `;
     }).join('');
 
-    const content = `
-      <div class="guard-dialog sentence-config-dialog" style="padding: 0.5rem;">
+    const body = `
+      <div class="guard-modal-form">
         <table class="sentence-config-table">
           <thead>
             <tr>
@@ -689,48 +597,28 @@ export class CrimesPanel {
       </div>
     `;
 
-    try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (DialogV2Class) {
-        await DialogV2Class.wait({
-          window: { title: 'Configurar Sentencias', resizable: true },
-          content,
-          buttons: [
-            {
-              action: 'save',
-              icon: 'fas fa-save',
-              label: 'Guardar',
-              callback: async (_event: any, _button: any, dialog: any) => {
-                const dialogEl = dialog?.element || dialog;
-                if (!dialogEl) return;
-                await this.saveSentenceConfig(dialogEl, currencyLabels);
-              },
-            },
-            { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-          ],
-          rejectClose: false,
-          modal: false,
-          render: (_event: any, html: any) => {
-            const el = html instanceof HTMLElement ? html : html?.element;
-            if (!el) return;
-            // Toggle turns input visibility based on mode select
-            el.querySelectorAll('.sentence-turns-mode').forEach((select: any) => {
-              select.addEventListener('change', () => {
-                const type = select.dataset.type;
-                const input = el.querySelector(
-                  `.sentence-turns-input[data-type="${type}"]`
-                ) as HTMLInputElement;
-                if (input) {
-                  input.style.display = select.value === 'numeric' ? '' : 'none';
-                }
-              });
-            });
-          },
+    GuardModal.open({
+      title: 'Configurar Sentencias',
+      icon: 'fas fa-cog',
+      body,
+      width: 600,
+      onRender: (bodyEl) => {
+        bodyEl.querySelectorAll('.sentence-turns-mode').forEach((select: any) => {
+          select.addEventListener('change', () => {
+            const type = select.dataset.type;
+            const input = bodyEl.querySelector(
+              `.sentence-turns-input[data-type="${type}"]`
+            ) as HTMLInputElement;
+            if (input) {
+              input.style.display = select.value === 'numeric' ? '' : 'none';
+            }
+          });
         });
-      }
-    } catch (error) {
-      console.error('CrimesPanel | Sentence config dialog error:', error);
-    }
+      },
+      onSave: async (bodyEl) => {
+        await this.saveSentenceConfig(bodyEl, currencyLabels);
+      },
+    });
   }
 
   private static async saveSentenceConfig(
@@ -789,9 +677,9 @@ export class CrimesPanel {
     const offenseLabel = OFFENSE_LABELS[crime.offenseType] || crime.offenseType;
     const descriptionHtml = crime.description || '<em style="color: #888;">Sin descripción</em>';
 
-    const content = `
-      <div class="guard-dialog crime-detail-dialog" style="padding: 0.75rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+    const body = `
+      <div class="guard-modal-form">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
           <span class="crime-type-badge offense-${crime.offenseType}" style="font-size: 0.85em;">${offenseLabel}</span>
           <span style="color: #999; font-size: 0.85em;">${sentenceText}${isCustom ? ' <i class="fas fa-pen" style="font-size: 0.7em; color: #f3c267;" title="Sentencia personalizada"></i>' : ''}</span>
         </div>
@@ -801,55 +689,15 @@ export class CrimesPanel {
       </div>
     `;
 
-    try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (DialogV2Class) {
-        await DialogV2Class.wait({
-          window: { title: crime.name, resizable: true },
-          content,
-          buttons: [
-            {
-              action: 'edit',
-              icon: 'fas fa-edit',
-              label: 'Editar',
-              callback: async () => {
-                // Open edit dialog after this one closes
-                setTimeout(() => this.showEditCrimeDialog(crimeId), 100);
-              },
-            },
-            { action: 'close', icon: 'fas fa-times', label: 'Cerrar' },
-          ],
-          rejectClose: false,
-          modal: false,
-        });
-      }
-    } catch (error) {
-      console.error('CrimesPanel | Crime detail dialog error:', error);
-    }
-  }
-
-  // --- ProseMirror Helper ---
-
-  private static readProseMirrorContent(dialogEl: HTMLElement): string {
-    // Try editor-content first (rendered ProseMirror)
-    const editorContent = dialogEl.querySelector('.editor-content.ProseMirror');
-    if (editorContent) {
-      const html = editorContent.innerHTML?.trim();
-      if (html) return html;
-    }
-    // Try prose-mirror element value
-    const pmElement = dialogEl.querySelector('prose-mirror[name="description"]');
-    if (pmElement && 'value' in pmElement) {
-      const val = (pmElement as any).value;
-      if (typeof val === 'string') return val;
-    }
-    // Fallback to form data
-    const form = dialogEl.querySelector('form');
-    if (form) {
-      const fd = new FormData(form);
-      return (fd.get('description') as string) || '';
-    }
-    return '';
+    GuardModal.open({
+      title: crime.name,
+      icon: 'fas fa-gavel',
+      body,
+      saveLabel: 'Editar',
+      onSave: async () => {
+        setTimeout(() => this.showEditCrimeDialog(crimeId), 100);
+      },
+    });
   }
 
   // --- Send to Chat ---

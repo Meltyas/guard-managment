@@ -197,34 +197,32 @@ export class EnhancedResourceDialog extends BaseWarehouseItemDialog<EnhancedReso
 
       renderContent: async (resource?: EnhancedResource) => {
         return `
-          <form class="enhanced-resource-form">
-            <div class="form-group">
-              <label for="name">Nombre:</label>
+          <form class="guard-modal-form">
+            <div class="guard-modal-row">
+              <label><i class="fas fa-tag"></i> Nombre</label>
               <input type="text" id="name" name="name" value="${resource?.name || ''}" required>
             </div>
 
-            <div class="form-group">
-              <label for="description">Descripción:</label>
-              <prose-mirror name="description" value="${(resource?.description || '').replace(/"/g, '&quot;')}">
-                ${resource?.description || ''}
-              </prose-mirror>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-align-left"></i> Descripción</label>
+              <textarea name="description" placeholder="Descripción del recurso...">${resource?.description || ''}</textarea>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label for="quantity">Cantidad:</label>
+            <div class="guard-modal-split">
+              <div class="guard-modal-row">
+                <label><i class="fas fa-cubes"></i> Cantidad</label>
                 <input type="number" id="quantity" name="quantity" value="${resource?.quantity || 1}" min="0" required>
               </div>
 
-              <div class="form-group">
-                <label for="value">Valor (oro):</label>
+              <div class="guard-modal-row">
+                <label><i class="fas fa-coins"></i> Valor (oro)</label>
                 <input type="number" id="value" name="value" value="${resource?.value || ''}" min="0" step="0.01">
               </div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label for="category">Categoría:</label>
+            <div class="guard-modal-split">
+              <div class="guard-modal-row">
+                <label><i class="fas fa-folder"></i> Categoría</label>
                 <select id="category" name="category" required>
                   ${Object.values(ResourceCategory)
                     .map(
@@ -235,8 +233,8 @@ export class EnhancedResourceDialog extends BaseWarehouseItemDialog<EnhancedReso
                 </select>
               </div>
 
-              <div class="form-group">
-                <label for="rarity">Rareza:</label>
+              <div class="guard-modal-row">
+                <label><i class="fas fa-gem"></i> Rareza</label>
                 <select id="rarity" name="rarity" required>
                   ${Object.values(ResourceRarity)
                     .map(
@@ -248,8 +246,8 @@ export class EnhancedResourceDialog extends BaseWarehouseItemDialog<EnhancedReso
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="image">Imagen (URL):</label>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-image"></i> Imagen (URL)</label>
               <input type="url" id="image" name="image" value="${resource?.image || ''}">
             </div>
 

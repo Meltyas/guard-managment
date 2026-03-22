@@ -6,6 +6,7 @@
 
 import type { GuardStats } from '../types/entities';
 import type { Officer, OfficerSkill, OfficerTrait } from '../types/officer';
+import { GuardModal } from '../ui/GuardModal.js';
 
 interface OfficerFormData {
   actorId: string;
@@ -197,17 +198,14 @@ export class OfficerFormApplication extends FormApplication {
   }
 
   private async showAddSkillDialog() {
-    const DialogV2Class = foundry.applications?.api?.DialogV2;
-    if (!DialogV2Class) return;
-
-    const content = `
-      <div class="guard-dialog" style="padding: 0.5rem;">
-        <div class="form-group">
-          <label>Nombre <span style="color:#e84a4a">*</span></label>
-          <input type="text" id="skill-name" placeholder="Ej: Tácticas Avanzadas, Don de Mando..." autofocus />
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-tag"></i> Nombre <span style="color:#e84a4a">*</span></label>
+          <input type="text" id="skill-name" placeholder="Ej: Tácticas Avanzadas, Don de Mando..." />
         </div>
-        <div class="form-group">
-          <label>Imagen</label>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
           <div class="file-picker-wrapper">
             <input type="text" id="skill-image" placeholder="icons/..." />
             <button type="button" id="skill-image-picker-btn" class="file-picker-btn" title="Seleccionar imagen">
@@ -215,94 +213,57 @@ export class OfficerFormApplication extends FormApplication {
             </button>
           </div>
         </div>
-        <div class="form-group">
-          <label>Coste de Hope (0–5)</label>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-heart"></i> Coste de Hope (0–5)</label>
           <input type="number" id="skill-hope-cost" value="0" min="0" max="5" style="width:80px;" />
         </div>
-        <div class="form-group">
-          <label>Descripción</label>
-          <prose-mirror name="skill-description" value="">
-          </prose-mirror>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="skill-description" rows="3" placeholder="Descripción de la habilidad..."></textarea>
         </div>
       </div>
     `;
 
-    let resolvedName = '';
-    let resolvedImage = '';
-    let resolvedHopeCost = 0;
-    let resolvedDescription = '';
-
-    const result = await DialogV2Class.wait({
-      window: { title: 'Agregar Habilidad' },
-      content,
-      render: (event: any, dialog: any) => {
-        // Wire up file picker button inside dialog
-        const pickerBtn = dialog.element?.querySelector('#skill-image-picker-btn');
+    const result = await GuardModal.openAsync<OfficerSkill>({
+      title: 'Agregar Habilidad',
+      icon: 'fas fa-plus',
+      body,
+      saveLabel: 'Agregar',
+      onRender: (bodyEl) => {
+        const pickerBtn = bodyEl.querySelector('#skill-image-picker-btn');
         if (pickerBtn) {
           pickerBtn.addEventListener('click', () => {
-            const imageInput = dialog.element?.querySelector('#skill-image') as HTMLInputElement;
+            const imageInput = bodyEl.querySelector('#skill-image') as HTMLInputElement;
             const picker = new FilePicker({
               type: 'image',
               current: imageInput?.value || '',
-              callback: (path: string) => {
-                if (imageInput) imageInput.value = path;
-              },
+              callback: (path: string) => { if (imageInput) imageInput.value = path; },
             });
             picker.browse();
           });
         }
       },
-      buttons: [
-        {
-          action: 'add',
-          icon: 'fas fa-plus',
-          label: 'Agregar',
-          callback: (event: any, button: any, dialog: any) => {
-            const nameInput = dialog.element?.querySelector('#skill-name') as HTMLInputElement;
-            const imageInput = dialog.element?.querySelector('#skill-image') as HTMLInputElement;
-            const hopeCostInput = dialog.element?.querySelector(
-              '#skill-hope-cost'
-            ) as HTMLInputElement;
-
-            const name = nameInput?.value?.trim();
-            if (!name) {
-              ui.notifications?.error('El nombre de la habilidad es obligatorio');
-              return false;
-            }
-
-            resolvedName = name;
-            resolvedImage = imageInput?.value?.trim() || '';
-            resolvedHopeCost = Math.min(
-              5,
-              Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0)
-            );
-            let desc = '';
-            const pmContent = dialog.element?.querySelector('prose-mirror[name="skill-description"] .editor-content.ProseMirror');
-            if (pmContent) desc = pmContent.innerHTML?.trim() || '';
-            if (!desc) {
-              const pmEl = dialog.element?.querySelector('prose-mirror[name="skill-description"]');
-              if (pmEl && 'value' in pmEl) {
-                const val = (pmEl as any).value;
-                if (typeof val === 'string') desc = val;
-              }
-            }
-            resolvedDescription = desc;
-            return 'add';
-          },
-        },
-        { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-      ],
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#skill-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          ui.notifications?.error('El nombre de la habilidad es obligatorio');
+          return false;
+        }
+        const image = (bodyEl.querySelector('#skill-image') as HTMLInputElement)?.value?.trim() || '';
+        const hopeCost = Math.min(5, Math.max(0, parseInt((bodyEl.querySelector('#skill-hope-cost') as HTMLInputElement)?.value || '0', 10) || 0));
+        const description = (bodyEl.querySelector('#skill-description') as HTMLTextAreaElement)?.value?.trim() || '';
+        return {
+          id: foundry.utils.randomID(),
+          name,
+          description: description || undefined,
+          image: image || undefined,
+          hopeCost,
+        };
+      },
     });
 
-    if (result === 'add' && resolvedName) {
-      const newSkill: OfficerSkill = {
-        id: foundry.utils.randomID(),
-        name: resolvedName,
-        description: resolvedDescription || undefined,
-        image: resolvedImage || undefined,
-        hopeCost: resolvedHopeCost,
-      };
-      this.currentData.skills = [...(this.currentData.skills || []), newSkill];
+    if (result) {
+      this.currentData.skills = [...(this.currentData.skills || []), result];
       this.syncFormFields();
       this.render(false);
     }
@@ -324,19 +285,15 @@ export class OfficerFormApplication extends FormApplication {
   }
 
   private async showEditSkillDialog(skill: OfficerSkill) {
-    const DialogV2Class = foundry.applications?.api?.DialogV2;
-    if (!DialogV2Class) return;
-
-    const escapedDesc = (skill.description || '').replace(/"/g, '&quot;');
-    const descContent = skill.description || '';
-    const content = `
-      <div class="guard-dialog" style="padding: 0.5rem;">
-        <div class="form-group">
-          <label>Nombre <span style="color:#e84a4a">*</span></label>
-          <input type="text" id="skill-name" value="${skill.name.replace(/"/g, '&quot;')}" autofocus />
+    const plainDesc = (skill.description || '').replace(/<[^>]*>/g, '');
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-tag"></i> Nombre <span style="color:#e84a4a">*</span></label>
+          <input type="text" id="skill-name" value="${skill.name.replace(/"/g, '&quot;')}" />
         </div>
-        <div class="form-group">
-          <label>Imagen</label>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
           <div class="file-picker-wrapper">
             <input type="text" id="skill-image" value="${(skill.image || '').replace(/"/g, '&quot;')}" placeholder="icons/..." />
             <button type="button" id="skill-image-picker-btn" class="file-picker-btn" title="Seleccionar imagen">
@@ -344,96 +301,57 @@ export class OfficerFormApplication extends FormApplication {
             </button>
           </div>
         </div>
-        <div class="form-group">
-          <label>Coste de Hope (0–5)</label>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-heart"></i> Coste de Hope (0–5)</label>
           <input type="number" id="skill-hope-cost" value="${skill.hopeCost}" min="0" max="5" style="width:80px;" />
         </div>
-        <div class="form-group">
-          <label>Descripción</label>
-          <prose-mirror name="skill-description" value="${escapedDesc}">
-            ${descContent}
-          </prose-mirror>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="skill-description" rows="3">${plainDesc}</textarea>
         </div>
       </div>
     `;
 
-    let resolvedName = '';
-    let resolvedImage = '';
-    let resolvedHopeCost = 0;
-    let resolvedDescription = '';
-
-    const result = await DialogV2Class.wait({
-      window: { title: 'Editar Habilidad' },
-      content,
-      render: (event: any, dialog: any) => {
-        const pickerBtn = dialog.element?.querySelector('#skill-image-picker-btn');
+    const result = await GuardModal.openAsync<OfficerSkill>({
+      title: 'Editar Habilidad',
+      icon: 'fas fa-edit',
+      body,
+      onRender: (bodyEl) => {
+        const pickerBtn = bodyEl.querySelector('#skill-image-picker-btn');
         if (pickerBtn) {
           pickerBtn.addEventListener('click', () => {
-            const imageInput = dialog.element?.querySelector('#skill-image') as HTMLInputElement;
+            const imageInput = bodyEl.querySelector('#skill-image') as HTMLInputElement;
             const picker = new FilePicker({
               type: 'image',
               current: imageInput?.value || '',
-              callback: (path: string) => {
-                if (imageInput) imageInput.value = path;
-              },
+              callback: (path: string) => { if (imageInput) imageInput.value = path; },
             });
             picker.browse();
           });
         }
       },
-      buttons: [
-        {
-          action: 'save',
-          icon: 'fas fa-save',
-          label: 'Guardar',
-          callback: (event: any, button: any, dialog: any) => {
-            const nameInput = dialog.element?.querySelector('#skill-name') as HTMLInputElement;
-            const imageInput = dialog.element?.querySelector('#skill-image') as HTMLInputElement;
-            const hopeCostInput = dialog.element?.querySelector(
-              '#skill-hope-cost'
-            ) as HTMLInputElement;
-
-            const name = nameInput?.value?.trim();
-            if (!name) {
-              ui.notifications?.error('El nombre de la habilidad es obligatorio');
-              return false;
-            }
-
-            resolvedName = name;
-            resolvedImage = imageInput?.value?.trim() || '';
-            resolvedHopeCost = Math.min(
-              5,
-              Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0)
-            );
-            let desc = '';
-            const pmContent = dialog.element?.querySelector('prose-mirror[name="skill-description"] .editor-content.ProseMirror');
-            if (pmContent) desc = pmContent.innerHTML?.trim() || '';
-            if (!desc) {
-              const pmEl = dialog.element?.querySelector('prose-mirror[name="skill-description"]');
-              if (pmEl && 'value' in pmEl) {
-                const val = (pmEl as any).value;
-                if (typeof val === 'string') desc = val;
-              }
-            }
-            resolvedDescription = desc;
-            return 'save';
-          },
-        },
-        { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-      ],
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#skill-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          ui.notifications?.error('El nombre de la habilidad es obligatorio');
+          return false;
+        }
+        const image = (bodyEl.querySelector('#skill-image') as HTMLInputElement)?.value?.trim() || '';
+        const hopeCost = Math.min(5, Math.max(0, parseInt((bodyEl.querySelector('#skill-hope-cost') as HTMLInputElement)?.value || '0', 10) || 0));
+        const description = (bodyEl.querySelector('#skill-description') as HTMLTextAreaElement)?.value?.trim() || '';
+        return {
+          ...skill,
+          name,
+          description: description || undefined,
+          image: image || undefined,
+          hopeCost,
+        };
+      },
     });
 
-    if (result === 'save' && resolvedName) {
+    if (result) {
       this.currentData.skills = (this.currentData.skills || []).map((s) =>
-        s.id === skill.id
-          ? {
-              ...s,
-              name: resolvedName,
-              description: resolvedDescription || undefined,
-              image: resolvedImage || undefined,
-              hopeCost: resolvedHopeCost,
-            }
-          : s
+        s.id === skill.id ? result : s
       );
       this.syncFormFields();
       this.render(false);
@@ -460,75 +378,45 @@ export class OfficerFormApplication extends FormApplication {
   }
 
   private async showAddTraitDialog(type: 'pro' | 'con') {
-    const DialogV2Class = foundry.applications?.api?.DialogV2;
-    if (!DialogV2Class) return;
-
-    const content = `
-      <div class="guard-dialog" style="padding: 0.5rem;">
-        <div class="form-group">
-          <label>Título <span style="color:#e84a4a">*</span></label>
-          <input type="text" id="trait-title" autofocus />
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-tag"></i> Título <span style="color:#e84a4a">*</span></label>
+          <input type="text" id="trait-title" />
         </div>
-        <div class="form-group">
-          <label>Descripción</label>
-          <prose-mirror name="trait-description" value="">
-          </prose-mirror>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="trait-description" rows="3"></textarea>
         </div>
       </div>
     `;
 
-    let editorContent = '';
-    let resolvedTitle = '';
-
-    const result = await DialogV2Class.wait({
-      window: { title: type === 'pro' ? 'Agregar Pro' : 'Agregar Con' },
-      content,
-      buttons: [
-        {
-          action: 'add',
-          icon: 'fas fa-plus',
-          label: 'Agregar',
-          callback: (event: any, button: any, dialog: any) => {
-            const titleInput = dialog.element?.querySelector('#trait-title') as HTMLInputElement;
-
-            const title = titleInput?.value?.trim();
-            let desc = '';
-            const pmContent = dialog.element?.querySelector('prose-mirror[name="trait-description"] .editor-content.ProseMirror');
-            if (pmContent) desc = pmContent.innerHTML?.trim() || '';
-            if (!desc) {
-              const pmEl = dialog.element?.querySelector('prose-mirror[name="trait-description"]');
-              if (pmEl && 'value' in pmEl) {
-                const val = (pmEl as any).value;
-                if (typeof val === 'string') desc = val;
-              }
-            }
-            editorContent = desc;
-
-            if (!title) {
-              ui.notifications?.error('El título es obligatorio');
-              return false;
-            }
-
-            resolvedTitle = title;
-            return 'add';
-          },
-        },
-        { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-      ],
+    const result = await GuardModal.openAsync<OfficerTrait>({
+      title: type === 'pro' ? 'Agregar Pro' : 'Agregar Con',
+      icon: type === 'pro' ? 'fas fa-thumbs-up' : 'fas fa-thumbs-down',
+      body,
+      saveLabel: 'Agregar',
+      onSave: async (bodyEl) => {
+        const title = (bodyEl.querySelector('#trait-title') as HTMLInputElement)?.value?.trim();
+        if (!title) {
+          ui.notifications?.error('El título es obligatorio');
+          return false;
+        }
+        const description = (bodyEl.querySelector('#trait-description') as HTMLTextAreaElement)?.value?.trim() || '';
+        return {
+          id: foundry.utils.randomID(),
+          title,
+          description,
+          createdAt: new Date(),
+        };
+      },
     });
 
-    if (result === 'add' && resolvedTitle) {
-      const newTrait: OfficerTrait = {
-        id: foundry.utils.randomID(),
-        title: resolvedTitle,
-        description: editorContent,
-        createdAt: new Date(),
-      };
-
+    if (result) {
       if (type === 'pro') {
-        this.currentData.pros = [...(this.currentData.pros || []), newTrait];
+        this.currentData.pros = [...(this.currentData.pros || []), result];
       } else {
-        this.currentData.cons = [...(this.currentData.cons || []), newTrait];
+        this.currentData.cons = [...(this.currentData.cons || []), result];
       }
       this.syncFormFields();
       this.render(false);
@@ -557,73 +445,38 @@ export class OfficerFormApplication extends FormApplication {
   }
 
   private async showEditTraitDialog(type: 'pro' | 'con', trait: OfficerTrait) {
-    const DialogV2Class = foundry.applications?.api?.DialogV2;
-    if (!DialogV2Class) return;
-
-    const escapedTitle = trait.title.replace(/"/g, '&quot;');
-    const escapedDesc = (trait.description || '').replace(/"/g, '&quot;');
-    const descContent = trait.description || '';
-
-    const content = `
-      <div class="guard-dialog" style="padding: 0.5rem;">
-        <div class="form-group">
-          <label>Título <span style="color:#e84a4a">*</span></label>
-          <input type="text" id="trait-title" value="${escapedTitle}" autofocus />
+    const plainDesc = (trait.description || '').replace(/<[^>]*>/g, '');
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-tag"></i> Título <span style="color:#e84a4a">*</span></label>
+          <input type="text" id="trait-title" value="${trait.title.replace(/"/g, '&quot;')}" />
         </div>
-        <div class="form-group">
-          <label>Descripción</label>
-          <prose-mirror name="trait-description" value="${escapedDesc}">
-            ${descContent}
-          </prose-mirror>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="trait-description" rows="3">${plainDesc}</textarea>
         </div>
       </div>
     `;
 
-    let resolvedTitle = '';
-    let editorContent = '';
-
-    const result = await DialogV2Class.wait({
-      window: { title: type === 'pro' ? 'Editar Pro' : 'Editar Con' },
-      content,
-      buttons: [
-        {
-          action: 'save',
-          icon: 'fas fa-save',
-          label: 'Guardar',
-          callback: (event: any, button: any, dialog: any) => {
-            const titleInput = dialog.element?.querySelector('#trait-title') as HTMLInputElement;
-
-            const title = titleInput?.value?.trim();
-            let desc = '';
-            const pmContent = dialog.element?.querySelector('prose-mirror[name="trait-description"] .editor-content.ProseMirror');
-            if (pmContent) desc = pmContent.innerHTML?.trim() || '';
-            if (!desc) {
-              const pmEl = dialog.element?.querySelector('prose-mirror[name="trait-description"]');
-              if (pmEl && 'value' in pmEl) {
-                const val = (pmEl as any).value;
-                if (typeof val === 'string') desc = val;
-              }
-            }
-            editorContent = desc;
-
-            if (!title) {
-              ui.notifications?.error('El título es obligatorio');
-              return false;
-            }
-
-            resolvedTitle = title;
-            return 'save';
-          },
-        },
-        { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-      ],
+    const result = await GuardModal.openAsync<OfficerTrait>({
+      title: type === 'pro' ? 'Editar Pro' : 'Editar Con',
+      icon: type === 'pro' ? 'fas fa-thumbs-up' : 'fas fa-thumbs-down',
+      body,
+      onSave: async (bodyEl) => {
+        const title = (bodyEl.querySelector('#trait-title') as HTMLInputElement)?.value?.trim();
+        if (!title) {
+          ui.notifications?.error('El título es obligatorio');
+          return false;
+        }
+        const description = (bodyEl.querySelector('#trait-description') as HTMLTextAreaElement)?.value?.trim() || '';
+        return { ...trait, title, description };
+      },
     });
 
-    if (result === 'save' && resolvedTitle) {
+    if (result) {
       const update = (list: OfficerTrait[]) =>
-        list.map((t) =>
-          t.id === trait.id ? { ...t, title: resolvedTitle, description: editorContent } : t
-        );
+        list.map((t) => (t.id === trait.id ? result : t));
 
       if (type === 'pro') {
         this.currentData.pros = update(this.currentData.pros || []);

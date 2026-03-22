@@ -205,25 +205,25 @@ export class ContactDialog extends BaseWarehouseItemDialog<Contact> {
         const specialtiesText = contact?.specialties?.join(', ') || '';
 
         return `
-          <form class="contact-form">
-            <div class="form-group">
-              <label for="name">Nombre:</label>
+          <form class="guard-modal-form">
+            <div class="guard-modal-row">
+              <label><i class="fas fa-user"></i> Nombre</label>
               <input type="text" id="name" name="name" value="${contact?.name || ''}" required>
             </div>
 
-            <div class="form-group">
-              <label for="title">Título/Posición:</label>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-id-badge"></i> Título/Posición</label>
               <input type="text" id="title" name="title" value="${contact?.title || ''}" required>
             </div>
 
-            <div class="form-group">
-              <label for="faction">Facción/Organización:</label>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-flag"></i> Facción/Organización</label>
               <input type="text" id="faction" name="faction" value="${contact?.faction || ''}" required>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label for="relationship">Relación:</label>
+            <div class="guard-modal-split">
+              <div class="guard-modal-row">
+                <label><i class="fas fa-handshake"></i> Relación</label>
                 <select id="relationship" name="relationship" required>
                   ${Object.values(ContactRelationship)
                     .map(
@@ -234,8 +234,8 @@ export class ContactDialog extends BaseWarehouseItemDialog<Contact> {
                 </select>
               </div>
 
-              <div class="form-group">
-                <label for="influence">Influencia:</label>
+              <div class="guard-modal-row">
+                <label><i class="fas fa-crown"></i> Influencia</label>
                 <select id="influence" name="influence" required>
                   ${Object.values(ContactInfluence)
                     .map(
@@ -247,33 +247,29 @@ export class ContactDialog extends BaseWarehouseItemDialog<Contact> {
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="location">Ubicación:</label>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-map-marker-alt"></i> Ubicación</label>
               <input type="text" id="location" name="location" value="${contact?.location || ''}" placeholder="Donde se puede encontrar">
             </div>
 
-            <div class="form-group">
-              <label for="specialties">Especialidades:</label>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-star"></i> Especialidades</label>
               <input type="text" id="specialties" name="specialties" value="${specialtiesText}" placeholder="Separadas por comas">
-              <small>Servicios o información que puede proporcionar</small>
+              <span class="guard-modal-hint">Servicios o información que puede proporcionar</span>
             </div>
 
-            <div class="form-group">
-              <label for="description">Descripción:</label>
-              <prose-mirror name="description" value="${(contact?.description || '').replace(/"/g, '&quot;')}">
-                ${contact?.description || ''}
-              </prose-mirror>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-align-left"></i> Descripción</label>
+              <textarea name="description" placeholder="Descripción del contacto...">${contact?.description || ''}</textarea>
             </div>
 
-            <div class="form-group">
-              <label for="notes">Notas:</label>
-              <prose-mirror name="notes" value="${(contact?.notes || '').replace(/"/g, '&quot;')}">
-                ${contact?.notes || ''}
-              </prose-mirror>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-sticky-note"></i> Notas</label>
+              <textarea name="notes" placeholder="Notas adicionales...">${contact?.notes || ''}</textarea>
             </div>
 
-            <div class="form-group">
-              <label for="image">Imagen (URL):</label>
+            <div class="guard-modal-row">
+              <label><i class="fas fa-image"></i> Imagen (URL)</label>
               <input type="url" id="image" name="image" value="${contact?.image || ''}">
             </div>
 

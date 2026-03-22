@@ -6,6 +6,7 @@
 
 import type { Officer } from '../types/officer';
 import { AddOrEditOfficerDialog } from './AddOrEditOfficerDialog.js';
+import { GuardModal } from '../ui/GuardModal.js';
 
 export class OfficerWarehouseDialog {
   private static instance: OfficerWarehouseDialog | null = null;
@@ -414,47 +415,33 @@ export class OfficerWarehouseDialog {
       return;
     }
 
-    const DialogV2Class = foundry.applications.api.DialogV2;
-    if (!DialogV2Class) return;
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <p>¿Estas seguro de que quieres eliminar el actor del oficial "${officer.actorName}"?</p>
+        <p style="color: #f39c12; font-size: 0.9em;"><strong>Warning:</strong> El oficial se quedara sin actor asignado y necesitaras asignar uno nuevo.</p>
+      </div>
+    `;
 
-    const result = await DialogV2Class.wait({
-      window: {
-        title: 'Confirmar vaciar actor',
-      },
-      content: `<p>¿Estas seguro de que quieres eliminar el actor del oficial "${officer.actorName}"?</p><p style="color: #f39c12; font-size: 0.9em;"><strong>Warning:</strong> El oficial se quedara sin actor asignado y necesitaras asignar uno nuevo.</p>`,
-      buttons: [
-        {
-          action: 'delete',
-          icon: 'fas fa-trash',
-          label: 'Vaciar actor',
-        },
-        {
-          action: 'cancel',
-          icon: 'fas fa-times',
-          label: 'Cancelar',
-        },
-      ],
-      rejectClose: false,
-      modal: true,
-    });
+    GuardModal.open({
+      title: 'Confirmar vaciar actor',
+      icon: 'fas fa-trash',
+      body,
+      saveLabel: 'Vaciar actor',
+      onSave: async () => {
+        const updated = gm.officerManager.update(officerId, {
+          actorId: '',
+          actorName: '',
+          actorImg: undefined,
+        });
 
-    if (result === 'delete') {
-      const updated = gm.officerManager.update(officerId, {
-        actorId: '',
-        actorName: '',
-        actorImg: undefined,
-      });
-
-      if (updated) {
-        await this.refresh();
-
-        if (ui?.notifications) {
-          ui.notifications.warn(
-            `Actor del oficial vacio. Debes asignar un nuevo actor a este oficial.`
-          );
+        if (updated) {
+          await this.refresh();
+          if (ui?.notifications) {
+            ui.notifications.warn('Actor del oficial vacio. Debes asignar un nuevo actor a este oficial.');
+          }
         }
-      }
-    }
+      },
+    });
   }
 
   // ── Civilian CRUD handlers ─────────────────────────────────────────────
@@ -527,47 +514,33 @@ export class OfficerWarehouseDialog {
       return;
     }
 
-    const DialogV2Class = foundry.applications.api.DialogV2;
-    if (!DialogV2Class) return;
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <p>¿Estas seguro de que quieres eliminar el actor del auxiliar "${civilian.actorName}"?</p>
+        <p style="color: #f39c12; font-size: 0.9em;"><strong>Warning:</strong> El auxiliar se quedara sin actor asignado y necesitaras asignar uno nuevo.</p>
+      </div>
+    `;
 
-    const result = await DialogV2Class.wait({
-      window: {
-        title: 'Confirmar vaciar actor',
-      },
-      content: `<p>¿Estas seguro de que quieres eliminar el actor del auxiliar "${civilian.actorName}"?</p><p style="color: #f39c12; font-size: 0.9em;"><strong>Warning:</strong> El auxiliar se quedara sin actor asignado y necesitaras asignar uno nuevo.</p>`,
-      buttons: [
-        {
-          action: 'delete',
-          icon: 'fas fa-trash',
-          label: 'Vaciar actor',
-        },
-        {
-          action: 'cancel',
-          icon: 'fas fa-times',
-          label: 'Cancelar',
-        },
-      ],
-      rejectClose: false,
-      modal: true,
-    });
+    GuardModal.open({
+      title: 'Confirmar vaciar actor',
+      icon: 'fas fa-trash',
+      body,
+      saveLabel: 'Vaciar actor',
+      onSave: async () => {
+        const updated = gm.civilianManager.update(civilianId, {
+          actorId: '',
+          actorName: '',
+          actorImg: undefined,
+        });
 
-    if (result === 'delete') {
-      const updated = gm.civilianManager.update(civilianId, {
-        actorId: '',
-        actorName: '',
-        actorImg: undefined,
-      });
-
-      if (updated) {
-        await this.refresh();
-
-        if (ui?.notifications) {
-          ui.notifications.warn(
-            `Actor del auxiliar vacio. Debes asignar un nuevo actor a este auxiliar.`
-          );
+        if (updated) {
+          await this.refresh();
+          if (ui?.notifications) {
+            ui.notifications.warn('Actor del auxiliar vacio. Debes asignar un nuevo actor a este auxiliar.');
+          }
         }
-      }
-    }
+      },
+    });
   }
 
   // ── Shared handlers ────────────────────────────────────────────────────

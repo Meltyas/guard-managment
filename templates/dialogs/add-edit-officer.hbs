@@ -1,4 +1,4 @@
-<form class='officer-form guard-dialog'>
+<form class='officer-form guard-modal-form'>
   <div class='officer-content' data-dialog-id='{{dialogId}}'>
     <div class='officer-actor-section'>
       {{#if actorImg}}
@@ -22,8 +22,8 @@
     <input type='hidden' name='actorImg' value='{{actorImg}}' />
     <input type='hidden' name='organizationId' value='{{organizationId}}' />
 
-    <div class='form-group'>
-      <label for='officer-title'>Título del Oficial</label>
+    <div class='guard-modal-row'>
+      <label><i class='fas fa-id-badge'></i> Título del Oficial</label>
       <input
         type='text'
         id='officer-title'
@@ -34,14 +34,14 @@
       />
     </div>
 
-    <div class='form-group form-group-checkbox'>
-      <label for='officer-visible'>Visible para jugadores</label>
+    <div class='guard-modal-row' style='flex-direction:row;align-items:center;'>
       <input
         type='checkbox'
         id='officer-visible'
         name='visibleToPlayers'
         {{#if visibleToPlayers}}checked{{/if}}
       />
+      <label for='officer-visible' style='text-transform:none;cursor:pointer;'>Visible para jugadores</label>
     </div>
 
     <!-- Officer Stats Section -->

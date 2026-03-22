@@ -503,7 +503,6 @@ export class AddOrEditOfficerDialog {
           icon: 'fas fa-plus',
           label: 'Agregar',
           callback: (event: any, button: any, dialog: any) => {
-            // Get data from inputs including rich text editor
             const dialogElement = dialog.element || dialog.window?.element;
             if (!dialogElement) {
               console.error('❌ No se pudo encontrar el elemento del diálogo');
@@ -511,23 +510,10 @@ export class AddOrEditOfficerDialog {
             }
 
             const titleInput = dialogElement.querySelector('#trait-title') as HTMLInputElement;
+            const descTextarea = dialogElement.querySelector('textarea[name="trait-description"]') as HTMLTextAreaElement;
 
             const title = titleInput?.value?.trim() || '';
-            // Read description from ProseMirror
-            let description = '';
-            const pmContent = dialogElement.querySelector(
-              'prose-mirror[name="trait-description"] .editor-content.ProseMirror'
-            );
-            if (pmContent) {
-              description = pmContent.innerHTML?.trim() || '';
-            }
-            if (!description) {
-              const pmEl = dialogElement.querySelector('prose-mirror[name="trait-description"]');
-              if (pmEl && 'value' in pmEl) {
-                const val = (pmEl as any).value;
-                if (typeof val === 'string') description = val;
-              }
-            }
+            const description = descTextarea?.value?.trim() || '';
 
             if (!title) {
               if (ui?.notifications) {
@@ -632,21 +618,8 @@ export class AddOrEditOfficerDialog {
 
             const title = titleInput?.value?.trim() || '';
             const hopeCost = parseInt(hopeCostInput?.value || '0');
-            // Read description from ProseMirror
-            let description = '';
-            const pmContent = dialogElement.querySelector(
-              'prose-mirror[name="skill-description"] .editor-content.ProseMirror'
-            );
-            if (pmContent) {
-              description = pmContent.innerHTML?.trim() || '';
-            }
-            if (!description) {
-              const pmEl = dialogElement.querySelector('prose-mirror[name="skill-description"]');
-              if (pmEl && 'value' in pmEl) {
-                const val = (pmEl as any).value;
-                if (typeof val === 'string') description = val;
-              }
-            }
+            const descTextarea = dialogElement.querySelector('textarea[name="skill-description"]') as HTMLTextAreaElement;
+            const description = descTextarea?.value?.trim() || '';
 
             if (!title) {
               if (ui?.notifications) {

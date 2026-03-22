@@ -5,6 +5,7 @@
 
 import '../styles/day-night-decoration.css';
 import type { DayNightPhase } from '../types/entities';
+import { GuardModal } from './GuardModal.js';
 
 export class DayNightDecoration {
   private element: HTMLElement | null = null;
@@ -210,30 +211,44 @@ export class DayNightDecoration {
     const currentTurn = gm.phaseManager.getCurrentTurn();
     const currentPhaseLabel = currentTurn % 2 === 1 ? 'Día' : 'Noche';
     const nextTurn = currentTurn + 1;
-    const prevTurn = currentTurn - 1;
     const nextPhaseLabel = nextTurn % 2 === 1 ? 'Día' : 'Noche';
-    const prevPhaseLabel = prevTurn % 2 === 1 ? 'Día' : 'Noche';
 
-    const result = await (foundry as any).applications.api.DialogV2.wait({
-      window: { title: 'Gestión de Fase' },
-      content: `
-        <div style="text-align: center; padding: 10px;">
-          <p style="font-size: 16px; margin-bottom: 12px;">
-            <strong>Fase actual:</strong> ${currentTurn} (${currentPhaseLabel})
-          </p>
-          <div style="margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <label style="font-size: 13px; color: #ccc;">Ir a fase:</label>
-            <input type="number" id="gm-target-turn" min="1" value="${nextTurn}"
-              style="width: 60px; text-align: center; padding: 4px; border-radius: 4px; border: 1px solid #666; background: #2a2a4a; color: #fff;" />
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <div class="guard-modal-row" style="align-items: center;">
+          <label><i class="fas fa-clock"></i> Fase actual</label>
+          <strong style="font-size: 1.1em;">${currentTurn} (${currentPhaseLabel})</strong>
+        </div>
+        <div class="guard-modal-row" style="align-items: center;">
+          <label><i class="fas fa-crosshairs"></i> Ir a fase</label>
+          <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+            <input type="number" id="gm-target-turn" min="1" value="${nextTurn}" style="width: 60px; text-align: center;" />
             <span id="gm-target-phase" style="font-size: 13px; color: #f3c267;">(${nextPhaseLabel})</span>
           </div>
         </div>
-      `,
-      render: (_event: any, html: any) => {
-        const el = html instanceof HTMLElement ? html : html?.element;
-        if (!el) return;
-        const input = el.querySelector('#gm-target-turn') as HTMLInputElement;
-        const phaseSpan = el.querySelector('#gm-target-phase') as HTMLElement;
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button type="button" class="guard-modal-btn save phase-btn" data-action="back" ${currentTurn <= 1 ? 'disabled' : ''} style="flex: 1;">
+            <i class="fas fa-backward"></i> Retroceder
+          </button>
+          <button type="button" class="guard-modal-btn save phase-btn" data-action="advance" style="flex: 1;">
+            <i class="fas fa-forward"></i> Avanzar
+          </button>
+          <button type="button" class="guard-modal-btn save phase-btn" data-action="goto" style="flex: 1;">
+            <i class="fas fa-crosshairs"></i> Ir a fase
+          </button>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: 'Gestión de Fase',
+      icon: 'fas fa-sun',
+      body,
+      showFooter: false,
+      onSave: async () => {},
+      onRender: (bodyEl) => {
+        const input = bodyEl.querySelector('#gm-target-turn') as HTMLInputElement;
+        const phaseSpan = bodyEl.querySelector('#gm-target-phase') as HTMLElement;
         if (input && phaseSpan) {
           input.addEventListener('input', () => {
             const val = parseInt(input.value) || 1;
@@ -241,39 +256,25 @@ export class DayNightDecoration {
             phaseSpan.textContent = `(${label})`;
           });
         }
-      },
-      buttons: [
-        {
-          action: 'back',
-          label: 'Retroceder',
-          icon: 'fas fa-backward',
-          disabled: currentTurn <= 1,
-        },
-        {
-          action: 'advance',
-          label: 'Avanzar',
-          icon: 'fas fa-forward',
-          default: true,
-        },
-        {
-          action: 'goto',
-          label: 'Ir a fase',
-          icon: 'fas fa-crosshairs',
-        },
-      ],
-      modal: true,
-    });
 
-    if (result === 'advance') {
-      await gm.phaseManager.advanceTurn();
-    } else if (result === 'back') {
-      await gm.phaseManager.goBackTurn();
-    } else if (result === 'goto') {
-      const input = document.querySelector('#gm-target-turn') as HTMLInputElement;
-      const targetTurn = parseInt(input?.value) || currentTurn;
-      if (targetTurn !== currentTurn) {
-        await gm.phaseManager.goToTurn(targetTurn);
-      }
-    }
+        bodyEl.querySelectorAll('.phase-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const action = (btn as HTMLElement).dataset.action;
+            if (action === 'advance') {
+              await gm.phaseManager.advanceTurn();
+            } else if (action === 'back') {
+              await gm.phaseManager.goBackTurn();
+            } else if (action === 'goto') {
+              const targetTurn = parseInt(input?.value) || currentTurn;
+              if (targetTurn !== currentTurn) {
+                await gm.phaseManager.goToTurn(targetTurn);
+              }
+            }
+            const modal = btn.closest('.guard-modal');
+            if (modal) modal.remove();
+          });
+        });
+      },
+    });
   }
 }

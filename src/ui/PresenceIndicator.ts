@@ -332,7 +332,7 @@ export class PresenceIndicator {
     if (!this.effectivelyVisible) return;
 
     const tabButtons = Array.from(
-      this.dialogElement.querySelectorAll('.org-tab-btn'),
+      this.dialogElement.querySelectorAll('.org-tab-btn')
     ) as HTMLButtonElement[];
     const dialogRect = this.dialogElement.getBoundingClientRect();
     const { byTab } = this.collectPresence();
@@ -372,9 +372,7 @@ export class PresenceIndicator {
     const desired = new Map<string, string>();
     for (const [selector, colors] of hoversBySelector) {
       const segDeg = 360 / colors.length;
-      const stops = colors
-        .map((c, i) => `${c} ${i * segDeg}deg ${(i + 1) * segDeg}deg`)
-        .join(', ');
+      const stops = colors.map((c, i) => `${c} ${i * segDeg}deg ${(i + 1) * segDeg}deg`).join(', ');
       desired.set(selector, `conic-gradient(from 225deg, ${stops}) 1`);
     }
 
@@ -428,7 +426,9 @@ export class PresenceIndicator {
   private applyVisibility(): void {
     if (!this.container) return;
     // Hide/show all avatar rows
-    for (const row of this.container.querySelectorAll('.gm-presence-row') as NodeListOf<HTMLElement>) {
+    for (const row of this.container.querySelectorAll(
+      '.gm-presence-row'
+    ) as NodeListOf<HTMLElement>) {
       row.style.display = this.effectivelyVisible ? '' : 'none';
     }
     // Remove or restore overlays

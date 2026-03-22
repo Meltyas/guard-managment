@@ -1,96 +1,77 @@
-<div class='guard-org-dialog-single'>
-  <header class='single-header'><h2>Organización</h2></header>
-  <section class='single-panel' data-panel='general'>
-    <form class='guard-organization-form' data-form-scope='guard-organization'>
-      <div class='form-group'>
-        <label for='name'>Nombre de la Organización *</label>
-        <input
-          type='text'
-          name='name'
-          id='name'
-          value='{{name}}'
-          placeholder='ej: Guardia de la Ciudad'
-          required
-        />
-      </div>
+<form class='guard-modal-form' data-form-scope='guard-organization'>
+  <div class='guard-modal-row'>
+    <label><i class='fas fa-shield-alt'></i> Nombre de la Organización *</label>
+    <input
+      type='text'
+      name='name'
+      value='{{name}}'
+      placeholder='ej: Guardia de la Ciudad'
+      required
+    />
+  </div>
 
-      <div class='form-group'>
-        <label for='subtitle'>Subtítulo</label>
-        <input
-          type='text'
-          name='subtitle'
-          id='subtitle'
-          value='{{subtitle}}'
-          placeholder='ej: Protectores del Reino'
-        />
-      </div>
+  <div class='guard-modal-row'>
+    <label><i class='fas fa-tag'></i> Subtítulo</label>
+    <input
+      type='text'
+      name='subtitle'
+      value='{{subtitle}}'
+      placeholder='ej: Protectores del Reino'
+    />
+  </div>
 
-      <div class='stats-section'>
-        <h3>Estadísticas Base</h3>
-        <div class='stats-grid'>
-          <div class='stat-input'>
-            <label for='robustismo'>Robustismo</label>
-            <input
-              type='number'
-              name='robustismo'
-              id='robustismo'
-              value='{{baseStats.robustismo}}'
-              min='{{minStat}}'
-              max='{{maxStat}}'
-              required
-            />
-          </div>
-          <div class='stat-input'>
-            <label for='analitica'>Analítica</label>
-            <input
-              type='number'
-              name='analitica'
-              id='analitica'
-              value='{{baseStats.analitica}}'
-              min='{{minStat}}'
-              max='{{maxStat}}'
-              required
-            />
-          </div>
-          <div class='stat-input'>
-            <label for='subterfugio'>Subterfugio</label>
-            <input
-              type='number'
-              name='subterfugio'
-              id='subterfugio'
-              value='{{baseStats.subterfugio}}'
-              min='{{minStat}}'
-              max='{{maxStat}}'
-              required
-            />
-          </div>
-          <div class='stat-input'>
-            <label for='elocuencia'>Elocuencia</label>
-            <input
-              type='number'
-              name='elocuencia'
-              id='elocuencia'
-              value='{{baseStats.elocuencia}}'
-              min='{{minStat}}'
-              max='{{maxStat}}'
-              required
-            />
-          </div>
-        </div>
-      </div>
+  <h4 style="color:#f3c267;font-family:'Cinzel',serif;margin:0.5rem 0 0;">Estadísticas Base</h4>
+  <div class='guard-modal-split'>
+    <div class='guard-modal-row'>
+      <label>Robustismo</label>
+      <input
+        type='number'
+        name='robustismo'
+        value='{{baseStats.robustismo}}'
+        min='{{minStat}}'
+        max='{{maxStat}}'
+        required
+      />
+    </div>
+    <div class='guard-modal-row'>
+      <label>Analítica</label>
+      <input
+        type='number'
+        name='analitica'
+        value='{{baseStats.analitica}}'
+        min='{{minStat}}'
+        max='{{maxStat}}'
+        required
+      />
+    </div>
+  </div>
+  <div class='guard-modal-split'>
+    <div class='guard-modal-row'>
+      <label>Subterfugio</label>
+      <input
+        type='number'
+        name='subterfugio'
+        value='{{baseStats.subterfugio}}'
+        min='{{minStat}}'
+        max='{{maxStat}}'
+        required
+      />
+    </div>
+    <div class='guard-modal-row'>
+      <label>Elocuencia</label>
+      <input
+        type='number'
+        name='elocuencia'
+        value='{{baseStats.elocuencia}}'
+        min='{{minStat}}'
+        max='{{maxStat}}'
+        required
+      />
+    </div>
+  </div>
 
-      <div class='dialog-info'>
-        <p><small>* Campos requeridos</small></p>
-        <p>
-          <small>
-            Las estadísticas pueden ser de
-            {{minStat}}
-            a
-            {{maxStat}}
-            y modificadas más tarde mediante modificadores de organización.
-          </small>
-        </p>
-      </div>
-    </form>
-  </section>
-</div>
+  <p class='guard-modal-hint'>* Campos requeridos. Estadísticas de
+    {{minStat}}
+    a
+    {{maxStat}}, modificables por modificadores.</p>
+</form>

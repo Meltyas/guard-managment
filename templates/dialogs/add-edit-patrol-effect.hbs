@@ -1,43 +1,42 @@
-<form class="patrol-effect-form guard-dialog">
-    <div class="form-group">
-        <label>Nombre</label>
+<form class="guard-modal-form">
+    <div class="guard-modal-row">
+        <label><i class="fas fa-tag"></i> Nombre</label>
         <input type="text" name="name" value="{{name}}" required />
     </div>
 
-    <div class="form-group">
-        <label>Descripción</label>
-        <prose-mirror name="description" value="{{description}}">
-            {{{description}}}
-        </prose-mirror>
+    <div class="guard-modal-row">
+        <label><i class="fas fa-align-left"></i> Descripción</label>
+        <textarea name="description" placeholder="Descripción del efecto...">{{description}}</textarea>
     </div>
 
-    <div class="form-group">
-        <label>Tipo</label>
-        <select name="type">
-            <option value="positive" {{#if (eq type "positive")}}selected{{/if}}>Positivo</option>
-            <option value="negative" {{#if (eq type "negative")}}selected{{/if}}>Negativo</option>
-            <option value="neutral" {{#if (eq type "neutral")}}selected{{/if}}>Neutral</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>Imagen</label>
-        <div class="image-picker">
-            <div class="image-preview">
-                <img src="{{image}}" alt="Preview" height="64" width="64" />
-            </div>
-            <div class="image-input">
-                <input type="text" name="image" value="{{image}}" />
-                <button type="button" class="file-picker-btn"><i class="fas fa-file-import"></i></button>
+    <div class="guard-modal-split">
+        <div class="guard-modal-row">
+            <label><i class="fas fa-circle"></i> Tipo</label>
+            <select name="type">
+                <option value="positive" {{#if (eq type "positive")}}selected{{/if}}>Positivo</option>
+                <option value="negative" {{#if (eq type "negative")}}selected{{/if}}>Negativo</option>
+                <option value="neutral" {{#if (eq type "neutral")}}selected{{/if}}>Neutral</option>
+            </select>
+        </div>
+        <div class="guard-modal-row">
+            <label><i class="fas fa-image"></i> Imagen</label>
+            <div class="image-picker">
+                <div class="image-preview">
+                    <img src="{{image}}" alt="Preview" height="48" width="48" />
+                </div>
+                <div class="image-input">
+                    <input type="text" name="image" value="{{image}}" />
+                    <button type="button" class="file-picker-btn"><i class="fas fa-file-import"></i></button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="form-group">
-        <label>Modificadores de Estadísticas</label>
-        <div class="stat-mods-container" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;">
+    <div class="guard-modal-row">
+        <label><i class="fas fa-sliders-h"></i> Modificadores de Estadísticas</label>
+        <div class="stat-mods-container" style="display: flex; flex-direction: column; gap: 5px;">
             {{#each statModifications}}
-            <div class="stat-mod-row form-group" style="display: flex; gap: 5px; align-items: center;">
+            <div class="stat-mod-row" style="display: flex; gap: 5px; align-items: center;">
                 <select name="statName" style="flex: 1;">
                     {{#each ../statOptions}}
                     <option value="{{this.value}}" {{#if (eq this.value ../statName)}}selected{{/if}}>{{this.label}}</option>
@@ -48,6 +47,6 @@
             </div>
             {{/each}}
         </div>
-        <button type="button" class="add-stat-mod"><i class="fas fa-plus"></i> Añadir Modificador</button>
+        <button type="button" class="add-stat-mod" style="margin-top: 6px;"><i class="fas fa-plus"></i> Añadir Modificador</button>
     </div>
 </form>

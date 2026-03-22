@@ -617,20 +617,20 @@
   opacity: 0.8;
 }
 
-/* --- Form styles --- */
-.finance-form {
+/* --- Form styles (shared across all GuardModal forms) --- */
+.guard-modal-form {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.finance-form-row {
+.guard-modal-row {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.finance-form-row label {
+.guard-modal-row label {
   font-size: 0.82em;
   color: #b0a890;
   font-weight: 500;
@@ -638,17 +638,17 @@
   letter-spacing: 0.5px;
 }
 
-.finance-form-row label i {
+.guard-modal-row label i {
   margin-right: 4px;
   opacity: 0.6;
   width: 14px;
   text-align: center;
 }
 
-.finance-form-row input[type='text'],
-.finance-form-row input[type='number'],
-.finance-form-row textarea,
-.finance-form-row select {
+.guard-modal-row input[type='text'],
+.guard-modal-row input[type='number'],
+.guard-modal-row textarea,
+.guard-modal-row select {
   background: rgba(24, 22, 46, 0.5);
   border: 1px solid rgba(243, 194, 103, 0.3);
   border-radius: 6px;
@@ -662,39 +662,39 @@
   box-sizing: border-box;
 }
 
-.finance-form-row input:focus,
-.finance-form-row textarea:focus,
-.finance-form-row select:focus {
+.guard-modal-row input:focus,
+.guard-modal-row textarea:focus,
+.guard-modal-row select:focus {
   border-color: #f3c267;
   box-shadow: 0 0 6px rgba(243, 194, 103, 0.2);
   outline: none;
 }
 
-.finance-form-row textarea {
+.guard-modal-row textarea {
   resize: vertical;
   min-height: 40px;
 }
 
-.finance-form-row select {
+.guard-modal-row select {
   cursor: pointer;
 }
 
-.finance-form-row select optgroup {
+.guard-modal-row select optgroup {
   font-weight: bold;
   color: #f3c267;
 }
 
-.finance-form-split {
+.guard-modal-split {
   display: flex;
   gap: 12px;
 }
 
-.finance-form-split .finance-form-row {
+.guard-modal-split .guard-modal-row {
   flex: 1;
 }
 
 /* --- Custom checkbox --- */
-.finance-checkbox-label {
+.guard-modal-checkbox {
   display: flex !important;
   align-items: center;
   gap: 8px;
@@ -706,11 +706,11 @@
   user-select: none;
 }
 
-.finance-checkbox-label input[type='checkbox'] {
+.guard-modal-checkbox input[type='checkbox'] {
   display: none;
 }
 
-.finance-checkbox-custom {
+.guard-modal-checkbox-icon {
   width: 18px;
   height: 18px;
   border: 1px solid rgba(243, 194, 103, 0.4);
@@ -723,12 +723,12 @@
   flex-shrink: 0;
 }
 
-.finance-checkbox-label input[type='checkbox']:checked + .finance-checkbox-custom {
+.guard-modal-checkbox input[type='checkbox']:checked + .guard-modal-checkbox-icon {
   background: rgba(243, 194, 103, 0.2);
   border-color: #f3c267;
 }
 
-.finance-checkbox-label input[type='checkbox']:checked + .finance-checkbox-custom::after {
+.guard-modal-checkbox input[type='checkbox']:checked + .guard-modal-checkbox-icon::after {
   content: '\f00c';
   font-family: 'Font Awesome 5 Free';
   font-weight: 900;
@@ -737,13 +737,13 @@
 }
 
 /* --- Hint text --- */
-.finance-form-hint {
+.guard-modal-hint {
   font-size: 0.82em;
   color: #888;
   margin: 4px 0 0;
 }
 
-.finance-form-hint i {
+.guard-modal-hint i {
   color: #e67e22;
   margin-right: 4px;
 }

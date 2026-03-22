@@ -4,6 +4,7 @@
  */
 import type { BuildingGangLink, BuildingTag } from '../../types/buildings';
 import { BUILDING_TAG_ICONS, BUILDING_TAG_LABELS } from '../../types/buildings';
+import { GuardModal } from '../GuardModal.js';
 
 export class BuildingsPanel {
   static get template() {
@@ -179,59 +180,58 @@ export class BuildingsPanel {
   // --- Dialogs ---
 
   private static async showAddBuildingDialog(container: HTMLElement): Promise<void> {
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
-
     let selectedImage = '';
 
-    await DialogV2.wait({
-      window: { title: 'Registrar Nuevo Edificio' },
-      content: `
-        <div class="building-dialog" style="padding: 10px;">
-          <div class="form-group">
-            <label for="building-name">Nombre del edificio</label>
-            <input type="text" id="building-name" name="name" placeholder="Ej: Taberna del Gallo, Cuartel de la Guardia..." required />
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="building-name"><i class="fas fa-building"></i> Nombre del edificio</label>
+          <input type="text" id="building-name" placeholder="Ej: Taberna del Gallo, Cuartel de la Guardia..." />
+        </div>
+        <div class="guard-modal-row">
+          <label for="building-desc"><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="building-desc" rows="3" placeholder="Descripción del edificio..."></textarea>
+        </div>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" id="building-img" placeholder="Ruta de imagen..." style="flex: 1;" />
+            <button type="button" id="building-img-picker" class="buildings-btn" style="white-space: nowrap;">
+              <i class="fas fa-file-image"></i> Buscar
+            </button>
           </div>
-          <div class="form-group">
-            <label for="building-desc">Descripción</label>
-            <textarea id="building-desc" name="description" rows="3" placeholder="Descripción del edificio..." style="width: 100%; resize: vertical;"></textarea>
-          </div>
-          <div class="form-group">
-            <label>Imagen</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <input type="text" id="building-img" name="img" placeholder="Ruta de imagen..." style="flex: 1;" />
-              <button type="button" id="building-img-picker" class="buildings-btn" style="white-space: nowrap;">
-                <i class="fas fa-file-image"></i> Buscar
-              </button>
-            </div>
-            <div id="building-img-preview" style="margin-top: 6px; text-align: center;"></div>
-          </div>
-          <div class="form-group">
-            <label>Etiquetas</label>
-            <div id="building-tags" style="display: flex; flex-wrap: wrap; gap: 4px;">
-              ${BuildingsPanel.buildTagCheckboxes()}
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="building-gang">Banda asociada</label>
-            <select id="building-gang" name="gang" style="width: 100%;">
-              ${BuildingsPanel.buildGangSelect()}
-            </select>
-          </div>
-          <div class="form-group" id="building-gang-notes-group" style="display: none;">
-            <label for="building-gang-notes">Nota sobre la banda en este edificio</label>
-            <textarea id="building-gang-notes" name="gangNotes" rows="2" placeholder="Influencia, actividad, etc." style="width: 100%; resize: vertical;"></textarea>
+          <div id="building-img-preview" style="margin-top: 6px; text-align: center;"></div>
+        </div>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-tags"></i> Etiquetas</label>
+          <div id="building-tags" style="display: flex; flex-wrap: wrap; gap: 4px;">
+            ${BuildingsPanel.buildTagCheckboxes()}
           </div>
         </div>
-      `,
-      render: (_event: any, html: any) => {
-        const el = html instanceof HTMLElement ? html : html?.element;
-        if (!el) return;
-        const imgInput = el.querySelector('#building-img') as HTMLInputElement;
-        const imgPreview = el.querySelector('#building-img-preview') as HTMLElement;
-        const imgPicker = el.querySelector('#building-img-picker');
-        const gangSelect = el.querySelector('#building-gang') as HTMLSelectElement;
-        const gangNotesGroup = el.querySelector('#building-gang-notes-group') as HTMLElement;
+        <div class="guard-modal-row">
+          <label for="building-gang"><i class="fas fa-users"></i> Banda asociada</label>
+          <select id="building-gang">
+            ${BuildingsPanel.buildGangSelect()}
+          </select>
+        </div>
+        <div class="guard-modal-row" id="building-gang-notes-group" style="display: none;">
+          <label for="building-gang-notes"><i class="fas fa-sticky-note"></i> Nota sobre la banda</label>
+          <textarea id="building-gang-notes" rows="2" placeholder="Influencia, actividad, etc."></textarea>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: 'Registrar Nuevo Edificio',
+      icon: 'fas fa-building',
+      body,
+      saveLabel: 'Registrar',
+      onRender: (bodyEl) => {
+        const imgInput = bodyEl.querySelector('#building-img') as HTMLInputElement;
+        const imgPreview = bodyEl.querySelector('#building-img-preview') as HTMLElement;
+        const imgPicker = bodyEl.querySelector('#building-img-picker');
+        const gangSelect = bodyEl.querySelector('#building-gang') as HTMLSelectElement;
+        const gangNotesGroup = bodyEl.querySelector('#building-gang-notes-group') as HTMLElement;
 
         imgPicker?.addEventListener('click', () => {
           new (globalThis as any).FilePicker({
@@ -257,68 +257,46 @@ export class BuildingsPanel {
         gangSelect?.addEventListener('change', () => {
           gangNotesGroup.style.display = gangSelect.value ? '' : 'none';
         });
+
+        (bodyEl.querySelector('#building-name') as HTMLInputElement)?.focus();
       },
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        {
-          action: 'save',
-          label: 'Registrar',
-          icon: 'fas fa-check',
-          default: true,
-          callback: async (_event: any, _button: any, dialog: any) => {
-            const dialogEl = dialog?.element || dialog;
-            if (!dialogEl) return;
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#building-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          (globalThis as any).ui?.notifications?.warn('El nombre del edificio es obligatorio.');
+          return false;
+        }
 
-            const name = (
-              dialogEl.querySelector('#building-name') as HTMLInputElement
-            )?.value?.trim();
-            if (!name) {
-              (globalThis as any).ui?.notifications?.warn('El nombre del edificio es obligatorio.');
-              return;
-            }
+        const description = (bodyEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() || '';
 
-            const description =
-              (dialogEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() ||
-              '';
+        const tags: BuildingTag[] = [];
+        bodyEl.querySelectorAll('input[name="building-tag"]:checked').forEach((cb: any) => {
+          tags.push(cb.value as BuildingTag);
+        });
 
-            const tags: BuildingTag[] = [];
-            dialogEl.querySelectorAll('input[name="building-tag"]:checked').forEach((cb: any) => {
-              tags.push(cb.value as BuildingTag);
-            });
+        const gangId = (bodyEl.querySelector('#building-gang') as HTMLSelectElement)?.value;
+        let gangLink: BuildingGangLink | undefined;
+        if (gangId) {
+          const gangs = BuildingsPanel.getGangOptions();
+          const gang = gangs.find((g) => g.id === gangId);
+          const gangNotes = (bodyEl.querySelector('#building-gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+          gangLink = { gangId, gangName: gang?.name || '', notes: gangNotes };
+        }
 
-            const gangId = (dialogEl.querySelector('#building-gang') as HTMLSelectElement)?.value;
-            let gangLink: BuildingGangLink | undefined;
-            if (gangId) {
-              const gangs = BuildingsPanel.getGangOptions();
-              const gang = gangs.find((g) => g.id === gangId);
-              const gangNotes =
-                (
-                  dialogEl.querySelector('#building-gang-notes') as HTMLTextAreaElement
-                )?.value?.trim() || '';
-              gangLink = {
-                gangId,
-                gangName: gang?.name || '',
-                notes: gangNotes,
-              };
-            }
+        const gm = (window as any).GuardManagement;
+        if (!gm?.buildingManager) return false;
 
-            const gm = (window as any).GuardManagement;
-            if (!gm?.buildingManager) return;
+        await gm.buildingManager.addBuilding({
+          name,
+          description,
+          img: selectedImage || undefined,
+          tags,
+          gangLink,
+        });
 
-            await gm.buildingManager.addBuilding({
-              name,
-              description,
-              img: selectedImage || undefined,
-              tags,
-              gangLink,
-            });
-
-            window.dispatchEvent(new CustomEvent('guard-buildings-updated'));
-            await BuildingsPanel.render(container);
-          },
-        },
-      ],
-      modal: false,
+        window.dispatchEvent(new CustomEvent('guard-buildings-updated'));
+        await BuildingsPanel.render(container);
+      },
     });
   }
 
@@ -331,61 +309,59 @@ export class BuildingsPanel {
     const building = gm.buildingManager.getBuilding(buildingId);
     if (!building) return;
 
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
-
     let selectedImage = building.img || '';
 
-    await DialogV2.wait({
-      window: { title: `Editar Edificio: ${building.name}` },
-      content: `
-        <div class="building-dialog" style="padding: 10px;">
-          <div class="form-group">
-            <label for="building-name">Nombre del edificio</label>
-            <input type="text" id="building-name" name="name" value="${building.name.replace(/"/g, '&quot;')}" required />
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="building-name"><i class="fas fa-building"></i> Nombre del edificio</label>
+          <input type="text" id="building-name" value="${building.name.replace(/"/g, '&quot;')}" />
+        </div>
+        <div class="guard-modal-row">
+          <label for="building-desc"><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="building-desc" rows="3">${building.description || ''}</textarea>
+        </div>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" id="building-img" value="${building.img || ''}" style="flex: 1;" />
+            <button type="button" id="building-img-picker" class="buildings-btn" style="white-space: nowrap;">
+              <i class="fas fa-file-image"></i> Buscar
+            </button>
           </div>
-          <div class="form-group">
-            <label for="building-desc">Descripción</label>
-            <textarea id="building-desc" name="description" rows="3" style="width: 100%; resize: vertical;">${building.description || ''}</textarea>
-          </div>
-          <div class="form-group">
-            <label>Imagen</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <input type="text" id="building-img" name="img" value="${building.img || ''}" style="flex: 1;" />
-              <button type="button" id="building-img-picker" class="buildings-btn" style="white-space: nowrap;">
-                <i class="fas fa-file-image"></i> Buscar
-              </button>
-            </div>
-            <div id="building-img-preview" style="margin-top: 6px; text-align: center;">
-              ${building.img ? `<img src="${building.img}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />` : ''}
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Etiquetas</label>
-            <div id="building-tags" style="display: flex; flex-wrap: wrap; gap: 4px;">
-              ${BuildingsPanel.buildTagCheckboxes(building.tags)}
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="building-gang">Banda asociada</label>
-            <select id="building-gang" name="gang" style="width: 100%;">
-              ${BuildingsPanel.buildGangSelect(building.gangLink?.gangId)}
-            </select>
-          </div>
-          <div class="form-group" id="building-gang-notes-group" style="${building.gangLink?.gangId ? '' : 'display: none;'}">
-            <label for="building-gang-notes">Nota sobre la banda en este edificio</label>
-            <textarea id="building-gang-notes" name="gangNotes" rows="2" style="width: 100%; resize: vertical;">${building.gangLink?.notes || ''}</textarea>
+          <div id="building-img-preview" style="margin-top: 6px; text-align: center;">
+            ${building.img ? `<img src="${building.img}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />` : ''}
           </div>
         </div>
-      `,
-      render: (_event: any, html: any) => {
-        const el = html instanceof HTMLElement ? html : html?.element;
-        if (!el) return;
-        const imgInput = el.querySelector('#building-img') as HTMLInputElement;
-        const imgPreview = el.querySelector('#building-img-preview') as HTMLElement;
-        const imgPicker = el.querySelector('#building-img-picker');
-        const gangSelect = el.querySelector('#building-gang') as HTMLSelectElement;
-        const gangNotesGroup = el.querySelector('#building-gang-notes-group') as HTMLElement;
+        <div class="guard-modal-row">
+          <label><i class="fas fa-tags"></i> Etiquetas</label>
+          <div id="building-tags" style="display: flex; flex-wrap: wrap; gap: 4px;">
+            ${BuildingsPanel.buildTagCheckboxes(building.tags)}
+          </div>
+        </div>
+        <div class="guard-modal-row">
+          <label for="building-gang"><i class="fas fa-users"></i> Banda asociada</label>
+          <select id="building-gang">
+            ${BuildingsPanel.buildGangSelect(building.gangLink?.gangId)}
+          </select>
+        </div>
+        <div class="guard-modal-row" id="building-gang-notes-group" style="${building.gangLink?.gangId ? '' : 'display: none;'}">
+          <label for="building-gang-notes"><i class="fas fa-sticky-note"></i> Nota sobre la banda</label>
+          <textarea id="building-gang-notes" rows="2">${building.gangLink?.notes || ''}</textarea>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: `Editar Edificio: ${building.name}`,
+      icon: 'fas fa-edit',
+      body,
+      onRender: (bodyEl) => {
+        const imgInput = bodyEl.querySelector('#building-img') as HTMLInputElement;
+        const imgPreview = bodyEl.querySelector('#building-img-preview') as HTMLElement;
+        const imgPicker = bodyEl.querySelector('#building-img-picker');
+        const gangSelect = bodyEl.querySelector('#building-gang') as HTMLSelectElement;
+        const gangNotesGroup = bodyEl.querySelector('#building-gang-notes-group') as HTMLElement;
 
         imgPicker?.addEventListener('click', () => {
           new (globalThis as any).FilePicker({
@@ -409,62 +385,38 @@ export class BuildingsPanel {
           gangNotesGroup.style.display = gangSelect.value ? '' : 'none';
         });
       },
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        {
-          action: 'save',
-          label: 'Guardar',
-          icon: 'fas fa-check',
-          default: true,
-          callback: async (_event: any, _button: any, dialog: any) => {
-            const dialogEl = dialog?.element || dialog;
-            if (!dialogEl) return;
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#building-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          (globalThis as any).ui?.notifications?.warn('El nombre del edificio es obligatorio.');
+          return false;
+        }
 
-            const name = (
-              dialogEl.querySelector('#building-name') as HTMLInputElement
-            )?.value?.trim();
-            if (!name) {
-              (globalThis as any).ui?.notifications?.warn('El nombre del edificio es obligatorio.');
-              return;
-            }
+        const description = (bodyEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() || '';
 
-            const description =
-              (dialogEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() ||
-              '';
+        const tags: BuildingTag[] = [];
+        bodyEl.querySelectorAll('input[name="building-tag"]:checked').forEach((cb: any) => {
+          tags.push(cb.value as BuildingTag);
+        });
 
-            const tags: BuildingTag[] = [];
-            dialogEl.querySelectorAll('input[name="building-tag"]:checked').forEach((cb: any) => {
-              tags.push(cb.value as BuildingTag);
-            });
+        const gangId = (bodyEl.querySelector('#building-gang') as HTMLSelectElement)?.value;
+        let gangLink: BuildingGangLink | undefined;
+        if (gangId) {
+          const gangs = BuildingsPanel.getGangOptions();
+          const gang = gangs.find((g) => g.id === gangId);
+          const gangNotes = (bodyEl.querySelector('#building-gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+          gangLink = { gangId, gangName: gang?.name || '', notes: gangNotes };
+        }
 
-            const gangId = (dialogEl.querySelector('#building-gang') as HTMLSelectElement)?.value;
-            let gangLink: BuildingGangLink | undefined;
-            if (gangId) {
-              const gangs = BuildingsPanel.getGangOptions();
-              const gang = gangs.find((g) => g.id === gangId);
-              const gangNotes =
-                (
-                  dialogEl.querySelector('#building-gang-notes') as HTMLTextAreaElement
-                )?.value?.trim() || '';
-              gangLink = {
-                gangId,
-                gangName: gang?.name || '',
-                notes: gangNotes,
-              };
-            }
+        const updates: any = { name, description, tags, gangLink };
+        if (selectedImage !== (building.img || '')) {
+          updates.img = selectedImage || undefined;
+        }
 
-            const updates: any = { name, description, tags, gangLink };
-            if (selectedImage !== (building.img || '')) {
-              updates.img = selectedImage || undefined;
-            }
-
-            await gm.buildingManager.updateBuilding(buildingId, updates);
-            window.dispatchEvent(new CustomEvent('guard-buildings-updated'));
-            await BuildingsPanel.render(container);
-          },
-        },
-      ],
-      modal: false,
+        await gm.buildingManager.updateBuilding(buildingId, updates);
+        window.dispatchEvent(new CustomEvent('guard-buildings-updated'));
+        await BuildingsPanel.render(container);
+      },
     });
   }
 
@@ -477,30 +429,25 @@ export class BuildingsPanel {
     const building = gm.buildingManager.getBuilding(buildingId);
     if (!building) return;
 
-    const DialogV2 = (foundry as any).applications?.api?.DialogV2;
-    if (!DialogV2) return;
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <p><i class="fas fa-exclamation-triangle" style="color: #e84a4a; font-size: 1.5em;"></i></p>
+        <p>¿Eliminar el edificio <strong>"${building.name}"</strong>?</p>
+        <p style="font-size: 0.85em; color: #ccc;">Esta acción no se puede deshacer.</p>
+      </div>
+    `;
 
-    const result = await DialogV2.wait({
-      window: { title: 'Eliminar Edificio' },
-      content: `
-        <div style="padding: 10px; text-align: center;">
-          <p><i class="fas fa-exclamation-triangle" style="color: #e84a4a; font-size: 1.5em;"></i></p>
-          <p>¿Eliminar el edificio <strong>"${building.name}"</strong>?</p>
-          <p style="font-size: 0.85em; color: #ccc;">Esta acción no se puede deshacer.</p>
-        </div>
-      `,
-      buttons: [
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times' },
-        { action: 'delete', label: 'Eliminar', icon: 'fas fa-trash' },
-      ],
-      modal: false,
+    GuardModal.open({
+      title: 'Eliminar Edificio',
+      icon: 'fas fa-trash',
+      body,
+      saveLabel: 'Eliminar',
+      onSave: async () => {
+        await gm.buildingManager.deleteBuilding(buildingId);
+        window.dispatchEvent(new CustomEvent('guard-buildings-updated'));
+        await BuildingsPanel.render(container);
+      },
     });
-
-    if (result !== 'delete') return;
-
-    await gm.buildingManager.deleteBuilding(buildingId);
-    window.dispatchEvent(new CustomEvent('guard-buildings-updated'));
-    await BuildingsPanel.render(container);
   }
 
   // --- Send to Chat ---

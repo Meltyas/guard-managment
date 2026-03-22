@@ -7,6 +7,7 @@ import { OFFENSE_LABELS } from '../../types/crimes';
 import type { Prisoner, PrisonerHistoryEntry } from '../../types/entities';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
+import { GuardModal } from '../GuardModal.js';
 
 const STATUS_LABELS: Record<string, string> = {
   imprisoned: 'Preso',
@@ -571,44 +572,41 @@ export class PrisonersPanel {
     const currentCount = gm?.prisonerManager?.getCellCount() || 4;
     const currentCapacity = gm?.prisonerManager?.getCellCapacity() || 1;
 
-    const content = `
-      <form>
-        <div class="form-group">
-          <label for="cell-count">Número de celdas:</label>
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-door-closed"></i> Número de celdas</label>
           <input type="number" id="cell-count" name="cellCount" value="${currentCount}" min="1" max="20" />
         </div>
-        <div class="form-group">
-          <label for="cell-capacity">Capacidad por celda:</label>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-users"></i> Capacidad por celda</label>
           <input type="number" id="cell-capacity" name="cellCapacity" value="${currentCapacity}" min="1" max="10" />
-          <p style="font-size: 0.8em; color: #999; margin-top: 4px;">Prisioneros de más causarán hacinamiento (tiradas Hope/Fear cada fase).</p>
+          <span style="font-size: 0.8em; color: #999;">Prisioneros de más causarán hacinamiento (tiradas Hope/Fear cada fase).</span>
         </div>
-      </form>
+      </div>
     `;
 
-    const result = await Dialog.prompt({
+    GuardModal.open({
       title: 'Configurar Celdas Temporales',
-      content,
-      callback: (html: any) => {
-        const countInput = $(html).find('#cell-count');
-        const capacityInput = $(html).find('#cell-capacity');
-        return {
-          count: parseInt(countInput.val() as string) || currentCount,
-          capacity: parseInt(capacityInput.val() as string) || currentCapacity,
-        };
+      icon: 'fas fa-dungeon',
+      body,
+      onSave: async (bodyEl) => {
+        const countInput = bodyEl.querySelector('#cell-count') as HTMLInputElement;
+        const capacityInput = bodyEl.querySelector('#cell-capacity') as HTMLInputElement;
+        const count = parseInt(countInput?.value) || currentCount;
+        const capacity = parseInt(capacityInput?.value) || currentCapacity;
+
+        if (count !== currentCount) {
+          await gm.prisonerManager.setCellCount(count);
+        }
+        if (capacity !== currentCapacity) {
+          await gm.prisonerManager.setCellCapacity(capacity);
+        }
+        if (count !== currentCount || capacity !== currentCapacity) {
+          NotificationService.info(`Celdas: ${count}, Capacidad: ${capacity}`);
+        }
       },
     });
-
-    if (result) {
-      if (result.count !== currentCount) {
-        await gm.prisonerManager.setCellCount(result.count);
-      }
-      if (result.capacity !== currentCapacity) {
-        await gm.prisonerManager.setCellCapacity(result.capacity);
-      }
-      if (result.count !== currentCount || result.capacity !== currentCapacity) {
-        NotificationService.info(`Celdas: ${result.count}, Capacidad: ${result.capacity}`);
-      }
-    }
   }
 
   // --- Edit Prisoner Dialog ---
@@ -618,16 +616,13 @@ export class PrisonersPanel {
     const prisoner = gm?.prisonerManager?.getPrisoner(prisonerId);
     if (!prisoner) return;
 
-    const escapedNotes = (prisoner.notes || '').replace(/"/g, '&quot;');
-    const notesContent = prisoner.notes || '';
+    const plainNotes = (prisoner.notes || '').replace(/<[^>]*>/g, '');
 
-    // Show current assigned crimes as badges (read-only, use the crimes modal to edit)
     const crimeNames = PrisonersPanel.resolveCrimeNames(prisoner.crimes);
     const crimeBadges = crimeNames.length > 0
       ? crimeNames.map((c) => `<span class="prisoner-crime-badge offense-${c.offenseType}">${c.name}</span>`).join(' ')
       : '<span style="color: #888; font-size: 0.8em;">Sin crímenes asignados</span>';
 
-    // Sentence info
     const prisonerManager = gm?.prisonerManager;
     const remaining = prisonerManager?.getRemainingPhases(prisoner) ?? 0;
     const hasSentence = prisoner.sentencePhases > 0 && prisoner.sentenceStartPhase !== null;
@@ -635,25 +630,21 @@ export class PrisonersPanel {
       ? `${remaining} fases restantes (${prisoner.sentencePhases} total, desde fase ${prisoner.sentenceStartPhase})`
       : 'Sin sentencia';
 
-    const content = `
-      <div class="guard-dialog prisoner-edit-dialog" style="padding: 0.5rem;">
-        <div class="form-group form-group-notes">
-          <label>Notas:</label>
-          <div class="prisoner-editor-wrapper">
-            <prose-mirror name="notes" value="${escapedNotes}">
-              ${notesContent}
-            </prose-mirror>
-          </div>
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-sticky-note"></i> Notas</label>
+          <textarea id="prisoner-notes" rows="4">${plainNotes}</textarea>
         </div>
-        <div class="form-group form-group-inline" style="margin-top: 0.5rem;">
-          <label><i class="fas fa-hourglass-half"></i> Sentencia:</label>
-          <span style="font-size: 0.85em; color: ${remaining <= 0 && hasSentence ? '#ff4444' : '#d0d0c0'};">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-hourglass-half"></i> Sentencia</label>
+          <span class="prisoner-sentence-display" style="font-size: 0.85em; color: ${remaining <= 0 && hasSentence ? '#ff4444' : '#d0d0c0'};">
             ${sentenceInfo}
           </span>
         </div>
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label><i class="fas fa-gavel"></i> Crímenes asignados:</label>
-          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.3rem 0;">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-gavel"></i> Crímenes asignados</label>
+          <div class="prisoner-crimes-container" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.3rem 0;">
             ${crimeBadges}
             <button type="button" class="crimes-btn prisoner-open-crimes-modal" style="margin-left: auto;" title="Gestionar crímenes">
               <i class="fas fa-gavel"></i> Gestionar
@@ -663,97 +654,55 @@ export class PrisonersPanel {
       </div>
     `;
 
-    try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (DialogV2Class) {
-        await DialogV2Class.wait({
-          window: { title: `Editar: ${prisoner.name}`, resizable: true },
-          content,
-          buttons: [
-            {
-              action: 'save',
-              icon: 'fas fa-save',
-              label: 'Guardar',
-              callback: async (_event: any, _button: any, dialog: any) => {
-                const dialogEl = dialog?.element || dialog;
-                if (!dialogEl) return;
-
-                // Read notes from ProseMirror
-                let newNotes = '';
-                const editorContent = dialogEl.querySelector('.editor-content.ProseMirror');
-                if (editorContent) {
-                  newNotes = editorContent.innerHTML?.trim() || '';
-                }
-                if (!newNotes) {
-                  const pmElement = dialogEl.querySelector('prose-mirror');
-                  if (pmElement && 'value' in pmElement) {
-                    const val = (pmElement as any).value;
-                    if (typeof val === 'string') newNotes = val;
-                  }
-                }
-                if (!newNotes) {
-                  const form = dialogEl.querySelector('form');
-                  if (form) {
-                    const fd = new FormData(form);
-                    newNotes = (fd.get('notes') as string) || '';
-                  }
-                }
-
-                if (newNotes !== prisoner.notes) {
-                  await gm.prisonerManager.updateNotes(prisonerId, newNotes);
-                }
-
-                NotificationService.info(`Prisionero "${prisoner.name}" actualizado`);
-                return 'save';
-              },
-            },
-            { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-          ],
-          rejectClose: false,
-          modal: false,
-          render: (_event: any, html: any) => {
-            const el = html instanceof HTMLElement ? html : html?.element;
-            if (!el) return;
-            const openBtn = el.querySelector('.prisoner-open-crimes-modal');
-            if (openBtn) {
-              openBtn.addEventListener('click', async (ev) => {
-                ev.preventDefault();
-                await this.showAssignCrimesDialog(prisonerId);
-                // Refresh sentence display after assign dialog closes
-                const updated = gm?.prisonerManager?.getPrisoner(prisonerId);
-                if (updated) {
-                  const remain = gm.prisonerManager.getRemainingPhases(updated);
-                  const hasSent = updated.sentencePhases > 0 && updated.sentenceStartPhase !== null;
-                  const info = hasSent
-                    ? `${remain} fases restantes (${updated.sentencePhases} total, desde fase ${updated.sentenceStartPhase})`
-                    : 'Sin sentencia';
-                  const sentenceSpan = el.querySelector('.form-group-inline span');
-                  if (sentenceSpan) {
-                    sentenceSpan.textContent = info;
-                    (sentenceSpan as HTMLElement).style.color = remain <= 0 && hasSent ? '#ff4444' : '#d0d0c0';
-                  }
-                  // Refresh crime badges
-                  const badgesContainer = el.querySelector('.form-group:last-child > div');
-                  if (badgesContainer) {
-                    const newCrimeNames = PrisonersPanel.resolveCrimeNames(updated.crimes);
-                    const manageBtn = badgesContainer.querySelector('.prisoner-open-crimes-modal');
-                    const badgesHtml = newCrimeNames.length > 0
-                      ? newCrimeNames.map((c) => `<span class="prisoner-crime-badge offense-${c.offenseType}">${c.name}</span>`).join(' ')
-                      : '<span style="color: #888; font-size: 0.8em;">Sin crímenes asignados</span>';
-                    // Remove old badges, keep button
-                    const children = Array.from(badgesContainer.childNodes);
-                    children.forEach((child) => { if (child !== manageBtn) child.remove(); });
-                    manageBtn?.insertAdjacentHTML('beforebegin', badgesHtml + ' ');
-                  }
-                }
-              });
+    GuardModal.open({
+      title: `Editar: ${prisoner.name}`,
+      icon: 'fas fa-edit',
+      body,
+      onRender: (bodyEl) => {
+        const openBtn = bodyEl.querySelector('.prisoner-open-crimes-modal');
+        if (openBtn) {
+          openBtn.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            await this.showAssignCrimesDialog(prisonerId);
+            // Refresh sentence display after assign dialog closes
+            const updated = gm?.prisonerManager?.getPrisoner(prisonerId);
+            if (updated) {
+              const remain = gm.prisonerManager.getRemainingPhases(updated);
+              const hasSent = updated.sentencePhases > 0 && updated.sentenceStartPhase !== null;
+              const info = hasSent
+                ? `${remain} fases restantes (${updated.sentencePhases} total, desde fase ${updated.sentenceStartPhase})`
+                : 'Sin sentencia';
+              const sentenceSpan = bodyEl.querySelector('.prisoner-sentence-display');
+              if (sentenceSpan) {
+                sentenceSpan.textContent = info;
+                (sentenceSpan as HTMLElement).style.color = remain <= 0 && hasSent ? '#ff4444' : '#d0d0c0';
+              }
+              // Refresh crime badges
+              const badgesContainer = bodyEl.querySelector('.prisoner-crimes-container');
+              if (badgesContainer) {
+                const newCrimeNames = PrisonersPanel.resolveCrimeNames(updated.crimes);
+                const manageBtn = badgesContainer.querySelector('.prisoner-open-crimes-modal');
+                const badgesHtml = newCrimeNames.length > 0
+                  ? newCrimeNames.map((c) => `<span class="prisoner-crime-badge offense-${c.offenseType}">${c.name}</span>`).join(' ')
+                  : '<span style="color: #888; font-size: 0.8em;">Sin crímenes asignados</span>';
+                const children = Array.from(badgesContainer.childNodes);
+                children.forEach((child) => { if (child !== manageBtn) child.remove(); });
+                manageBtn?.insertAdjacentHTML('beforebegin', badgesHtml + ' ');
+              }
             }
-          },
-        });
-      }
-    } catch (error) {
-      console.error('PrisonersPanel | Edit dialog error:', error);
-    }
+          });
+        }
+      },
+      onSave: async (bodyEl) => {
+        const newNotes = (bodyEl.querySelector('#prisoner-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+
+        if (newNotes !== prisoner.notes) {
+          await gm.prisonerManager.updateNotes(prisonerId, newNotes);
+        }
+
+        NotificationService.info(`Prisionero "${prisoner.name}" actualizado`);
+      },
+    });
   }
 
   // --- Assign Crimes Modal ---
@@ -804,7 +753,7 @@ export class PrisonersPanel {
       : '';
 
     const content = `
-      <div class="guard-dialog assign-crimes-dialog">
+      <div class="assign-crimes-dialog">
         <div class="assign-crimes-layout">
           <div class="assign-crimes-left">
             <div class="assign-crimes-search-bar">
@@ -855,60 +804,44 @@ export class PrisonersPanel {
     `;
 
     try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (!DialogV2Class) return;
+      GuardModal.open({
+        title: `Crímenes: ${prisoner.name}`,
+        icon: 'fas fa-gavel',
+        body: content,
+        width: 680,
+        saveLabel: 'Aplicar',
+        onRender: (bodyEl) => {
+          this.setupAssignCrimesListeners(bodyEl, allCrimes, sentenceManager);
+        },
+        onSave: async (bodyEl) => {
+          // Gather selected crime IDs
+          const checkboxes = bodyEl.querySelectorAll('.assign-crime-check') as NodeListOf<HTMLInputElement>;
+          const newCrimeIds: string[] = [];
+          checkboxes.forEach((cb) => {
+            if (cb.checked && cb.dataset.crimeId) newCrimeIds.push(cb.dataset.crimeId);
+          });
 
-      await DialogV2Class.wait({
-        window: { title: `Crímenes: ${prisoner.name}`, resizable: true },
-        position: { width: 680 },
-        content,
-        buttons: [
-          {
-            action: 'apply',
-            icon: 'fas fa-check',
-            label: 'Aplicar',
-            callback: async (_event: any, _button: any, dialog: any) => {
-              const dialogEl = dialog?.element || dialog;
-              if (!dialogEl) return;
+          // Diff and apply
+          const oldCrimeIds = Array.isArray(prisoner.crimes) ? prisoner.crimes : [];
+          const toAdd = newCrimeIds.filter((id) => !oldCrimeIds.includes(id));
+          const toRemove = oldCrimeIds.filter((id) => !newCrimeIds.includes(id));
+          for (const crimeId of toAdd) await gm.prisonerManager.assignCrime(prisonerId, crimeId);
+          for (const crimeId of toRemove) await gm.prisonerManager.removeCrime(prisonerId, crimeId);
 
-              // Gather selected crime IDs
-              const checkboxes = dialogEl.querySelectorAll('.assign-crime-check') as NodeListOf<HTMLInputElement>;
-              const newCrimeIds: string[] = [];
-              checkboxes.forEach((cb) => {
-                if (cb.checked && cb.dataset.crimeId) newCrimeIds.push(cb.dataset.crimeId);
-              });
+          // Apply phases if set
+          const phasesInput = bodyEl.querySelector('#assign-phases-input') as HTMLInputElement;
+          const phases = parseInt(phasesInput?.value || '0', 10);
+          if (phases > 0) {
+            await gm.prisonerManager.applySentence(prisonerId, phases);
+          }
 
-              // Diff and apply
-              const oldCrimeIds = Array.isArray(prisoner.crimes) ? prisoner.crimes : [];
-              const toAdd = newCrimeIds.filter((id) => !oldCrimeIds.includes(id));
-              const toRemove = oldCrimeIds.filter((id) => !newCrimeIds.includes(id));
-              for (const crimeId of toAdd) await gm.prisonerManager.assignCrime(prisonerId, crimeId);
-              for (const crimeId of toRemove) await gm.prisonerManager.removeCrime(prisonerId, crimeId);
-
-              // Apply phases if set
-              const phasesInput = dialogEl.querySelector('#assign-phases-input') as HTMLInputElement;
-              const phases = parseInt(phasesInput?.value || '0', 10);
-              if (phases > 0) {
-                await gm.prisonerManager.applySentence(prisonerId, phases);
-              }
-
-              const changes: string[] = [];
-              if (toAdd.length > 0) changes.push(`${toAdd.length} añadido(s)`);
-              if (toRemove.length > 0) changes.push(`${toRemove.length} eliminado(s)`);
-              if (phases > 0) changes.push(`+${phases} fases`);
-              if (changes.length > 0) {
-                NotificationService.info(`${prisoner.name}: ${changes.join(', ')}`);
-              }
-            },
-          },
-          { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
-        ],
-        rejectClose: false,
-        modal: false,
-        render: (_event: any, html: any) => {
-          const el = html instanceof HTMLElement ? html : html?.element;
-          if (!el) return;
-          this.setupAssignCrimesListeners(el, allCrimes, sentenceManager);
+          const changes: string[] = [];
+          if (toAdd.length > 0) changes.push(`${toAdd.length} añadido(s)`);
+          if (toRemove.length > 0) changes.push(`${toRemove.length} eliminado(s)`);
+          if (phases > 0) changes.push(`+${phases} fases`);
+          if (changes.length > 0) {
+            NotificationService.info(`${prisoner.name}: ${changes.join(', ')}`);
+          }
         },
       });
     } catch (error) {

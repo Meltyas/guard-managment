@@ -1,5 +1,6 @@
 import type { GuardStats, PatrolEffectInstance } from '../../types/entities';
 import { classifyLastOrderAge } from '../../utils/patrol-helpers.js';
+import { GuardModal } from '../GuardModal.js';
 
 export type PanelUnitType = 'patrol' | 'auxiliary';
 
@@ -1102,119 +1103,70 @@ export class PatrolsPanel {
     let current = patrol.lastOrder?.text || '';
     if (current.includes('[object Object]')) current = '';
 
-    // Escape for attribute value
-    const escapedCurrent = current.replace(/"/g, '&quot;');
+    // Strip HTML for textarea
+    const plainText = current.replace(/<[^>]*>/g, '');
 
-    const result = await (foundry as any).applications.api.DialogV2.wait({
-      window: { title: 'Editar Última Orden', resizable: true },
-      content: `
-        <form class='last-order-edit'>
-          <div class="form-group" style="display: flex; flex-direction: column;">
-            <label style="margin-bottom: 5px; font-weight: bold;">Orden</label>
-            <div style="width: 100%;">
-              <prose-mirror name="order" value="${escapedCurrent}">
-                ${current}
-              </prose-mirror>
-            </div>
-          </div>
-          <div class="form-group" style="margin-top: 10px;">
-            <label class="checkbox">
-              <input type="checkbox" name="notifyChat" checked>
-              Notificar al chat
-            </label>
-          </div>
-          <p class='hint'>Actualiza la última orden de la patrulla.</p>
-        </form>`,
-      buttons: [
-        {
-          action: 'save',
-          label: 'Guardar',
-          icon: 'fas fa-save',
-          default: true,
-          callback: async (_ev: any, btn: any, dlg: any) => {
-            const form = btn?.form || dlg?.window?.content?.querySelector('form.last-order-edit');
-            if (!form) return 'cancel';
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label><i class="fas fa-scroll"></i> Orden</label>
+          <textarea id="patrol-order-text" rows="5">${plainText}</textarea>
+        </div>
+        <div class="guard-modal-row">
+          <label class="checkbox" style="flex-direction: row; gap: 8px; align-items: center;">
+            <input type="checkbox" id="patrol-notify-chat" checked>
+            Notificar al chat
+          </label>
+        </div>
+        <p style="font-size: 0.8em; color: #888; margin-top: 4px;">Actualiza la última orden de la patrulla.</p>
+      </div>
+    `;
 
-            let text = '';
+    GuardModal.open({
+      title: 'Editar Última Orden',
+      icon: 'fas fa-scroll',
+      body,
+      onSave: async (bodyEl) => {
+        const text = (bodyEl.querySelector('#patrol-order-text') as HTMLTextAreaElement)?.value?.trim() || '';
+        const notifyChat = (bodyEl.querySelector('#patrol-notify-chat') as HTMLInputElement)?.checked;
 
-            // Strategy 1: InnerHTML of the contenteditable div (Most reliable for ProseMirror)
-            const editorContent = form.querySelector('.editor-content.ProseMirror');
-            if (editorContent) {
-              text = editorContent.innerHTML;
-            }
+        await pMgr.updateLastOrder(patrolId, text);
+        const updated = pMgr.getPatrol(patrolId);
+        if (updated) {
+          orgMgr.upsertPatrolSnapshot(updated);
 
-            // Strategy 2: Value of custom element
-            if (!text) {
-              const pmElement = form.querySelector('prose-mirror');
-              if (pmElement && 'value' in pmElement) {
-                const val = (pmElement as any).value;
-                if (typeof val === 'string' && !val.includes('[object Object]')) {
-                  text = val;
-                }
-              }
-            }
+          if (notifyChat && text) {
+            const officerImg = patrol.officer?.img
+              ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${patrol.officer.img}" /></div>`
+              : '';
 
-            // Strategy 3: FormData
-            if (!text) {
-              const fd = new FormData(form);
-              const fdText = fd.get('order') as string;
-              if (fdText && !fdText.includes('[object Object]')) {
-                text = fdText;
-              }
-            }
+            const chatContent = `
+              <div class="guard-resource-chat">
+                ${officerImg}
+                <div class="chat-header">Nueva Orden: ${patrol.name}</div>
+                <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                  ${text}
+                </div>
+              </div>
+            `;
 
-            // Final check
-            if (text.includes('[object ')) {
-              text = '';
-            }
+            await (ChatMessage as any).create({
+              content: chatContent,
+              speaker: {
+                scene: null,
+                actor: null,
+                token: null,
+                alias: unitType === 'auxiliary' ? 'Comandante Auxiliar' : 'Comandante de la Guardia',
+              },
+              flags: { 'guard-management': { type: 'last-order' } },
+            });
+          }
+        }
 
-            // Ensure we have a string
-            text = text || '';
-
-            await pMgr.updateLastOrder(patrolId, text.trim());
-            const updated = pMgr.getPatrol(patrolId);
-            if (updated) {
-              orgMgr.upsertPatrolSnapshot(updated);
-
-              // Handle chat notification
-              const notifyChat = form.querySelector('input[name="notifyChat"]')?.checked;
-              if (notifyChat && text.trim()) {
-                const officerImg = patrol.officer?.img
-                  ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${patrol.officer.img}" /></div>`
-                  : '';
-
-                const content = `
-                  <div class="guard-resource-chat">
-                    ${officerImg}
-                    <div class="chat-header">Nueva Orden: ${patrol.name}</div>
-                    <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-                      ${text}
-                    </div>
-                  </div>
-                `;
-
-                await (ChatMessage as any).create({
-                  content: content,
-                  speaker: {
-                    scene: null,
-                    actor: null,
-                    token: null,
-                    alias: 'Comandante de la Guardia',
-                  },
-                  flags: { 'guard-management': { type: 'last-order' } },
-                });
-              }
-            }
-            return 'save';
-          },
-        },
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times', callback: () => 'cancel' },
-      ],
+        ui?.notifications?.info('Orden actualizada');
+        refreshCallback();
+      },
     });
-    if (result === 'save') {
-      ui?.notifications?.info('Orden actualizada');
-      refreshCallback();
-    }
   }
 
   public static async handleOpenActorSheet(actorId: string): Promise<void> {

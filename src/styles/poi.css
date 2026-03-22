@@ -103,31 +103,31 @@
   color: #f3c267;
 }
 
-.poi-filter-btn[data-filter-status="active"].active {
+.poi-filter-btn[data-filter-status='active'].active {
   background: rgba(74, 232, 154, 0.15);
   border-color: rgba(74, 232, 154, 0.4);
   color: #4ae89a;
 }
 
-.poi-filter-btn[data-filter-status="imprisoned"].active {
+.poi-filter-btn[data-filter-status='imprisoned'].active {
   background: rgba(232, 74, 74, 0.15);
   border-color: rgba(232, 74, 74, 0.4);
   color: #e84a4a;
 }
 
-.poi-filter-btn[data-filter-status="released"].active {
+.poi-filter-btn[data-filter-status='released'].active {
   background: rgba(200, 200, 200, 0.15);
   border-color: rgba(200, 200, 200, 0.3);
   color: #ccc;
 }
 
-.poi-filter-btn[data-filter-status="deceased"].active {
+.poi-filter-btn[data-filter-status='deceased'].active {
   background: rgba(136, 136, 136, 0.15);
   border-color: rgba(136, 136, 136, 0.3);
   color: #888;
 }
 
-.poi-filter-btn[data-filter-status="unknown"].active {
+.poi-filter-btn[data-filter-status='unknown'].active {
   background: rgba(160, 120, 220, 0.15);
   border-color: rgba(160, 120, 220, 0.4);
   color: #a078dc;
@@ -432,17 +432,39 @@
   background: #666;
 }
 
-.poi-history-created { background: #4ae89a; }
-.poi-history-crime_added { background: #5b9bd5; }
-.poi-history-crime_removed { background: #e84a4a; }
-.poi-history-gang_added { background: #a078dc; }
-.poi-history-gang_removed { background: #e84a4a; }
-.poi-history-actor_linked { background: #5b9bd5; }
-.poi-history-actor_unlinked { background: #e84a4a; }
-.poi-history-notes_updated { background: #f3c267; }
-.poi-history-name_updated { background: #f3c267; }
-.poi-history-image_updated { background: #f3c267; }
-.poi-history-status_changed { background: #a078dc; }
+.poi-history-created {
+  background: #4ae89a;
+}
+.poi-history-crime_added {
+  background: #5b9bd5;
+}
+.poi-history-crime_removed {
+  background: #e84a4a;
+}
+.poi-history-gang_added {
+  background: #a078dc;
+}
+.poi-history-gang_removed {
+  background: #e84a4a;
+}
+.poi-history-actor_linked {
+  background: #5b9bd5;
+}
+.poi-history-actor_unlinked {
+  background: #e84a4a;
+}
+.poi-history-notes_updated {
+  background: #f3c267;
+}
+.poi-history-name_updated {
+  background: #f3c267;
+}
+.poi-history-image_updated {
+  background: #f3c267;
+}
+.poi-history-status_changed {
+  background: #a078dc;
+}
 
 .poi-history-phase {
   color: #f3c267;
@@ -505,6 +527,89 @@
 .poi-empty-hint {
   font-size: 0.85em;
   color: #555;
+}
+
+/* --- Drop Zone (panel) --- */
+
+.poi-drop-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px dashed rgba(243, 194, 103, 0.25);
+  border-radius: 8px;
+  background: rgba(243, 194, 103, 0.03);
+  color: #888;
+  font-size: 0.82em;
+  font-family: 'Signika', sans-serif;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.poi-drop-zone i {
+  font-size: 1.1em;
+  color: #f3c267;
+  opacity: 0.5;
+}
+
+.poi-drop-zone.dnd-hover {
+  border-color: #4ae89a;
+  background: rgba(74, 232, 154, 0.08);
+  color: #4ae89a;
+  box-shadow: 0 0 10px rgba(74, 232, 154, 0.15);
+}
+
+.poi-drop-zone.dnd-hover i {
+  color: #4ae89a;
+  opacity: 1;
+}
+
+.poi-empty-state.dnd-hover {
+  border: 2px dashed #4ae89a;
+  background: rgba(74, 232, 154, 0.05);
+  border-radius: 8px;
+}
+
+.poi-empty-state.dnd-hover i {
+  color: #4ae89a;
+}
+
+/* --- Drop Zone (dialog) --- */
+
+.poi-dialog-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  border: 2px dashed rgba(243, 194, 103, 0.3);
+  border-radius: 8px;
+  background: rgba(243, 194, 103, 0.05);
+  color: #999;
+  font-size: 0.85em;
+  font-family: 'Signika', sans-serif;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.poi-dialog-dropzone i {
+  font-size: 1.2em;
+  color: #f3c267;
+  opacity: 0.6;
+}
+
+.poi-dialog-dropzone.dnd-hover {
+  border-color: #4ae89a;
+  background: rgba(74, 232, 154, 0.1);
+  color: #4ae89a;
+  box-shadow: 0 0 12px rgba(74, 232, 154, 0.2);
+}
+
+.poi-dialog-dropzone.dnd-hover i {
+  color: #4ae89a;
+  opacity: 1;
 }
 
 /* --- Dialog table styles --- */

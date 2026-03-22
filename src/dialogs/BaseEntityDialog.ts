@@ -1,11 +1,10 @@
-// @ts-nocheck
 /**
  * Base Entity Dialog - Generic dialog for entity CRUD operations
- * Provides consistent dialog behavior using DialogV2 across all entities
+ * Provides consistent dialog behavior using GuardModal across all entities
  */
 
 import { EntityConfig, Identifiable } from '../core/traits';
-import { DOMEventSetup } from '../utils/DOMEventSetup';
+import { GuardModal } from '../ui/GuardModal.js';
 
 export interface BaseDialogOptions {
   title?: string;
@@ -24,7 +23,7 @@ export interface FieldConfig {
   max?: number;
   options?: Array<{ value: string; label: string }>;
   fileType?: 'image' | 'imagevideo' | 'audio' | 'video';
-  rows?: number; // For textarea
+  rows?: number;
 }
 
 /**
@@ -55,55 +54,22 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
         : `Editar ${this.config.displayName}`);
 
     try {
-      // Use DialogV2 if available
-      const DialogV2Class = foundry.applications.api.DialogV2;
-
-      if (!DialogV2Class) {
-        console.error('DialogV2 no está disponible, usando Dialog estándar como fallback');
-        return this.showWithStandardDialog(mode, contextId, existingEntity, options, content);
-      }
-
-      let entityResult: T | null = null;
-
-      // Setup file pickers and other dynamic elements
-      this.setupDynamicElements(existingEntity);
-
-      const result = await DialogV2Class.wait({
-        window: {
-          title,
-          resizable: options.resizable ?? true,
+      return await GuardModal.openAsync<T>({
+        title,
+        icon: 'fas fa-edit',
+        body: content,
+        width: options.width,
+        saveLabel: mode === 'create' ? 'Crear' : 'Guardar',
+        onRender: (bodyEl) => {
+          this.setupFilePickers(bodyEl, existingEntity);
         },
-        content,
-        buttons: [
-          {
-            action: 'save',
-            icon: 'fas fa-save',
-            label: mode === 'create' ? 'Crear' : 'Guardar',
-            callback: (_event: Event, _button: any, dialog: any) => {
-              console.log('🔍 Dialog callback triggered');
-              const formData = this.extractFormData(dialog);
-              console.log('📋 Form data extracted:', formData);
-
-              entityResult = this.createEntityFromFormData(
-                formData,
-                mode,
-                contextId,
-                existingEntity
-              );
-              console.log('✨ Entity result:', entityResult);
-              return entityResult;
-            },
-          },
-          {
-            action: 'cancel',
-            icon: 'fas fa-times',
-            label: 'Cancelar',
-            callback: () => null,
-          },
-        ],
+        onSave: async (bodyEl) => {
+          const formData = this.extractFormData(bodyEl);
+          const entity = this.createEntityFromFormData(formData, mode, contextId, existingEntity);
+          if (!entity) return false;
+          return entity;
+        },
       });
-
-      return result === 'save' ? entityResult : null;
     } catch (error) {
       console.error(`Error showing ${this.config.displayName} dialog:`, error);
       return null;
@@ -120,11 +86,9 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
   ): Promise<string> {
     const fields = this.getFieldConfiguration();
 
-    // Prepare fields data for Handlebars
     const processedFields = fields.map((field) => {
       const value = existingEntity ? (existingEntity as any)[field.name] : undefined;
 
-      // Handle specific field types
       if (field.type === 'select' && field.options) {
         return {
           ...field,
@@ -158,30 +122,19 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
   }
 
   /**
-   * Setup dynamic elements like file pickers
-   */
-  protected setupDynamicElements(existingEntity?: T): void {
-    // Setup file pickers using centralized DOM event setup
-    DOMEventSetup.observe('.file-picker-btn', () => this.setupFilePickers(existingEntity), 5000);
-  }
-
-  /**
    * Setup file picker functionality
    */
-  protected setupFilePickers(_existingEntity?: T): void {
-    const filePickerBtns = document.querySelectorAll('.file-picker-btn');
+  protected setupFilePickers(bodyEl: HTMLElement, _existingEntity?: T): void {
+    const filePickerBtns = bodyEl.querySelectorAll('.file-picker-btn');
 
     filePickerBtns.forEach((btn) => {
-      if (btn.hasAttribute('data-initialized')) return;
-
-      btn.setAttribute('data-initialized', 'true');
       btn.addEventListener('click', (event: Event) => {
         event.preventDefault();
         event.stopPropagation();
 
         const target = btn.getAttribute('data-target');
         const fileType = btn.getAttribute('data-file-type') || 'image';
-        const input = document.getElementById(target!) as HTMLInputElement;
+        const input = bodyEl.querySelector(`#${target}`) as HTMLInputElement;
 
         if (!input) return;
 
@@ -200,105 +153,16 @@ export abstract class BaseEntityDialog<T extends Identifiable> {
   }
 
   /**
-   * Extract form data from dialog
+   * Extract form data from the modal body
    */
-  protected extractFormData(dialog: any): Record<string, any> {
+  protected extractFormData(bodyEl: HTMLElement): Record<string, any> {
     const formData: Record<string, any> = {};
-
-    // Try multiple ways to find the form
-    let form = dialog.element?.querySelector('form');
-    if (!form && dialog.element?.querySelector) {
-      form = dialog.element.querySelector(`form.${this.config.entityType}-dialog-form`);
-    }
-    if (!form && dialog.window?.content?.querySelector) {
-      form = dialog.window.content.querySelector('form');
-    }
-
-    console.log('🔍 Extracting form data, dialog element:', dialog.element);
-    console.log('📋 Form found:', form);
-
-    if (!form) {
-      console.error('❌ No form found in dialog');
-      return formData;
-    }
-
-    const formDataObj = new FormData(form);
-    console.log('📝 FormData entries:', Array.from(formDataObj.entries()));
-
-    for (const [key, value] of formDataObj.entries()) {
-      // Handle number inputs
-      const input = form.querySelector(`[name="${key}"]`) as HTMLInputElement;
-      if (input?.type === 'number') {
-        formData[key] = parseFloat(value as string) || 0;
-      } else if (input?.type === 'checkbox') {
-        formData[key] = input.checked;
-      } else {
-        formData[key] = value;
-      }
-    }
-
-    return formData;
-  }
-
-  /**
-   * Fallback to standard Dialog if DialogV2 is not available
-   */
-  protected async showWithStandardDialog(
-    mode: 'create' | 'edit',
-    contextId: string,
-    existingEntity?: T,
-    options: BaseDialogOptions = {},
-    content?: string
-  ): Promise<T | null> {
-    console.warn(`Usando Dialog estándar para ${this.config.displayName}`);
-
-    const dialogContent = content || (await this.generateContent(mode, contextId, existingEntity));
-
-    return new Promise((resolve) => {
-      new Dialog({
-        title:
-          options.title ||
-          (mode === 'create'
-            ? `Nuevo ${this.config.displayName}`
-            : `Editar ${this.config.displayName}`),
-        content: dialogContent,
-        buttons: {
-          save: {
-            icon: '<i class="fas fa-save"></i>',
-            label: mode === 'create' ? 'Crear' : 'Guardar',
-            callback: (html: JQuery) => {
-              const formData = this.extractFormDataFromJQuery(html);
-              const entity = this.createEntityFromFormData(
-                formData,
-                mode,
-                contextId,
-                existingEntity
-              );
-              resolve(entity);
-            },
-          },
-          cancel: {
-            icon: '<i class="fas fa-times"></i>',
-            label: 'Cancelar',
-            callback: () => resolve(null),
-          },
-        },
-        default: 'save',
-        render: () => this.setupDynamicElements(existingEntity),
-      }).render(true);
-    });
-  }
-
-  /**
-   * Extract form data from jQuery (for standard Dialog fallback)
-   */
-  protected extractFormDataFromJQuery(html: JQuery): Record<string, any> {
-    const formData: Record<string, any> = {};
-    const form = html.find('form')[0];
+    const form = bodyEl.querySelector('form');
 
     if (!form) return formData;
 
     const formDataObj = new FormData(form);
+
     for (const [key, value] of formDataObj.entries()) {
       const input = form.querySelector(`[name="${key}"]`) as HTMLInputElement;
       if (input?.type === 'number') {
