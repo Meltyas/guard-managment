@@ -998,6 +998,8 @@
   gap: 0;
   min-height: 100%;
   position: relative;
+  container-type: inline-size;
+  container-name: org-layout;
 }
 .org-tabs {
   display: flex;
@@ -1073,6 +1075,25 @@
 }
 .org-tab-panel.active {
   display: block;
+}
+
+/* Compact mode: hide tab labels when layout is too narrow */
+@container org-layout (max-width: 550px) {
+  .org-tabs {
+    min-width: 44px;
+    padding: 4px;
+  }
+  .org-tabs .org-tab-btn {
+    justify-content: center;
+    padding: 8px 6px;
+    gap: 0;
+  }
+  .org-tabs .org-tab-btn span {
+    display: none;
+  }
+  .org-tabs .org-tab-btn i {
+    width: auto;
+  }
 }
 
 /* Placeholder similar to dialog version */
