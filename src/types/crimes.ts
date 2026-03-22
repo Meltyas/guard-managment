@@ -6,8 +6,17 @@
 /** Offense severity type */
 export type OffenseType = 'capital' | 'major' | 'minor' | 'light' | 'fine';
 
-/** All offense types for iteration */
-export const OFFENSE_TYPES: OffenseType[] = ['capital', 'major', 'minor', 'light', 'fine'];
+/** All offense types ordered by severity (lowest to highest) */
+export const OFFENSE_TYPES: OffenseType[] = ['fine', 'light', 'minor', 'major', 'capital'];
+
+/** Severity index for sorting (lower = less severe) */
+export const OFFENSE_SEVERITY: Record<OffenseType, number> = {
+  fine: 0,
+  light: 1,
+  minor: 2,
+  major: 3,
+  capital: 4,
+};
 
 /** Spanish labels for offense types */
 export const OFFENSE_LABELS: Record<OffenseType, string> = {
@@ -31,7 +40,9 @@ export const OFFENSE_TYPE_FROM_SPANISH: Record<string, OffenseType> = {
 export interface Crime {
   id: string;
   name: string;
+  description: string;
   offenseType: OffenseType;
+  customSentence: string;
   version: number;
 }
 

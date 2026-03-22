@@ -1,0 +1,377 @@
+/* =========================================
+   Buildings Panel Styles
+   ========================================= */
+
+.buildings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+
+/* --- Toolbar --- */
+.buildings-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.buildings-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.buildings-search-wrapper i {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  font-size: 0.85em;
+  pointer-events: none;
+}
+
+.building-search-input {
+  width: 100%;
+  padding: 6px 10px 6px 30px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #eee;
+  font-size: 0.9em;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.building-search-input:focus {
+  border-color: #f3c267;
+  box-shadow: 0 0 4px rgba(243, 194, 103, 0.3);
+}
+
+.buildings-toolbar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.buildings-btn {
+  padding: 5px 12px;
+  border: 1px solid #666;
+  border-radius: 6px;
+  background: rgba(50, 50, 80, 0.6);
+  color: #ddd;
+  cursor: pointer;
+  font-size: 0.85em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.buildings-btn:hover {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+/* --- Filter toggles --- */
+.buildings-filter-toggles {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.building-filter-btn {
+  padding: 3px 10px;
+  border: 1px solid #555;
+  border-radius: 12px;
+  background: rgba(40, 40, 60, 0.5);
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.8em;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.building-filter-btn:hover {
+  background: rgba(80, 80, 120, 0.5);
+  color: #ddd;
+}
+
+.building-filter-btn.active[data-filter-tag='all'] {
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+.building-filter-btn.active[data-filter-tag='civil'] {
+  background: rgba(74, 158, 255, 0.2);
+  border-color: #4a9eff;
+  color: #4a9eff;
+}
+
+.building-filter-btn.active[data-filter-tag='auxiliar'] {
+  background: rgba(74, 232, 154, 0.2);
+  border-color: #4ae89a;
+  color: #4ae89a;
+}
+
+.building-filter-btn.active[data-filter-tag='guardia'] {
+  background: rgba(232, 180, 74, 0.2);
+  border-color: #e8b44a;
+  color: #e8b44a;
+}
+
+.building-filter-btn.active[data-filter-tag='publico'] {
+  background: rgba(160, 120, 220, 0.2);
+  border-color: #a078dc;
+  color: #a078dc;
+}
+
+.building-filter-btn.active[data-filter-tag='oficial'] {
+  background: rgba(232, 74, 74, 0.2);
+  border-color: #e84a4a;
+  color: #e84a4a;
+}
+
+/* --- Building cards --- */
+.building-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.building-card {
+  background: rgba(30, 30, 50, 0.7);
+  border: 1px solid #444;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.building-card:hover {
+  border-color: #666;
+}
+
+.building-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.building-image-wrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid #555;
+}
+
+.building-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.building-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(60, 60, 90, 0.5);
+  color: #888;
+  font-size: 1.2em;
+}
+
+.building-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.building-name {
+  margin: 0;
+  font-size: 1em;
+  font-weight: bold;
+  color: #f3c267;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Tag badges --- */
+.building-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.building-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.7em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.building-tag-civil {
+  background: rgba(74, 158, 255, 0.2);
+  color: #4a9eff;
+  border: 1px solid rgba(74, 158, 255, 0.4);
+}
+
+.building-tag-auxiliar {
+  background: rgba(74, 232, 154, 0.2);
+  color: #4ae89a;
+  border: 1px solid rgba(74, 232, 154, 0.4);
+}
+
+.building-tag-guardia {
+  background: rgba(232, 180, 74, 0.2);
+  color: #e8b44a;
+  border: 1px solid rgba(232, 180, 74, 0.4);
+}
+
+.building-tag-publico {
+  background: rgba(160, 120, 220, 0.2);
+  color: #a078dc;
+  border: 1px solid rgba(160, 120, 220, 0.4);
+}
+
+.building-tag-oficial {
+  background: rgba(232, 74, 74, 0.2);
+  color: #e84a4a;
+  border: 1px solid rgba(232, 74, 74, 0.4);
+}
+
+/* --- Card actions --- */
+.building-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.building-action-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: rgba(50, 50, 80, 0.5);
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.building-action-btn:hover {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+.building-delete-btn:hover {
+  background: rgba(232, 74, 74, 0.2);
+  border-color: #e84a4a;
+  color: #e84a4a;
+}
+
+.building-chat-btn:hover {
+  background: rgba(74, 158, 255, 0.2);
+  border-color: #4a9eff;
+  color: #4a9eff;
+}
+
+/* --- Card body --- */
+.building-card-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* --- Description --- */
+.building-description {
+  font-size: 0.88em;
+  color: #ccc;
+  line-height: 1.4;
+}
+
+.building-description p {
+  margin: 0;
+}
+
+/* --- Gang info --- */
+.building-gang-info {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 8px 10px;
+  border-left: 3px solid rgba(232, 74, 74, 0.5);
+}
+
+.building-gang-label {
+  font-size: 0.82em;
+  color: #ccc;
+}
+
+.building-gang-label i {
+  color: #e84a4a;
+  margin-right: 3px;
+}
+
+.building-gang-label strong {
+  color: #f3c267;
+}
+
+.building-gang-notes {
+  margin-top: 4px;
+  font-size: 0.82em;
+  color: #aaa;
+  font-style: italic;
+  padding-left: 4px;
+}
+
+/* --- Count footer --- */
+.buildings-count {
+  text-align: center;
+  font-size: 0.82em;
+  color: #888;
+  padding: 6px 0;
+}
+
+/* --- Empty state --- */
+.buildings-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #777;
+}
+
+.buildings-empty-state i {
+  font-size: 2.5em;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.buildings-empty-state p {
+  margin: 4px 0;
+}
+
+.buildings-empty-hint {
+  font-size: 0.85em;
+  color: #666;
+}

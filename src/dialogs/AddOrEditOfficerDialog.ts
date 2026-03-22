@@ -40,7 +40,13 @@ export class AddOrEditOfficerDialog {
     existingOfficer?: Officer,
     personnelType: 'officer' | 'civilian' = 'officer'
   ): Promise<Officer | null> {
-    const form = new OfficerFormApplication(mode, organizationId, existingOfficer, undefined, personnelType);
+    const form = new OfficerFormApplication(
+      mode,
+      organizationId,
+      existingOfficer,
+      undefined,
+      personnelType
+    );
     return form.show();
   }
 
@@ -303,7 +309,10 @@ export class AddOrEditOfficerDialog {
       isCreate: mode === 'create',
     };
 
-    return foundry.applications.handlebars.renderTemplate('modules/guard-management/templates/dialogs/add-edit-officer.hbs', data);
+    return foundry.applications.handlebars.renderTemplate(
+      'modules/guard-management/templates/dialogs/add-edit-officer.hbs',
+      data
+    );
   }
 
   /**
@@ -506,7 +515,9 @@ export class AddOrEditOfficerDialog {
             const title = titleInput?.value?.trim() || '';
             // Read description from ProseMirror
             let description = '';
-            const pmContent = dialogElement.querySelector('prose-mirror[name="trait-description"] .editor-content.ProseMirror');
+            const pmContent = dialogElement.querySelector(
+              'prose-mirror[name="trait-description"] .editor-content.ProseMirror'
+            );
             if (pmContent) {
               description = pmContent.innerHTML?.trim() || '';
             }
@@ -623,7 +634,9 @@ export class AddOrEditOfficerDialog {
             const hopeCost = parseInt(hopeCostInput?.value || '0');
             // Read description from ProseMirror
             let description = '';
-            const pmContent = dialogElement.querySelector('prose-mirror[name="skill-description"] .editor-content.ProseMirror');
+            const pmContent = dialogElement.querySelector(
+              'prose-mirror[name="skill-description"] .editor-content.ProseMirror'
+            );
             if (pmContent) {
               description = pmContent.innerHTML?.trim() || '';
             }
@@ -773,14 +786,20 @@ export class AddOrEditOfficerDialog {
   /**
    * Static method for creating a new officer
    */
-  public static async create(organizationId?: string, personnelType: 'officer' | 'civilian' = 'officer'): Promise<Officer | null> {
+  public static async create(
+    organizationId?: string,
+    personnelType: 'officer' | 'civilian' = 'officer'
+  ): Promise<Officer | null> {
     return this.show('create', organizationId, undefined, personnelType);
   }
 
   /**
    * Static method for editing an existing officer
    */
-  public static async edit(officer: Officer, personnelType: 'officer' | 'civilian' = 'officer'): Promise<Officer | null> {
+  public static async edit(
+    officer: Officer,
+    personnelType: 'officer' | 'civilian' = 'officer'
+  ): Promise<Officer | null> {
     return this.show('edit', officer.organizationId, officer, personnelType);
   }
 }

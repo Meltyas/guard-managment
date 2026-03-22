@@ -1,0 +1,587 @@
+/* =========================================
+   Gangs Panel Styles
+   ========================================= */
+
+.gangs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+
+/* --- Toolbar --- */
+.gangs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gangs-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.gangs-search-wrapper i {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  font-size: 0.85em;
+  pointer-events: none;
+}
+
+.gang-search-input {
+  width: 100%;
+  padding: 6px 10px 6px 30px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #eee;
+  font-size: 0.9em;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.gang-search-input:focus {
+  border-color: #f3c267;
+  box-shadow: 0 0 4px rgba(243, 194, 103, 0.3);
+}
+
+.gangs-toolbar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.gangs-btn {
+  padding: 5px 12px;
+  border: 1px solid #666;
+  border-radius: 6px;
+  background: rgba(50, 50, 80, 0.6);
+  color: #ddd;
+  cursor: pointer;
+  font-size: 0.85em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.gangs-btn:hover {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+/* --- Filter toggles --- */
+.gangs-filter-toggles {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.gang-filter-btn {
+  padding: 3px 10px;
+  border: 1px solid #555;
+  border-radius: 12px;
+  background: rgba(40, 40, 60, 0.5);
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.8em;
+  transition: all 0.2s ease;
+}
+
+.gang-filter-btn:hover {
+  background: rgba(80, 80, 120, 0.5);
+  color: #ddd;
+}
+
+.gang-filter-btn.active[data-filter-status='all'] {
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+.gang-filter-btn.active[data-filter-status='active'] {
+  background: rgba(74, 232, 154, 0.2);
+  border-color: #4ae89a;
+  color: #4ae89a;
+}
+
+.gang-filter-btn.active[data-filter-status='disbanded'] {
+  background: rgba(150, 150, 150, 0.2);
+  border-color: #999;
+  color: #ccc;
+}
+
+.gang-filter-btn.active[data-filter-status='arrested'] {
+  background: rgba(232, 74, 74, 0.2);
+  border-color: #e84a4a;
+  color: #e84a4a;
+}
+
+.gang-filter-btn.active[data-filter-status='unknown'] {
+  background: rgba(160, 120, 220, 0.2);
+  border-color: #a078dc;
+  color: #a078dc;
+}
+
+/* --- Gang cards --- */
+.gang-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gang-card {
+  background: rgba(30, 30, 50, 0.7);
+  border: 1px solid #444;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.gang-card:hover {
+  border-color: #666;
+}
+
+.gang-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.gang-image-wrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid #555;
+}
+
+.gang-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gang-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(60, 60, 90, 0.5);
+  color: #888;
+  font-size: 1.2em;
+}
+
+.gang-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.gang-name {
+  margin: 0;
+  font-size: 1em;
+  font-weight: bold;
+  color: #f3c267;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Status badges --- */
+.gang-status-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.75em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gang-status-active {
+  background: rgba(74, 232, 154, 0.2);
+  color: #4ae89a;
+  border: 1px solid rgba(74, 232, 154, 0.4);
+}
+
+.gang-status-disbanded {
+  background: rgba(150, 150, 150, 0.2);
+  color: #ccc;
+  border: 1px solid rgba(150, 150, 150, 0.4);
+}
+
+.gang-status-arrested {
+  background: rgba(232, 74, 74, 0.2);
+  color: #e84a4a;
+  border: 1px solid rgba(232, 74, 74, 0.4);
+}
+
+.gang-status-unknown {
+  background: rgba(160, 120, 220, 0.2);
+  color: #a078dc;
+  border: 1px solid rgba(160, 120, 220, 0.4);
+}
+
+/* --- Card actions --- */
+.gang-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.gang-action-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: rgba(50, 50, 80, 0.5);
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.gang-action-btn:hover {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+.gang-delete-btn:hover {
+  background: rgba(232, 74, 74, 0.2);
+  border-color: #e84a4a;
+  color: #e84a4a;
+}
+
+/* --- Card body --- */
+.gang-card-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* --- Members sections --- */
+.gang-members-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gang-members-label {
+  font-size: 0.8em;
+  font-weight: bold;
+  color: #ccc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gang-members-label i {
+  margin-right: 4px;
+  color: #f3c267;
+  width: 14px;
+  text-align: center;
+}
+
+.gang-members-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px;
+  border: 1px dashed #555;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.gang-members-list.dnd-hover {
+  border-color: #4a9eff;
+  background: rgba(74, 158, 255, 0.1);
+  box-shadow: 0 0 8px rgba(74, 158, 255, 0.2);
+}
+
+/* --- Member avatars --- */
+.gang-member-avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  background: rgba(50, 50, 80, 0.5);
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: default;
+  transition: border-color 0.2s ease;
+}
+
+.gang-member-avatar:hover {
+  border-color: #888;
+}
+
+.gang-member-avatar img {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #666;
+}
+
+.gang-member-avatar i {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(80, 80, 120, 0.5);
+  color: #999;
+  font-size: 0.75em;
+}
+
+.gang-member-name {
+  font-size: 0.82em;
+  color: #ddd;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gang-member-count {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: rgba(74, 158, 255, 0.9);
+  color: #fff;
+  font-size: 0.65em;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* --- Drop placeholder --- */
+.gang-drop-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #777;
+  font-size: 0.82em;
+  font-style: italic;
+  padding: 4px 0;
+  width: 100%;
+}
+
+.gang-drop-placeholder i {
+  color: #666;
+}
+
+/* --- Notes --- */
+.gang-notes {
+  margin-top: 4px;
+}
+
+.gang-notes-label {
+  font-size: 0.8em;
+  font-weight: bold;
+  color: #ccc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.gang-notes-label i {
+  margin-right: 4px;
+  color: #f3c267;
+}
+
+.gang-notes-content {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  font-size: 0.88em;
+  color: #ccc;
+  line-height: 1.4;
+  border-left: 3px solid rgba(243, 194, 103, 0.3);
+}
+
+.gang-notes-content p {
+  margin: 0 0 4px 0;
+}
+
+/* --- History --- */
+.gang-history {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+}
+
+.gang-history-label {
+  font-size: 0.8em;
+  font-weight: bold;
+  color: #ccc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.gang-history-label i {
+  margin-right: 4px;
+  color: #f3c267;
+}
+
+.gang-history-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 3px 0 3px 12px;
+  font-size: 0.8em;
+  color: #aaa;
+  position: relative;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  margin-left: 4px;
+}
+
+.gang-history-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+  flex-shrink: 0;
+  margin-top: 4px;
+  position: absolute;
+  left: -5px;
+}
+
+.gang-history-dot.gang-history-created {
+  background: #4ae89a;
+}
+.gang-history-dot.gang-history-leader_added,
+.gang-history-dot.gang-history-subleader_added,
+.gang-history-dot.gang-history-member_added {
+  background: #4a9eff;
+}
+.gang-history-dot.gang-history-leader_removed,
+.gang-history-dot.gang-history-subleader_removed,
+.gang-history-dot.gang-history-member_removed {
+  background: #e84a4a;
+}
+.gang-history-dot.gang-history-notes_updated {
+  background: #f3c267;
+}
+.gang-history-dot.gang-history-status_changed {
+  background: #a078dc;
+}
+.gang-history-dot.gang-history-name_updated,
+.gang-history-dot.gang-history-image_updated {
+  background: #f3c267;
+}
+
+.gang-history-time {
+  color: #777;
+  font-size: 0.9em;
+  min-width: 55px;
+  margin-left: 8px;
+}
+
+.gang-history-phase {
+  background: rgba(243, 194, 103, 0.2);
+  color: #f3c267;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+.gang-history-text {
+  flex: 1;
+  color: #ccc;
+}
+
+.gang-history-user {
+  color: #666;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+/* Shift+click to delete history and members */
+.shift-held .gang-history-entry:hover {
+  background: rgba(232, 74, 74, 0.15);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.shift-held .gang-history-entry:hover::after {
+  content: '\f2ed';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  color: #e84a4a;
+  font-size: 0.85em;
+  margin-left: 6px;
+}
+
+.shift-held .gang-member-avatar {
+  cursor: pointer;
+  border-color: rgba(232, 74, 74, 0.5);
+}
+
+.shift-held .gang-member-avatar:hover {
+  background: rgba(232, 74, 74, 0.2);
+  border-color: #e84a4a;
+}
+
+.shift-held .gang-member-avatar:hover .gang-member-name {
+  color: #e84a4a;
+  text-decoration: line-through;
+}
+
+/* --- Count footer --- */
+.gangs-count {
+  text-align: center;
+  font-size: 0.82em;
+  color: #888;
+  padding: 6px 0;
+}
+
+/* --- Empty state --- */
+.gangs-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #777;
+}
+
+.gangs-empty-state i {
+  font-size: 2.5em;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.gangs-empty-state p {
+  margin: 4px 0;
+}
+
+.gangs-empty-hint {
+  font-size: 0.85em;
+  color: #666;
+}

@@ -1,0 +1,96 @@
+<div class="organization-info">
+  <div class="info-section buildings-section">
+    <div class="buildings-toolbar">
+      <div class="buildings-search-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" class="building-search-input" placeholder="Buscar edificio..." />
+      </div>
+      <div class="buildings-toolbar-actions">
+        <button class="buildings-btn building-add-btn" title="Registrar nuevo edificio">
+          <i class="fas fa-plus"></i> Nuevo Edificio
+        </button>
+      </div>
+    </div>
+
+    <div class="buildings-filter-toggles">
+      <button class="building-filter-btn active" data-filter-tag="all">Todos</button>
+      <button class="building-filter-btn" data-filter-tag="civil"><i class="fas fa-home"></i> Civil</button>
+      <button class="building-filter-btn" data-filter-tag="auxiliar"><i class="fas fa-hands-helping"></i> Auxiliar</button>
+      <button class="building-filter-btn" data-filter-tag="guardia"><i class="fas fa-shield-alt"></i> Guardia</button>
+      <button class="building-filter-btn" data-filter-tag="publico"><i class="fas fa-landmark"></i> Público</button>
+      <button class="building-filter-btn" data-filter-tag="oficial"><i class="fas fa-flag"></i> Oficial</button>
+    </div>
+
+    {{#if buildings.length}}
+      <div class="building-cards">
+        {{#each buildings}}
+          <div class="building-card" data-building-id="{{this.id}}" data-building-tags="{{#each this.tags}}{{this}} {{/each}}">
+            <div class="building-card-header">
+              <div class="building-image-wrapper">
+                {{#if this.img}}
+                  <img class="building-image" src="{{this.img}}" alt="{{this.name}}" />
+                {{else}}
+                  <div class="building-image-placeholder">
+                    <i class="fas fa-building"></i>
+                  </div>
+                {{/if}}
+              </div>
+              <div class="building-header-info">
+                <h4 class="building-name">{{this.name}}</h4>
+                {{#if this.tagLabels.length}}
+                  <div class="building-tags-list">
+                    {{#each this.tagLabels}}
+                      <span class="building-tag-badge building-tag-{{this.key}}">
+                        <i class="{{this.icon}}"></i> {{this.label}}
+                      </span>
+                    {{/each}}
+                  </div>
+                {{/if}}
+              </div>
+              <div class="building-card-actions">
+                <button class="building-action-btn building-chat-btn" data-building-id="{{this.id}}" title="Enviar al chat">
+                  <i class="fas fa-comment-dots"></i>
+                </button>
+                <button class="building-action-btn building-edit-btn" data-building-id="{{this.id}}" title="Editar edificio">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="building-action-btn building-delete-btn" data-building-id="{{this.id}}" title="Eliminar edificio">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="building-card-body">
+              {{#if this.description}}
+                <div class="building-description">
+                  <p>{{this.description}}</p>
+                </div>
+              {{/if}}
+
+              {{#if this.gangLink}}
+                <div class="building-gang-info">
+                  <div class="building-gang-label">
+                    <i class="fas fa-skull-crossbones"></i> Banda: <strong>{{this.gangLink.gangName}}</strong>
+                  </div>
+                  {{#if this.gangLink.notes}}
+                    <div class="building-gang-notes">{{this.gangLink.notes}}</div>
+                  {{/if}}
+                </div>
+              {{/if}}
+            </div>
+          </div>
+        {{/each}}
+      </div>
+
+      <div class="buildings-count">
+        {{buildingCount}} edificio(s) registrado(s)
+      </div>
+    {{else}}
+      <div class="buildings-empty-state">
+        <i class="fas fa-building"></i>
+        <p>No hay edificios registrados</p>
+        <p class="buildings-empty-hint">Usa el botón "Nuevo Edificio" para registrar un edificio.</p>
+      </div>
+    {{/if}}
+  </div>
+</div>

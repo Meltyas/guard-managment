@@ -375,16 +375,31 @@ export class PatrolsPanel {
       body.style.display = isHidden ? 'block' : 'none';
       header.querySelector('.officer-section-chevron')?.classList.toggle('open', isHidden);
     });
+    // Trait icon click → send to chat
     $html.find('[data-action="trait-to-chat"]').on('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      const el = ev.currentTarget as HTMLElement;
+      const traitItem = (ev.currentTarget as HTMLElement).closest('.patrol-trait-item') as HTMLElement | null;
+      if (!traitItem) return;
       this.handleTraitToChat({
-        title: el.dataset.traitTitle || '',
-        description: el.dataset.traitDescription || '',
-        type: (el.dataset.traitType as 'pro' | 'con') || 'pro',
-        officerName: el.dataset.officerName || '',
+        title: traitItem.dataset.traitTitle || '',
+        description: traitItem.dataset.traitDescription || '',
+        type: (traitItem.dataset.traitType as 'pro' | 'con') || 'pro',
+        officerName: traitItem.dataset.officerName || '',
       });
+    });
+
+    // Trait title click → toggle description
+    $html.find('[data-action="toggle-trait-desc"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const traitItem = (ev.currentTarget as HTMLElement).closest('.patrol-trait-item') as HTMLElement | null;
+      if (!traitItem) return;
+      const descEl = traitItem.nextElementSibling as HTMLElement | null;
+      if (!descEl || !descEl.classList.contains('patrol-trait-desc')) return;
+      const isHidden = descEl.style.display === 'none' || descEl.style.display === '';
+      descEl.style.display = isHidden ? 'block' : 'none';
+      traitItem.classList.toggle('trait-expanded', isHidden);
     });
   }
 

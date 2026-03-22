@@ -8,6 +8,9 @@ import { OfficerWarehouseDialog } from './dialogs/OfficerWarehouseDialog';
 import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
 import { CrimeManager } from './managers/CrimeManager';
+import { BuildingManager } from './managers/BuildingManager';
+import { GangManager } from './managers/GangManager';
+import { PoiManager } from './managers/PoiManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
@@ -27,6 +30,9 @@ import './styles/main.css';
 import './styles/officers.css';
 import './styles/prisoners.css';
 import './styles/crimes.css';
+import './styles/gangs.css';
+import './styles/buildings.css';
+import './styles/poi.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 import { DayNightDecoration } from './ui/DayNightDecoration';
 import { PatrolOverlayManager } from './ui/PatrolOverlayManager';
@@ -106,6 +112,9 @@ class GuardManagementModule {
   public civilianManager: CivilianManager;
   public prisonerManager: PrisonerManager;
   public crimeManager: CrimeManager;
+  public gangManager: GangManager;
+  public buildingManager: BuildingManager;
+  public poiManager: PoiManager;
   public sentenceConfigManager: SentenceConfigManager;
   public resourceManager: SimpleResourceManager;
   public reputationManager: SimpleReputationManager;
@@ -124,6 +133,9 @@ class GuardManagementModule {
     this.civilianManager = new CivilianManager();
     this.prisonerManager = new PrisonerManager();
     this.crimeManager = new CrimeManager();
+    this.gangManager = new GangManager();
+    this.buildingManager = new BuildingManager();
+    this.poiManager = new PoiManager();
     this.sentenceConfigManager = new SentenceConfigManager();
     this.resourceManager = new SimpleResourceManager();
     this.reputationManager = new SimpleReputationManager();
@@ -153,6 +165,9 @@ class GuardManagementModule {
     await this.civilianManager.initialize();
     await this.prisonerManager.initialize();
     await this.crimeManager.initialize();
+    await this.gangManager.initialize();
+    await this.buildingManager.initialize();
+    await this.poiManager.initialize();
     await this.sentenceConfigManager.initialize();
     await this.resourceManager.initialize();
     await this.reputationManager.initialize();
@@ -187,6 +202,20 @@ class GuardManagementModule {
       this.floatingPanel.updateOrganizationList();
     });
 
+    // Listen for phase advances to check for prisoners ready for release
+    window.addEventListener('guard-phase-advanced', async (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail.turn > detail.previousTurn) {
+        await this.checkReleaseAlerts();
+        // Only GM rolls for overcrowding
+        if ((game as any)?.user?.isGM) {
+          await this.checkOvercrowdingRolls();
+        }
+      }
+      // Refresh prisoners panel so remaining sentence numbers update
+      this.guardDialogManager.customInfoDialog?.refreshPrisonersPanel();
+    });
+
     // Listen for canvas ready to ensure panel positioning
     Hooks.once('canvasReady', () => {
       setTimeout(() => {
@@ -195,6 +224,174 @@ class GuardManagementModule {
         this.patrolOverlayManager.restoreActiveOverlays();
       }, 1000);
     });
+  }
+
+  /**
+   * Check if any active prisoners have completed their sentence and show an alert.
+   */
+  private async checkReleaseAlerts(): Promise<void> {
+    if (!this.prisonerManager) return;
+
+    // Log sentence_completed for newly expired prisoners
+    await this.prisonerManager.logSentenceCompletions();
+
+    const readyForRelease = this.prisonerManager.getPrisonersReadyForRelease();
+    if (readyForRelease.length === 0) return;
+
+    const prisonerList = readyForRelease
+      .map((p: any) => `<li><strong>${p.name}</strong> (Celda ${p.cellIndex + 1})</li>`)
+      .join('');
+
+    const currentTurn = this.phaseManager.getCurrentTurn();
+    const phaseLabel = currentTurn % 2 === 1 ? 'Día' : 'Noche';
+
+    try {
+      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
+      if (!DialogV2Class) return;
+
+      await DialogV2Class.wait({
+        window: { title: 'Prisioneros Listos para Liberación' },
+        content: `
+          <div style="padding: 10px; text-align: center;">
+            <p style="margin-bottom: 8px;">
+              <i class="fas fa-exclamation-triangle" style="color: #f3c267; font-size: 1.2em;"></i>
+              <strong>Fase ${currentTurn} (${phaseLabel})</strong>
+            </p>
+            <p>Los siguientes prisioneros han cumplido su sentencia:</p>
+            <ul style="text-align: left; margin: 10px 0;">${prisonerList}</ul>
+            <p style="font-size: 0.85em; color: #ccc;">
+              Libéralos desde el panel de Celdas Temporales.
+            </p>
+          </div>
+        `,
+        buttons: [
+          { action: 'ok', label: 'Entendido', icon: 'fas fa-check', default: true },
+        ],
+        modal: false,
+      });
+    } catch (error) {
+      console.error('GuardManagement | Release alert error:', error);
+    }
+  }
+
+  /**
+   * Check overcrowded cells and roll Hope/Fear for each.
+   * Only called by GM on phase advance.
+   */
+  private async checkOvercrowdingRolls(): Promise<void> {
+    if (!this.prisonerManager) return;
+
+    const overcrowdedCells = this.prisonerManager.getOvercrowdedCells();
+    if (overcrowdedCells.length === 0) return;
+
+    const g = game as any;
+    const gmUserIds: string[] = g?.users?.filter((u: any) => u.isGM)?.map((u: any) => u.id) || [];
+    const currentTurn = this.phaseManager.getCurrentTurn();
+    const phaseLabel = currentTurn % 2 === 1 ? 'Día' : 'Noche';
+
+    for (const { cellIndex, prisoners, excess } of overcrowdedCells) {
+      const prisonerNames = prisoners.map((p: any) => p.name).join(', ');
+      const capacity = this.prisonerManager.getCellCapacity();
+
+      let resultHtml = '';
+      let isFear = false;
+
+      if (excess > 4) {
+        // Automatic Fear — too overcrowded
+        isFear = true;
+        resultHtml = `
+          <div style="border:1px solid rgba(232,74,74,0.4);border-radius:6px;padding:8px;background:rgba(232,74,74,0.1);margin-bottom:6px;">
+            <p style="margin:0 0 6px 0;">
+              <i class="fas fa-skull" style="color:#ff6b6b;"></i>
+              <strong>Celda ${cellIndex + 1} — FEAR AUTOMÁTICO</strong>
+            </p>
+            <p style="margin:0 0 4px 0;font-size:0.9em;">
+              Hacinamiento extremo: <strong>${prisoners.length}/${capacity}</strong> (${excess} de más)
+            </p>
+            <p style="margin:0;font-size:0.85em;color:#ccc;">
+              Prisioneros: ${prisonerNames}
+            </p>
+            <p style="margin:6px 0 0 0;color:#ff6b6b;font-weight:bold;">
+              <i class="fas fa-exclamation-triangle"></i> +1 Fear Token otorgado automáticamente
+            </p>
+          </div>
+        `;
+      } else {
+        // Roll Hope/Fear: 2d12
+        const roll = new (Roll as any)('1d12 + 1d12');
+        await roll.evaluate();
+        const hopeDie = roll.terms[0].results[0].result;
+        const fearDie = roll.terms[2].results[0].result;
+
+        // Modifier: +2 per extra person beyond the first excess
+        const fearModifier = excess > 1 ? (excess - 1) * 2 : 0;
+        const effectiveFear = fearDie + fearModifier;
+
+        // Hope wins only if strictly greater
+        isFear = hopeDie <= effectiveFear;
+
+        const modText = fearModifier > 0 ? ` + ${fearModifier} mod` : '';
+        const resultColor = isFear ? '#ff6b6b' : '#7ec87e';
+        const resultIcon = isFear ? 'fas fa-skull' : 'fas fa-sun';
+        const resultLabel = isFear ? 'FEAR' : 'HOPE';
+
+        resultHtml = `
+          <div style="border:1px solid ${isFear ? 'rgba(232,74,74,0.4)' : 'rgba(126,200,126,0.4)'};border-radius:6px;padding:8px;background:${isFear ? 'rgba(232,74,74,0.1)' : 'rgba(126,200,126,0.1)'};margin-bottom:6px;">
+            <p style="margin:0 0 6px 0;">
+              <i class="${resultIcon}" style="color:${resultColor};"></i>
+              <strong>Celda ${cellIndex + 1} — Tirada de Hacinamiento</strong>
+            </p>
+            <p style="margin:0 0 4px 0;font-size:0.9em;">
+              Hacinamiento: <strong>${prisoners.length}/${capacity}</strong> (${excess} de más)
+            </p>
+            <p style="margin:0 0 4px 0;font-size:0.9em;">
+              <span style="color:#7ec87e;">Hope: ${hopeDie}</span> vs
+              <span style="color:#ff6b6b;">Fear: ${fearDie}${modText} = ${effectiveFear}</span>
+            </p>
+            <p style="margin:0 0 4px 0;font-size:0.85em;color:#ccc;">
+              Prisioneros: ${prisonerNames}
+            </p>
+            <p style="margin:6px 0 0 0;color:${resultColor};font-weight:bold;">
+              <i class="${resultIcon}"></i> Resultado: ${resultLabel}
+              ${isFear ? ' — +1 Fear Token' : ''}
+            </p>
+          </div>
+        `;
+      }
+
+      // Send whisper to GM
+      const chatContent = `
+        <div style="border-left:3px solid ${isFear ? '#ff6b6b' : '#7ec87e'};padding-left:8px;">
+          <p style="margin:0 0 4px 0;font-size:0.8em;color:#888;">
+            <i class="fas fa-dungeon"></i> Fase ${currentTurn} (${phaseLabel}) — Hacinamiento
+          </p>
+          ${resultHtml}
+        </div>
+      `;
+
+      try {
+        await (ChatMessage as any).create({
+          content: chatContent,
+          speaker: { scene: null, actor: null, token: null, alias: 'Guard Management' },
+          whisper: gmUserIds,
+          flags: { 'guard-management': { type: 'overcrowding-roll', cellIndex, isFear } },
+        });
+      } catch (err) {
+        console.error('GuardManagement | Overcrowding chat error:', err);
+      }
+
+      // Add Fear token to Daggerheart tracker
+      if (isFear) {
+        try {
+          const currentFear = g?.settings?.get('daggerheart', 'ResourcesFear') as number;
+          if (typeof currentFear === 'number') {
+            await g.settings.set('daggerheart', 'ResourcesFear', currentFear + 1);
+          }
+        } catch (err) {
+          console.warn('GuardManagement | Could not update Daggerheart Fear:', err);
+        }
+      }
+    }
   }
 
   /**
@@ -266,6 +463,9 @@ Hooks.once('init', async () => {
       'modules/guard-management/templates/panels/reputation.hbs',
       'modules/guard-management/templates/panels/prisoners.hbs',
       'modules/guard-management/templates/panels/crimes.hbs',
+      'modules/guard-management/templates/panels/gangs.hbs',
+      'modules/guard-management/templates/panels/buildings.hbs',
+      'modules/guard-management/templates/panels/poi.hbs',
       'modules/guard-management/templates/overlays/patrol-overlay.hbs',
     ]);
 

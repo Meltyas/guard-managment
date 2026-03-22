@@ -10,7 +10,7 @@ export class DayNightDecoration {
   private element: HTMLElement | null = null;
   private currentRotation: number = 0;
   private phaseAdvancedHandler: ((event: Event) => void) | null = null;
-  private isAnimating: boolean = false;
+  public isAnimating: boolean = false;
 
   /**
    * Show the decoration inside the floating panel
@@ -87,6 +87,9 @@ export class DayNightDecoration {
   private createElement(parent: HTMLElement): void {
     this.element = document.createElement('div');
     this.element.className = 'day-night-decoration';
+    if (!(game as any).user?.isGM) {
+      this.element.style.cursor = 'default';
+    }
 
     this.element.innerHTML = `
       <div class="day-night-container">
@@ -115,9 +118,10 @@ export class DayNightDecoration {
   private attachEventListeners(): void {
     if (!this.element) return;
 
-    // Click opens turn advancement dialog
+    // Click opens turn advancement dialog (GM only)
     this.element.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (!(game as any).user?.isGM) return;
       this.showTurnAdvanceDialog();
     });
 
@@ -152,9 +156,10 @@ export class DayNightDecoration {
     const turnDiff = newTurn - previousTurn;
 
     // Play sound: forward or reverse depending on direction
-    const soundFile = turnDiff > 0
-      ? 'modules/guard-management/sound/nextday.wav'
-      : 'modules/guard-management/sound/nextdayreverse.wav';
+    const soundFile =
+      turnDiff > 0
+        ? 'modules/guard-management/sound/nextday.wav'
+        : 'modules/guard-management/sound/nextdayreverse.wav';
     foundry.audio.AudioHelper.play(
       {
         src: soundFile,
@@ -224,9 +229,11 @@ export class DayNightDecoration {
           </div>
         </div>
       `,
-      render: (html: HTMLElement) => {
-        const input = html.querySelector('#gm-target-turn') as HTMLInputElement;
-        const phaseSpan = html.querySelector('#gm-target-phase') as HTMLElement;
+      render: (_event: any, html: any) => {
+        const el = html instanceof HTMLElement ? html : html?.element;
+        if (!el) return;
+        const input = el.querySelector('#gm-target-turn') as HTMLInputElement;
+        const phaseSpan = el.querySelector('#gm-target-phase') as HTMLElement;
         if (input && phaseSpan) {
           input.addEventListener('input', () => {
             const val = parseInt(input.value) || 1;

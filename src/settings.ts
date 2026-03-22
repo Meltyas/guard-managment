@@ -344,7 +344,7 @@ export function registerSettings(): void {
     scope: 'world',
     config: false,
     type: Object,
-    default: { cellCount: 4 },
+    default: { cellCount: 4, cellCapacity: 1 },
     onChange: (_value) => {
       const gm = (window as any).GuardManagement;
       if (gm?.prisonerManager) {
@@ -353,6 +353,80 @@ export function registerSettings(): void {
       if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
         gm.guardDialogManager.customInfoDialog.refreshPrisonersPanel?.();
       }
+    },
+  });
+
+  // Buildings data storage
+  game?.settings?.register('guard-management', 'buildings', {
+    name: 'Buildings Data',
+    hint: 'Stored building information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      console.log('Settings onChange | Buildings changed, reloading and refreshing UI...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.buildingManager) {
+        gm.buildingManager.loadFromSettings?.();
+      }
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          dialog.refreshBuildingsPanel?.();
+        }
+      }
+      gm?.floatingPanel?.refreshPanel?.();
+    },
+  });
+
+  // Gangs data storage
+  game?.settings?.register('guard-management', 'gangs', {
+    name: 'Gangs Data',
+    hint: 'Stored gang information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      console.log('Settings onChange | Gangs changed, reloading and refreshing UI...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.gangManager) {
+        gm.gangManager.loadFromSettings?.();
+      }
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          console.log('Settings onChange | Refreshing open CustomInfoDialog for gangs');
+          dialog.refreshGangsPanel?.();
+        }
+      }
+      gm?.floatingPanel?.refreshPanel?.();
+    },
+  });
+
+  // People of Interest data storage
+  game?.settings?.register('guard-management', 'poi', {
+    name: 'People of Interest Data',
+    hint: 'Stored people of interest information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      console.log('Settings onChange | POI changed, reloading and refreshing UI...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.poiManager) {
+        gm.poiManager.loadFromSettings?.();
+      }
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          console.log('Settings onChange | Refreshing open CustomInfoDialog for POI');
+          dialog.refreshPoiPanel?.();
+        }
+      }
+      gm?.floatingPanel?.refreshPanel?.();
     },
   });
 
@@ -413,10 +487,27 @@ export function registerSettings(): void {
     onChange: (_value) => {
       console.log('Settings onChange | PhaseData changed, reloading...');
       const gm = (window as any).GuardManagement;
-      if (gm?.phaseManager) {
-        gm.phaseManager.loadFromSettings?.();
+      if (!gm?.phaseManager) return;
+
+      // Capture previous turn before reloading
+      const previousTurn = gm.phaseManager.getCurrentTurn();
+      gm.phaseManager.loadFromSettings?.();
+      const newTurn = gm.phaseManager.getCurrentTurn();
+      const newPhase = gm.phaseManager.getCurrentPhase();
+
+      // If isAnimating, the local client already triggered the animation — skip
+      // Otherwise this is a remote client: dispatch event to trigger animation + sound
+      if (gm?.dayNightDecoration && !gm.dayNightDecoration.isAnimating) {
+        if (previousTurn !== newTurn) {
+          window.dispatchEvent(
+            new CustomEvent('guard-phase-advanced', {
+              detail: { phase: newPhase, turn: newTurn, previousTurn },
+            })
+          );
+        } else {
+          gm.dayNightDecoration.updateFromPhaseManager?.();
+        }
       }
-      gm?.dayNightDecoration?.updateFromPhaseManager?.();
     },
   });
 

@@ -223,7 +223,7 @@ npm run test:watch   # Tests in watch mode
 - ✅ **Warehouse integration**
 - ✅ **Error handling**
 - ✅ **Notifications**
-- ✅ **Chat integration**
+- ✅ **Chat integration** — Every entity card/panel MUST have a "Enviar al chat" button that sends a formatted summary to the Foundry chat via `ChatMessage.create`
 - ✅ **Focus management**
 - ✅ **Validation**
 

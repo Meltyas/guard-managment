@@ -1,0 +1,177 @@
+<div class="organization-info">
+  <div class="info-section gangs-section">
+    <div class="gangs-toolbar">
+      <div class="gangs-search-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" class="gang-search-input" placeholder="Buscar banda..." />
+      </div>
+      <div class="gangs-toolbar-actions">
+        <button class="gangs-btn gang-add-btn" title="Registrar nueva banda">
+          <i class="fas fa-plus"></i> Nueva Banda
+        </button>
+      </div>
+    </div>
+
+    <div class="gangs-filter-toggles">
+      <button class="gang-filter-btn active" data-filter-status="all">Todas</button>
+      <button class="gang-filter-btn" data-filter-status="active">Activa</button>
+      <button class="gang-filter-btn" data-filter-status="disbanded">Disuelta</button>
+      <button class="gang-filter-btn" data-filter-status="arrested">Arrestada</button>
+      <button class="gang-filter-btn" data-filter-status="unknown">Desconocida</button>
+    </div>
+
+    {{#if gangs.length}}
+      <div class="gang-cards">
+        {{#each gangs}}
+          <div class="gang-card" data-gang-id="{{this.id}}" data-gang-status="{{this.status}}">
+            <div class="gang-card-header">
+              <div class="gang-image-wrapper">
+                {{#if this.img}}
+                  <img class="gang-image" src="{{this.img}}" alt="{{this.name}}" />
+                {{else}}
+                  <div class="gang-image-placeholder">
+                    <i class="fas fa-skull-crossbones"></i>
+                  </div>
+                {{/if}}
+              </div>
+              <div class="gang-header-info">
+                <h4 class="gang-name">{{this.name}}</h4>
+                <span class="gang-status-badge gang-status-{{this.status}}">{{this.statusLabel}}</span>
+              </div>
+              <div class="gang-card-actions">
+                <button class="gang-action-btn gang-chat-btn" data-gang-id="{{this.id}}" title="Enviar al chat">
+                  <i class="fas fa-comment-dots"></i>
+                </button>
+                <button class="gang-action-btn gang-edit-btn" data-gang-id="{{this.id}}" title="Editar banda">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="gang-action-btn gang-status-btn" data-gang-id="{{this.id}}" title="Cambiar estado">
+                  <i class="fas fa-exchange-alt"></i>
+                </button>
+                <button class="gang-action-btn gang-delete-btn" data-gang-id="{{this.id}}" title="Eliminar banda">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="gang-card-body">
+              {{!-- Leaders --}}
+              <div class="gang-members-section">
+                <div class="gang-members-label">
+                  <i class="fas fa-crown"></i> Líder(es)
+                </div>
+                <div class="gang-members-list" data-drop="leader" data-gang-id="{{this.id}}">
+                  {{#each this.leaders}}
+                    <div class="gang-member-avatar" data-actor-id="{{this.actorId}}" data-gang-id="{{../id}}" data-role="leader" title="{{this.name}}">
+                      {{#if this.img}}
+                        <img src="{{this.img}}" alt="{{this.name}}" />
+                      {{else}}
+                        <i class="fas fa-user"></i>
+                      {{/if}}
+                      <span class="gang-member-name">{{this.name}}</span>
+                    </div>
+                  {{else}}
+                    <div class="gang-drop-placeholder">
+                      <i class="fas fa-user-plus"></i> Arrastra un actor
+                    </div>
+                  {{/each}}
+                </div>
+              </div>
+
+              {{!-- Subleaders --}}
+              <div class="gang-members-section">
+                <div class="gang-members-label">
+                  <i class="fas fa-user-shield"></i> Sublíderes
+                </div>
+                <div class="gang-members-list" data-drop="subleader" data-gang-id="{{this.id}}">
+                  {{#each this.subleaders}}
+                    <div class="gang-member-avatar" data-actor-id="{{this.actorId}}" data-gang-id="{{../id}}" data-role="subleader" title="{{this.name}} — Ctrl+click: +1 / Ctrl+click derecho: -1">
+                      {{#if this.img}}
+                        <img src="{{this.img}}" alt="{{this.name}}" />
+                      {{else}}
+                        <i class="fas fa-user"></i>
+                      {{/if}}
+                      {{#if this.showCount}}
+                        <span class="gang-member-count">x{{this.count}}</span>
+                      {{/if}}
+                      <span class="gang-member-name">{{this.name}}</span>
+                    </div>
+                  {{else}}
+                    <div class="gang-drop-placeholder">
+                      <i class="fas fa-user-plus"></i> Arrastra un actor
+                    </div>
+                  {{/each}}
+                </div>
+              </div>
+
+              {{!-- Members --}}
+              <div class="gang-members-section">
+                <div class="gang-members-label">
+                  <i class="fas fa-users"></i> Miembros
+                </div>
+                <div class="gang-members-list" data-drop="member" data-gang-id="{{this.id}}">
+                  {{#each this.members}}
+                    <div class="gang-member-avatar" data-actor-id="{{this.actorId}}" data-gang-id="{{../id}}" data-role="member" title="{{this.name}} — Ctrl+click: +1 / Ctrl+click derecho: -1">
+                      {{#if this.img}}
+                        <img src="{{this.img}}" alt="{{this.name}}" />
+                      {{else}}
+                        <i class="fas fa-user"></i>
+                      {{/if}}
+                      {{#if this.showCount}}
+                        <span class="gang-member-count">x{{this.count}}</span>
+                      {{/if}}
+                      <span class="gang-member-name">{{this.name}}</span>
+                    </div>
+                  {{else}}
+                    <div class="gang-drop-placeholder">
+                      <i class="fas fa-user-plus"></i> Arrastra un actor
+                    </div>
+                  {{/each}}
+                </div>
+              </div>
+
+              {{!-- Notes --}}
+              {{#if this.notes}}
+                <div class="gang-notes">
+                  <div class="gang-notes-label"><i class="fas fa-sticky-note"></i> Notas</div>
+                  <div class="gang-notes-content">{{{this.notes}}}</div>
+                </div>
+              {{/if}}
+            </div>
+
+            {{!-- History --}}
+            {{#if this.history.length}}
+              <div class="gang-history">
+                <div class="gang-history-label"><i class="fas fa-history"></i> Registro</div>
+                {{#each this.history}}
+                  <div class="gang-history-entry" data-entry-timestamp="{{this.timestamp}}" data-gang-id="{{../id}}">
+                    <span class="gang-history-dot gang-history-{{this.action}}"></span>
+                    {{#if this.phase}}
+                      <span class="gang-history-phase">Fase {{this.phase}}</span>
+                    {{else}}
+                      <span class="gang-history-time">{{this.timeAgo}}</span>
+                    {{/if}}
+                    <span class="gang-history-text">
+                      {{#if this.details}}{{this.details}}{{else}}{{this.action}}{{/if}}
+                    </span>
+                    <span class="gang-history-user">— {{this.performedBy}}</span>
+                  </div>
+                {{/each}}
+              </div>
+            {{/if}}
+          </div>
+        {{/each}}
+      </div>
+
+      <div class="gangs-count">
+        {{gangCount}} banda(s) registrada(s)
+      </div>
+    {{else}}
+      <div class="gangs-empty-state">
+        <i class="fas fa-skull-crossbones"></i>
+        <p>No hay bandas registradas</p>
+        <p class="gangs-empty-hint">Usa el boton "Nueva Banda" para registrar una banda organizada.</p>
+      </div>
+    {{/if}}
+  </div>
+</div>

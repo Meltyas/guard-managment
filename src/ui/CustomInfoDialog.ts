@@ -8,10 +8,13 @@ import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-
 import '../styles/custom-info-dialog.css';
 import { NotificationService } from '../utils/services/NotificationService.js';
 import { CrimesPanel } from './panels/CrimesPanel.js';
+import { GangsPanel } from './panels/GangsPanel.js';
+import { BuildingsPanel } from './panels/BuildingsPanel.js';
+import { PoiPanel } from './panels/PoiPanel.js';
 import { GeneralPanel } from './panels/GeneralPanel.js';
 import { PatrolsPanel } from './panels/PatrolsPanel.js';
-import { ReputationPanel } from './panels/ReputationPanel.js';
 import { PrisonersPanel } from './panels/PrisonersPanel.js';
+import { ReputationPanel } from './panels/ReputationPanel.js';
 import { ResourcesPanel } from './panels/ResourcesPanel.js';
 
 export class CustomInfoDialog implements FocusableDialog {
@@ -59,6 +62,16 @@ export class CustomInfoDialog implements FocusableDialog {
         console.warn('CustomInfoDialog | prisoners auto-refresh failed', e);
       }
     });
+    // Auto-refresh prisoners when phase advances (remaining phases change)
+    window.addEventListener('guard-phase-advanced', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="prisoners"]');
+        if (activeTab) this.refreshPrisonersPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | prisoners phase-refresh failed', e);
+      }
+    });
     // Auto-refresh auxiliaries when data layer updates
     window.addEventListener('guard-auxiliaries-updated', () => {
       try {
@@ -77,6 +90,36 @@ export class CustomInfoDialog implements FocusableDialog {
         if (activeTab) this.refreshCrimesPanel();
       } catch (e) {
         console.warn('CustomInfoDialog | crimes auto-refresh failed', e);
+      }
+    });
+    // Auto-refresh gangs when data layer updates
+    window.addEventListener('guard-gangs-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="gangs"]');
+        if (activeTab) this.refreshGangsPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | gangs auto-refresh failed', e);
+      }
+    });
+    // Auto-refresh buildings when data layer updates
+    window.addEventListener('guard-buildings-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="buildings"]');
+        if (activeTab) this.refreshBuildingsPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | buildings auto-refresh failed', e);
+      }
+    });
+    // Auto-refresh POI when data layer updates
+    window.addEventListener('guard-poi-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="poi"]');
+        if (activeTab) this.refreshPoiPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | poi auto-refresh failed', e);
       }
     });
   }
@@ -106,9 +149,17 @@ export class CustomInfoDialog implements FocusableDialog {
         const saved = localStorage.getItem(CustomInfoDialog.POS_LS_KEY);
         if (saved) {
           const pos = JSON.parse(saved);
-          options = { ...options, x: pos.x, y: pos.y, width: pos.width ?? options.width, height: pos.height ?? options.height };
+          options = {
+            ...options,
+            x: pos.x,
+            y: pos.y,
+            width: pos.width ?? options.width,
+            height: pos.height ?? options.height,
+          };
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     // Create the dialog element directly with organization content
@@ -211,7 +262,7 @@ export class CustomInfoDialog implements FocusableDialog {
       // ALWAYS use GuardOrganizationManager as source of truth
       // It's updated via settings onChange and has the freshest data
       const freshOrganization = gm.guardOrganizationManager.getOrganization();
-      
+
       if (!freshOrganization) {
         console.log('❌ No organization found in GuardOrganizationManager');
         return;
@@ -257,7 +308,11 @@ export class CustomInfoDialog implements FocusableDialog {
           '[data-tab-panel="resources"]'
         ) as HTMLElement;
         if (resourcesContainer) {
-          console.log('🔄 Rendering ResourcesPanel with', freshOrganization.resources?.length || 0, 'resource IDs...');
+          console.log(
+            '🔄 Rendering ResourcesPanel with',
+            freshOrganization.resources?.length || 0,
+            'resource IDs...'
+          );
           await ResourcesPanel.render(resourcesContainer, freshOrganization);
         }
 
@@ -265,7 +320,11 @@ export class CustomInfoDialog implements FocusableDialog {
           '[data-tab-panel="reputation"]'
         ) as HTMLElement;
         if (reputationContainer) {
-          console.log('🔄 Rendering ReputationPanel with', freshOrganization.reputation?.length || 0, 'reputation IDs...');
+          console.log(
+            '🔄 Rendering ReputationPanel with',
+            freshOrganization.reputation?.length || 0,
+            'reputation IDs...'
+          );
           await ReputationPanel.render(reputationContainer, freshOrganization);
         }
 
@@ -283,6 +342,30 @@ export class CustomInfoDialog implements FocusableDialog {
         if (prisonersContainer) {
           console.log('🔄 Rendering PrisonersPanel...');
           await PrisonersPanel.render(prisonersContainer);
+        }
+
+        const gangsContainer = this.element.querySelector(
+          '[data-tab-panel="gangs"]'
+        ) as HTMLElement;
+        if (gangsContainer) {
+          console.log('🔄 Rendering GangsPanel...');
+          await GangsPanel.render(gangsContainer);
+        }
+
+        const buildingsContainer = this.element.querySelector(
+          '[data-tab-panel="buildings"]'
+        ) as HTMLElement;
+        if (buildingsContainer) {
+          console.log('🔄 Rendering BuildingsPanel...');
+          await BuildingsPanel.render(buildingsContainer);
+        }
+
+        const poiContainer = this.element.querySelector(
+          '[data-tab-panel="poi"]'
+        ) as HTMLElement;
+        if (poiContainer) {
+          console.log('🔄 Rendering PoiPanel...');
+          await PoiPanel.render(poiContainer);
         }
       }
 
@@ -731,12 +814,35 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   public refreshCrimesPanel() {
-    const tabPanel = this.element?.querySelector(
-      '[data-tab-panel="crimes"]'
-    ) as HTMLElement | null;
+    const tabPanel = this.element?.querySelector('[data-tab-panel="crimes"]') as HTMLElement | null;
     if (!tabPanel) return;
 
     CrimesPanel.render(tabPanel);
+  }
+
+  public refreshGangsPanel() {
+    const tabPanel = this.element?.querySelector('[data-tab-panel="gangs"]') as HTMLElement | null;
+    if (!tabPanel) return;
+
+    GangsPanel.render(tabPanel);
+  }
+
+  public refreshBuildingsPanel() {
+    const tabPanel = this.element?.querySelector(
+      '[data-tab-panel="buildings"]'
+    ) as HTMLElement | null;
+    if (!tabPanel) return;
+
+    BuildingsPanel.render(tabPanel);
+  }
+
+  public refreshPoiPanel() {
+    const tabPanel = this.element?.querySelector(
+      '[data-tab-panel="poi"]'
+    ) as HTMLElement | null;
+    if (!tabPanel) return;
+
+    PoiPanel.render(tabPanel);
   }
 
   /**
@@ -933,8 +1039,13 @@ export class CustomInfoDialog implements FocusableDialog {
       if ((this.isDragging || this.isResizing) && this.element) {
         const r = this.element.getBoundingClientRect();
         try {
-          localStorage.setItem(CustomInfoDialog.POS_LS_KEY, JSON.stringify({ x: r.left, y: r.top, width: r.width, height: r.height }));
-        } catch { /* ignore */ }
+          localStorage.setItem(
+            CustomInfoDialog.POS_LS_KEY,
+            JSON.stringify({ x: r.left, y: r.top, width: r.width, height: r.height })
+          );
+        } catch {
+          /* ignore */
+        }
       }
     }
     this.isDragging = false;
@@ -1256,6 +1367,15 @@ export class CustomInfoDialog implements FocusableDialog {
         }
         if (tab === 'crimes') {
           this.refreshCrimesPanel();
+        }
+        if (tab === 'gangs') {
+          this.refreshGangsPanel();
+        }
+        if (tab === 'buildings') {
+          this.refreshBuildingsPanel();
+        }
+        if (tab === 'poi') {
+          this.refreshPoiPanel();
         }
       }
     };

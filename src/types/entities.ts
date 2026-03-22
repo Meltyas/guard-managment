@@ -4,8 +4,13 @@
  */
 
 // Re-export crime system types
-export type { Crime, OffenseType, CurrencyFine, SentenceEntry, SentenceConfig } from './crimes';
-export { OFFENSE_TYPES, OFFENSE_LABELS, OFFENSE_TYPE_FROM_SPANISH, DEFAULT_SENTENCE_CONFIG } from './crimes';
+export {
+  DEFAULT_SENTENCE_CONFIG,
+  OFFENSE_LABELS,
+  OFFENSE_TYPES,
+  OFFENSE_TYPE_FROM_SPANISH,
+} from './crimes';
+export type { Crime, CurrencyFine, OffenseType, SentenceConfig, SentenceEntry } from './crimes';
 
 // Base entity interface
 export interface BaseEntity {
@@ -113,7 +118,7 @@ export interface Patrol extends BaseEntity {
 
   // Hope pool for this patrol
   currentHope?: number; // 0 to maxHope
-  maxHope?: number;     // 0-6, default 0 (inherited from org or per-patrol)
+  maxHope?: number; // 0-6, default 0 (inherited from org or per-patrol)
 
   // Last order issued to patrol
   lastOrder: PatrolLastOrder | null;
@@ -241,10 +246,26 @@ export const DEFAULT_GUARD_STATS: GuardStats = {
 // ===================== Prison System =====================
 
 /** Prisoner status within the prison system */
-export type PrisonerStatus = 'imprisoned' | 'forced_labor' | 'executed' | 'released' | 'transferred_to_prison';
+export type PrisonerStatus =
+  | 'imprisoned'
+  | 'forced_labor'
+  | 'executed'
+  | 'released'
+  | 'transferred_to_prison'
+  | 'death_row';
 
 /** Actions that can be logged in prisoner history */
-export type PrisonerAction = 'entered' | 'released' | 'forced_labor' | 'transferred_to_prison' | 'executed' | 'notes_updated' | 'release_turn_updated';
+export type PrisonerAction =
+  | 'entered'
+  | 'released'
+  | 'forced_labor'
+  | 'transferred_to_prison'
+  | 'sent_to_death_row'
+  | 'executed'
+  | 'notes_updated'
+  | 'release_turn_updated'
+  | 'sentence_applied'
+  | 'sentence_completed';
 
 /** Individual prisoner assigned to a temporary cell */
 export interface Prisoner {
@@ -256,6 +277,8 @@ export interface Prisoner {
   cellIndex: number;
   notes: string;
   releaseTurn: number | null;
+  sentencePhases: number;
+  sentenceStartPhase: number | null;
   crimes: string[]; // IDs of crimes from the crime catalog
   status: PrisonerStatus;
   history: PrisonerHistoryEntry[];
@@ -269,11 +292,13 @@ export interface PrisonerHistoryEntry {
   timestamp: number;
   performedBy: string;
   details?: string;
+  phase?: number;
 }
 
 /** Configuration for the prison */
 export interface PrisonConfig {
   cellCount: number;
+  cellCapacity: number; // max prisoners per cell before overcrowding (default 1)
 }
 
 export const DEFAULT_CONFIG: GuardManagementConfig = {
@@ -299,8 +324,8 @@ export interface PhaseData {
 export interface PhaseTurnEntry {
   turn: number;
   phase: DayNightPhase;
-  advancedAt: number;   // epoch ms
-  advancedBy: string;   // user name
+  advancedAt: number; // epoch ms
+  advancedBy: string; // user name
 }
 
 export const DEFAULT_PHASE_DATA: PhaseData = {

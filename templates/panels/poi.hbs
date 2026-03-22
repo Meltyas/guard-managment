@@ -1,0 +1,146 @@
+<div class="organization-info">
+  <div class="info-section poi-section">
+    <div class="poi-toolbar">
+      <div class="poi-search-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" class="poi-search-input" placeholder="Buscar persona de interés..." />
+      </div>
+      <div class="poi-toolbar-actions">
+        <button class="poi-btn poi-add-btn" title="Registrar nueva persona de interés">
+          <i class="fas fa-plus"></i> Nuevo
+        </button>
+      </div>
+    </div>
+
+    <div class="poi-filter-toggles">
+      <button class="poi-filter-btn active" data-filter-status="all">Todos</button>
+      <button class="poi-filter-btn" data-filter-status="active">Activo</button>
+      <button class="poi-filter-btn" data-filter-status="imprisoned">Encarcelado</button>
+      <button class="poi-filter-btn" data-filter-status="released">Liberado</button>
+      <button class="poi-filter-btn" data-filter-status="deceased">Fallecido</button>
+      <button class="poi-filter-btn" data-filter-status="unknown">Desconocido</button>
+    </div>
+
+    {{#if pois.length}}
+      <div class="poi-cards">
+        {{#each pois}}
+          <div class="poi-card" data-poi-id="{{this.id}}" data-poi-status="{{this.status}}">
+            <div class="poi-card-header">
+              <div class="poi-image-wrapper" data-drop="actor" data-poi-id="{{this.id}}">
+                {{#if this.img}}
+                  <img class="poi-image" src="{{this.img}}" alt="{{this.name}}" />
+                {{else}}
+                  <div class="poi-image-placeholder">
+                    <i class="fas fa-user-secret"></i>
+                  </div>
+                {{/if}}
+              </div>
+              <div class="poi-header-info">
+                <h4 class="poi-name">{{this.name}}</h4>
+                <span class="poi-status-badge poi-status-{{this.status}}">{{this.statusLabel}}</span>
+              </div>
+              <div class="poi-card-actions">
+                <button class="poi-action-btn poi-chat-btn" data-poi-id="{{this.id}}" title="Enviar al chat">
+                  <i class="fas fa-comment-dots"></i>
+                </button>
+                <button class="poi-action-btn poi-crimes-btn" data-poi-id="{{this.id}}" title="Gestionar crímenes">
+                  <i class="fas fa-gavel"></i>
+                </button>
+                <button class="poi-action-btn poi-gangs-btn" data-poi-id="{{this.id}}" title="Gestionar bandas">
+                  <i class="fas fa-skull-crossbones"></i>
+                </button>
+                <button class="poi-action-btn poi-edit-btn" data-poi-id="{{this.id}}" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="poi-action-btn poi-status-btn" data-poi-id="{{this.id}}" title="Cambiar estado">
+                  <i class="fas fa-exchange-alt"></i>
+                </button>
+                <button class="poi-action-btn poi-delete-btn" data-poi-id="{{this.id}}" title="Eliminar">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="poi-card-body">
+              {{!-- Possible Crimes --}}
+              {{#if this.crimeNames.length}}
+                <div class="poi-crimes-section">
+                  <div class="poi-section-label"><i class="fas fa-gavel"></i> Posibles Crímenes</div>
+                  <div class="poi-crimes-list">
+                    {{#each this.crimeNames}}
+                      <span class="poi-crime-badge offense-{{this.offenseType}}">{{this.name}}</span>
+                    {{/each}}
+                  </div>
+                </div>
+              {{/if}}
+
+              {{!-- Gang Membership --}}
+              {{#if this.gangNames.length}}
+                <div class="poi-gangs-section">
+                  <div class="poi-section-label"><i class="fas fa-skull-crossbones"></i> Bandas</div>
+                  <div class="poi-gangs-list">
+                    {{#each this.gangNames}}
+                      <span class="poi-gang-badge gang-status-{{this.status}}">{{this.name}}</span>
+                    {{/each}}
+                  </div>
+                </div>
+              {{/if}}
+
+              {{!-- Prison Record Summary --}}
+              {{#if this.prisonRecordCount}}
+                <div class="poi-prison-section">
+                  <div class="poi-section-label"><i class="fas fa-dungeon"></i> Registro de Prisión</div>
+                  <div class="poi-prison-info">
+                    <span class="poi-prison-count">{{this.prisonRecordCount}} vez/veces en prisión</span>
+                    <button class="poi-action-btn poi-view-record-btn" data-poi-id="{{this.id}}" title="Ver registro de prisión">
+                      <i class="fas fa-external-link-alt"></i> Ver registro
+                    </button>
+                  </div>
+                </div>
+              {{/if}}
+
+              {{!-- Notes --}}
+              {{#if this.notes}}
+                <div class="poi-notes">
+                  <div class="poi-section-label"><i class="fas fa-sticky-note"></i> Notas</div>
+                  <div class="poi-notes-content">{{{this.notes}}}</div>
+                </div>
+              {{/if}}
+            </div>
+
+            {{!-- History --}}
+            {{#if this.history.length}}
+              <div class="poi-history">
+                <div class="poi-section-label"><i class="fas fa-history"></i> Registro</div>
+                {{#each this.history}}
+                  <div class="poi-history-entry" data-entry-timestamp="{{this.timestamp}}" data-poi-id="{{../id}}">
+                    <span class="poi-history-dot poi-history-{{this.action}}"></span>
+                    {{#if this.phase}}
+                      <span class="poi-history-phase">Fase {{this.phase}}</span>
+                    {{else}}
+                      <span class="poi-history-time">{{this.timeAgo}}</span>
+                    {{/if}}
+                    <span class="poi-history-text">
+                      {{#if this.details}}{{this.details}}{{else}}{{this.action}}{{/if}}
+                    </span>
+                    <span class="poi-history-user">— {{this.performedBy}}</span>
+                  </div>
+                {{/each}}
+              </div>
+            {{/if}}
+          </div>
+        {{/each}}
+      </div>
+
+      <div class="poi-count">
+        {{poiCount}} persona(s) de interés registrada(s)
+      </div>
+    {{else}}
+      <div class="poi-empty-state">
+        <i class="fas fa-user-secret"></i>
+        <p>No hay personas de interés registradas</p>
+        <p class="poi-empty-hint">Usa el botón "Nuevo" para registrar una persona de interés.</p>
+      </div>
+    {{/if}}
+  </div>
+</div>

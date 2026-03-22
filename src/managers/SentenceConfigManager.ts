@@ -3,7 +3,7 @@
  * Stores in game.settings, reads Daggerheart currency labels
  */
 
-import type { SentenceConfig, SentenceEntry, OffenseType } from '../types/crimes';
+import type { OffenseType, SentenceConfig, SentenceEntry } from '../types/crimes';
 import { DEFAULT_SENTENCE_CONFIG, OFFENSE_LABELS } from '../types/crimes';
 
 export interface CurrencyLabel {
@@ -25,7 +25,10 @@ export class SentenceConfigManager {
    */
   public async loadFromSettings(): Promise<void> {
     try {
-      const stored = game?.settings?.get('guard-management', 'sentenceConfig' as any) as SentenceConfig | null;
+      const stored = game?.settings?.get(
+        'guard-management',
+        'sentenceConfig' as any
+      ) as SentenceConfig | null;
       if (stored && typeof stored === 'object') {
         // Merge with defaults to ensure all keys exist
         this.config = { ...DEFAULT_SENTENCE_CONFIG, ...stored };

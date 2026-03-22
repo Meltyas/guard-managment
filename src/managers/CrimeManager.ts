@@ -4,6 +4,7 @@
  */
 
 import type { Crime, OffenseType } from '../types/crimes';
+import { OFFENSE_SEVERITY } from '../types/crimes';
 
 export class CrimeManager {
   private crimes: Map<string, Crime> = new Map();
@@ -21,6 +22,9 @@ export class CrimeManager {
       if (crimes && Array.isArray(crimes)) {
         this.crimes.clear();
         for (const c of crimes) {
+          // Migration: ensure description and customSentence exist
+          if (!c.description) c.description = '';
+          if (!c.customSentence) c.customSentence = '';
           this.crimes.set(c.id, c);
         }
         console.log(`CrimeManager | Loaded ${crimes.length} crimes from settings`);
@@ -50,7 +54,12 @@ export class CrimeManager {
   /**
    * Create a new crime (checks for duplicate names)
    */
-  public async createCrime(name: string, offenseType: OffenseType): Promise<Crime | null> {
+  public async createCrime(
+    name: string,
+    offenseType: OffenseType,
+    description: string = '',
+    customSentence: string = ''
+  ): Promise<Crime | null> {
     const normalizedName = name.trim().toLowerCase();
     const existing = this.getAllCrimes().find(
       (c) => c.name.trim().toLowerCase() === normalizedName
@@ -58,48 +67,76 @@ export class CrimeManager {
     if (existing) return null; // duplicate
 
     const id = foundry.utils.randomID();
-    const crime: Crime = { id, name: name.trim(), offenseType, version: 1 };
+    const crime: Crime = {
+      id,
+      name: name.trim(),
+      description,
+      offenseType,
+      customSentence,
+      version: 1,
+    };
     this.crimes.set(id, crime);
     await this._saveToSettingsAsync();
     return crime;
   }
 
   /**
-   * Bulk create crimes, discarding duplicates (against existing + within batch)
-   * Returns { created: number, skipped: number }
+   * Bulk create or update crimes. If a crime with the same name exists, update it.
+   * Returns { created: number, updated: number }
    */
-  public async bulkCreateCrimes(
-    entries: { name: string; offenseType: OffenseType }[]
-  ): Promise<{ created: number; skipped: number }> {
-    const existingNames = new Set(
-      this.getAllCrimes().map((c) => c.name.trim().toLowerCase())
-    );
+  public async bulkUpsertCrimes(
+    entries: {
+      name: string;
+      offenseType: OffenseType;
+      description?: string;
+      customSentence?: string;
+    }[]
+  ): Promise<{ created: number; updated: number }> {
+    // Build a map of existing crimes by normalized name
+    const existingByName = new Map<string, Crime>();
+    for (const c of this.crimes.values()) {
+      existingByName.set(c.name.trim().toLowerCase(), c);
+    }
+
     let created = 0;
-    let skipped = 0;
+    let updated = 0;
+    const seenNames = new Set<string>();
 
     for (const entry of entries) {
       const normalized = entry.name.trim().toLowerCase();
-      if (!normalized || existingNames.has(normalized)) {
-        skipped++;
-        continue;
+      if (!normalized || seenNames.has(normalized)) continue;
+      seenNames.add(normalized);
+
+      const existing = existingByName.get(normalized);
+      if (existing) {
+        // Update existing crime
+        existing.offenseType = entry.offenseType;
+        if (entry.description) existing.description = entry.description;
+        if (entry.customSentence) existing.customSentence = entry.customSentence;
+        existing.version++;
+        this.crimes.set(existing.id, existing);
+        updated++;
+      } else {
+        const id = foundry.utils.randomID();
+        const crime: Crime = {
+          id,
+          name: entry.name.trim(),
+          description: entry.description || '',
+          offenseType: entry.offenseType,
+          customSentence: entry.customSentence || '',
+          version: 1,
+        };
+        this.crimes.set(id, crime);
+        existingByName.set(normalized, crime);
+        created++;
       }
-      existingNames.add(normalized);
-      const id = foundry.utils.randomID();
-      const crime: Crime = {
-        id,
-        name: entry.name.trim(),
-        offenseType: entry.offenseType,
-        version: 1,
-      };
-      this.crimes.set(id, crime);
-      created++;
     }
 
-    if (created > 0) {
+    if (created > 0 || updated > 0) {
       await this._saveToSettingsAsync();
     }
 
-    return { created, skipped };
+    return { created, updated };
   }
 
   /**
@@ -110,12 +147,14 @@ export class CrimeManager {
   }
 
   /**
-   * Get all crimes sorted alphabetically
+   * Get all crimes sorted by severity (lowest to highest), then alphabetically
    */
   public getAllCrimes(): Crime[] {
-    return Array.from(this.crimes.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, 'es')
-    );
+    return Array.from(this.crimes.values()).sort((a, b) => {
+      const sevDiff = OFFENSE_SEVERITY[a.offenseType] - OFFENSE_SEVERITY[b.offenseType];
+      if (sevDiff !== 0) return sevDiff;
+      return a.name.localeCompare(b.name, 'es');
+    });
   }
 
   /**

@@ -3,21 +3,27 @@
  * Data stored in game.settings following the module pattern
  */
 
-import type { PhaseData, DayNightPhase, PhaseTurnEntry } from '../types/entities';
+import type { DayNightPhase, PhaseData, PhaseTurnEntry } from '../types/entities';
 
 export class PhaseManager {
   private data: PhaseData = { currentPhase: 'day', currentTurn: 1, history: [] };
 
   public async initialize(): Promise<void> {
     await this.loadFromSettings();
-    console.log('PhaseManager | Initialized:', `Turn ${this.data.currentTurn}, Phase ${this.data.currentPhase}`);
+    console.log(
+      'PhaseManager | Initialized:',
+      `Turn ${this.data.currentTurn}, Phase ${this.data.currentPhase}`
+    );
   }
 
   // --- Settings persistence ---
 
   public async loadFromSettings(): Promise<void> {
     try {
-      const stored = game?.settings?.get('guard-management', 'phaseData' as any) as PhaseData | null;
+      const stored = game?.settings?.get(
+        'guard-management',
+        'phaseData' as any
+      ) as PhaseData | null;
       if (stored && typeof stored === 'object' && stored.currentPhase) {
         this.data = {
           currentPhase: stored.currentPhase,
@@ -83,9 +89,11 @@ export class PhaseManager {
 
     // Dispatch event BEFORE saving so the animation starts
     // before onChange triggers updateFromPhaseManager()
-    window.dispatchEvent(new CustomEvent('guard-phase-advanced', {
-      detail: { phase: newPhase, turn: targetTurn, previousTurn },
-    }));
+    window.dispatchEvent(
+      new CustomEvent('guard-phase-advanced', {
+        detail: { phase: newPhase, turn: targetTurn, previousTurn },
+      })
+    );
 
     await this._saveToSettingsAsync();
 

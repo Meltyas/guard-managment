@@ -5,6 +5,10 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.5rem;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Toolbar */
@@ -14,13 +18,6 @@
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-}
-
-.crimes-search-group {
-  display: flex;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 200px;
 }
 
 .crimes-search-wrapper {
@@ -58,20 +55,64 @@
   border-color: #f3c267;
 }
 
-.crimes-filter-select {
-  padding: 0.35rem 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.3);
-  color: #eee;
-  font-size: 0.85em;
-  font-family: 'Signika', sans-serif;
-  min-width: 80px;
+/* Filter toggles */
+.crimes-filter-toggles {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
 }
 
-.crimes-filter-select:focus {
-  outline: none;
+.crimes-toggle {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #999;
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75em;
+  font-family: 'Signika', sans-serif;
+  transition: all 0.15s ease;
+}
+
+.crimes-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ddd;
+}
+
+.crimes-toggle.active {
+  background: rgba(243, 194, 103, 0.2);
   border-color: #f3c267;
+  color: #f3c267;
+}
+
+.crimes-toggle.offense-capital.active {
+  background: rgba(232, 74, 74, 0.2);
+  border-color: #e84a4a;
+  color: #e84a4a;
+}
+
+.crimes-toggle.offense-major.active {
+  background: rgba(243, 162, 97, 0.2);
+  border-color: #f3a261;
+  color: #f3a261;
+}
+
+.crimes-toggle.offense-minor.active {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+.crimes-toggle.offense-light.active {
+  background: rgba(74, 158, 255, 0.2);
+  border-color: #4a9eff;
+  color: #4a9eff;
+}
+
+.crimes-toggle.offense-fine.active {
+  background: rgba(74, 232, 154, 0.2);
+  border-color: #4ae89a;
+  color: #4ae89a;
 }
 
 .crimes-actions {
@@ -175,67 +216,120 @@
   border: 1px solid rgba(74, 232, 154, 0.4);
 }
 
-/* Crime Cards */
-.crimes-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+/* Crimes Table */
+.crimes-table-wrapper {
   max-height: 400px;
-  overflow-y: auto;
+  overflow: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.crime-card {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.6rem;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  transition: border-color 0.15s ease;
+.crimes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+  table-layout: fixed;
 }
 
-.crime-card:hover {
-  border-color: rgba(243, 194, 103, 0.3);
+.crimes-table thead th {
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  position: sticky;
+  top: 0;
+  background: rgba(30, 30, 30, 0.95);
+  z-index: 1;
 }
 
-.crime-card-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 0;
+.crimes-table .col-name {
+  width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crimes-table .col-type {
+  width: 15%;
+  text-align: center;
+}
+
+.crimes-table .col-sentence {
+  width: 35%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crimes-table .col-actions {
+  width: 100%;
+  text-align: right;
+  overflow: visible;
+}
+
+.crime-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease;
+}
+
+.crime-row:hover {
+  background: rgba(243, 194, 103, 0.05);
+}
+
+.crime-row td {
+  padding: 0.35rem 0.5rem;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crime-row-clickable {
+  cursor: pointer;
+}
+
+.crime-row-clickable:hover .crime-name {
+  color: #f3c267;
 }
 
 .crime-name {
   color: #eee;
-  font-size: 0.85em;
-  white-space: nowrap;
+  font-size: 0.9em;
+  transition: color 0.15s ease;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.crime-card-sentence {
-  flex: 1;
-  min-width: 0;
+.crime-has-desc {
+  color: #888;
+  font-size: 0.7em;
+  margin-left: 0.3rem;
 }
 
 .crime-sentence-text {
   color: #999;
-  font-size: 0.75em;
-  white-space: nowrap;
+  font-size: 0.8em;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: block;
+  white-space: nowrap;
 }
 
-.crime-card-actions {
+.crime-custom-sentence-icon {
+  color: #f3c267;
+  font-size: 0.6em;
+  margin-left: 0.3rem;
+}
+
+.crime-row .col-actions {
   display: flex;
-  gap: 0.25rem;
-  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  overflow: visible;
+  white-space: nowrap;
 }
 
-.crime-card-actions button {
+.crime-row .col-actions button {
   background: none;
   border: none;
   color: #888;
@@ -246,14 +340,44 @@
   transition: all 0.15s ease;
 }
 
-.crime-card-actions button:hover {
+.crime-row .col-actions button:hover {
   color: #f3c267;
   background: rgba(243, 194, 103, 0.15);
 }
 
-.crime-card-actions .crime-delete-btn:hover {
+.crime-row .crime-delete-btn:hover {
   color: #e84a4a;
   background: rgba(232, 74, 74, 0.15);
+}
+
+.crime-row .crime-chat-btn:hover {
+  color: #4a9eff;
+  background: rgba(74, 158, 255, 0.15);
+}
+
+/* Sentence Summary Table */
+.sentence-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8em;
+}
+
+.sentence-summary-table thead th {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  color: #aaa;
+  font-size: 0.85em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sentence-summary-table tbody td {
+  padding: 0.25rem 0.5rem;
+}
+
+.sentence-edit-inline {
+  margin-left: auto;
+  padding: 0.15rem 0.35rem !important;
+  font-size: 0.75em !important;
 }
 
 /* Empty state */
@@ -291,6 +415,7 @@
 
 /* Import dialog */
 .crimes-import-dialog .import-example {
+  display: block !important;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
@@ -301,14 +426,16 @@
   color: #f3c267;
   font-size: 0.85em;
   margin-bottom: 0.3rem;
-  display: block;
+  display: block !important;
 }
 
 .crimes-import-dialog .import-example-text {
+  display: block !important;
   color: #bbb;
   font-size: 0.8em;
   margin: 0.3rem 0 0 0;
   white-space: pre-line;
+  font-family: monospace;
 }
 
 .crimes-import-dialog .import-preview {
@@ -386,4 +513,262 @@
   background: rgba(243, 194, 103, 0.15);
   color: #f3c267;
   border: 1px solid rgba(243, 194, 103, 0.25);
+}
+
+/* Crime editor wrapper */
+.crime-editor-wrapper {
+  min-height: 100px;
+}
+
+.crime-editor-wrapper .editor-content.ProseMirror {
+  min-height: 80px;
+}
+
+/* Assign Crimes Dialog */
+.assign-crimes-dialog {
+  padding: 0.5rem;
+}
+
+.assign-crimes-layout {
+  display: flex;
+  gap: 0.75rem;
+  min-height: 350px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.assign-crimes-left {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.assign-crimes-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 180px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+}
+
+.assign-crimes-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.assign-crimes-search {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #eee;
+  font-size: 0.85em;
+  font-family: 'Signika', sans-serif;
+  outline: none;
+}
+
+.assign-crimes-search::placeholder {
+  color: #888;
+}
+
+.assign-crimes-filter-toggles {
+  display: flex;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.assign-crimes-filter-toggles .crimes-toggle {
+  font-size: 0.65em;
+  padding: 0.15rem 0.45rem;
+}
+
+.assign-crimes-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.assign-crimes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82em;
+  table-layout: fixed;
+}
+
+.assign-crimes-table thead th {
+  padding: 0.3rem 0.4rem;
+  text-align: left;
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  position: sticky;
+  top: 0;
+  background: rgba(30, 30, 30, 0.95);
+  z-index: 1;
+}
+
+.assign-crime-row {
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.12s ease;
+}
+
+.assign-crime-row:hover {
+  background: rgba(243, 194, 103, 0.06);
+}
+
+.assign-crime-row td {
+  padding: 0.25rem 0.4rem;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assign-col-check {
+  width: 24px;
+  text-align: center;
+}
+
+.assign-col-type {
+  text-align: center;
+}
+
+.assign-col-sentence .crime-sentence-text {
+  font-size: 0.75em;
+}
+
+/* Right panel summary */
+.assign-summary-header {
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85em;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.assign-current-sentence {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.3rem 0.4rem;
+  background: rgba(243, 194, 103, 0.08);
+  border: 1px solid rgba(243, 194, 103, 0.15);
+  border-radius: 4px;
+  font-size: 0.75em;
+}
+
+.assign-current-label {
+  color: #aaa;
+}
+
+.assign-current-value {
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.assign-current-detail {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.assign-summary-crimes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.assign-summary-calculation {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+}
+
+.assign-calc-label {
+  font-size: 0.75em;
+  color: #aaa;
+  margin-bottom: 0.2rem;
+}
+
+.assign-calc-value {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+}
+
+.assign-calc-detail {
+  font-size: 0.7em;
+  color: #999;
+  margin-top: 0.3rem;
+  line-height: 1.4;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.assign-phases-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: auto;
+}
+
+.assign-phases-editor label {
+  font-size: 0.8em;
+  color: #ccc;
+}
+
+.assign-phases-editor input {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #eee;
+  font-size: 1em;
+  font-family: 'Signika', sans-serif;
+  text-align: center;
+}
+
+.assign-phases-editor input:focus {
+  outline: none;
+  border-color: #f3c267;
+}
+
+.assign-phases-hint {
+  font-size: 0.7em;
+  color: #888;
+  font-style: italic;
+}
+
+/* Crime detail dialog */
+.crime-detail-description p {
+  margin: 0.3rem 0;
+}
+
+/* Record crimes section */
+.record-crimes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0;
+}
+
+.record-crimes > i {
+  color: #888;
+  font-size: 0.75em;
 }

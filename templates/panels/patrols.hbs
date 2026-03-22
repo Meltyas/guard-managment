@@ -52,29 +52,35 @@
                         <div class="patrol-traits-body" style="display:none;">
                             {{#each this.officerPros}}
                             <div class="patrol-trait-item patrol-trait-pro"
-                                 data-action="trait-to-chat"
                                  data-trait-title="{{this.title}}"
                                  data-trait-description="{{this.description}}"
                                  data-trait-type="pro"
-                                 data-officer-name="{{../officerName}}"
-                                 data-tooltip="Clic para enviar al chat"
-                                 style="cursor:pointer;">
-                                <i class="fas fa-plus-circle" style="color:#9acd32"></i>
-                                <span>{{this.title}}</span>
+                                 data-officer-name="{{../officerName}}">
+                                <i class="fas fa-plus-circle patrol-trait-chat-icon"
+                                   data-action="trait-to-chat"
+                                   data-tooltip="Enviar al chat"
+                                   style="color:#9acd32"></i>
+                                <span class="patrol-trait-title" data-action="toggle-trait-desc">{{this.title}}</span>
                             </div>
+                            {{#if this.description}}
+                            <div class="patrol-trait-desc" style="display:none;">{{{this.description}}}</div>
+                            {{/if}}
                             {{/each}}
                             {{#each this.officerCons}}
                             <div class="patrol-trait-item patrol-trait-con"
-                                 data-action="trait-to-chat"
                                  data-trait-title="{{this.title}}"
                                  data-trait-description="{{this.description}}"
                                  data-trait-type="con"
-                                 data-officer-name="{{../officerName}}"
-                                 data-tooltip="Clic para enviar al chat"
-                                 style="cursor:pointer;">
-                                <i class="fas fa-minus-circle" style="color:#ff6b6b"></i>
-                                <span>{{this.title}}</span>
+                                 data-officer-name="{{../officerName}}">
+                                <i class="fas fa-minus-circle patrol-trait-chat-icon"
+                                   data-action="trait-to-chat"
+                                   data-tooltip="Enviar al chat"
+                                   style="color:#ff6b6b"></i>
+                                <span class="patrol-trait-title" data-action="toggle-trait-desc">{{this.title}}</span>
                             </div>
+                            {{#if this.description}}
+                            <div class="patrol-trait-desc" style="display:none;">{{{this.description}}}</div>
+                            {{/if}}
                             {{/each}}
                         </div>
                     </div>

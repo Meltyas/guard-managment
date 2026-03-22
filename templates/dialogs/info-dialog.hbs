@@ -38,6 +38,15 @@
                 <button type="button" class="org-tab-btn {{#if (eq activeTab 'prisoners')}}active{{/if}}" role="tab" data-tab="prisoners">
                     <i class="fas fa-dungeon"></i><span>Prisioneros</span>
                 </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'gangs')}}active{{/if}}" role="tab" data-tab="gangs">
+                    <i class="fas fa-skull-crossbones"></i><span>Bandas</span>
+                </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'buildings')}}active{{/if}}" role="tab" data-tab="buildings">
+                    <i class="fas fa-building"></i><span>Edificios</span>
+                </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'poi')}}active{{/if}}" role="tab" data-tab="poi">
+                    <i class="fas fa-user-secret"></i><span>Gente de Interés</span>
+                </button>
                 <div class="active-bar" aria-hidden="true"></div>
             </nav>
 
@@ -62,6 +71,15 @@
                 </section>
                 <section class="org-tab-panel {{#if (eq activeTab 'prisoners')}}active{{/if}}" role="tabpanel" data-tab-panel="prisoners">
                     <!-- PrisonersPanel renders here -->
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'gangs')}}active{{/if}}" role="tabpanel" data-tab-panel="gangs">
+                    <!-- GangsPanel renders here -->
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'buildings')}}active{{/if}}" role="tabpanel" data-tab-panel="buildings">
+                    <!-- BuildingsPanel renders here -->
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'poi')}}active{{/if}}" role="tabpanel" data-tab-panel="poi">
+                    <!-- PoiPanel renders here -->
                 </section>
             </div>
         </div>

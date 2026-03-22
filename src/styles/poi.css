@@ -1,0 +1,546 @@
+/* ========================================
+   POI (Gente de Interés) Panel Styles
+   ======================================== */
+
+.poi-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px;
+}
+
+/* --- Toolbar --- */
+
+.poi-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.poi-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  flex: 1;
+}
+
+.poi-search-wrapper i {
+  color: #aaa;
+  font-size: 0.85em;
+}
+
+.poi-search-input {
+  background: transparent;
+  border: none;
+  color: #eee;
+  font-size: 0.85em;
+  outline: none;
+  width: 100%;
+  font-family: 'Signika', sans-serif;
+}
+
+.poi-search-input::placeholder {
+  color: #777;
+}
+
+.poi-toolbar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.poi-btn {
+  background: rgba(243, 194, 103, 0.15);
+  border: 1px solid rgba(243, 194, 103, 0.4);
+  color: #f3c267;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8em;
+  font-family: 'Signika', sans-serif;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.poi-btn:hover {
+  background: rgba(243, 194, 103, 0.25);
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+/* --- Filter Toggles --- */
+
+.poi-filter-toggles {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.poi-filter-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #aaa;
+  padding: 2px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.75em;
+  font-family: 'Signika', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.poi-filter-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ddd;
+}
+
+.poi-filter-btn.active {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: rgba(243, 194, 103, 0.5);
+  color: #f3c267;
+}
+
+.poi-filter-btn[data-filter-status="active"].active {
+  background: rgba(74, 232, 154, 0.15);
+  border-color: rgba(74, 232, 154, 0.4);
+  color: #4ae89a;
+}
+
+.poi-filter-btn[data-filter-status="imprisoned"].active {
+  background: rgba(232, 74, 74, 0.15);
+  border-color: rgba(232, 74, 74, 0.4);
+  color: #e84a4a;
+}
+
+.poi-filter-btn[data-filter-status="released"].active {
+  background: rgba(200, 200, 200, 0.15);
+  border-color: rgba(200, 200, 200, 0.3);
+  color: #ccc;
+}
+
+.poi-filter-btn[data-filter-status="deceased"].active {
+  background: rgba(136, 136, 136, 0.15);
+  border-color: rgba(136, 136, 136, 0.3);
+  color: #888;
+}
+
+.poi-filter-btn[data-filter-status="unknown"].active {
+  background: rgba(160, 120, 220, 0.15);
+  border-color: rgba(160, 120, 220, 0.4);
+  color: #a078dc;
+}
+
+/* --- Cards --- */
+
+.poi-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.poi-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.poi-card:hover {
+  border-color: rgba(243, 194, 103, 0.3);
+}
+
+/* --- Card Header --- */
+
+.poi-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.poi-image-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(243, 194, 103, 0.3);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.poi-image-wrapper:hover {
+  border-color: rgba(243, 194, 103, 0.6);
+}
+
+.poi-image-wrapper.dnd-hover {
+  border-color: #4ae89a;
+  box-shadow: 0 0 8px rgba(74, 232, 154, 0.4);
+}
+
+.poi-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.poi-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  color: #666;
+  font-size: 1.2em;
+}
+
+.poi-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.poi-name {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 0.95em;
+  color: #f3c267;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Status Badge --- */
+
+.poi-status-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.7em;
+  font-family: 'Signika', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.poi-status-active {
+  background: rgba(74, 232, 154, 0.15);
+  color: #4ae89a;
+  border: 1px solid rgba(74, 232, 154, 0.3);
+}
+
+.poi-status-imprisoned {
+  background: rgba(232, 74, 74, 0.15);
+  color: #e84a4a;
+  border: 1px solid rgba(232, 74, 74, 0.3);
+}
+
+.poi-status-released {
+  background: rgba(200, 200, 200, 0.1);
+  color: #ccc;
+  border: 1px solid rgba(200, 200, 200, 0.2);
+}
+
+.poi-status-deceased {
+  background: rgba(136, 136, 136, 0.15);
+  color: #888;
+  border: 1px solid rgba(136, 136, 136, 0.3);
+}
+
+.poi-status-unknown {
+  background: rgba(160, 120, 220, 0.15);
+  color: #a078dc;
+  border: 1px solid rgba(160, 120, 220, 0.3);
+}
+
+/* --- Card Actions --- */
+
+.poi-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.poi-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #aaa;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75em;
+  transition: all 0.2s ease;
+}
+
+.poi-action-btn:hover {
+  background: rgba(243, 194, 103, 0.15);
+  color: #f3c267;
+  border-color: rgba(243, 194, 103, 0.3);
+}
+
+.poi-delete-btn:hover {
+  background: rgba(232, 74, 74, 0.15);
+  color: #e84a4a;
+  border-color: rgba(232, 74, 74, 0.3);
+}
+
+.poi-crimes-btn:hover {
+  background: rgba(232, 180, 74, 0.15);
+  color: #e8b44a;
+  border-color: rgba(232, 180, 74, 0.3);
+}
+
+.poi-gangs-btn:hover {
+  background: rgba(160, 120, 220, 0.15);
+  color: #a078dc;
+  border-color: rgba(160, 120, 220, 0.3);
+}
+
+/* --- Card Body --- */
+
+.poi-card-body {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.poi-section-label {
+  font-size: 0.75em;
+  color: #999;
+  margin-bottom: 4px;
+  font-family: 'Signika', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.poi-section-label i {
+  margin-right: 4px;
+}
+
+/* --- Crimes Section --- */
+
+.poi-crimes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.poi-crime-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.72em;
+  font-family: 'Signika', sans-serif;
+}
+
+/* --- Gangs Section --- */
+
+.poi-gangs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.poi-gang-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.72em;
+  font-family: 'Signika', sans-serif;
+  background: rgba(160, 120, 220, 0.2);
+  color: #a078dc;
+  border: 1px solid rgba(160, 120, 220, 0.4);
+}
+
+/* --- Prison Section --- */
+
+.poi-prison-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.poi-prison-count {
+  font-size: 0.82em;
+  color: #ccc;
+  font-family: 'Signika', sans-serif;
+}
+
+.poi-view-record-btn {
+  width: auto !important;
+  padding: 2px 8px !important;
+  font-size: 0.72em !important;
+  gap: 4px;
+}
+
+.poi-view-record-btn i {
+  margin-right: 3px;
+}
+
+/* --- Notes --- */
+
+.poi-notes-content {
+  font-size: 0.82em;
+  color: #ccc;
+  line-height: 1.4;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.poi-notes-content p {
+  margin: 0 0 4px 0;
+}
+
+.poi-notes-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- History --- */
+
+.poi-history {
+  padding: 6px 10px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.poi-history-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 0.75em;
+  color: #999;
+  cursor: default;
+}
+
+.poi-history-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #666;
+}
+
+.poi-history-created { background: #4ae89a; }
+.poi-history-crime_added { background: #5b9bd5; }
+.poi-history-crime_removed { background: #e84a4a; }
+.poi-history-gang_added { background: #a078dc; }
+.poi-history-gang_removed { background: #e84a4a; }
+.poi-history-actor_linked { background: #5b9bd5; }
+.poi-history-actor_unlinked { background: #e84a4a; }
+.poi-history-notes_updated { background: #f3c267; }
+.poi-history-name_updated { background: #f3c267; }
+.poi-history-image_updated { background: #f3c267; }
+.poi-history-status_changed { background: #a078dc; }
+
+.poi-history-phase {
+  color: #f3c267;
+  font-weight: bold;
+  min-width: 50px;
+}
+
+.poi-history-time {
+  color: #777;
+  min-width: 50px;
+}
+
+.poi-history-text {
+  flex: 1;
+  color: #bbb;
+}
+
+.poi-history-user {
+  color: #666;
+  font-style: italic;
+}
+
+/* Shift+click delete highlight */
+.shift-held .poi-history-entry:hover {
+  background: rgba(232, 74, 74, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  outline: 1px solid rgba(232, 74, 74, 0.3);
+}
+
+/* --- Count --- */
+
+.poi-count {
+  text-align: center;
+  font-size: 0.75em;
+  color: #777;
+  padding: 4px 0;
+  font-family: 'Signika', sans-serif;
+}
+
+/* --- Empty State --- */
+
+.poi-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.poi-empty-state i {
+  font-size: 3em;
+  margin-bottom: 12px;
+  color: #555;
+}
+
+.poi-empty-state p {
+  margin: 4px 0;
+  font-family: 'Signika', sans-serif;
+}
+
+.poi-empty-hint {
+  font-size: 0.85em;
+  color: #555;
+}
+
+/* --- Dialog table styles --- */
+
+.poi-crimes-table,
+.poi-gangs-table {
+  font-size: 0.85em;
+}
+
+.poi-crimes-table thead th,
+.poi-gangs-table thead th {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 6px;
+  color: #aaa;
+  font-weight: normal;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.5px;
+}
+
+.poi-crimes-table tbody td,
+.poi-gangs-table tbody td {
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: #ccc;
+}
+
+.poi-crimes-table tbody tr:hover,
+.poi-gangs-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.offense-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  text-transform: capitalize;
+}
