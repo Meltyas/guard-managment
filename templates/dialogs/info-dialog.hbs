@@ -32,6 +32,12 @@
                 <button type="button" class="org-tab-btn {{#if (eq activeTab 'reputation')}}active{{/if}}" role="tab" data-tab="reputation">
                     <i class="fas fa-handshake"></i><span>Reputación</span>
                 </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'crimes')}}active{{/if}}" role="tab" data-tab="crimes">
+                    <i class="fas fa-gavel"></i><span>Crímenes</span>
+                </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'prisoners')}}active{{/if}}" role="tab" data-tab="prisoners">
+                    <i class="fas fa-dungeon"></i><span>Prisioneros</span>
+                </button>
                 <div class="active-bar" aria-hidden="true"></div>
             </nav>
 
@@ -50,6 +56,12 @@
                 </section>
                 <section class="org-tab-panel {{#if (eq activeTab 'reputation')}}active{{/if}}" role="tabpanel" data-tab-panel="reputation">
                     {{> "modules/guard-management/templates/panels/reputation.hbs" organization=organization}}
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'crimes')}}active{{/if}}" role="tabpanel" data-tab-panel="crimes">
+                    <!-- CrimesPanel renders here -->
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'prisoners')}}active{{/if}}" role="tabpanel" data-tab-panel="prisoners">
+                    <!-- PrisonersPanel renders here -->
                 </section>
             </div>
         </div>

@@ -87,18 +87,6 @@ export class AddOrEditResourceDialog {
         5000
       );
 
-      // Setup textarea value after content is rendered
-      DOMEventSetup.observe(
-        '#resource-description',
-        () => {
-          const textarea = document.getElementById('resource-description') as HTMLTextAreaElement;
-          if (textarea && existingResource?.description) {
-            textarea.value = existingResource.description;
-          }
-        },
-        5000
-      );
-
       const result = await DialogV2Class.wait({
         window: {
           title,

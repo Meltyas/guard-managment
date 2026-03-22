@@ -215,7 +215,8 @@ export class GuardRollDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       if (expanded.trait !== undefined) this.config.roll.trait = expanded.trait;
       if (expanded.extraFormula !== undefined) this.config.extraFormula = expanded.extraFormula;
-      if (expanded.selectedRollMode !== undefined) this.config.selectedRollMode = expanded.selectedRollMode;
+      if (expanded.selectedRollMode !== undefined)
+        this.config.selectedRollMode = expanded.selectedRollMode;
     }
     this.submitted = true;
     await (this as any).close();

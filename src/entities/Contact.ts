@@ -260,12 +260,16 @@ export class ContactDialog extends BaseWarehouseItemDialog<Contact> {
 
             <div class="form-group">
               <label for="description">Descripción:</label>
-              <textarea id="description" name="description" rows="3" placeholder="Descripción del contacto">${contact?.description || ''}</textarea>
+              <prose-mirror name="description" value="${(contact?.description || '').replace(/"/g, '&quot;')}">
+                ${contact?.description || ''}
+              </prose-mirror>
             </div>
 
             <div class="form-group">
               <label for="notes">Notas:</label>
-              <textarea id="notes" name="notes" rows="2" placeholder="Notas adicionales">${contact?.notes || ''}</textarea>
+              <prose-mirror name="notes" value="${(contact?.notes || '').replace(/"/g, '&quot;')}">
+                ${contact?.notes || ''}
+              </prose-mirror>
             </div>
 
             <div class="form-group">

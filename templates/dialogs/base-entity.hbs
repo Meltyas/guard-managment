@@ -17,13 +17,9 @@
         {{#if (eq this.type "textarea")}}
             <div class="form-group">
                 <label for="{{../entityType}}-{{this.name}}">{{this.label}}{{#if this.required}} *{{/if}}</label>
-                <textarea
-                    id="{{../entityType}}-{{this.name}}"
-                    name="{{this.name}}"
-                    placeholder="{{this.placeholder}}"
-                    rows="{{this.rows}}"
-                    {{#if this.required}}required{{/if}}
-                >{{this.value}}</textarea>
+                <prose-mirror name="{{this.name}}" value="{{this.value}}">
+                    {{{this.value}}}
+                </prose-mirror>
             </div>
         {{/if}}
 

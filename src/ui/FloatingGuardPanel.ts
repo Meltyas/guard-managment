@@ -42,6 +42,9 @@ export class FloatingGuardPanel {
       this.panel.style.display = 'block';
       this.saveVisibility(true);
     }
+    // Show the day/night decoration behind the panel
+    const gm = (window as any).GuardManagement;
+    gm?.dayNightDecoration?.show();
   }
 
   /**
@@ -52,6 +55,9 @@ export class FloatingGuardPanel {
       this.panel.style.display = 'none';
       this.saveVisibility(false);
     }
+    // Hide the day/night decoration
+    const gm = (window as any).GuardManagement;
+    gm?.dayNightDecoration?.hide();
   }
 
   /**
@@ -107,6 +113,12 @@ export class FloatingGuardPanel {
     await this.createPanel();
     this.attachEventListeners();
     this.restorePosition();
+
+    // Re-insert the day/night decoration (it was destroyed with the old panel)
+    const gm = (window as any).GuardManagement;
+    if (gm?.dayNightDecoration && this.panel?.style.display !== 'none') {
+      gm.dayNightDecoration.show();
+    }
   }
 
   /**
@@ -157,14 +169,18 @@ export class FloatingGuardPanel {
       .guard-floating-panel {
         position: fixed;
         width: 280px;
+        z-index: 40;
+        font-family: 'Signika', sans-serif;
+        user-select: none;
+        overflow: visible;
+      }
+
+      .guard-floating-panel .panel-container {
         background: rgba(24, 22, 46, 0.9);
         border: 1px solid #f3c267;
         border-radius: 8px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-        z-index: 40;
-        font-family: 'Signika', sans-serif;
         backdrop-filter: blur(10px);
-        user-select: none;
       }
 
       .guard-floating-panel .panel-header {

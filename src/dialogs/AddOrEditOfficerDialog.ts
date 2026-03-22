@@ -482,24 +482,6 @@ export class AddOrEditOfficerDialog {
       { title: '', description: '' }
     );
 
-    // Setup editor buttons after dialog opens
-    setTimeout(() => {
-      const toolbar = document.querySelector('.editor-toolbar');
-      if (toolbar) {
-        toolbar.addEventListener('click', (e) => {
-          const button = (e.target as HTMLElement).closest('.editor-btn');
-          if (!button) return;
-
-          e.preventDefault();
-          const action = button.getAttribute('data-action');
-          if (action) {
-            document.execCommand(action, false);
-            document.querySelector('.editor-content')?.focus();
-          }
-        });
-      }
-    }, 150);
-
     const result = await DialogV2Class.wait({
       window: {
         title: traitType === 'pro' ? 'Agregar Pro' : 'Agregar Con',
@@ -520,11 +502,21 @@ export class AddOrEditOfficerDialog {
             }
 
             const titleInput = dialogElement.querySelector('#trait-title') as HTMLInputElement;
-            const editorContent = dialogElement.querySelector('#trait-description') as HTMLElement;
 
             const title = titleInput?.value?.trim() || '';
-            // Obtener el contenido HTML del editor
-            const description = editorContent?.innerHTML?.trim() || '';
+            // Read description from ProseMirror
+            let description = '';
+            const pmContent = dialogElement.querySelector('prose-mirror[name="trait-description"] .editor-content.ProseMirror');
+            if (pmContent) {
+              description = pmContent.innerHTML?.trim() || '';
+            }
+            if (!description) {
+              const pmEl = dialogElement.querySelector('prose-mirror[name="trait-description"]');
+              if (pmEl && 'value' in pmEl) {
+                const val = (pmEl as any).value;
+                if (typeof val === 'string') description = val;
+              }
+            }
 
             if (!title) {
               if (ui?.notifications) {
@@ -603,23 +595,6 @@ export class AddOrEditOfficerDialog {
     );
 
     // Setup editor buttons after dialog opens
-    setTimeout(() => {
-      const toolbar = document.querySelector('.editor-toolbar');
-      if (toolbar) {
-        toolbar.addEventListener('click', (e) => {
-          const button = (e.target as HTMLElement).closest('.editor-btn');
-          if (!button) return;
-
-          e.preventDefault();
-          const action = button.getAttribute('data-action');
-          if (action) {
-            document.execCommand(action, false);
-            document.querySelector('.editor-content')?.focus();
-          }
-        });
-      }
-    }, 150);
-
     const result = await DialogV2Class.wait({
       window: {
         title: 'Agregar Patrol Skill',
@@ -643,11 +618,22 @@ export class AddOrEditOfficerDialog {
             const hopeCostInput = dialogElement.querySelector(
               '#skill-hope-cost'
             ) as HTMLInputElement;
-            const editorContent = dialogElement.querySelector('#skill-description') as HTMLElement;
 
             const title = titleInput?.value?.trim() || '';
             const hopeCost = parseInt(hopeCostInput?.value || '0');
-            const description = editorContent?.innerHTML?.trim() || '';
+            // Read description from ProseMirror
+            let description = '';
+            const pmContent = dialogElement.querySelector('prose-mirror[name="skill-description"] .editor-content.ProseMirror');
+            if (pmContent) {
+              description = pmContent.innerHTML?.trim() || '';
+            }
+            if (!description) {
+              const pmEl = dialogElement.querySelector('prose-mirror[name="skill-description"]');
+              if (pmEl && 'value' in pmEl) {
+                const val = (pmEl as any).value;
+                if (typeof val === 'string') description = val;
+              }
+            }
 
             if (!title) {
               if (ui?.notifications) {

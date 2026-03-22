@@ -1,0 +1,452 @@
+/* ===================== Prison System Styles ===================== */
+
+/* Prison Section Header */
+.prisoners-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prisoner-config-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #d0d0c0;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.prisoner-config-btn:hover {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+/* Prison Cells Grid — always 2 per row */
+.prison-cells-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 0.75rem;
+}
+
+/* Individual Cell */
+.prison-cell {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.prison-cell.occupied {
+  border-color: rgba(243, 194, 103, 0.4);
+}
+
+.prison-cell.empty {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Drag & drop hover */
+.prison-cell.dnd-hover {
+  border-color: #4a90e2;
+  background: rgba(74, 144, 226, 0.15);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.4);
+}
+
+/* Cell Header */
+.cell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cell-number {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  color: #f3c267;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Status badges (shared) */
+.cell-status {
+  font-size: 0.6rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.cell-status-imprisoned {
+  background: rgba(255, 165, 0, 0.2);
+  color: #ffa500;
+}
+
+.cell-status-forced_labor {
+  background: rgba(156, 39, 176, 0.2);
+  color: #ce93d8;
+}
+
+/* Cell Summary — prisoner info row + action buttons below */
+.prisoner-cell-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.cell-prisoner-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prisoner-cell-summary .prisoner-image {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #f3c267;
+  flex-shrink: 0;
+}
+
+.prisoner-cell-summary .prisoner-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.prisoner-cell-summary .prisoner-name {
+  font-weight: bold;
+  color: #efe6d8;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.prisoner-release-badge {
+  font-size: 0.6rem;
+  color: #4a9eff;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Notes preview inside cell */
+.cell-prisoner-notes {
+  font-size: 0.7rem;
+  color: #d0d0c0;
+  font-style: italic;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-height: 2.8em;
+}
+
+/* Cell action buttons — icon-only, compact row */
+.prisoner-cell-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.cell-action-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 0.7rem;
+  padding: 0;
+}
+
+.cell-action-btn.prisoner-edit-btn {
+  background: rgba(68, 136, 255, 0.2);
+  color: #4488ff;
+}
+
+.cell-action-btn.prisoner-release-btn {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.cell-action-btn.prisoner-forced-labor-btn {
+  background: rgba(156, 39, 176, 0.2);
+  color: #ce93d8;
+}
+
+.cell-action-btn.prisoner-prison-btn {
+  background: rgba(255, 165, 0, 0.2);
+  color: #ffa500;
+}
+
+.cell-action-btn.prisoner-execute-btn {
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+}
+
+.cell-action-btn:hover {
+  transform: scale(1.15);
+  filter: brightness(1.3);
+}
+
+/* Empty Cell State */
+.cell-empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.cell-empty-state i {
+  font-size: 1.2rem;
+  opacity: 0.5;
+}
+
+/* ===================== Prisoner Records (Fichas) ===================== */
+
+.prisoner-records-section {
+  margin-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 0.75rem;
+}
+
+.prisoner-records-section h4 {
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Individual Record Card */
+.prisoner-record {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.record-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.record-image {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #f3c267;
+  flex-shrink: 0;
+}
+
+.record-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.record-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.record-name {
+  font-weight: bold;
+  color: #efe6d8;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-status {
+  font-size: 0.6rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.record-status-imprisoned { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
+.record-status-forced_labor { background: rgba(156, 39, 176, 0.2); color: #ce93d8; }
+.record-status-released { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+.record-status-executed { background: rgba(255, 68, 68, 0.2); color: #ff4444; }
+.record-status-transferred_to_prison { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+
+/* Return to cell button */
+.record-return-btn {
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  color: #4caf50;
+  cursor: pointer;
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.record-return-btn:hover {
+  background: rgba(76, 175, 80, 0.3);
+  border-color: #4caf50;
+}
+
+.record-notes {
+  font-size: 0.75rem;
+  color: #d0d0c0;
+  font-style: italic;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.record-crimes-placeholder {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.25);
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+/* Record History Timeline */
+.record-history {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  margin-left: 16px;
+  padding-left: 10px;
+}
+
+.record-entry {
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  border-radius: 3px;
+  color: #d0d0c0;
+  cursor: default;
+  position: relative;
+  transition: background 0.15s;
+}
+
+.record-entry::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.record-entry:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.record-entry-text {
+  display: block;
+}
+
+/* Record entry dot colors by action type */
+.record-entry-entered::before { background: #ffa500; }
+.record-entry-released::before { background: #4caf50; }
+.record-entry-forced_labor::before { background: #ce93d8; }
+.record-entry-transferred_to_prison::before { background: #ff9800; }
+.record-entry-executed::before { background: #ff4444; }
+.record-entry-notes_updated::before { background: #4488ff; }
+.record-entry-release_turn_updated::before { background: #4a9eff; }
+
+/* ===================== Edit Dialog Fixes ===================== */
+
+/* ProseMirror editor in prisoner edit dialog */
+.prisoner-edit-dialog .prisoner-editor-wrapper {
+  width: 100%;
+}
+
+.prisoner-edit-dialog .prisoner-editor-wrapper prose-mirror {
+  height: 200px !important;
+}
+
+.prisoner-edit-dialog .prisoner-editor-wrapper .editor-content {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.prisoner-edit-dialog .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prisoner-edit-dialog .form-group-notes {
+  flex-direction: column;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.prisoner-edit-dialog .form-group-notes label {
+  text-align: left;
+}
+
+.prisoner-edit-dialog .form-group-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prisoner-edit-dialog .form-group-inline label {
+  white-space: nowrap;
+}
+
+.prisoner-edit-dialog .form-group-inline input {
+  flex: 1;
+}
+
+.prisoner-edit-dialog .form-group label {
+  color: #f3c267;
+  font-size: 0.8rem;
+  font-weight: bold;
+}

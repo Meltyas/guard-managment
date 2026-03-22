@@ -3,6 +3,10 @@
  * Core entity interfaces and type definitions
  */
 
+// Re-export crime system types
+export type { Crime, OffenseType, CurrencyFine, SentenceEntry, SentenceConfig } from './crimes';
+export { OFFENSE_TYPES, OFFENSE_LABELS, OFFENSE_TYPE_FROM_SPANISH, DEFAULT_SENTENCE_CONFIG } from './crimes';
+
 // Base entity interface
 export interface BaseEntity {
   id: string;
@@ -234,9 +238,73 @@ export const DEFAULT_GUARD_STATS: GuardStats = {
   elocuencia: 0,
 };
 
+// ===================== Prison System =====================
+
+/** Prisoner status within the prison system */
+export type PrisonerStatus = 'imprisoned' | 'forced_labor' | 'executed' | 'released' | 'transferred_to_prison';
+
+/** Actions that can be logged in prisoner history */
+export type PrisonerAction = 'entered' | 'released' | 'forced_labor' | 'transferred_to_prison' | 'executed' | 'notes_updated' | 'release_turn_updated';
+
+/** Individual prisoner assigned to a temporary cell */
+export interface Prisoner {
+  id: string;
+  actorId: string;
+  tokenId?: string;
+  name: string;
+  img?: string;
+  cellIndex: number;
+  notes: string;
+  releaseTurn: number | null;
+  crimes: string[]; // IDs of crimes from the crime catalog
+  status: PrisonerStatus;
+  history: PrisonerHistoryEntry[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** History entry for a specific prisoner */
+export interface PrisonerHistoryEntry {
+  action: PrisonerAction;
+  timestamp: number;
+  performedBy: string;
+  details?: string;
+}
+
+/** Configuration for the prison */
+export interface PrisonConfig {
+  cellCount: number;
+}
+
 export const DEFAULT_CONFIG: GuardManagementConfig = {
   maxPatrolUnits: 12,
   defaultGuardStats: DEFAULT_GUARD_STATS,
   enableRealTimeSync: true,
   conflictResolutionStrategy: 'gm-override',
+};
+
+// ===================== Day/Night Phase System =====================
+
+/** Phase of the day/night cycle */
+export type DayNightPhase = 'day' | 'night';
+
+/** Phase and turn tracking data stored in game.settings */
+export interface PhaseData {
+  currentPhase: DayNightPhase;
+  currentTurn: number;
+  history: PhaseTurnEntry[];
+}
+
+/** Record of a single turn advancement */
+export interface PhaseTurnEntry {
+  turn: number;
+  phase: DayNightPhase;
+  advancedAt: number;   // epoch ms
+  advancedBy: string;   // user name
+}
+
+export const DEFAULT_PHASE_DATA: PhaseData = {
+  currentPhase: 'day',
+  currentTurn: 1,
+  history: [],
 };

@@ -327,13 +327,9 @@ export class ReputationDialog extends BaseWarehouseItemDialog<Reputation> {
 
         <div class="form-group">
           <label for="reputation-description">Descripción:</label>
-          <textarea
-            id="reputation-description"
-            name="description"
-            rows="3"
-            required
-            placeholder="Describe la relación de reputación..."
-          >${existingItem?.description || ''}</textarea>
+          <prose-mirror name="description" value="${(existingItem?.description || '').replace(/"/g, '&quot;')}">
+            ${existingItem?.description || ''}
+          </prose-mirror>
         </div>
 
         <div class="form-group">
@@ -372,12 +368,9 @@ export class ReputationDialog extends BaseWarehouseItemDialog<Reputation> {
 
         <div class="form-group">
           <label for="reputation-notes">Notas:</label>
-          <textarea
-            id="reputation-notes"
-            name="notes"
-            rows="2"
-            placeholder="Notas adicionales sobre esta reputación..."
-          >${existingItem?.notes || ''}</textarea>
+          <prose-mirror name="notes" value="${(existingItem?.notes || '').replace(/"/g, '&quot;')}">
+            ${existingItem?.notes || ''}
+          </prose-mirror>
         </div>
 
         <div class="form-group">

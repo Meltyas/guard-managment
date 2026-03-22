@@ -1,0 +1,83 @@
+<div class="organization-info">
+    <div class="info-section crimes-section">
+        {{!-- Header with search, filter, and action buttons --}}
+        <div class="crimes-toolbar">
+            <div class="crimes-search-group">
+                <div class="crimes-search-wrapper">
+                    <i class="fas fa-search crimes-search-icon"></i>
+                    <input type="text" class="crimes-search-input" placeholder="Buscar crimen..." />
+                </div>
+                <select class="crimes-filter-select">
+                    <option value="all">Todos</option>
+                    <option value="capital">Capital</option>
+                    <option value="major">Mayor</option>
+                    <option value="minor">Menor</option>
+                    <option value="light">Leve</option>
+                    <option value="fine">Multa</option>
+                </select>
+            </div>
+            <div class="crimes-actions">
+                <button class="crimes-btn crimes-add-btn" title="Añadir crimen">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="crimes-btn crimes-import-btn" title="Importar crímenes">
+                    <i class="fas fa-file-import"></i>
+                </button>
+                <button class="crimes-btn crimes-sentence-btn" title="Configurar sentencias">
+                    <i class="fas fa-balance-scale"></i>
+                </button>
+            </div>
+        </div>
+
+        {{!-- Sentence summary --}}
+        <div class="crimes-sentence-summary">
+            <div class="sentence-summary-header">
+                <i class="fas fa-gavel"></i>
+                <span>Tabla de Sentencias</span>
+            </div>
+            <div class="sentence-summary-list">
+                {{#each sentenceSummary}}
+                <div class="sentence-summary-row">
+                    <span class="sentence-type-badge offense-{{type}}">{{typeLabel}}</span>
+                    <span class="sentence-text">{{text}}</span>
+                </div>
+                {{/each}}
+            </div>
+        </div>
+
+        {{!-- Crimes list --}}
+        <div class="crimes-list">
+            {{#if crimes.length}}
+                {{#each crimes}}
+                <div class="crime-card" data-crime-id="{{id}}">
+                    <div class="crime-card-info">
+                        <span class="crime-name">{{name}}</span>
+                        <span class="crime-type-badge offense-{{offenseType}}">{{offenseLabel}}</span>
+                    </div>
+                    <div class="crime-card-sentence">
+                        <span class="crime-sentence-text">{{sentenceText}}</span>
+                    </div>
+                    <div class="crime-card-actions">
+                        <button class="crime-edit-btn" data-crime-id="{{id}}" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="crime-delete-btn" data-crime-id="{{id}}" data-crime-name="{{name}}" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {{/each}}
+            {{else}}
+                <div class="crimes-empty">
+                    <i class="fas fa-gavel"></i>
+                    <p>No hay crímenes registrados</p>
+                    <p class="crimes-empty-hint">Usa el botón <i class="fas fa-plus"></i> para añadir o <i class="fas fa-file-import"></i> para importar</p>
+                </div>
+            {{/if}}
+        </div>
+
+        <div class="crimes-count">
+            <span>{{crimeCount}} crimen{{#unless singleCrime}}es{{/unless}} registrado{{#unless singleCrime}}s{{/unless}}</span>
+        </div>
+    </div>
+</div>

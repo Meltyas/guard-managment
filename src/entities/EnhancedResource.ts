@@ -205,7 +205,9 @@ export class EnhancedResourceDialog extends BaseWarehouseItemDialog<EnhancedReso
 
             <div class="form-group">
               <label for="description">Descripción:</label>
-              <textarea id="description" name="description" rows="3" required>${resource?.description || ''}</textarea>
+              <prose-mirror name="description" value="${(resource?.description || '').replace(/"/g, '&quot;')}">
+                ${resource?.description || ''}
+              </prose-mirror>
             </div>
 
             <div class="form-row">

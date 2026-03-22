@@ -221,7 +221,8 @@ export class OfficerFormApplication extends FormApplication {
         </div>
         <div class="form-group">
           <label>Descripción</label>
-          <textarea id="skill-description" rows="3" style="width:100%;resize:vertical;" placeholder="Describe el efecto de esta habilidad..."></textarea>
+          <prose-mirror name="skill-description" value="">
+          </prose-mirror>
         </div>
       </div>
     `;
@@ -262,9 +263,6 @@ export class OfficerFormApplication extends FormApplication {
             const hopeCostInput = dialog.element?.querySelector(
               '#skill-hope-cost'
             ) as HTMLInputElement;
-            const descInput = dialog.element?.querySelector(
-              '#skill-description'
-            ) as HTMLTextAreaElement;
 
             const name = nameInput?.value?.trim();
             if (!name) {
@@ -278,7 +276,17 @@ export class OfficerFormApplication extends FormApplication {
               5,
               Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0)
             );
-            resolvedDescription = descInput?.value?.trim() || '';
+            let desc = '';
+            const pmContent = dialog.element?.querySelector('prose-mirror[name="skill-description"] .editor-content.ProseMirror');
+            if (pmContent) desc = pmContent.innerHTML?.trim() || '';
+            if (!desc) {
+              const pmEl = dialog.element?.querySelector('prose-mirror[name="skill-description"]');
+              if (pmEl && 'value' in pmEl) {
+                const val = (pmEl as any).value;
+                if (typeof val === 'string') desc = val;
+              }
+            }
+            resolvedDescription = desc;
             return 'add';
           },
         },
@@ -319,10 +327,8 @@ export class OfficerFormApplication extends FormApplication {
     const DialogV2Class = foundry.applications?.api?.DialogV2;
     if (!DialogV2Class) return;
 
-    const escapedDesc = (skill.description || '')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    const escapedDesc = (skill.description || '').replace(/"/g, '&quot;');
+    const descContent = skill.description || '';
     const content = `
       <div class="guard-dialog" style="padding: 0.5rem;">
         <div class="form-group">
@@ -344,7 +350,9 @@ export class OfficerFormApplication extends FormApplication {
         </div>
         <div class="form-group">
           <label>Descripción</label>
-          <textarea id="skill-description" rows="3" style="width:100%;resize:vertical;" placeholder="Describe el efecto de esta habilidad...">${escapedDesc}</textarea>
+          <prose-mirror name="skill-description" value="${escapedDesc}">
+            ${descContent}
+          </prose-mirror>
         </div>
       </div>
     `;
@@ -384,9 +392,6 @@ export class OfficerFormApplication extends FormApplication {
             const hopeCostInput = dialog.element?.querySelector(
               '#skill-hope-cost'
             ) as HTMLInputElement;
-            const descInput = dialog.element?.querySelector(
-              '#skill-description'
-            ) as HTMLTextAreaElement;
 
             const name = nameInput?.value?.trim();
             if (!name) {
@@ -400,7 +405,17 @@ export class OfficerFormApplication extends FormApplication {
               5,
               Math.max(0, parseInt(hopeCostInput?.value || '0', 10) || 0)
             );
-            resolvedDescription = descInput?.value?.trim() || '';
+            let desc = '';
+            const pmContent = dialog.element?.querySelector('prose-mirror[name="skill-description"] .editor-content.ProseMirror');
+            if (pmContent) desc = pmContent.innerHTML?.trim() || '';
+            if (!desc) {
+              const pmEl = dialog.element?.querySelector('prose-mirror[name="skill-description"]');
+              if (pmEl && 'value' in pmEl) {
+                const val = (pmEl as any).value;
+                if (typeof val === 'string') desc = val;
+              }
+            }
+            resolvedDescription = desc;
             return 'save';
           },
         },
@@ -456,7 +471,8 @@ export class OfficerFormApplication extends FormApplication {
         </div>
         <div class="form-group">
           <label>Descripción</label>
-          <textarea id="trait-description" rows="4"></textarea>
+          <prose-mirror name="trait-description" value="">
+          </prose-mirror>
         </div>
       </div>
     `;
@@ -474,12 +490,19 @@ export class OfficerFormApplication extends FormApplication {
           label: 'Agregar',
           callback: (event: any, button: any, dialog: any) => {
             const titleInput = dialog.element?.querySelector('#trait-title') as HTMLInputElement;
-            const descInput = dialog.element?.querySelector(
-              '#trait-description'
-            ) as HTMLTextAreaElement;
 
             const title = titleInput?.value?.trim();
-            editorContent = descInput?.value || '';
+            let desc = '';
+            const pmContent = dialog.element?.querySelector('prose-mirror[name="trait-description"] .editor-content.ProseMirror');
+            if (pmContent) desc = pmContent.innerHTML?.trim() || '';
+            if (!desc) {
+              const pmEl = dialog.element?.querySelector('prose-mirror[name="trait-description"]');
+              if (pmEl && 'value' in pmEl) {
+                const val = (pmEl as any).value;
+                if (typeof val === 'string') desc = val;
+              }
+            }
+            editorContent = desc;
 
             if (!title) {
               ui.notifications?.error('El título es obligatorio');
@@ -538,7 +561,8 @@ export class OfficerFormApplication extends FormApplication {
     if (!DialogV2Class) return;
 
     const escapedTitle = trait.title.replace(/"/g, '&quot;');
-    const escapedDesc = trait.description.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escapedDesc = (trait.description || '').replace(/"/g, '&quot;');
+    const descContent = trait.description || '';
 
     const content = `
       <div class="guard-dialog" style="padding: 0.5rem;">
@@ -548,7 +572,9 @@ export class OfficerFormApplication extends FormApplication {
         </div>
         <div class="form-group">
           <label>Descripción</label>
-          <textarea id="trait-description" rows="4">${escapedDesc}</textarea>
+          <prose-mirror name="trait-description" value="${escapedDesc}">
+            ${descContent}
+          </prose-mirror>
         </div>
       </div>
     `;
@@ -566,12 +592,19 @@ export class OfficerFormApplication extends FormApplication {
           label: 'Guardar',
           callback: (event: any, button: any, dialog: any) => {
             const titleInput = dialog.element?.querySelector('#trait-title') as HTMLInputElement;
-            const descInput = dialog.element?.querySelector(
-              '#trait-description'
-            ) as HTMLTextAreaElement;
 
             const title = titleInput?.value?.trim();
-            editorContent = descInput?.value || '';
+            let desc = '';
+            const pmContent = dialog.element?.querySelector('prose-mirror[name="trait-description"] .editor-content.ProseMirror');
+            if (pmContent) desc = pmContent.innerHTML?.trim() || '';
+            if (!desc) {
+              const pmEl = dialog.element?.querySelector('prose-mirror[name="trait-description"]');
+              if (pmEl && 'value' in pmEl) {
+                const val = (pmEl as any).value;
+                if (typeof val === 'string') desc = val;
+              }
+            }
+            editorContent = desc;
 
             if (!title) {
               ui.notifications?.error('El título es obligatorio');

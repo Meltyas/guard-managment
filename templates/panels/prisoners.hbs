@@ -1,0 +1,133 @@
+<div class="organization-info">
+  <div class="info-section prisoners-section">
+    <h3>
+      <i class="fas fa-dungeon"></i> Celdas Temporales
+      <button type="button" class="prisoner-config-btn btn-icon" title="Configurar celdas"
+        style="margin-left: auto;">
+        <i class="fas fa-cog"></i>
+      </button>
+    </h3>
+
+    {{!-- Cells Grid (2 per row) --}}
+    <div class="prison-cells-grid" data-cell-count="{{cellCount}}">
+      {{#each cells}}
+        <div class="prison-cell {{#if this.prisoner}}occupied{{else}}empty{{/if}}"
+             data-cell-index="{{this.index}}"
+             data-drop="prisoner">
+          <div class="cell-header">
+            <span class="cell-number">Celda {{this.displayIndex}}</span>
+            {{#if this.prisoner}}
+              <span class="cell-status cell-status-{{this.prisoner.status}}">
+                {{this.prisoner.statusLabel}}
+              </span>
+            {{/if}}
+          </div>
+
+          {{#if this.prisoner}}
+            <div class="prisoner-cell-summary" data-prisoner-id="{{this.prisoner.id}}">
+              <div class="cell-prisoner-info">
+                {{#if this.prisoner.img}}
+                  <div class="prisoner-image">
+                    <img src="{{this.prisoner.img}}" alt="{{this.prisoner.name}}"
+                         onerror="this.style.display='none'" />
+                  </div>
+                {{/if}}
+                <span class="prisoner-name">{{this.prisoner.name}}</span>
+                {{#if this.prisoner.releaseTurn}}
+                  <span class="prisoner-release-badge" title="Turno de liberación">
+                    <i class="fas fa-hourglass-half"></i> T{{this.prisoner.releaseTurn}}
+                  </span>
+                {{/if}}
+              </div>
+              {{#if this.prisoner.notes}}
+                <div class="cell-prisoner-notes">{{{this.prisoner.notes}}}</div>
+              {{/if}}
+              {{#if this.prisoner.crimeNames.length}}
+                <div class="prisoner-crime-badges">
+                  {{#each this.prisoner.crimeNames}}
+                    <span class="prisoner-crime-badge offense-{{this.offenseType}}">{{this.name}}</span>
+                  {{/each}}
+                </div>
+              {{/if}}
+              <div class="prisoner-cell-actions">
+                <button type="button" class="cell-action-btn prisoner-edit-btn" title="Editar notas y turno"
+                  data-prisoner-id="{{this.prisoner.id}}">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="cell-action-btn prisoner-release-btn" title="Liberar al prisionero"
+                  data-prisoner-id="{{this.prisoner.id}}" data-prisoner-name="{{this.prisoner.name}}">
+                  <i class="fas fa-door-open"></i>
+                </button>
+                <button type="button" class="cell-action-btn prisoner-forced-labor-btn" title="Enviar a trabajos forzados"
+                  data-prisoner-id="{{this.prisoner.id}}" data-prisoner-name="{{this.prisoner.name}}">
+                  <i class="fas fa-hammer"></i>
+                </button>
+                <button type="button" class="cell-action-btn prisoner-prison-btn" title="Transferir a prisión permanente"
+                  data-prisoner-id="{{this.prisoner.id}}" data-prisoner-name="{{this.prisoner.name}}">
+                  <i class="fas fa-lock"></i>
+                </button>
+                <button type="button" class="cell-action-btn prisoner-execute-btn" title="Enviar a ejecución"
+                  data-prisoner-id="{{this.prisoner.id}}" data-prisoner-name="{{this.prisoner.name}}">
+                  <i class="fas fa-skull-crossbones"></i>
+                </button>
+              </div>
+            </div>
+          {{else}}
+            <div class="cell-empty-state">
+              <i class="fas fa-user-plus"></i>
+              <span>Arrastra un actor aquí</span>
+            </div>
+          {{/if}}
+        </div>
+      {{/each}}
+    </div>
+
+    {{!-- Prisoner Records (fichas) below the grid --}}
+    {{#if records.length}}
+      <div class="prisoner-records-section">
+        <h4><i class="fas fa-folder-open"></i> Fichas de Prisioneros</h4>
+        {{#each records}}
+          <div class="prisoner-record" data-prisoner-id="{{this.id}}">
+            <div class="record-header">
+              {{#if this.img}}
+                <div class="record-image">
+                  <img src="{{this.img}}" alt="{{this.name}}"
+                       onerror="this.style.display='none'" />
+                </div>
+              {{/if}}
+              <div class="record-title">
+                <span class="record-name">{{this.name}}</span>
+                <span class="record-status record-status-{{this.status}}">{{this.statusLabel}}</span>
+              </div>
+              {{#if this.canReturn}}
+                <button type="button" class="record-return-btn" title="Devolver a la celda"
+                  data-prisoner-id="{{this.id}}" data-prisoner-name="{{this.name}}">
+                  <i class="fas fa-undo"></i> Devolver a celda
+                </button>
+              {{/if}}
+            </div>
+            {{#if this.notes}}
+              <div class="record-notes">{{{this.notes}}}</div>
+            {{/if}}
+            {{#if this.crimeNames.length}}
+              <div class="record-crimes">
+                <i class="fas fa-gavel"></i>
+                {{#each this.crimeNames}}
+                  <span class="prisoner-crime-badge offense-{{this.offenseType}}">{{this.name}}</span>
+                {{/each}}
+              </div>
+            {{/if}}
+            <div class="record-history">
+              {{#each this.history}}
+                <div class="record-entry record-entry-{{this.action}}"
+                     title="{{this.performedBy}} — {{this.timeAgo}}">
+                  <span class="record-entry-text">{{this.details}}</span>
+                </div>
+              {{/each}}
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    {{/if}}
+  </div>
+</div>

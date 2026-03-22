@@ -1,41 +1,43 @@
-<div class="panel-header">
-    <div class="panel-title">
-        <i class="fas fa-shield-alt"></i>
-        <span>Gestión de Guardias</span>
+<div class="panel-container">
+    <div class="panel-header">
+        <div class="panel-title">
+            <i class="fas fa-shield-alt"></i>
+            <span>Gestión de Guardias</span>
+        </div>
+        <div class="panel-controls">
+            <button class="panel-minimize" title="Minimizar">
+                <i class="{{minimizeIcon}}"></i>
+            </button>
+            <button class="panel-close" title="Cerrar">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
     </div>
-    <div class="panel-controls">
-        <button class="panel-minimize" title="Minimizar">
-            <i class="{{minimizeIcon}}"></i>
-        </button>
-        <button class="panel-close" title="Cerrar">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-</div>
 
-<div class="panel-content" style="{{#if isMinimized}}display: none;{{/if}}">
-    <div class="quick-actions">
-        <button class="action-btn primary" data-action="manage-organizations">
-            <i class="fas fa-info-circle"></i>
-            <span>Ver Organización</span>
-        </button>
+    <div class="panel-content" style="{{#if isMinimized}}display: none;{{/if}}">
+        <div class="quick-actions">
+            <button class="action-btn primary" data-action="manage-organizations">
+                <i class="fas fa-info-circle"></i>
+                <span>Ver Organización</span>
+            </button>
 
-        {{!-- Temporarily allow all users to see officer warehouse for sync testing --}}
-        <button class="action-btn secondary" data-action="open-officer-warehouse">
-            <i class="fas fa-users"></i>
-            <span>Personal</span>
-        </button>
+            {{!-- Temporarily allow all users to see officer warehouse for sync testing --}}
+            <button class="action-btn secondary" data-action="open-officer-warehouse">
+                <i class="fas fa-users"></i>
+                <span>Personal</span>
+            </button>
 
-        {{#if isGM}}
-        <button class="action-btn secondary" data-action="open-warehouse">
-            <i class="fas fa-warehouse"></i>
-            <span>GM Warehouse</span>
-        </button>
-        {{/if}}
+            {{#if isGM}}
+            <button class="action-btn secondary" data-action="open-warehouse">
+                <i class="fas fa-warehouse"></i>
+                <span>GM Warehouse</span>
+            </button>
+            {{/if}}
 
-        <button class="action-btn secondary" data-action="debug-info">
-            <i class="fas fa-bug"></i>
-            <span>Debug Info</span>
-        </button>
+            <button class="action-btn secondary" data-action="debug-info">
+                <i class="fas fa-bug"></i>
+                <span>Debug Info</span>
+            </button>
+        </div>
     </div>
 </div>

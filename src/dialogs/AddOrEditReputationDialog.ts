@@ -94,18 +94,6 @@ export class AddOrEditReputationDialog {
         5000
       );
 
-      // Setup textarea value after content is rendered
-      DOMEventSetup.observe(
-        '#reputation-description',
-        () => {
-          const textarea = document.getElementById('reputation-description') as HTMLTextAreaElement;
-          if (textarea && existingReputation?.description) {
-            textarea.value = existingReputation.description;
-          }
-        },
-        5000
-      );
-
       const result = await DialogV2Class.wait({
         window: {
           title,
@@ -411,12 +399,6 @@ export class AddOrEditReputationDialog {
         render: (html: JQuery) => {
           // Setup file picker after render
           setTimeout(() => this.setupFilePicker(existingReputation), 100);
-
-          // Setup textarea value
-          const textarea = html.find('#reputation-description')[0] as HTMLTextAreaElement;
-          if (textarea && existingReputation?.description) {
-            textarea.value = existingReputation.description;
-          }
         },
         close: () => {
           this.cleanup();

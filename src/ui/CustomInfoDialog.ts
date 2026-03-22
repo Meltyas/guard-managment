@@ -7,9 +7,11 @@ import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-
 // Import CSS for drag & drop styling
 import '../styles/custom-info-dialog.css';
 import { NotificationService } from '../utils/services/NotificationService.js';
+import { CrimesPanel } from './panels/CrimesPanel.js';
 import { GeneralPanel } from './panels/GeneralPanel.js';
 import { PatrolsPanel } from './panels/PatrolsPanel.js';
 import { ReputationPanel } from './panels/ReputationPanel.js';
+import { PrisonersPanel } from './panels/PrisonersPanel.js';
 import { ResourcesPanel } from './panels/ResourcesPanel.js';
 
 export class CustomInfoDialog implements FocusableDialog {
@@ -47,6 +49,16 @@ export class CustomInfoDialog implements FocusableDialog {
         console.warn('CustomInfoDialog | patrols auto-refresh failed', e);
       }
     });
+    // Auto-refresh prisoners when data layer updates
+    window.addEventListener('guard-prisoners-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="prisoners"]');
+        if (activeTab) this.refreshPrisonersPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | prisoners auto-refresh failed', e);
+      }
+    });
     // Auto-refresh auxiliaries when data layer updates
     window.addEventListener('guard-auxiliaries-updated', () => {
       try {
@@ -55,6 +67,16 @@ export class CustomInfoDialog implements FocusableDialog {
         if (activeTab) this.refreshAuxiliariesPanel();
       } catch (e) {
         console.warn('CustomInfoDialog | auxiliaries auto-refresh failed', e);
+      }
+    });
+    // Auto-refresh crimes when data layer updates
+    window.addEventListener('guard-crimes-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="crimes"]');
+        if (activeTab) this.refreshCrimesPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | crimes auto-refresh failed', e);
       }
     });
   }
@@ -245,6 +267,22 @@ export class CustomInfoDialog implements FocusableDialog {
         if (reputationContainer) {
           console.log('🔄 Rendering ReputationPanel with', freshOrganization.reputation?.length || 0, 'reputation IDs...');
           await ReputationPanel.render(reputationContainer, freshOrganization);
+        }
+
+        const crimesContainer = this.element.querySelector(
+          '[data-tab-panel="crimes"]'
+        ) as HTMLElement;
+        if (crimesContainer) {
+          console.log('🔄 Rendering CrimesPanel...');
+          await CrimesPanel.render(crimesContainer);
+        }
+
+        const prisonersContainer = this.element.querySelector(
+          '[data-tab-panel="prisoners"]'
+        ) as HTMLElement;
+        if (prisonersContainer) {
+          console.log('🔄 Rendering PrisonersPanel...');
+          await PrisonersPanel.render(prisonersContainer);
         }
       }
 
@@ -681,6 +719,24 @@ export class CustomInfoDialog implements FocusableDialog {
     if (!tabPanel) return;
 
     PatrolsPanel.render(tabPanel, 'auxiliary');
+  }
+
+  public refreshPrisonersPanel() {
+    const tabPanel = this.element?.querySelector(
+      '[data-tab-panel="prisoners"]'
+    ) as HTMLElement | null;
+    if (!tabPanel) return;
+
+    PrisonersPanel.render(tabPanel);
+  }
+
+  public refreshCrimesPanel() {
+    const tabPanel = this.element?.querySelector(
+      '[data-tab-panel="crimes"]'
+    ) as HTMLElement | null;
+    if (!tabPanel) return;
+
+    CrimesPanel.render(tabPanel);
   }
 
   /**
@@ -1194,6 +1250,12 @@ export class CustomInfoDialog implements FocusableDialog {
         }
         if (tab === 'auxiliaries') {
           this.refreshAuxiliariesPanel();
+        }
+        if (tab === 'prisoners') {
+          this.refreshPrisonersPanel();
+        }
+        if (tab === 'crimes') {
+          this.refreshCrimesPanel();
         }
       }
     };

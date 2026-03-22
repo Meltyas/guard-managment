@@ -15,13 +15,9 @@
 
   <div class='form-group'>
     <label for='resource-description'>Descripción</label>
-    <textarea
-      id='resource-description'
-      name='description'
-      placeholder='Descripción del recurso...'
-      rows='3'
-      maxlength='500'
-    >{{description}}</textarea>
+    <prose-mirror name='description' value='{{description}}'>
+      {{{description}}}
+    </prose-mirror>
     <small class='form-hint'>Opcional. Máximo 500 caracteres</small>
   </div>
 

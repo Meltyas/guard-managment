@@ -7,10 +7,14 @@ import { GMWarehouseDialog } from './dialogs/GMWarehouseDialog';
 import { OfficerWarehouseDialog } from './dialogs/OfficerWarehouseDialog';
 import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
+import { CrimeManager } from './managers/CrimeManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
 import { CivilianManager } from './managers/CivilianManager';
+import { PrisonerManager } from './managers/PrisonerManager';
+import { PhaseManager } from './managers/PhaseManager';
+import { SentenceConfigManager } from './managers/SentenceConfigManager';
 import { SimpleModifierManager } from './managers/SimpleModifierManager';
 import { SimplePatrolEffectManager } from './managers/SimplePatrolEffectManager';
 import { SimpleReputationManager } from './managers/SimpleReputationManager';
@@ -21,7 +25,10 @@ import './styles/custom-info-dialog.css';
 import './styles/gm-warehouse.css';
 import './styles/main.css';
 import './styles/officers.css';
+import './styles/prisoners.css';
+import './styles/crimes.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
+import { DayNightDecoration } from './ui/DayNightDecoration';
 import { PatrolOverlayManager } from './ui/PatrolOverlayManager';
 import { GuardManagementHelpers } from './utils/console-helpers';
 import { TooltipGenerator } from './utils/TooltipGenerator';
@@ -97,10 +104,15 @@ class GuardManagementModule {
   public guardDialogManager: GuardDialogManager;
   public officerManager: OfficerManager;
   public civilianManager: CivilianManager;
+  public prisonerManager: PrisonerManager;
+  public crimeManager: CrimeManager;
+  public sentenceConfigManager: SentenceConfigManager;
   public resourceManager: SimpleResourceManager;
   public reputationManager: SimpleReputationManager;
   public floatingPanel: FloatingGuardPanel;
   public patrolOverlayManager: PatrolOverlayManager;
+  public phaseManager: PhaseManager;
+  public dayNightDecoration: DayNightDecoration;
   public isInitialized: boolean = false;
 
   constructor() {
@@ -110,10 +122,15 @@ class GuardManagementModule {
     this.guardDialogManager = new GuardDialogManager(this.guardOrganizationManager);
     this.officerManager = new OfficerManager();
     this.civilianManager = new CivilianManager();
+    this.prisonerManager = new PrisonerManager();
+    this.crimeManager = new CrimeManager();
+    this.sentenceConfigManager = new SentenceConfigManager();
     this.resourceManager = new SimpleResourceManager();
     this.reputationManager = new SimpleReputationManager();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
     this.patrolOverlayManager = new PatrolOverlayManager();
+    this.phaseManager = new PhaseManager();
+    this.dayNightDecoration = new DayNightDecoration();
   }
 
   /**
@@ -134,10 +151,14 @@ class GuardManagementModule {
     await this.guardDialogManager.initialize();
     await this.officerManager.initialize();
     await this.civilianManager.initialize();
+    await this.prisonerManager.initialize();
+    await this.crimeManager.initialize();
+    await this.sentenceConfigManager.initialize();
     await this.resourceManager.initialize();
     await this.reputationManager.initialize();
     await this.modifierManager.initialize();
     await this.patrolEffectManager.initialize();
+    await this.phaseManager.initialize();
 
     // Initialize floating panel (but don't show it yet)
     this.floatingPanel.initialize();
@@ -200,6 +221,7 @@ class GuardManagementModule {
       patrolEffectManager: !!this.patrolEffectManager,
       guardOrganizationManager: !!this.guardOrganizationManager,
       guardDialogManager: !!this.guardDialogManager,
+      prisonerManager: !!this.prisonerManager,
       floatingPanel: !!this.floatingPanel,
       isInitialized: this.isInitialized,
     });
@@ -229,6 +251,7 @@ class GuardManagementModule {
     this.patrolOverlayManager.cleanup();
     this.guardDialogManager.cleanup();
     this.guardOrganizationManager?.cleanup?.();
+    this.dayNightDecoration.destroy();
   }
 }
 
@@ -241,6 +264,8 @@ Hooks.once('init', async () => {
       'modules/guard-management/templates/panels/patrols.hbs',
       'modules/guard-management/templates/panels/resources.hbs',
       'modules/guard-management/templates/panels/reputation.hbs',
+      'modules/guard-management/templates/panels/prisoners.hbs',
+      'modules/guard-management/templates/panels/crimes.hbs',
       'modules/guard-management/templates/overlays/patrol-overlay.hbs',
     ]);
 

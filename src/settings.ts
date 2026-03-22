@@ -312,6 +312,114 @@ export function registerSettings(): void {
     },
   });
 
+  // Prisoners data storage
+  game?.settings?.register('guard-management', 'prisoners', {
+    name: 'Prisoners Data',
+    hint: 'Stored prisoner information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      console.log('Settings onChange | Prisoners changed, reloading and refreshing UI...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.prisonerManager) {
+        gm.prisonerManager.loadFromSettings?.();
+      }
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          console.log('Settings onChange | Refreshing open CustomInfoDialog for prisoners');
+          dialog.refreshPrisonersPanel?.();
+        }
+      }
+      gm?.floatingPanel?.refreshPanel?.();
+    },
+  });
+
+  // Prison configuration
+  game?.settings?.register('guard-management', 'prisonConfig', {
+    name: 'Prison Configuration',
+    hint: 'Prison cell count and configuration',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: { cellCount: 4 },
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.prisonerManager) {
+        gm.prisonerManager.loadConfigFromSettings?.();
+      }
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshPrisonersPanel?.();
+      }
+    },
+  });
+
+  // Crimes catalog data storage
+  game?.settings?.register('guard-management', 'crimes', {
+    name: 'Crimes Data',
+    hint: 'Stored crime catalog information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      console.log('Settings onChange | Crimes changed, reloading and refreshing UI...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.crimeManager) {
+        gm.crimeManager.loadFromSettings?.();
+      }
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          dialog.refreshCrimesPanel?.();
+        }
+      }
+    },
+  });
+
+  // Sentence configuration per offense type
+  game?.settings?.register('guard-management', 'sentenceConfig', {
+    name: 'Sentence Configuration',
+    hint: 'Sentence turns and fines per offense type',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (_value) => {
+      console.log('Settings onChange | SentenceConfig changed, reloading...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.sentenceConfigManager) {
+        gm.sentenceConfigManager.loadFromSettings?.();
+      }
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          dialog.refreshCrimesPanel?.();
+        }
+      }
+    },
+  });
+
+  // Phase/Turn tracking data
+  game?.settings?.register('guard-management', 'phaseData', {
+    name: 'Phase Data',
+    hint: 'Day/night phase and turn tracking',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: { currentPhase: 'day', currentTurn: 1, history: [] },
+    onChange: (_value) => {
+      console.log('Settings onChange | PhaseData changed, reloading...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.phaseManager) {
+        gm.phaseManager.loadFromSettings?.();
+      }
+      gm?.dayNightDecoration?.updateFromPhaseManager?.();
+    },
+  });
+
   // Sync options
   game?.settings?.register('guard-management', 'syncOptions', {
     name: 'Synchronization Options',

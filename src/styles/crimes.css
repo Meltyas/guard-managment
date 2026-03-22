@@ -1,0 +1,389 @@
+/* ===== Crimes Panel Styles ===== */
+
+.crimes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+/* Toolbar */
+.crimes-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.crimes-search-group {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.crimes-search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.crimes-search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 0.8em;
+  pointer-events: none;
+}
+
+.crimes-search-input {
+  width: 100%;
+  padding: 0.35rem 0.5rem 0.35rem 1.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #eee;
+  font-size: 0.85em;
+  font-family: 'Signika', sans-serif;
+}
+
+.crimes-search-input::placeholder {
+  color: #888;
+}
+
+.crimes-search-input:focus {
+  outline: none;
+  border-color: #f3c267;
+}
+
+.crimes-filter-select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #eee;
+  font-size: 0.85em;
+  font-family: 'Signika', sans-serif;
+  min-width: 80px;
+}
+
+.crimes-filter-select:focus {
+  outline: none;
+  border-color: #f3c267;
+}
+
+.crimes-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.crimes-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85em;
+  transition: all 0.15s ease;
+}
+
+.crimes-btn:hover {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+/* Sentence Summary */
+.crimes-sentence-summary {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.sentence-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85em;
+  margin-bottom: 0.4rem;
+}
+
+.sentence-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sentence-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8em;
+}
+
+.sentence-text {
+  color: #bbb;
+}
+
+/* Offense type badges */
+.sentence-type-badge,
+.crime-type-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  min-width: 50px;
+  text-align: center;
+}
+
+.offense-capital {
+  background: rgba(232, 74, 74, 0.25);
+  color: #e84a4a;
+  border: 1px solid rgba(232, 74, 74, 0.4);
+}
+
+.offense-major {
+  background: rgba(243, 162, 97, 0.25);
+  color: #f3a261;
+  border: 1px solid rgba(243, 162, 97, 0.4);
+}
+
+.offense-minor {
+  background: rgba(243, 194, 103, 0.25);
+  color: #f3c267;
+  border: 1px solid rgba(243, 194, 103, 0.4);
+}
+
+.offense-light {
+  background: rgba(74, 158, 255, 0.25);
+  color: #4a9eff;
+  border: 1px solid rgba(74, 158, 255, 0.4);
+}
+
+.offense-fine {
+  background: rgba(74, 232, 154, 0.25);
+  color: #4ae89a;
+  border: 1px solid rgba(74, 232, 154, 0.4);
+}
+
+/* Crime Cards */
+.crimes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.crime-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.crime-card:hover {
+  border-color: rgba(243, 194, 103, 0.3);
+}
+
+.crime-card-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.crime-name {
+  color: #eee;
+  font-size: 0.85em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crime-card-sentence {
+  flex: 1;
+  min-width: 0;
+}
+
+.crime-sentence-text {
+  color: #999;
+  font-size: 0.75em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.crime-card-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.crime-card-actions button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.8em;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+
+.crime-card-actions button:hover {
+  color: #f3c267;
+  background: rgba(243, 194, 103, 0.15);
+}
+
+.crime-card-actions .crime-delete-btn:hover {
+  color: #e84a4a;
+  background: rgba(232, 74, 74, 0.15);
+}
+
+/* Empty state */
+.crimes-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: #888;
+}
+
+.crimes-empty i {
+  font-size: 2em;
+  opacity: 0.4;
+}
+
+.crimes-empty p {
+  margin: 0;
+  font-size: 0.9em;
+}
+
+.crimes-empty-hint {
+  font-size: 0.8em !important;
+  color: #666 !important;
+}
+
+/* Count footer */
+.crimes-count {
+  text-align: right;
+  font-size: 0.75em;
+  color: #888;
+  padding-right: 0.25rem;
+}
+
+/* Import dialog */
+.crimes-import-dialog .import-example {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+.crimes-import-dialog .import-example label {
+  color: #f3c267;
+  font-size: 0.85em;
+  margin-bottom: 0.3rem;
+  display: block;
+}
+
+.crimes-import-dialog .import-example-text {
+  color: #bbb;
+  font-size: 0.8em;
+  margin: 0.3rem 0 0 0;
+  white-space: pre-line;
+}
+
+.crimes-import-dialog .import-preview {
+  background: rgba(74, 232, 154, 0.1);
+  border: 1px solid rgba(74, 232, 154, 0.3);
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+}
+
+.crimes-import-dialog .import-preview-text {
+  color: #4ae89a;
+  font-size: 0.85em;
+}
+
+/* Sentence config dialog */
+.sentence-config-dialog .sentence-config-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.sentence-config-dialog .sentence-config-table th {
+  padding: 0.4rem;
+  text-align: center;
+  color: #f3c267;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sentence-config-dialog .sentence-config-table td {
+  padding: 0.35rem 0.25rem;
+  vertical-align: middle;
+}
+
+.sentence-config-dialog .sentence-turns-mode,
+.sentence-config-dialog .sentence-turns-input,
+.sentence-config-dialog .sentence-fine-input {
+  padding: 0.25rem 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #eee;
+  font-size: 0.9em;
+  font-family: 'Signika', sans-serif;
+}
+
+.sentence-config-dialog .sentence-turns-mode {
+  width: 100px;
+}
+
+.sentence-config-dialog .sentence-turns-input {
+  width: 50px;
+  margin-left: 0.25rem;
+}
+
+.sentence-config-dialog .sentence-fine-input {
+  width: 50px;
+  text-align: center;
+}
+
+/* Prisoner crime badges */
+.prisoner-crime-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin-top: 0.2rem;
+}
+
+.prisoner-crime-badge {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border-radius: 8px;
+  font-size: 0.65em;
+  background: rgba(243, 194, 103, 0.15);
+  color: #f3c267;
+  border: 1px solid rgba(243, 194, 103, 0.25);
+}
