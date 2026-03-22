@@ -40,7 +40,7 @@ export interface GuardModalOptions {
 
 // Track all open modals for stacking
 const openModals: GuardModal[] = [];
-let baseZIndex = 9000;
+let baseZIndex = 80;
 
 export class GuardModal {
   public readonly element: HTMLElement;

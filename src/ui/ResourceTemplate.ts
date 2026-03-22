@@ -41,28 +41,45 @@ export class ResourceTemplate {
       return '';
     }
 
-    // Use Daggerheart structure but with our resource content
+    const MODULE_PATH = 'modules/guard-management';
+    const hasImage = !!resourceData.image;
+    const image = resourceData.image || '';
+    const noImageClass = hasImage ? '' : ' dh-card--no-image';
+
     return `
-      <div class="message-content">
-        <div class="daggerheart chat domain-card">
-          <img class="card-img" src="${resourceData.image || 'icons/commodities/metal/ingot-stack-silver.webp'}">
-          <details class="domain-card-move" open>
-            <summary class="domain-card-header">
-              <div class="domain-label">
-                <h2 class="title">${resourceData.name}</h2>
+      <div class="dh-card-chat-wrapper">
+        <div class="dh-card dh-card--resource${noImageClass}">
+          <div class="dh-card-inner">
+            <div class="dh-card-header">
+              ${hasImage ? `
+              <div class="dh-card-header-image">
+                <img alt="${resourceData.name}" src="${image}" />
               </div>
-              <i class="fa-solid fa-chevron-down"></i>
-            </summary>
-            <div class="description">
-              ${resourceData.description ? `<p>${resourceData.description.trim()}</p>` : ''}
+              <img class="dh-card-divider" src="${MODULE_PATH}/assets/card/card-type-middle-deco.png" />
+              ` : ''}
+              <div class="dh-card-type">recurso</div>
+              <div class="dh-card-quantity-badge">×${resourceData.quantity}</div>
             </div>
-          </details>
-          <footer class="ability-card-footer">
-            <ul class="tags">
-              <li class="tag">Recurso</li>
-              <li class="tag">Cantidad: ${resourceData.quantity}</li>
-            </ul>
-          </footer>
+            <div class="dh-card-body">
+              <div class="dh-card-title-block">
+                <div class="dh-card-title-wrapper">
+                  <h1 class="dh-card-title">${resourceData.name}</h1>
+                </div>
+                ${
+                  resourceData.description
+                    ? `
+                <div class="dh-card-subtitle">
+                  <p>${resourceData.description.trim()}</p>
+                </div>
+                `
+                    : ''
+                }
+              </div>
+              <div class="dh-card-content">
+                <p><strong>Cantidad:</strong> ${resourceData.quantity}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;

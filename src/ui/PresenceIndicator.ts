@@ -28,8 +28,8 @@ const ENTITY_SELECTORS: Array<{ container: string; idAttr: string; name: string 
   { container: '.building-card', idAttr: 'data-building-id', name: '.building-name' },
   { container: '.poi-card', idAttr: 'data-poi-id', name: '.poi-name' },
   { container: '.finances-entry-row', idAttr: 'data-entry-id', name: '.finances-entry-name' },
-  { container: '.resource-item', idAttr: 'data-resource-id', name: '.resource-name' },
-  { container: '.reputation-item', idAttr: 'data-reputation-id', name: '.reputation-name' },
+  { container: '.dh-card[data-resource-id]', idAttr: 'data-resource-id', name: '.dh-card-title' },
+  { container: '.dh-card[data-reputation-id]', idAttr: 'data-reputation-id', name: '.dh-card-title' },
   { container: '.stat-box.clickable-stat', idAttr: 'data-stat', name: '.stat-label' },
 ];
 

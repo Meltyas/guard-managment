@@ -36,29 +36,45 @@ export class ReputationTemplate {
     }
 
     const levelLabel = REPUTATION_LABELS[reputationData.level] || `Level ${reputationData.level}`;
+    const hasImage = !!reputationData.image;
+    const image = reputationData.image || '';
+    const MODULE_PATH = 'modules/guard-management';
+    const noImageClass = hasImage ? '' : ' dh-card--no-image';
 
-    // Use Daggerheart structure but with our reputation content
     return `
-      <div class="message-content">
-        <div class="daggerheart chat domain-card">
-          <img class="card-img" src="${reputationData.image || 'icons/skills/social/diplomacy-handshake-yellow.webp'}">
-          <details class="domain-card-move" open>
-            <summary class="domain-card-header">
-              <div class="domain-label">
-                <h2 class="title">${reputationData.name}</h2>
+      <div class="dh-card-chat-wrapper">
+        <div class="dh-card dh-card--reputation${noImageClass}">
+          <div class="dh-card-inner">
+            <div class="dh-card-header">
+              ${hasImage ? `
+              <div class="dh-card-header-image">
+                <img alt="${reputationData.name}" src="${image}" />
               </div>
-              <i class="fa-solid fa-chevron-down"></i>
-            </summary>
-            <div class="description">
-              ${reputationData.description ? `<p>${reputationData.description.trim()}</p>` : ''}
+              <img class="dh-card-divider" src="${MODULE_PATH}/assets/card/card-type-middle-deco.png" />
+              ` : ''}
+              <div class="dh-card-type">reputación</div>
+              <div class="dh-card-quantity-badge dh-card-quantity-badge--level-${reputationData.level}">${levelLabel}</div>
             </div>
-          </details>
-          <footer class="ability-card-footer">
-            <ul class="tags">
-              <li class="tag">Reputación</li>
-              <li class="tag">Nivel: ${levelLabel}</li>
-            </ul>
-          </footer>
+            <div class="dh-card-body">
+              <div class="dh-card-title-block">
+                <div class="dh-card-title-wrapper">
+                  <h1 class="dh-card-title">${reputationData.name}</h1>
+                </div>
+                ${
+                  reputationData.description?.trim()
+                    ? `
+                <div class="dh-card-subtitle">
+                  <p>${reputationData.description.trim()}</p>
+                </div>
+                `
+                    : ''
+                }
+              </div>
+              <div class="dh-card-content">
+                <p><strong>Nivel:</strong> ${levelLabel}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;

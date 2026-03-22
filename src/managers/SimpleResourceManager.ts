@@ -61,15 +61,17 @@ export class SimpleResourceManager {
     name: string;
     description: string;
     quantity: number;
+    image?: string;
     organizationId: string;
   }): Promise<Resource> {
     const id = foundry.utils.randomID();
-    
+
     const resource: Resource = {
       id,
       name: data.name,
       description: data.description,
       quantity: data.quantity,
+      image: data.image || '',
       organizationId: data.organizationId,
       version: 1,
     };

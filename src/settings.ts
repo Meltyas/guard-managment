@@ -128,9 +128,9 @@ export function registerSettings(): void {
       }
       gm?.floatingPanel?.refreshPanel?.();
       gm?.patrolOverlayManager?.refreshAll?.();
-      // Refresh open GMWarehouseDialog resources tab
+      // Refresh open GMWarehouseDialog resources tab (skip if warehouse itself triggered the save)
       const gmWarehouseR = (window as any).GuardManagement?.GMWarehouseDialog;
-      if (gmWarehouseR?.instance?.isOpen?.()) {
+      if (gmWarehouseR?.instance?.isOpen?.() && !gmWarehouseR.instance.isLocalRefresh) {
         gmWarehouseR.instance.refreshResourcesTab?.();
       }
     },

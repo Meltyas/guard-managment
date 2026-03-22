@@ -163,15 +163,9 @@
   border-radius: 6px;
   padding: 20px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   align-items: start;
-}
-
-@container warehouse-container (max-width: 1200px) {
-  .templates-list {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 @container warehouse-container (max-width: 900px) {
@@ -202,7 +196,8 @@
   opacity: 0.5;
 }
 
-/* Resources specific styling */
+/* Resources specific styling — uses same responsive grid as other tabs */
+
 .tab-content[data-tab='resources'] .templates-list .empty-state::before {
   content: '📦';
 }

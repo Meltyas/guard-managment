@@ -3,9 +3,7 @@ import { REPUTATION_LABELS, ReputationLevel } from '../types/entities.js';
 import { ReputationTemplate } from '../ui/ReputationTemplate.js';
 import { ResourceTemplate } from '../ui/ResourceTemplate.js';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
-import { DOMEventSetup } from '../utils/DOMEventSetup.js';
 import { ResourceErrorHandler } from '../utils/ResourceErrorHandler.js';
-import { ResourceEventHandler, type ResourceEventContext } from '../utils/ResourceEventHandler.js';
 
 /**
  * GM Warehouse Dialog
@@ -50,6 +48,7 @@ export class GMWarehouseDialog implements FocusableDialog {
   private resourceUpdateHandler?: (event: Event) => void;
   private resourceDeleteHandler?: (event: Event) => void;
   private uiRefreshHandler?: (event: Event) => void;
+  private isLocalRefresh = false;
 
   // Storage for templates (in-memory for now)
   private resourceTemplates: any[] = [];
@@ -499,12 +498,8 @@ export class GMWarehouseDialog implements FocusableDialog {
     this.element.addEventListener('click', this.handleGlobalClick);
     document.addEventListener('click', this.handleGlobalClick);
 
-    // Setup resource event handlers using centralized approach
-    DOMEventSetup.setupOrRetry(
-      ['.add-resource-btn', '.edit-resource-btn', '.delete-resource-btn'],
-      () => this.setupResourceEventListeners(),
-      3
-    );
+    // Setup window event listeners for external resource events (from other dialogs)
+    this.setupWindowResourceListeners();
   }
 
   /**
@@ -528,39 +523,24 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Setup event listeners using centralized resource handler
+   * Setup window event listeners for external resource events
+   * Button handlers are managed by addEventListeners/addTemplateEventListeners,
+   * so we only subscribe to window events from other dialogs here.
    */
-  private setupResourceEventListeners(): void {
-    const context: ResourceEventContext = {
-      organizationId: 'gm-warehouse-templates',
-      onResourceAdded: (resource) => {
-        console.log('Resource template added:', resource);
-        this.refreshResourcesTab();
-      },
-      onResourceEdited: (resource) => {
-        console.log('Resource template edited:', resource);
-        this.refreshResourcesTab();
-      },
-      onResourceRemoved: (resourceId) => {
-        console.log('Resource template removed:', resourceId);
-        this.refreshResourcesTab();
-      },
-      refreshUI: () => this.refreshResourcesTab(),
-    };
-
-    ResourceEventHandler.setup(context);
-
-    // Also setup window event listeners for external events
+  private setupWindowResourceListeners(): void {
+    // Window event listeners for external events (from other panels/dialogs)
+    // Skip refresh when the warehouse itself just triggered a refresh
     this.resourceUpdateHandler = (_event: Event) => {
-      this.refreshResourcesTab();
+      if (!this.isLocalRefresh) this.refreshResourcesTab();
     };
 
     this.resourceDeleteHandler = (_event: Event) => {
-      this.refreshResourcesTab();
+      if (!this.isLocalRefresh) this.refreshResourcesTab();
     };
 
     // Listen for general UI refresh events
     this.uiRefreshHandler = (event: Event) => {
+      if (this.isLocalRefresh) return;
       const detail = (event as CustomEvent).detail;
 
       // Only refresh if it's related to resources
@@ -717,21 +697,13 @@ export class GMWarehouseDialog implements FocusableDialog {
         const { AddOrEditResourceDialog } = await import('./AddOrEditResourceDialog.js');
 
         const templateOrganizationId = 'gm-warehouse-templates';
+        // AddOrEditResourceDialog.create() already creates the resource via resourceManager
+        // so we only need to refresh the UI — no second createResource call
         const newResource = await AddOrEditResourceDialog.create(templateOrganizationId);
 
         if (newResource) {
-          const gm = (window as any).GuardManagement;
-          if (!gm?.resourceManager) {
-            throw new Error('ResourceManager not available');
-          }
-
-          const createdResource = await gm.resourceManager.createResource(newResource);
-          if (!createdResource) {
-            throw new Error('Failed to create resource via ResourceManager');
-          }
-
           await this.refreshResourcesTab();
-          return createdResource;
+          return newResource;
         }
 
         return null;
@@ -964,7 +936,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     sendToChatButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = button.closest('.template-item') as HTMLElement;
+        const templateItem = (button.closest('.dh-card') || button.closest('.template-item')) as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
 
@@ -981,7 +953,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     editButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = button.closest('.template-item') as HTMLElement;
+        const templateItem = (button.closest('.dh-card') || button.closest('.template-item')) as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
@@ -1004,7 +976,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     duplicateButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = button.closest('.template-item') as HTMLElement;
+        const templateItem = (button.closest('.dh-card') || button.closest('.template-item')) as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
@@ -1027,7 +999,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     deleteButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = button.closest('.template-item') as HTMLElement;
+        const templateItem = (button.closest('.dh-card') || button.closest('.template-item')) as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
@@ -1045,8 +1017,8 @@ export class GMWarehouseDialog implements FocusableDialog {
       };
     });
 
-    // Handle drag start for resource templates
-    const resourceTemplates = this.element.querySelectorAll('.resource-template[draggable="true"]');
+    // Handle drag start for resource templates (now .dh-card with data-resource-id)
+    const resourceTemplates = this.element.querySelectorAll('.dh-card[data-resource-id][draggable="true"]');
     resourceTemplates.forEach((template) => {
       (template as HTMLElement).ondragstart = (event) => {
         this.handleResourceDragStart(event as DragEvent);
@@ -1058,7 +1030,7 @@ export class GMWarehouseDialog implements FocusableDialog {
 
     // Handle drag start for reputation templates
     const reputationTemplates = this.element.querySelectorAll(
-      '.reputation-template[draggable="true"]'
+      '.dh-card[data-reputation-id][draggable="true"]'
     );
     console.log(`🔧 Setting up drag for ${reputationTemplates.length} reputation templates`);
     reputationTemplates.forEach((template) => {
@@ -1102,7 +1074,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private handleResourceDragStart(event: DragEvent): void {
     const target = event.target as HTMLElement;
-    const resourceTemplate = target.closest('.resource-template') as HTMLElement;
+    const resourceTemplate = target.closest('.dh-card[data-resource-id]') as HTMLElement;
 
     if (!resourceTemplate || !event.dataTransfer) return;
 
@@ -1143,7 +1115,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private handleResourceDragEnd(event: DragEvent): void {
     const target = event.target as HTMLElement;
-    const resourceTemplate = target.closest('.resource-template') as HTMLElement;
+    const resourceTemplate = target.closest('.dh-card[data-resource-id]') as HTMLElement;
 
     if (resourceTemplate) {
       // Restore visual state
@@ -1156,7 +1128,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private handleReputationDragStart(event: DragEvent): void {
     const target = event.target as HTMLElement;
-    const reputationTemplate = target.closest('.reputation-template') as HTMLElement;
+    const reputationTemplate = target.closest('.dh-card[data-reputation-id]') as HTMLElement;
 
     if (!reputationTemplate || !event.dataTransfer) return;
 
@@ -1218,7 +1190,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private handleReputationDragEnd(event: DragEvent): void {
     const target = event.target as HTMLElement;
-    const reputationTemplate = target.closest('.reputation-template') as HTMLElement;
+    const reputationTemplate = target.closest('.dh-card[data-reputation-id]') as HTMLElement;
 
     if (reputationTemplate) {
       // Restore visual state
@@ -1455,40 +1427,30 @@ export class GMWarehouseDialog implements FocusableDialog {
           throw new Error('Resource not found');
         }
 
-        const resourceData = resource; // Ya es un objeto plano
-
         // Import AddOrEditResourceDialog dynamically
         const { AddOrEditResourceDialog } = await import('./AddOrEditResourceDialog.js');
 
-        // Show edit dialog
-        const updatedResource = await AddOrEditResourceDialog.edit(resourceData);
+        // Show edit dialog — AddOrEditResourceDialog.edit() already calls
+        // resourceManager.updateResource() internally, so we do NOT update again here
+        const updatedResource = await AddOrEditResourceDialog.edit(resource);
 
         if (updatedResource) {
-          // Save the updated resource to the database
-          const updateSuccess = await gm.resourceManager.updateResource(
-            updatedResource.id,
-            updatedResource
-          );
-
-          if (!updateSuccess) {
-            throw new Error('Failed to save resource to database');
-          }
-
           // Refresh the warehouse dialog
           await this.refreshResourcesTab();
 
-          // Emit custom event to notify other dialogs
+          // Emit custom event to notify other dialogs (skip self-triggered refresh)
+          this.isLocalRefresh = true;
           window.dispatchEvent(
             new CustomEvent('guard-resource-updated', {
               detail: {
                 resourceId: updatedResource.id,
                 updatedResource: updatedResource,
-                oldName: resourceData.name,
+                oldName: resource.name,
                 newName: updatedResource.name,
               },
             })
           );
-
+          this.isLocalRefresh = false;
           return updatedResource;
         }
 
@@ -1725,12 +1687,14 @@ export class GMWarehouseDialog implements FocusableDialog {
       // Refresh the warehouse dialog to remove the deleted resource
       this.refreshResourcesTab();
 
-      // Emit custom event to notify other dialogs
+      // Emit custom event to notify other dialogs (skip self-triggered refresh)
+      this.isLocalRefresh = true;
       window.dispatchEvent(
         new CustomEvent('guard-resource-deleted', {
           detail: { resourceId, resourceName },
         })
       );
+      this.isLocalRefresh = false;
     } catch (error) {
       console.error('❌ Error deleting resource:', error);
       if ((globalThis as any).ui?.notifications) {

@@ -1,0 +1,546 @@
+/*
+ * Daggerheart Card Creator-style Cards
+ * Based on the official Daggerheart Card Creator community card design
+ * Used for resource items in panels and chat messages
+ */
+
+/* ============================================================================
+ * Font Faces
+ * ============================================================================ */
+@font-face {
+  font-family: 'Eveleth Clean';
+  src: url('/modules/guard-management/assets/card/EvelethCleanRegular.otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Overpass';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/modules/guard-management/assets/card/Overpass-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Overpass';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/modules/guard-management/assets/card/Overpass-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ============================================================================
+ * Card Container — 5:7 aspect ratio, gold border, rounded
+ * ============================================================================ */
+.dh-card {
+  width: 320px;
+  height: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  position: relative;
+  border: 2px solid #c9a44a;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font-family: 'Overpass', 'Signika', sans-serif;
+  color: #000;
+  min-height: 290px;
+}
+
+/* ============================================================================
+ * No-Image Variant — Skip header image and divider, text-only card
+ * ============================================================================ */
+.dh-card--no-image .dh-card-header {
+  flex-basis: auto;
+  background: transparent;
+}
+
+.dh-card--no-image .dh-card-header-image,
+.dh-card--no-image .dh-card-divider {
+  display: none;
+}
+
+.dh-card--no-image .dh-card-type {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  margin: 8px 8px 0 auto;
+}
+
+.dh-card--no-image .dh-card-quantity-badge {
+  position: relative;
+  top: auto;
+  left: auto;
+  margin: 8px auto 0 8px;
+}
+
+/* ============================================================================
+ * Card Inner — Scrollable content area
+ * ============================================================================ */
+.dh-card-inner {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.dh-card-inner::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================================
+ * Header Image Area — Top portion with artwork
+ * ============================================================================ */
+.dh-card-header {
+  position: relative;
+  flex-grow: 0;
+  background: #f5f0e8;
+  display: flex;
+  flex-direction: column;
+  flex-basis: 100px;
+}
+
+.dh-card-header-image {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.dh-card-header-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ============================================================================
+ * Divider — Decorative separator flush at bottom of header
+ * ============================================================================ */
+.dh-card-divider {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+
+/* ============================================================================
+ * Card Type Label — "RECURSO" / "REPUTACIÓN" badge
+ * ============================================================================ */
+.dh-card-type {
+  position: absolute;
+  right: 28px;
+  bottom: 16px;
+  z-index: 10;
+  font-size: 9px;
+  text-transform: uppercase;
+  color: #000;
+  letter-spacing: 0;
+  font-family: 'Overpass', 'Signika', sans-serif;
+  width: 62px;
+  text-align: center;
+  font-weight: bold;
+  padding-top: 1px;
+  background: url('/modules/guard-management/assets/card/card-type-background.png') no-repeat
+    center / contain;
+}
+
+/* ============================================================================
+ * Card Body — Title, subtitle/description, ability text
+ * ============================================================================ */
+.dh-card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  position: relative;
+  overflow: hidden;
+  padding: 2px 11px 0;
+  z-index: 40;
+  font-size: 14px;
+  color: #000;
+  min-height: 140px;
+}
+
+.dh-card-title-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.dh-card-title-block .dh-card-title-wrapper {
+  width: 100%;
+  max-width: 100%;
+  padding-top: 4px;
+}
+
+.dh-card-title {
+  font-family: 'Eveleth Clean', 'Cinzel', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  padding: 6px 0 4px 6px;
+  line-height: 30px;
+  font-size: 29px;
+  width: 100%;
+  color: #000;
+  margin: 0;
+}
+
+.dh-card-subtitle {
+  width: 100%;
+  padding: 2px 6px 4px;
+}
+
+.dh-card-subtitle p {
+  font-style: italic;
+  font-size: 14.5px;
+  letter-spacing: -0.015em;
+  line-height: 17px;
+  color: #000;
+  margin: 0;
+}
+
+/* ============================================================================
+ * Card Content — Main text area (abilities, effects, etc.)
+ * ============================================================================ */
+.dh-card-content {
+  flex: 1;
+  padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.dh-card-content p {
+  font-family: 'Overpass', 'Signika', sans-serif;
+  letter-spacing: -0.03em;
+  line-height: 16.4px;
+  font-size: 14px;
+  color: #000;
+  background-color: #fff;
+  padding: 0;
+  margin: 0;
+}
+
+.dh-card-content strong {
+  font-weight: 700;
+}
+
+.dh-card-content em {
+  font-style: italic;
+}
+
+/* ============================================================================
+ * Quantity Badge — Overlaid on card header
+ * ============================================================================ */
+.dh-card-quantity-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.7);
+  color: #f3c267;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 8px 10px 4px;
+  border-radius: 12px;
+  border: 1px solid #f3c267;
+  font-family: 'Overpass', 'Signika', sans-serif;
+  backdrop-filter: blur(4px);
+}
+
+/* ============================================================================
+ * Action Buttons — Overlay on card header (top-right)
+ * ============================================================================ */
+.dh-card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 50;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.dh-card:hover .dh-card-actions {
+  opacity: 1;
+}
+
+.dh-card-actions .dh-card-action-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+}
+
+.dh-card-actions .dh-card-action-btn:hover {
+  background: rgba(243, 194, 103, 0.8);
+  border-color: #f3c267;
+  color: #000;
+  transform: scale(1.1);
+}
+
+.dh-card-actions .dh-card-action-btn.dh-card-action-btn--danger:hover {
+  background: rgba(244, 67, 54, 0.8);
+  border-color: #f44336;
+  color: #fff;
+}
+
+/* ============================================================================
+ * Chat Message Wrapper — Foundry chat integration
+ * ============================================================================ */
+.dh-card-chat-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+/* Adjust card size inside chat messages for readability */
+.chat-message .dh-card {
+  height: auto;
+  width: 320px;
+  min-height: 290px;
+  font-size: 13px;
+}
+
+.chat-message .dh-card .dh-card-title {
+  font-size: 24px;
+  line-height: 26px;
+}
+
+.chat-message .dh-card .dh-card-subtitle p {
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.chat-message .dh-card .dh-card-content p {
+  font-size: 13px;
+  line-height: 15px;
+}
+
+/* ============================================================================
+ * Card in List Context — Compact cards for panels & warehouse grids
+ * ============================================================================ */
+
+/* Cards in list grids: auto height, fit content */
+.resources-list--grid .dh-card,
+.templates-list .dh-card {
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.resources-list--grid .dh-card .dh-card-header,
+.templates-list .dh-card .dh-card-header {
+  flex-basis: 100px;
+}
+
+.resources-list--grid .dh-card .dh-card-title,
+.templates-list .dh-card .dh-card-title {
+  font-size: 18px;
+  line-height: 22px;
+  padding: 4px 0 2px 6px;
+}
+
+.resources-list--grid .dh-card .dh-card-subtitle p,
+.templates-list .dh-card .dh-card-subtitle p {
+  font-size: 12px;
+  line-height: 14px;
+}
+
+/* List action bar — always visible, bottom of card */
+.dh-card-actions--list {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: 10;
+  display: flex;
+  gap: 3px;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(201, 164, 74, 0.2);
+  opacity: 1;
+}
+
+/* ============================================================================
+ * Resource List Grid — Responsive grid matching warehouse layout
+ * ============================================================================ */
+.resources-section {
+  container-type: inline-size;
+  container-name: resources-container;
+}
+
+.resources-list--grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  align-items: start;
+}
+
+@container resources-container (max-width: 900px) {
+  .resources-list--grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container resources-container (max-width: 600px) {
+  .resources-list--grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.resources-list--grid .empty-state {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================================
+ * Reputation List Grid — Responsive grid matching warehouse layout
+ * ============================================================================ */
+.reputation-section {
+  container-type: inline-size;
+  container-name: reputation-container;
+}
+
+.reputation-list--grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  align-items: start;
+}
+
+@container reputation-container (max-width: 900px) {
+  .reputation-list--grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container reputation-container (max-width: 600px) {
+  .reputation-list--grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reputation-list--grid .empty-state {
+  grid-column: 1 / -1;
+}
+
+/* Reputation cards in list/grid context */
+.reputation-list--grid .dh-card,
+.reputation-list .dh-card {
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.reputation-list--grid .dh-card .dh-card-header,
+.reputation-list .dh-card .dh-card-header {
+  flex-basis: 100px;
+}
+
+.reputation-list--grid .dh-card .dh-card-title,
+.reputation-list .dh-card .dh-card-title {
+  font-size: 18px;
+  line-height: 22px;
+  padding: 4px 0 2px 6px;
+}
+
+.reputation-list--grid .dh-card .dh-card-subtitle p,
+.reputation-list .dh-card .dh-card-subtitle p {
+  font-size: 12px;
+  line-height: 14px;
+}
+
+/* ============================================================================
+ * Card variations — Different border colors by type
+ * ============================================================================ */
+.dh-card--resource {
+  border-color: #c9a44a; /* Gold */
+}
+
+.dh-card--reputation {
+  border-color: #6a5acd; /* Purple */
+}
+
+.dh-card--modifier {
+  border-color: #4a9e8e; /* Teal */
+}
+
+/* ============================================================================
+ * Reputation Badge Colors — Based on reputation level (1-7)
+ * ============================================================================ */
+.dh-card-quantity-badge--level-1 {
+  /* Enemigos — Dark red */
+  background: rgba(139, 0, 0, 0.85);
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+.dh-card-quantity-badge--level-2 {
+  /* Hostiles — Red-orange */
+  background: rgba(180, 50, 20, 0.85);
+  color: #ff8a65;
+  border-color: #ff8a65;
+}
+
+.dh-card-quantity-badge--level-3 {
+  /* Desconfiados — Orange */
+  background: rgba(150, 90, 20, 0.85);
+  color: #ffb74d;
+  border-color: #ffb74d;
+}
+
+.dh-card-quantity-badge--level-4 {
+  /* Neutrales — Gray/neutral */
+  background: rgba(80, 80, 80, 0.85);
+  color: #bdbdbd;
+  border-color: #bdbdbd;
+}
+
+.dh-card-quantity-badge--level-5 {
+  /* Amistosos — Light green */
+  background: rgba(30, 100, 50, 0.85);
+  color: #81c784;
+  border-color: #81c784;
+}
+
+.dh-card-quantity-badge--level-6 {
+  /* Confiados — Green */
+  background: rgba(20, 80, 60, 0.85);
+  color: #4db6ac;
+  border-color: #4db6ac;
+}
+
+.dh-card-quantity-badge--level-7 {
+  /* Aliados — Blue/gold */
+  background: rgba(20, 50, 100, 0.85);
+  color: #64b5f6;
+  border-color: #64b5f6;
+}

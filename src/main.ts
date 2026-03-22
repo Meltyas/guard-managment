@@ -36,6 +36,7 @@ import './styles/buildings.css';
 import './styles/poi.css';
 import './styles/finances.css';
 import './styles/presence.css';
+import './styles/daggerheart-card.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 import { DayNightDecoration } from './ui/DayNightDecoration';
 import { PatrolOverlayManager } from './ui/PatrolOverlayManager';

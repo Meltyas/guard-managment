@@ -55,27 +55,47 @@ const resourceActions: ActionButton[] = [
 // ============================================================================
 
 function generateResourceChatTemplate(entity: Resource, context: ChatContext): string {
+  const MODULE_PATH = 'modules/guard-management';
+  const hasImage = !!entity.image;
+  const image = entity.image || '';
+  const noImageClass = hasImage ? '' : ' dh-card--no-image';
+
   return `
-    <div class="guard-resource-chat">
-      <div class="resource-item">
-        ${
-          entity.image
-            ? `<div class="resource-image">
-                <img src="${entity.image}" alt="${entity.name}" onerror="this.style.display='none'" />
-              </div>`
-            : ''
-        }
-        <div class="resource-info">
-          <span class="resource-name">${entity.name}</span>
-          <span class="resource-quantity">Cantidad: ${entity.quantity}</span>
-          ${
-            entity.description && entity.description.trim()
-              ? `<span class="resource-description">${entity.description.trim()}</span>`
-              : ''
-          }
+    <div class="dh-card-chat-wrapper">
+      <div class="dh-card dh-card--resource${noImageClass}">
+        <div class="dh-card-inner">
+          <div class="dh-card-header">
+            ${hasImage ? `
+            <div class="dh-card-header-image">
+              <img alt="${entity.name}" src="${image}" />
+            </div>
+            <img class="dh-card-divider" src="${MODULE_PATH}/assets/card/card-type-middle-deco.png" />
+            ` : ''}
+            <div class="dh-card-type">recurso</div>
+            <div class="dh-card-quantity-badge">×${entity.quantity}</div>
+          </div>
+          <div class="dh-card-body">
+            <div class="dh-card-title-block">
+              <div class="dh-card-title-wrapper">
+                <h1 class="dh-card-title">${entity.name}</h1>
+              </div>
+              ${
+                entity.description?.trim()
+                  ? `
+              <div class="dh-card-subtitle">
+                <p>${entity.description.trim()}</p>
+              </div>
+              `
+                  : ''
+              }
+            </div>
+            <div class="dh-card-content">
+              <p><strong>Cantidad:</strong> ${entity.quantity}</p>
+            </div>
+          </div>
         </div>
+
       </div>
-      ${context.organizationName ? `<div class="resource-source"><strong>${context.organizationName}</strong></div>` : ''}
     </div>
   `;
 }

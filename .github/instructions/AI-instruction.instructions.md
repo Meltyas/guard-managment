@@ -223,7 +223,7 @@ npm run test:watch   # Tests in watch mode
 - ✅ **Warehouse integration**
 - ✅ **Error handling**
 - ✅ **Notifications**
-- ✅ **Chat integration** — Every entity card/panel MUST have a "Enviar al chat" button that sends a formatted summary to the Foundry chat via `ChatMessage.create`
+- ✅ **Chat integration** — Every entity card/panel MUST have a "Enviar al chat" button that sends a formatted summary to the Foundry chat via `ChatMessage.create`. All chat messages (except dice rolls) MUST use the `.dh-card` card style for visual consistency. If the entity has no image, omit the header image and divider — render only the text body (add `.dh-card--no-image` class to skip the header).
 - ✅ **Focus management**
 - ✅ **Validation**
 
@@ -391,6 +391,23 @@ class GuardManagementModule {
 | **Stat Calculation Flow** | Guard Base → Organization Modifiers → Patrol Derivation → Custom Modifiers → Effects → Final Stats |
 | **Permission Matrix**     | GM has full CRUD, Players have read-all + limited modify                                           |
 | **Dialog Architecture**   | Independent dialogs per entity type, all use DialogV2                                              |
+
+### 🔢 Z-Index Rules
+
+> **⚠️ CRITICAL: All module dialogs and modals MUST stay below Foundry's FilePicker z-index.** Foundry's core `Application._maxZ` manages window stacking and the FilePicker typically renders at z-index ~100-200+. Our modals must NOT block it.
+
+| Component | z-index | Source |
+|---|---|---|
+| Custom dialogs (base) | `51` | `main.css` |
+| Custom dialogs (focused) | `80` | `main.css` |
+| GuardModal (base) | `80` | `GuardModal.ts` — `baseZIndex` |
+| BaseWarehouseItemDialog | `80` | `BaseWarehouseItemDialog.ts` — `zIndexCounter` |
+| OfficerWarehouseDialog | `100` | `OfficerWarehouseDialog.ts` |
+
+**Rules:**
+- **NEVER set z-index above 100** for any dialog or modal — Foundry's FilePicker and other core popups must always appear on top
+- GuardModal stacks open modals sequentially (`baseZIndex + i`), so even with several modals open they stay in the 80-90 range
+- The only exception is debug/error overlays (z-index 9999) which are temporary diagnostic tools
 
 ---
 

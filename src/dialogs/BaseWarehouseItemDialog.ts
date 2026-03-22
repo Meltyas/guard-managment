@@ -15,7 +15,7 @@ export abstract class BaseWarehouseItemDialog<T extends BaseWarehouseItem>
   protected isDragging = false;
   protected dragOffset = { x: 0, y: 0 };
   protected isFocused = false;
-  private static zIndexCounter = 1000;
+  private static zIndexCounter = 80;
 
   constructor(config: WarehouseItemDialogConfig<T>, item?: T) {
     this.config = config;

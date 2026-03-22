@@ -610,14 +610,6 @@
   margin-bottom: 16px;
 }
 
-/* Reputation list - same grid layout as resources */
-.reputation-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 1rem;
-}
-
 /* Reputation items - same as resource-item */
 .reputation-item {
   display: flex;
