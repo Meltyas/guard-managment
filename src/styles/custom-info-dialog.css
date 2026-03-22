@@ -146,6 +146,34 @@
   color: white;
 }
 
+/* Minimized state */
+.custom-info-dialog.minimized {
+  min-height: unset;
+  resize: none;
+  opacity: 0.72;
+  border-color: rgba(243, 194, 103, 0.45);
+  backdrop-filter: blur(6px);
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease,
+    width 0.2s ease;
+}
+
+.custom-info-dialog.minimized:hover {
+  opacity: 0.92;
+  border-color: rgba(243, 194, 103, 0.8);
+}
+
+.custom-info-dialog.minimized .custom-dialog-content,
+.custom-info-dialog.minimized .custom-dialog-resize-handle {
+  display: none;
+}
+
+.custom-info-dialog.minimized .custom-dialog-header {
+  border-bottom: none;
+  border-radius: 6px;
+}
+
 /* Dialog Content - Styled like Daggerheart */
 .custom-dialog-content {
   flex: 1;

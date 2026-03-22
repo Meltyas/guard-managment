@@ -23,6 +23,8 @@ export class CustomInfoDialog implements FocusableDialog {
   public element: HTMLElement | null = null;
   private isDragging = false;
   private isResizing = false;
+  private isMinimized = false;
+  private preMinimizeSize = { width: 0, height: 0 };
   private dragOffset = { x: 0, y: 0 };
   private onEditCallback?: () => void;
   private onCloseCallback?: () => void;
@@ -435,6 +437,29 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
+   * Toggle minimized state — collapses to header pill, semi-transparent, draggable
+   */
+  private toggleMinimize(): void {
+    if (!this.element) return;
+    this.isMinimized = !this.isMinimized;
+
+    const icon = this.element.querySelector('.custom-dialog-minimize i') as HTMLElement | null;
+
+    if (this.isMinimized) {
+      this.preMinimizeSize = { width: this.element.offsetWidth, height: this.element.offsetHeight };
+      this.element.classList.add('minimized');
+      this.element.style.width = '280px';
+      this.element.style.height = '';
+      if (icon) icon.className = 'fas fa-window-restore';
+    } else {
+      this.element.classList.remove('minimized');
+      this.element.style.width = `${this.preMinimizeSize.width}px`;
+      this.element.style.height = `${this.preMinimizeSize.height}px`;
+      if (icon) icon.className = 'fas fa-window-minimize';
+    }
+  }
+
+  /**
    * Check if dialog is open
    */
   public isOpen(): boolean {
@@ -449,6 +474,7 @@ export class CustomInfoDialog implements FocusableDialog {
 
     const header = this.element.querySelector('.custom-dialog-header') as HTMLElement;
     const editBtn = this.element.querySelector('.custom-dialog-edit') as HTMLElement;
+    const minimizeBtn = this.element.querySelector('.custom-dialog-minimize') as HTMLElement;
     const closeBtn = this.element.querySelector('.custom-dialog-close') as HTMLElement;
     const resizeHandle = this.element.querySelector('.custom-dialog-resize-handle') as HTMLElement;
 
@@ -471,6 +497,12 @@ export class CustomInfoDialog implements FocusableDialog {
       if (this.onEditCallback) {
         this.onEditCallback();
       }
+    });
+
+    minimizeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.toggleMinimize();
     });
 
     closeBtn.addEventListener('click', (e) => {
@@ -1059,7 +1091,7 @@ export class CustomInfoDialog implements FocusableDialog {
       this.presenceIndicator?.reposition();
     }
 
-    if (this.isResizing) {
+    if (this.isResizing && !this.isMinimized) {
       const rect = this.element.getBoundingClientRect();
       const newWidth = e.clientX - rect.left;
       const newHeight = e.clientY - rect.top;
