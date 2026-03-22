@@ -151,6 +151,7 @@
   min-height: unset;
   resize: none;
   opacity: 0.72;
+  gap: 8px;
   border-color: rgba(243, 194, 103, 0.45);
   backdrop-filter: blur(6px);
   transition:
@@ -159,6 +160,9 @@
     width 0.2s ease;
 }
 
+.custom-dialog-title-text {
+  padding-right: 8px;
+}
 .custom-info-dialog.minimized:hover {
   opacity: 0.92;
   border-color: rgba(243, 194, 103, 0.8);
