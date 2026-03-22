@@ -47,6 +47,9 @@
                 <button type="button" class="org-tab-btn {{#if (eq activeTab 'poi')}}active{{/if}}" role="tab" data-tab="poi">
                     <i class="fas fa-user-secret"></i><span>Gente de Interés</span>
                 </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'finances')}}active{{/if}}" role="tab" data-tab="finances">
+                    <i class="fas fa-coins"></i><span>Finanzas</span>
+                </button>
                 <div class="active-bar" aria-hidden="true"></div>
             </nav>
 
@@ -80,6 +83,9 @@
                 </section>
                 <section class="org-tab-panel {{#if (eq activeTab 'poi')}}active{{/if}}" role="tabpanel" data-tab-panel="poi">
                     <!-- PoiPanel renders here -->
+                </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'finances')}}active{{/if}}" role="tabpanel" data-tab-panel="finances">
+                    <!-- FinancesPanel renders here -->
                 </section>
             </div>
         </div>

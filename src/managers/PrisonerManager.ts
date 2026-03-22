@@ -379,11 +379,22 @@ export class PrisonerManager {
   }
 
   /**
+   * Get transferred-to-prison prisoners whose sentence has expired.
+   */
+  public getTransferredReadyForRelease(): Prisoner[] {
+    return this.getAllPrisoners().filter((p) => {
+      if (p.status !== 'transferred_to_prison') return false;
+      if (!p.sentencePhases || p.sentenceStartPhase === null) return false;
+      return this.getRemainingPhases(p) <= 0;
+    });
+  }
+
+  /**
    * Log sentence_completed in history for prisoners who have completed their sentence
    * but don't yet have that entry. Returns how many were logged.
    */
   public async logSentenceCompletions(): Promise<number> {
-    const ready = this.getPrisonersReadyForRelease();
+    const ready = [...this.getPrisonersReadyForRelease(), ...this.getTransferredReadyForRelease()];
     let count = 0;
     for (const prisoner of ready) {
       const alreadyLogged = prisoner.history?.some((e) => e.action === 'sentence_completed');

@@ -16,6 +16,8 @@ import { PatrolsPanel } from './panels/PatrolsPanel.js';
 import { PrisonersPanel } from './panels/PrisonersPanel.js';
 import { ReputationPanel } from './panels/ReputationPanel.js';
 import { ResourcesPanel } from './panels/ResourcesPanel.js';
+import { FinancesPanel } from './panels/FinancesPanel.js';
+import { PresenceIndicator } from './PresenceIndicator.js';
 
 export class CustomInfoDialog implements FocusableDialog {
   public element: HTMLElement | null = null;
@@ -32,6 +34,7 @@ export class CustomInfoDialog implements FocusableDialog {
   private tabsInitialized = false;
   private resourceEventHandler: ((event: Event) => void) | null = null;
   private uiRefreshHandler?: (event: Event) => void;
+  private presenceIndicator: PresenceIndicator | null = null;
 
   constructor() {
     this.handleMouseDown = this.handleMouseDown.bind(this);
@@ -122,6 +125,16 @@ export class CustomInfoDialog implements FocusableDialog {
         console.warn('CustomInfoDialog | poi auto-refresh failed', e);
       }
     });
+    // Auto-refresh finances when data layer updates
+    window.addEventListener('guard-finances-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="finances"]');
+        if (activeTab) this.refreshFinancesPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | finances auto-refresh failed', e);
+      }
+    });
   }
 
   /**
@@ -173,6 +186,10 @@ export class CustomInfoDialog implements FocusableDialog {
 
     // Add event listeners
     this.addEventListeners();
+
+    // Attach presence indicator (shows other players' active tabs)
+    this.presenceIndicator = new PresenceIndicator(this.element);
+    this.presenceIndicator.attach();
 
     // Give this dialog focus immediately
     DialogFocusManager.getInstance().setFocus(this);
@@ -367,6 +384,14 @@ export class CustomInfoDialog implements FocusableDialog {
           console.log('🔄 Rendering PoiPanel...');
           await PoiPanel.render(poiContainer);
         }
+
+        const financesContainer = this.element.querySelector(
+          '[data-tab-panel="finances"]'
+        ) as HTMLElement;
+        if (financesContainer) {
+          console.log('🔄 Rendering FinancesPanel...');
+          await FinancesPanel.render(financesContainer);
+        }
       }
 
       console.log('✅ Refresh completed successfully');
@@ -392,6 +417,10 @@ export class CustomInfoDialog implements FocusableDialog {
    */
   public close(): void {
     if (this.element) {
+      // Clean up presence indicator
+      this.presenceIndicator?.detach();
+      this.presenceIndicator = null;
+
       // Unregister from focus manager
       DialogFocusManager.getInstance().unregisterDialog(this);
 
@@ -845,6 +874,15 @@ export class CustomInfoDialog implements FocusableDialog {
     PoiPanel.render(tabPanel);
   }
 
+  public refreshFinancesPanel() {
+    const tabPanel = this.element?.querySelector(
+      '[data-tab-panel="finances"]'
+    ) as HTMLElement | null;
+    if (!tabPanel) return;
+
+    FinancesPanel.render(tabPanel);
+  }
+
   /**
    * Handle removing a resource from the organization
    */
@@ -1018,6 +1056,7 @@ export class CustomInfoDialog implements FocusableDialog {
 
       this.element.style.left = Math.max(0, Math.min(maxX, newX)) + 'px';
       this.element.style.top = Math.max(0, Math.min(maxY, newY)) + 'px';
+      this.presenceIndicator?.reposition();
     }
 
     if (this.isResizing) {
@@ -1027,6 +1066,7 @@ export class CustomInfoDialog implements FocusableDialog {
 
       this.element.style.width = Math.max(300, newWidth) + 'px';
       this.element.style.height = Math.max(200, newHeight) + 'px';
+      this.presenceIndicator?.reposition();
     }
   }
 
@@ -1354,6 +1394,9 @@ export class CustomInfoDialog implements FocusableDialog {
       } catch {}
       positionBar(buttons.find((b) => b.dataset.tab === tab));
 
+      // Notify presence indicator of tab change
+      this.presenceIndicator?.notifyInteraction(tab);
+
       // Refresh panel when user clicks a tab (skip during initial setup to avoid race with refreshContent)
       if (this.tabsInitialized) {
         if (tab === 'patrols') {
@@ -1376,6 +1419,9 @@ export class CustomInfoDialog implements FocusableDialog {
         }
         if (tab === 'poi') {
           this.refreshPoiPanel();
+        }
+        if (tab === 'finances') {
+          this.refreshFinancesPanel();
         }
       }
     };

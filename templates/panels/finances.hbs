@@ -1,0 +1,407 @@
+<div class="organization-info">
+  <div class="info-section finances-section">
+
+    {{!-- Budget summary bar --}}
+    <div class="finances-summary-bar">
+      <div class="finances-summary-item finances-total">
+        <span class="finances-summary-label">Presupuesto Total</span>
+        <span class="finances-summary-value {{#if (eq totalBudgetSign 'negative')}}negative{{/if}}">{{totalBudgetFormatted}}</span>
+      </div>
+      <div class="finances-summary-item finances-expected">
+        <span class="finances-summary-label">Esperado siguiente turno</span>
+        <span class="finances-summary-value {{expectedSign}}">{{expectedNextTurnFormatted}}</span>
+      </div>
+      <div class="finances-summary-item finances-net">
+        <span class="finances-summary-label">Balance Recurrente</span>
+        <span class="finances-summary-value {{#if (eq recurringNetSign 'negative')}}negative{{/if}}">{{recurringNetFormatted}}</span>
+      </div>
+    </div>
+
+    {{!-- GM controls --}}
+    {{#if isGM}}
+      <div class="finances-gm-controls">
+        <button class="finances-btn finances-edit-total-btn" title="Ajustar presupuesto total manualmente">
+          <i class="fas fa-edit"></i> Ajustar Total
+        </button>
+        <button class="finances-btn finances-toggle-illegal-btn" title="{{#if showIllegalSection}}Ocultar sección ilegal a jugadores{{else}}Mostrar sección ilegal a jugadores{{/if}}">
+          <i class="fas fa-mask"></i>
+          {{#if showIllegalSection}}
+            <i class="fas fa-eye"></i> Ilegal visible
+          {{else}}
+            <i class="fas fa-eye-slash"></i> Ilegal oculto
+          {{/if}}
+        </button>
+      </div>
+    {{/if}}
+
+    {{!-- ====== BUDGET ENTRIES SECTION ====== --}}
+    <div class="finances-block">
+      <div class="finances-block-header">
+        <h3><i class="fas fa-arrow-down"></i> Entradas de Presupuesto</h3>
+        <button class="finances-btn finances-add-income-btn" title="Agregar entrada de presupuesto">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+
+      {{!-- Recurring income --}}
+      <div class="finances-subblock">
+        <div class="finances-subblock-header" data-action="toggle-section">
+          <i class="fas fa-chevron-down finances-chevron"></i>
+          <span>Ingresos Recurrentes</span>
+          <span class="finances-subblock-total income">{{recurringIncomeTotal}}</span>
+        </div>
+        <div class="finances-subblock-body">
+          {{#each recurringIncome}}
+            <div class="finances-entry-row" data-entry-id="{{this.id}}">
+              <div class="finances-entry-header" data-action="toggle-entry">
+                <i class="fas fa-chevron-right finances-entry-chevron"></i>
+                <span class="finances-entry-name">{{this.name}}</span>
+                {{#if this.referenceLabel}}
+                  <span class="finances-ref-badge"><i class="{{this.referenceIcon}}"></i> {{this.referenceLabel}}</span>
+                {{/if}}
+                {{#if this.currentPhase}}<span class="finances-entry-phase"><i class="fas fa-flag"></i> {{this.currentPhase}}</span>{{/if}}
+                <span class="finances-entry-amount income">+{{this.amount}}</span>
+                <div class="finances-entry-actions">
+                  <button class="finances-entry-btn finances-edit-income" data-entry-id="{{this.id}}" title="Editar"><i class="fas fa-edit"></i></button>
+                  <button class="finances-entry-btn finances-delete-income" data-entry-id="{{this.id}}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="finances-entry-detail" style="display:none">
+                <div class="finances-detail-body">
+                  {{#if this.referenceLabel}}
+                    <div class="finances-detail-ref-card">
+                      {{#if this.referenceImg}}
+                        <img class="finances-detail-ref-img" src="{{this.referenceImg}}" alt="{{this.referenceLabel}}" />
+                      {{else}}
+                        <div class="finances-detail-ref-icon"><i class="{{this.referenceIcon}}"></i></div>
+                      {{/if}}
+                      <div class="finances-detail-ref-info">
+                        <span class="finances-detail-ref-name">{{this.referenceLabel}}</span>
+                        <span class="finances-detail-ref-type">{{this.referenceTypeName}}</span>
+                      </div>
+                    </div>
+                  {{/if}}
+                  {{#if this.description}}
+                    <div class="finances-detail-desc">{{this.description}}</div>
+                  {{/if}}
+                </div>
+                <div class="finances-detail-meta">
+                  <span><i class="fas fa-user"></i> {{this.createdBy}}</span>
+                  <span><i class="fas fa-clock"></i> {{this.timeAgo}}</span>
+                </div>
+              </div>
+            </div>
+          {{else}}
+            <div class="finances-empty">Sin ingresos recurrentes</div>
+          {{/each}}
+        </div>
+      </div>
+
+      {{!-- Extraordinary income --}}
+      <div class="finances-subblock">
+        <div class="finances-subblock-header" data-action="toggle-section">
+          <i class="fas fa-chevron-down finances-chevron"></i>
+          <span>Ingresos Extraordinarios</span>
+          <span class="finances-subblock-total income">{{extraordinaryIncomeTotal}}</span>
+        </div>
+        <div class="finances-subblock-body">
+          {{#each extraordinaryIncome}}
+            <div class="finances-entry-row" data-entry-id="{{this.id}}">
+              <div class="finances-entry-header" data-action="toggle-entry">
+                <i class="fas fa-chevron-right finances-entry-chevron"></i>
+                <span class="finances-entry-name">{{this.name}}</span>
+                {{#if this.referenceLabel}}
+                  <span class="finances-ref-badge"><i class="{{this.referenceIcon}}"></i> {{this.referenceLabel}}</span>
+                {{/if}}
+                {{#if this.currentPhase}}<span class="finances-entry-phase"><i class="fas fa-flag"></i> {{this.currentPhase}}</span>{{/if}}
+                <span class="finances-entry-amount income">+{{this.amount}}</span>
+                <div class="finances-entry-actions">
+                  <button class="finances-entry-btn finances-edit-income" data-entry-id="{{this.id}}" title="Editar"><i class="fas fa-edit"></i></button>
+                  <button class="finances-entry-btn finances-delete-income" data-entry-id="{{this.id}}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="finances-entry-detail" style="display:none">
+                <div class="finances-detail-body">
+                  {{#if this.referenceLabel}}
+                    <div class="finances-detail-ref-card">
+                      {{#if this.referenceImg}}
+                        <img class="finances-detail-ref-img" src="{{this.referenceImg}}" alt="{{this.referenceLabel}}" />
+                      {{else}}
+                        <div class="finances-detail-ref-icon"><i class="{{this.referenceIcon}}"></i></div>
+                      {{/if}}
+                      <div class="finances-detail-ref-info">
+                        <span class="finances-detail-ref-name">{{this.referenceLabel}}</span>
+                        <span class="finances-detail-ref-type">{{this.referenceTypeName}}</span>
+                      </div>
+                    </div>
+                  {{/if}}
+                  {{#if this.description}}
+                    <div class="finances-detail-desc">{{this.description}}</div>
+                  {{/if}}
+                </div>
+                <div class="finances-detail-meta">
+                  <span><i class="fas fa-user"></i> {{this.createdBy}}</span>
+                  <span><i class="fas fa-clock"></i> {{this.timeAgo}}</span>
+                </div>
+              </div>
+            </div>
+          {{else}}
+            <div class="finances-empty">Sin ingresos extraordinarios</div>
+          {{/each}}
+        </div>
+      </div>
+
+      {{!-- Illegal income --}}
+      {{#if showIllegalBlock}}
+        <div class="finances-subblock finances-illegal-block">
+          <div class="finances-subblock-header finances-illegal-header" data-action="toggle-section">
+            <i class="fas fa-chevron-down finances-chevron"></i>
+            <span><i class="fas fa-mask"></i> Entradas Ilegales</span>
+            <span class="finances-subblock-total income">{{illegalIncomeTotal}}</span>
+          </div>
+          <div class="finances-subblock-body">
+            {{#each illegalIncome}}
+              <div class="finances-entry-row" data-entry-id="{{this.id}}">
+                <div class="finances-entry-header" data-action="toggle-entry">
+                  <i class="fas fa-chevron-right finances-entry-chevron"></i>
+                  <span class="finances-entry-name">{{this.name}}</span>
+                  <span class="finances-entry-type-badge">{{this.typeLabel}}</span>
+                  {{#if this.currentPhase}}<span class="finances-entry-phase"><i class="fas fa-flag"></i> {{this.currentPhase}}</span>{{/if}}
+                  <span class="finances-entry-amount income illegal">+{{this.amount}}</span>
+                  <div class="finances-entry-actions">
+                    <button class="finances-entry-btn finances-edit-income" data-entry-id="{{this.id}}" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="finances-entry-btn finances-delete-income" data-entry-id="{{this.id}}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                  </div>
+                </div>
+                <div class="finances-entry-detail" style="display:none">
+                  <div class="finances-detail-body">
+                    {{#if this.referenceLabel}}
+                      <div class="finances-detail-ref-card">
+                        {{#if this.referenceImg}}
+                          <img class="finances-detail-ref-img" src="{{this.referenceImg}}" alt="{{this.referenceLabel}}" />
+                        {{else}}
+                          <div class="finances-detail-ref-icon"><i class="{{this.referenceIcon}}"></i></div>
+                        {{/if}}
+                        <div class="finances-detail-ref-info">
+                          <span class="finances-detail-ref-name">{{this.referenceLabel}}</span>
+                          <span class="finances-detail-ref-type">{{this.referenceTypeName}}</span>
+                        </div>
+                      </div>
+                    {{/if}}
+                    {{#if this.description}}
+                      <div class="finances-detail-desc">{{this.description}}</div>
+                    {{/if}}
+                  </div>
+                  <div class="finances-detail-meta">
+                    <span><i class="fas fa-user"></i> {{this.createdBy}}</span>
+                    <span><i class="fas fa-clock"></i> {{this.timeAgo}}</span>
+                  </div>
+                </div>
+              </div>
+            {{else}}
+              <div class="finances-empty">Sin entradas ilegales</div>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+    </div>
+
+    {{!-- ====== EXPENSES SECTION ====== --}}
+    <div class="finances-block">
+      <div class="finances-block-header">
+        <h3><i class="fas fa-arrow-up"></i> Gastos</h3>
+        <button class="finances-btn finances-add-expense-btn" title="Agregar gasto">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+
+      {{!-- Recurring expenses --}}
+      <div class="finances-subblock">
+        <div class="finances-subblock-header" data-action="toggle-section">
+          <i class="fas fa-chevron-down finances-chevron"></i>
+          <span>Gastos Recurrentes</span>
+          <span class="finances-subblock-total expense">{{recurringExpenseTotal}}</span>
+        </div>
+        <div class="finances-subblock-body">
+          {{#each recurringExpenses}}
+            <div class="finances-entry-row" data-entry-id="{{this.id}}">
+              <div class="finances-entry-header" data-action="toggle-entry">
+                <i class="fas fa-chevron-right finances-entry-chevron"></i>
+                <span class="finances-entry-name">{{this.name}}</span>
+                {{#if this.referenceLabel}}
+                  <span class="finances-ref-badge"><i class="{{this.referenceIcon}}"></i> {{this.referenceLabel}}</span>
+                {{/if}}
+                {{#if this.currentPhase}}<span class="finances-entry-phase"><i class="fas fa-flag"></i> {{this.currentPhase}}</span>{{/if}}
+                <span class="finances-entry-amount expense">-{{this.amount}}</span>
+                <div class="finances-entry-actions">
+                  <button class="finances-entry-btn finances-edit-expense" data-entry-id="{{this.id}}" title="Editar"><i class="fas fa-edit"></i></button>
+                  <button class="finances-entry-btn finances-delete-expense" data-entry-id="{{this.id}}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="finances-entry-detail" style="display:none">
+                <div class="finances-detail-body">
+                  {{#if this.referenceLabel}}
+                    <div class="finances-detail-ref-card">
+                      {{#if this.referenceImg}}
+                        <img class="finances-detail-ref-img" src="{{this.referenceImg}}" alt="{{this.referenceLabel}}" />
+                      {{else}}
+                        <div class="finances-detail-ref-icon"><i class="{{this.referenceIcon}}"></i></div>
+                      {{/if}}
+                      <div class="finances-detail-ref-info">
+                        <span class="finances-detail-ref-name">{{this.referenceLabel}}</span>
+                        <span class="finances-detail-ref-type">{{this.referenceTypeName}}</span>
+                      </div>
+                    </div>
+                  {{/if}}
+                  {{#if this.description}}
+                    <div class="finances-detail-desc">{{this.description}}</div>
+                  {{/if}}
+                </div>
+                <div class="finances-detail-meta">
+                  <span><i class="fas fa-user"></i> {{this.createdBy}}</span>
+                  <span><i class="fas fa-clock"></i> {{this.timeAgo}}</span>
+                </div>
+              </div>
+            </div>
+          {{else}}
+            <div class="finances-empty">Sin gastos recurrentes</div>
+          {{/each}}
+        </div>
+      </div>
+
+      {{!-- Specific expenses --}}
+      <div class="finances-subblock">
+        <div class="finances-subblock-header" data-action="toggle-section">
+          <i class="fas fa-chevron-down finances-chevron"></i>
+          <span>Gastos Específicos</span>
+          <span class="finances-subblock-total expense">{{specificExpenseTotal}}</span>
+        </div>
+        <div class="finances-subblock-body">
+          {{#each specificExpenses}}
+            <div class="finances-entry-row" data-entry-id="{{this.id}}">
+              <div class="finances-entry-header" data-action="toggle-entry">
+                <i class="fas fa-chevron-right finances-entry-chevron"></i>
+                <span class="finances-entry-name">{{this.name}}</span>
+                {{#if this.referenceLabel}}
+                  <span class="finances-ref-badge"><i class="{{this.referenceIcon}}"></i> {{this.referenceLabel}}</span>
+                {{/if}}
+                {{#if this.currentPhase}}<span class="finances-entry-phase"><i class="fas fa-flag"></i> {{this.currentPhase}}</span>{{/if}}
+                <span class="finances-entry-amount expense">-{{this.amount}}</span>
+                <div class="finances-entry-actions">
+                  <button class="finances-entry-btn finances-edit-expense" data-entry-id="{{this.id}}" title="Editar"><i class="fas fa-edit"></i></button>
+                  <button class="finances-entry-btn finances-delete-expense" data-entry-id="{{this.id}}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="finances-entry-detail" style="display:none">
+                <div class="finances-detail-body">
+                  {{#if this.referenceLabel}}
+                    <div class="finances-detail-ref-card">
+                      {{#if this.referenceImg}}
+                        <img class="finances-detail-ref-img" src="{{this.referenceImg}}" alt="{{this.referenceLabel}}" />
+                      {{else}}
+                        <div class="finances-detail-ref-icon"><i class="{{this.referenceIcon}}"></i></div>
+                      {{/if}}
+                      <div class="finances-detail-ref-info">
+                        <span class="finances-detail-ref-name">{{this.referenceLabel}}</span>
+                        <span class="finances-detail-ref-type">{{this.referenceTypeName}}</span>
+                      </div>
+                    </div>
+                  {{/if}}
+                  {{#if this.description}}
+                    <div class="finances-detail-desc">{{this.description}}</div>
+                  {{/if}}
+                </div>
+                <div class="finances-detail-meta">
+                  <span><i class="fas fa-user"></i> {{this.createdBy}}</span>
+                  <span><i class="fas fa-clock"></i> {{this.timeAgo}}</span>
+                </div>
+              </div>
+            </div>
+          {{else}}
+            <div class="finances-empty">Sin gastos específicos</div>
+          {{/each}}
+        </div>
+      </div>
+
+      {{!-- Illegal expenses --}}
+      {{#if showIllegalBlock}}
+        <div class="finances-subblock finances-illegal-block">
+          <div class="finances-subblock-header finances-illegal-header" data-action="toggle-section">
+            <i class="fas fa-chevron-down finances-chevron"></i>
+            <span><i class="fas fa-mask"></i> Gastos Ilegales</span>
+            <span class="finances-subblock-total expense">{{illegalExpenseTotal}}</span>
+          </div>
+          <div class="finances-subblock-body">
+            {{#each illegalExpenses}}
+              <div class="finances-entry-row" data-entry-id="{{this.id}}">
+                <div class="finances-entry-header" data-action="toggle-entry">
+                  <i class="fas fa-chevron-right finances-entry-chevron"></i>
+                  <span class="finances-entry-name">{{this.name}}</span>
+                  <span class="finances-entry-type-badge">{{this.typeLabel}}</span>
+                  {{#if this.currentPhase}}<span class="finances-entry-phase"><i class="fas fa-flag"></i> {{this.currentPhase}}</span>{{/if}}
+                  <span class="finances-entry-amount expense illegal">-{{this.amount}}</span>
+                  <div class="finances-entry-actions">
+                    <button class="finances-entry-btn finances-edit-expense" data-entry-id="{{this.id}}" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="finances-entry-btn finances-delete-expense" data-entry-id="{{this.id}}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                  </div>
+                </div>
+                <div class="finances-entry-detail" style="display:none">
+                  <div class="finances-detail-body">
+                    {{#if this.referenceLabel}}
+                      <div class="finances-detail-ref-card">
+                        {{#if this.referenceImg}}
+                          <img class="finances-detail-ref-img" src="{{this.referenceImg}}" alt="{{this.referenceLabel}}" />
+                        {{else}}
+                          <div class="finances-detail-ref-icon"><i class="{{this.referenceIcon}}"></i></div>
+                        {{/if}}
+                        <div class="finances-detail-ref-info">
+                          <span class="finances-detail-ref-name">{{this.referenceLabel}}</span>
+                          <span class="finances-detail-ref-type">{{this.referenceTypeName}}</span>
+                        </div>
+                      </div>
+                    {{/if}}
+                    {{#if this.description}}
+                      <div class="finances-detail-desc">{{this.description}}</div>
+                    {{/if}}
+                  </div>
+                  <div class="finances-detail-meta">
+                    <span><i class="fas fa-user"></i> {{this.createdBy}}</span>
+                    <span><i class="fas fa-clock"></i> {{this.timeAgo}}</span>
+                  </div>
+                </div>
+              </div>
+            {{else}}
+              <div class="finances-empty">Sin gastos ilegales</div>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+    </div>
+
+    {{!-- ====== REGISTRO (LOG) SECTION ====== --}}
+    <div class="finances-block">
+      <div class="finances-block-header">
+        <h3><i class="fas fa-history"></i> Registro</h3>
+      </div>
+      <div class="finances-log">
+        {{#each log}}
+          <div class="finances-log-entry" data-entry-timestamp="{{this.timestamp}}">
+            <span class="finances-log-dot finances-log-{{this.action}}"></span>
+            {{#if this.phase}}
+              <span class="finances-log-phase">Fase {{this.phase}}</span>
+            {{else}}
+              <span class="finances-log-time">{{this.timeAgo}}</span>
+            {{/if}}
+            <span class="finances-log-text">
+              {{#if this.details}}{{this.details}}{{else}}{{this.action}}{{/if}}
+            </span>
+            <span class="finances-log-user">— {{this.performedBy}}</span>
+          </div>
+        {{else}}
+          <div class="finances-empty">Sin registros</div>
+        {{/each}}
+      </div>
+    </div>
+
+  </div>
+</div>

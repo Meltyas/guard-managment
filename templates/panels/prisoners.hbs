@@ -166,6 +166,16 @@
                 {{/if}}
               </div>
             </div>
+            {{#if this.hasSentence}}
+              <div class="record-sentence-info {{#if (eq this.remainingPhases 0)}}sentence-expired{{/if}}">
+                <i class="fas fa-hourglass-half"></i>
+                <span>Entrada: fase {{this.sentenceStartPhase}}</span>
+                <span class="sentence-separator">|</span>
+                <span>Sentencia: {{this.sentencePhases}} fases</span>
+                <span class="sentence-separator">|</span>
+                <span>Restantes: <strong>{{this.remainingPhases}}</strong></span>
+              </div>
+            {{/if}}
             {{#if this.notes}}
               <div class="record-notes">{{{this.notes}}}</div>
             {{/if}}

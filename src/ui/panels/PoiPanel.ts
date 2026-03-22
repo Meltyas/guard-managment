@@ -3,8 +3,8 @@
  * Static class following the same pattern as GangsPanel / PrisonersPanel.
  */
 import type { Crime } from '../../types/crimes';
-import { POI_STATUS_LABELS } from '../../types/poi';
 import type { PersonOfInterest, PoiStatus } from '../../types/poi';
+import { POI_STATUS_LABELS } from '../../types/poi';
 
 export class PoiPanel {
   static get template() {
@@ -67,7 +67,9 @@ export class PoiPanel {
       btn.addEventListener('click', () => {
         const status = (btn as HTMLElement).dataset.filterStatus;
         if (status === 'all') {
-          container.querySelectorAll('.poi-filter-btn').forEach((b) => b.classList.remove('active'));
+          container
+            .querySelectorAll('.poi-filter-btn')
+            .forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
         } else {
           container
@@ -388,10 +390,7 @@ export class PoiPanel {
     });
   }
 
-  private static async showEditPoiDialog(
-    poiId: string,
-    container: HTMLElement
-  ): Promise<void> {
+  private static async showEditPoiDialog(poiId: string, container: HTMLElement): Promise<void> {
     const gm = (window as any).GuardManagement;
     if (!gm?.poiManager) return;
     const poi = gm.poiManager.getPoi(poiId);
@@ -501,10 +500,7 @@ export class PoiPanel {
     });
   }
 
-  private static async showStatusDialog(
-    poiId: string,
-    container: HTMLElement
-  ): Promise<void> {
+  private static async showStatusDialog(poiId: string, container: HTMLElement): Promise<void> {
     const gm = (window as any).GuardManagement;
     if (!gm?.poiManager) return;
     const poi = gm.poiManager.getPoi(poiId);
@@ -549,10 +545,7 @@ export class PoiPanel {
     await PoiPanel.render(container);
   }
 
-  private static async handleDeletePoi(
-    poiId: string,
-    container: HTMLElement
-  ): Promise<void> {
+  private static async handleDeletePoi(poiId: string, container: HTMLElement): Promise<void> {
     const gm = (window as any).GuardManagement;
     if (!gm?.poiManager) return;
     const poi = gm.poiManager.getPoi(poiId);
@@ -672,10 +665,7 @@ export class PoiPanel {
 
   // --- Assign gangs dialog ---
 
-  private static async showAssignGangsDialog(
-    poiId: string,
-    container: HTMLElement
-  ): Promise<void> {
+  private static async showAssignGangsDialog(poiId: string, container: HTMLElement): Promise<void> {
     const gm = (window as any).GuardManagement;
     if (!gm?.poiManager || !gm?.gangManager) return;
     const poi = gm.poiManager.getPoi(poiId);
@@ -770,19 +760,20 @@ export class PoiPanel {
     const statusLabel = POI_STATUS_LABELS[poi.status] || poi.status;
 
     const crimeNames = PoiPanel.resolveCrimeNames(poi.possibleCrimes);
-    const crimesHtml = crimeNames.length > 0
-      ? `<p><strong>Posibles Crímenes:</strong> ${crimeNames.map((c) => c.name).join(', ')}</p>`
-      : '';
+    const crimesHtml =
+      crimeNames.length > 0
+        ? `<p><strong>Posibles Crímenes:</strong> ${crimeNames.map((c) => c.name).join(', ')}</p>`
+        : '';
 
     const gangNames = PoiPanel.resolveGangNames(poi.gangIds);
-    const gangsHtml = gangNames.length > 0
-      ? `<p><strong>Bandas:</strong> ${gangNames.map((g) => g.name).join(', ')}</p>`
-      : '';
+    const gangsHtml =
+      gangNames.length > 0
+        ? `<p><strong>Bandas:</strong> ${gangNames.map((g) => g.name).join(', ')}</p>`
+        : '';
 
     const prisonCount = PoiPanel.getPrisonRecordCount(poi);
-    const prisonHtml = prisonCount > 0
-      ? `<p><strong>Registros de prisión:</strong> ${prisonCount}</p>`
-      : '';
+    const prisonHtml =
+      prisonCount > 0 ? `<p><strong>Registros de prisión:</strong> ${prisonCount}</p>` : '';
 
     const content = `
       <div style="border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px;background:rgba(0,0,0,0.1);">
@@ -852,9 +843,7 @@ export class PoiPanel {
     // Switch to prisoners tab
     const dialog = gm?.guardDialogManager?.customInfoDialog;
     if (dialog?.element) {
-      const prisonersTab = dialog.element.querySelector(
-        '[data-tab="prisoners"]'
-      ) as HTMLElement;
+      const prisonersTab = dialog.element.querySelector('[data-tab="prisoners"]') as HTMLElement;
       if (prisonersTab) prisonersTab.click();
 
       // After render, set the search to the POI name

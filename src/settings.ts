@@ -511,6 +511,30 @@ export function registerSettings(): void {
     },
   });
 
+  // Finances data storage
+  game?.settings?.register('guard-management', 'finances', {
+    name: 'Finances Data',
+    hint: 'Stored finance/budget information',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: { totalBudget: 0, budgetEntries: [], expenses: [], showIllegalSection: false, history: [] },
+    onChange: (_value) => {
+      console.log('Settings onChange | Finances changed, reloading and refreshing UI...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.financeManager) {
+        gm.financeManager.loadFromSettings?.();
+      }
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          dialog.refreshFinancesPanel?.();
+        }
+      }
+      gm?.floatingPanel?.refreshPanel?.();
+    },
+  });
+
   // Sync options
   game?.settings?.register('guard-management', 'syncOptions', {
     name: 'Synchronization Options',

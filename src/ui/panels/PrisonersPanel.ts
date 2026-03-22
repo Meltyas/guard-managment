@@ -87,6 +87,10 @@ export class PrisonersPanel {
           canExecute: p.status === 'death_row',
           crimeNames: PrisonersPanel.resolveCrimeNames(p.crimes),
           history: PrisonersPanel.enrichHistory(p.history || []),
+          hasSentence: p.sentencePhases > 0 && p.sentenceStartPhase !== null,
+          remainingPhases: prisonerManager.getRemainingPhases(p),
+          sentencePhases: p.sentencePhases,
+          sentenceStartPhase: p.sentenceStartPhase,
         };
       });
 
@@ -358,12 +362,20 @@ export class PrisonersPanel {
       transferred_to_prison: 'enviar a prisión permanente',
     };
 
+    const costWarning = action === 'transferred_to_prison'
+      ? `<p style="margin-top: 0.5rem; padding: 6px 8px; background: rgba(243,194,103,0.15); border-left: 3px solid #f3c267; border-radius: 3px; font-size: 0.85em; color: #f3c267;">
+           <i class="fas fa-coins" style="margin-right: 4px;"></i>
+           <strong>Atención:</strong> El traslado a prisión permanente tiene un coste que debe ser presupuestado. Consulta con el GM.
+         </p>`
+      : '';
+
     const html = `
       <div style="margin-bottom: 1rem;">
         <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
         <strong>¿Estás seguro?</strong>
       </div>
       <p>¿Deseas ${actionLabels[action]} a "<strong>${prisonerName}</strong>"?</p>
+      ${costWarning}
     `;
 
     const confirmed = await ConfirmService.confirm({
@@ -387,6 +399,32 @@ export class PrisonersPanel {
       case 'transferred_to_prison':
         await gm.prisonerManager.transferToPrison(prisonerId);
         NotificationService.info(`${prisonerName} ha sido transferido a prisión permanente`);
+        // Notify GM about transfer cost
+        try {
+          const g = game as any;
+          const gmUserIds: string[] = g?.users?.filter((u: any) => u.isGM)?.map((u: any) => u.id) || [];
+          await (ChatMessage as any).create({
+            content: `
+              <div style="border-left:3px solid #f3c267;padding-left:8px;">
+                <p style="margin:0 0 6px 0;">
+                  <i class="fas fa-dungeon" style="color:#f3c267;"></i>
+                  <strong>Traslado a Prisión Permanente</strong>
+                </p>
+                <p style="margin:0 0 4px 0;">
+                  <strong>${prisonerName}</strong> ha sido enviado a prisión permanente.
+                </p>
+                <p style="margin:0;padding:4px 6px;background:rgba(243,194,103,0.15);border-radius:3px;font-size:0.9em;color:#f3c267;">
+                  <i class="fas fa-coins"></i> <strong>Presupuestar coste de traslado.</strong> Hay que gestionar el gasto asociado al envío.
+                </p>
+              </div>
+            `,
+            speaker: { scene: null, actor: null, token: null, alias: 'Guard Management' },
+            whisper: gmUserIds,
+            flags: { 'guard-management': { type: 'transfer-cost' } },
+          });
+        } catch (err) {
+          console.error('PrisonersPanel | Transfer chat error:', err);
+        }
         break;
       case 'death_row':
         await gm.prisonerManager.sendToDeathRow(prisonerId);

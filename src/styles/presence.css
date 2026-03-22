@@ -1,0 +1,40 @@
+/* ── Player Presence Indicators ── */
+
+.gm-presence-container {
+  position: fixed;
+  z-index: 51;
+  pointer-events: none;
+  width: 40px;
+}
+
+.gm-presence-row {
+  position: absolute;
+  left: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  pointer-events: auto;
+  align-items: center;
+}
+
+.gm-presence-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #f3c267;
+  object-fit: cover;
+  background: rgba(24, 22, 46, 0.9);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.3s, filter 0.3s, transform 0.2s;
+  cursor: default;
+}
+
+.gm-presence-avatar.inactive {
+  opacity: 0.35;
+  filter: grayscale(70%);
+}
+
+.gm-presence-avatar:hover {
+  transform: scale(1.15);
+  z-index: 52;
+}

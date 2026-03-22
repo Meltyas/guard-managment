@@ -315,7 +315,7 @@ export class MyEntityManager {
 // settings.ts
 game?.settings?.register('guard-management', 'myEntities', {
   name: 'My Entities Data',
-  scope: 'world',  // ← REQUIRED for multi-client sync
+  scope: 'world', // ← REQUIRED for multi-client sync
   config: false,
   type: Array,
   default: [],
@@ -365,15 +365,15 @@ class GuardManagementModule {
 
 ### ✅ All Entities Migrated to Settings:
 
-| Entity | Manager | Settings Key | Status |
-|--------|---------|--------------|--------|
-| Officers | OfficerManager | `'officers'` | ✅ Migrated |
-| Patrols | PatrolManager | `'patrols'` | ✅ Migrated |
-| Resources | SimpleResourceManager | `'resources'` | ✅ Migrated |
-| Reputations | SimpleReputationManager | `'reputations'` | ✅ Migrated |
-| Organization | GuardOrganizationManager | `'guardOrganization'` | ✅ Migrated |
-| Guard Modifiers | SimpleModifierManager | `'modifiers'` | ✅ Migrated |
-| Patrol Effects | SimplePatrolEffectManager | `'patrolEffects'` | ✅ Migrated |
+| Entity          | Manager                   | Settings Key          | Status      |
+| --------------- | ------------------------- | --------------------- | ----------- |
+| Officers        | OfficerManager            | `'officers'`          | ✅ Migrated |
+| Patrols         | PatrolManager             | `'patrols'`           | ✅ Migrated |
+| Resources       | SimpleResourceManager     | `'resources'`         | ✅ Migrated |
+| Reputations     | SimpleReputationManager   | `'reputations'`       | ✅ Migrated |
+| Organization    | GuardOrganizationManager  | `'guardOrganization'` | ✅ Migrated |
+| Guard Modifiers | SimpleModifierManager     | `'modifiers'`         | ✅ Migrated |
+| Patrol Effects  | SimplePatrolEffectManager | `'patrolEffects'`     | ✅ Migrated |
 
 ### ⚖️ Conflict Resolution Priorities
 

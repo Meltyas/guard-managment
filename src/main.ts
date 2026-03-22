@@ -16,6 +16,7 @@ import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
 import { CivilianManager } from './managers/CivilianManager';
 import { PrisonerManager } from './managers/PrisonerManager';
+import { FinanceManager } from './managers/FinanceManager';
 import { PhaseManager } from './managers/PhaseManager';
 import { SentenceConfigManager } from './managers/SentenceConfigManager';
 import { SimpleModifierManager } from './managers/SimpleModifierManager';
@@ -33,6 +34,8 @@ import './styles/crimes.css';
 import './styles/gangs.css';
 import './styles/buildings.css';
 import './styles/poi.css';
+import './styles/finances.css';
+import './styles/presence.css';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 import { DayNightDecoration } from './ui/DayNightDecoration';
 import { PatrolOverlayManager } from './ui/PatrolOverlayManager';
@@ -121,6 +124,7 @@ class GuardManagementModule {
   public floatingPanel: FloatingGuardPanel;
   public patrolOverlayManager: PatrolOverlayManager;
   public phaseManager: PhaseManager;
+  public financeManager: FinanceManager;
   public dayNightDecoration: DayNightDecoration;
   public isInitialized: boolean = false;
 
@@ -142,6 +146,7 @@ class GuardManagementModule {
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
     this.patrolOverlayManager = new PatrolOverlayManager();
     this.phaseManager = new PhaseManager();
+    this.financeManager = new FinanceManager();
     this.dayNightDecoration = new DayNightDecoration();
   }
 
@@ -174,6 +179,7 @@ class GuardManagementModule {
     await this.modifierManager.initialize();
     await this.patrolEffectManager.initialize();
     await this.phaseManager.initialize();
+    await this.financeManager.initialize();
 
     // Initialize floating panel (but don't show it yet)
     this.floatingPanel.initialize();
@@ -211,6 +217,10 @@ class GuardManagementModule {
         if ((game as any)?.user?.isGM) {
           await this.checkOvercrowdingRolls();
         }
+        // Process recurring finances (only GM to avoid duplicate processing)
+        if ((game as any)?.user?.isGM) {
+          await this.financeManager.processPhase(detail.turn);
+        }
       }
       // Refresh prisoners panel so remaining sentence numbers update
       this.guardDialogManager.customInfoDialog?.refreshPrisonersPanel();
@@ -227,7 +237,9 @@ class GuardManagementModule {
   }
 
   /**
-   * Check if any active prisoners have completed their sentence and show an alert.
+   * Check if any prisoners have completed their sentence.
+   * - Local prisoners (imprisoned/forced_labor): send chat warning to GM
+   * - Transferred prisoners: auto-release and notify via chat
    */
   private async checkReleaseAlerts(): Promise<void> {
     if (!this.prisonerManager) return;
@@ -235,42 +247,91 @@ class GuardManagementModule {
     // Log sentence_completed for newly expired prisoners
     await this.prisonerManager.logSentenceCompletions();
 
-    const readyForRelease = this.prisonerManager.getPrisonersReadyForRelease();
-    if (readyForRelease.length === 0) return;
-
-    const prisonerList = readyForRelease
-      .map((p: any) => `<li><strong>${p.name}</strong> (Celda ${p.cellIndex + 1})</li>`)
-      .join('');
-
+    const g = game as any;
+    const gmUserIds: string[] = g?.users?.filter((u: any) => u.isGM)?.map((u: any) => u.id) || [];
     const currentTurn = this.phaseManager.getCurrentTurn();
     const phaseLabel = currentTurn % 2 === 1 ? 'Día' : 'Noche';
 
-    try {
-      const DialogV2Class = (foundry as any).applications?.api?.DialogV2;
-      if (!DialogV2Class) return;
+    // --- Local prisoners ready for release (chat warning) ---
+    const readyForRelease = this.prisonerManager.getPrisonersReadyForRelease();
+    if (readyForRelease.length > 0) {
+      const prisonerList = readyForRelease
+        .map((p: any) => `<li><strong>${p.name}</strong> (Celda ${p.cellIndex + 1})</li>`)
+        .join('');
 
-      await DialogV2Class.wait({
-        window: { title: 'Prisioneros Listos para Liberación' },
-        content: `
-          <div style="padding: 10px; text-align: center;">
-            <p style="margin-bottom: 8px;">
-              <i class="fas fa-exclamation-triangle" style="color: #f3c267; font-size: 1.2em;"></i>
-              <strong>Fase ${currentTurn} (${phaseLabel})</strong>
+      const chatContent = `
+        <div style="border-left:3px solid #f3c267;padding-left:8px;">
+          <p style="margin:0 0 4px 0;font-size:0.8em;color:#888;">
+            <i class="fas fa-dungeon"></i> Fase ${currentTurn} (${phaseLabel})
+          </p>
+          <div style="border:1px solid rgba(243,194,103,0.4);border-radius:6px;padding:8px;background:rgba(243,194,103,0.1);">
+            <p style="margin:0 0 6px 0;">
+              <i class="fas fa-exclamation-triangle" style="color:#f3c267;"></i>
+              <strong>Prisioneros listos para liberación</strong>
             </p>
-            <p>Los siguientes prisioneros han cumplido su sentencia:</p>
-            <ul style="text-align: left; margin: 10px 0;">${prisonerList}</ul>
-            <p style="font-size: 0.85em; color: #ccc;">
+            <ul style="margin:4px 0;padding-left:18px;font-size:0.9em;">${prisonerList}</ul>
+            <p style="margin:6px 0 0 0;font-size:0.85em;color:#ccc;">
               Libéralos desde el panel de Celdas Temporales.
             </p>
           </div>
-        `,
-        buttons: [
-          { action: 'ok', label: 'Entendido', icon: 'fas fa-check', default: true },
-        ],
-        modal: false,
-      });
-    } catch (error) {
-      console.error('GuardManagement | Release alert error:', error);
+        </div>
+      `;
+
+      try {
+        await (ChatMessage as any).create({
+          content: chatContent,
+          speaker: { scene: null, actor: null, token: null, alias: 'Guard Management' },
+          whisper: gmUserIds,
+          flags: { 'guard-management': { type: 'release-alert' } },
+        });
+      } catch (err) {
+        console.error('GuardManagement | Release alert chat error:', err);
+      }
+    }
+
+    // --- Transferred prisoners: auto-release and notify ---
+    if ((game as any)?.user?.isGM) {
+      const transferredReady = this.prisonerManager.getTransferredReadyForRelease();
+      if (transferredReady.length > 0) {
+        const releasedNames: string[] = [];
+        for (const p of transferredReady) {
+          await this.prisonerManager.releasePrisoner(p.id);
+          releasedNames.push(p.name);
+        }
+
+        const releasedList = releasedNames
+          .map((name) => `<li><strong>${name}</strong></li>`)
+          .join('');
+
+        const chatContent = `
+          <div style="border-left:3px solid #7ec87e;padding-left:8px;">
+            <p style="margin:0 0 4px 0;font-size:0.8em;color:#888;">
+              <i class="fas fa-dungeon"></i> Fase ${currentTurn} (${phaseLabel})
+            </p>
+            <div style="border:1px solid rgba(126,200,126,0.4);border-radius:6px;padding:8px;background:rgba(126,200,126,0.1);">
+              <p style="margin:0 0 6px 0;">
+                <i class="fas fa-door-open" style="color:#7ec87e;"></i>
+                <strong>Prisioneros liberados de prisión externa</strong>
+              </p>
+              <p style="margin:0 0 4px 0;font-size:0.9em;">
+                Los siguientes prisioneros han cumplido su sentencia en prisión y han sido liberados automáticamente:
+              </p>
+              <ul style="margin:4px 0;padding-left:18px;font-size:0.9em;">${releasedList}</ul>
+            </div>
+          </div>
+        `;
+
+        try {
+          await (ChatMessage as any).create({
+            content: chatContent,
+            speaker: { scene: null, actor: null, token: null, alias: 'Guard Management' },
+            whisper: gmUserIds,
+            flags: { 'guard-management': { type: 'transferred-release' } },
+          });
+        } catch (err) {
+          console.error('GuardManagement | Transferred release chat error:', err);
+        }
+      }
     }
   }
 
@@ -466,6 +527,7 @@ Hooks.once('init', async () => {
       'modules/guard-management/templates/panels/gangs.hbs',
       'modules/guard-management/templates/panels/buildings.hbs',
       'modules/guard-management/templates/panels/poi.hbs',
+      'modules/guard-management/templates/panels/finances.hbs',
       'modules/guard-management/templates/overlays/patrol-overlay.hbs',
     ]);
 

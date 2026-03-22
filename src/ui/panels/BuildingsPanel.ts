@@ -2,8 +2,8 @@
  * Buildings Panel - Manages the Edificios tab UI
  * Static class following the same pattern as GangsPanel / CrimesPanel.
  */
-import { BUILDING_TAG_LABELS, BUILDING_TAG_ICONS } from '../../types/buildings';
-import type { BuildingTag, BuildingGangLink } from '../../types/buildings';
+import type { BuildingGangLink, BuildingTag } from '../../types/buildings';
+import { BUILDING_TAG_ICONS, BUILDING_TAG_LABELS } from '../../types/buildings';
 
 export class BuildingsPanel {
   static get template() {
@@ -269,14 +269,17 @@ export class BuildingsPanel {
             const dialogEl = dialog?.element || dialog;
             if (!dialogEl) return;
 
-            const name = (dialogEl.querySelector('#building-name') as HTMLInputElement)?.value?.trim();
+            const name = (
+              dialogEl.querySelector('#building-name') as HTMLInputElement
+            )?.value?.trim();
             if (!name) {
               (globalThis as any).ui?.notifications?.warn('El nombre del edificio es obligatorio.');
               return;
             }
 
             const description =
-              (dialogEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() || '';
+              (dialogEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() ||
+              '';
 
             const tags: BuildingTag[] = [];
             dialogEl.querySelectorAll('input[name="building-tag"]:checked').forEach((cb: any) => {
@@ -289,7 +292,9 @@ export class BuildingsPanel {
               const gangs = BuildingsPanel.getGangOptions();
               const gang = gangs.find((g) => g.id === gangId);
               const gangNotes =
-                (dialogEl.querySelector('#building-gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+                (
+                  dialogEl.querySelector('#building-gang-notes') as HTMLTextAreaElement
+                )?.value?.trim() || '';
               gangLink = {
                 gangId,
                 gangName: gang?.name || '',
@@ -415,14 +420,17 @@ export class BuildingsPanel {
             const dialogEl = dialog?.element || dialog;
             if (!dialogEl) return;
 
-            const name = (dialogEl.querySelector('#building-name') as HTMLInputElement)?.value?.trim();
+            const name = (
+              dialogEl.querySelector('#building-name') as HTMLInputElement
+            )?.value?.trim();
             if (!name) {
               (globalThis as any).ui?.notifications?.warn('El nombre del edificio es obligatorio.');
               return;
             }
 
             const description =
-              (dialogEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() || '';
+              (dialogEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() ||
+              '';
 
             const tags: BuildingTag[] = [];
             dialogEl.querySelectorAll('input[name="building-tag"]:checked').forEach((cb: any) => {
@@ -435,7 +443,9 @@ export class BuildingsPanel {
               const gangs = BuildingsPanel.getGangOptions();
               const gang = gangs.find((g) => g.id === gangId);
               const gangNotes =
-                (dialogEl.querySelector('#building-gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+                (
+                  dialogEl.querySelector('#building-gang-notes') as HTMLTextAreaElement
+                )?.value?.trim() || '';
               gangLink = {
                 gangId,
                 gangName: gang?.name || '',
@@ -504,13 +514,12 @@ export class BuildingsPanel {
       ? `<img src="${building.img}" width="50" height="50" style="float:left;margin-right:8px;border-radius:4px;" />`
       : '';
 
-    const tagsHtml = (building.tags || []).length > 0
-      ? `<p><strong>Etiquetas:</strong> ${building.tags.map((t: BuildingTag) => BUILDING_TAG_LABELS[t] || t).join(', ')}</p>`
-      : '';
+    const tagsHtml =
+      (building.tags || []).length > 0
+        ? `<p><strong>Etiquetas:</strong> ${building.tags.map((t: BuildingTag) => BUILDING_TAG_LABELS[t] || t).join(', ')}</p>`
+        : '';
 
-    const descHtml = building.description
-      ? `<p>${building.description}</p>`
-      : '';
+    const descHtml = building.description ? `<p>${building.description}</p>` : '';
 
     let gangHtml = '';
     if (building.gangLink) {
