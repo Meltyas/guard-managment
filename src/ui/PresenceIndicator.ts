@@ -22,6 +22,7 @@ export class PresenceIndicator {
   private hookId: number | null = null;
   private inactivityTimer: number | null = null;
   private boundBeforeUnload: (() => void) | null = null;
+  private interactionHandler: (() => void) | null = null;
 
   constructor(dialogElement: HTMLElement) {
     this.dialogElement = dialogElement;
@@ -57,6 +58,13 @@ export class PresenceIndicator {
     // Clean up on page unload
     this.boundBeforeUnload = () => this.clearPresence();
     window.addEventListener('beforeunload', this.boundBeforeUnload);
+
+    // Any click inside the dialog resets inactivity timer
+    this.interactionHandler = () => {
+      const tab = localStorage.getItem(TAB_LS_KEY) || 'general';
+      this.notifyInteraction(tab);
+    };
+    this.dialogElement.addEventListener('click', this.interactionHandler);
   }
 
   /** Remove container, unregister hooks, clear presence flag */
@@ -78,6 +86,11 @@ export class PresenceIndicator {
       this.boundBeforeUnload = null;
     }
 
+    if (this.interactionHandler) {
+      this.dialogElement.removeEventListener('click', this.interactionHandler);
+      this.interactionHandler = null;
+    }
+
     if (this.container) {
       this.container.remove();
       this.container = null;
@@ -94,12 +107,11 @@ export class PresenceIndicator {
   public reposition(): void {
     if (!this.container || !this.dialogElement) return;
     const dialogRect = this.dialogElement.getBoundingClientRect();
-    const spaceRight = window.innerWidth - dialogRect.right;
 
-    if (spaceRight >= 44) {
-      this.container.style.left = `${dialogRect.right + 4}px`;
-    } else {
+    if (dialogRect.left >= 44) {
       this.container.style.left = `${dialogRect.left - 40}px`;
+    } else {
+      this.container.style.left = `${dialogRect.right + 4}px`;
     }
 
     this.container.style.top = `${dialogRect.top}px`;
