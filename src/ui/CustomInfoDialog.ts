@@ -448,7 +448,10 @@ export class CustomInfoDialog implements FocusableDialog {
     if (this.isMinimized) {
       this.preMinimizeSize = { width: this.element.offsetWidth, height: this.element.offsetHeight };
       this.element.classList.add('minimized');
-      this.element.style.width = '280px';
+      // Measure natural header width before locking it
+      this.element.style.width = 'max-content';
+      const naturalWidth = this.element.offsetWidth;
+      this.element.style.width = `${naturalWidth}px`;
       this.element.style.height = '';
       if (icon) icon.className = 'fas fa-window-restore';
     } else {
