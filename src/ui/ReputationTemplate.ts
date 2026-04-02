@@ -39,7 +39,7 @@ export class ReputationTemplate {
     const hasImage = !!reputationData.image;
 
     return `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         ${hasImage ? `<img class="card-img" src="${reputationData.image}">` : ''}
         <details class="domain-card-move" open>
           <summary class="domain-card-header">

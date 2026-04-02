@@ -102,7 +102,15 @@ export function registerHooks(): void {
     console.log('GuardManagement | Wrapped Daggerheart Document classes');
   });
 
-  // Hook for when the game is ready - register macro and keybindings
+  // Register keybindings in 'init' (required by Foundry — must be before ready)
+  Hooks.once('init', () => {
+    console.log('GuardManagement | Registering keybindings in init hook');
+    // guardManagement is not available yet at init time, so we wrap the callbacks
+    // to do a late lookup at call time
+    registerKeybindings(null);
+  });
+
+  // Hook for when the game is ready - register macro and socket
   Hooks.once('ready', () => {
     console.log('GuardManagement | Game ready, setting up Guard Management');
 
@@ -136,11 +144,6 @@ export function registerHooks(): void {
       console.log('GuardManagement | Socket listener registered for guard-management channel');
     } else {
       console.warn('GuardManagement | Socket unavailable - listener not registered');
-    }
-
-    // Register keybindings
-    if (guardManagement) {
-      registerKeybindings(guardManagement);
     }
 
     // Create chat command
@@ -354,7 +357,10 @@ export function registerHooks(): void {
 /**
  * Register keybindings for Guard Management
  */
-function registerKeybindings(guardManagement: any): void {
+function registerKeybindings(_guardManagement: any): void {
+  // NOTE: guardManagement is not available at init time, so we do a late lookup in each callback
+  const getGM = () => (window as any).GuardManagement;
+
   // Register keybinding to toggle floating panel
   game?.keybindings?.register('guard-management', 'togglePanel', {
     name: 'Alternar Panel de Guardias',
@@ -366,7 +372,7 @@ function registerKeybindings(guardManagement: any): void {
       },
     ],
     onDown: () => {
-      guardManagement?.toggleFloatingPanel();
+      getGM()?.toggleFloatingPanel();
     },
     restricted: false,
   });
@@ -382,7 +388,7 @@ function registerKeybindings(guardManagement: any): void {
       },
     ],
     onDown: () => {
-      guardManagement?.showCreateOrganizationDialog();
+      getGM()?.showCreateOrganizationDialog();
     },
     restricted: false,
   });

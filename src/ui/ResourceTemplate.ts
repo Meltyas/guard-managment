@@ -43,7 +43,7 @@ export class ResourceTemplate {
 
     // Daggerheart 2.0 domain-card structure — renders correctly inside .message-content
     return `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         <img class="card-img" src="${resourceData.image || 'icons/commodities/metal/ingot-stack-silver.webp'}">
         <details class="domain-card-move" open>
           <summary class="domain-card-header">

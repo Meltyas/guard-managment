@@ -45,6 +45,19 @@ export class ResourcesPanel {
       console.log('ResourcesPanel | Rendering with data:', data);
       $(container).html(htmlContent);
       console.log('ResourcesPanel | DOM updated');
+
+      // Set up expand/collapse toggles
+      container.querySelectorAll<HTMLButtonElement>('.entity-row__toggle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const row = btn.closest('.entity-row') as HTMLElement;
+          const detail = row.querySelector('.entity-row__detail') as HTMLElement;
+          const isOpen = !detail.hidden;
+          detail.hidden = isOpen;
+          btn.setAttribute('aria-expanded', String(!isOpen));
+          row.classList.toggle('entity-row--open', !isOpen);
+        });
+      });
   }
 
   /**

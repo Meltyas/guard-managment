@@ -201,7 +201,7 @@ export class GeneralPanel {
     }
 
     const content = `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         <img class="card-img" src="${modifier.img || 'icons/svg/shield.svg'}">
         <details class="domain-card-move" open>
           <summary class="domain-card-header">

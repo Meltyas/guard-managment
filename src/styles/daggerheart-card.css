@@ -544,3 +544,287 @@
   color: #64b5f6;
   border-color: #64b5f6;
 }
+
+/* ============================================================================
+ * Entity Row List — Compact table-list layout for Resources & Reputations
+ * NOTE: !important is required on layout/size properties because our CSS is
+ * loaded inside Foundry's "@layer modules" which loses to later layers
+ * (elements.media sets img { max-width:100% }, layouts.full resets display, etc.)
+ * !important reverses layer priority so our rules always win.
+ * ============================================================================ */
+.entity-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 4px 0 !important;
+}
+
+.entity-row {
+  border-bottom: 1px solid rgba(201, 164, 74, 0.18) !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+}
+
+.entity-row:first-child {
+  border-top: 1px solid rgba(201, 164, 74, 0.18) !important;
+}
+
+.entity-row:nth-child(odd)  { background: rgba(24, 22, 46, 0.7) !important; }
+.entity-row:nth-child(even) { background: rgba(8,  6,  22, 0.85) !important; }
+
+.entity-row:hover { background: rgba(201, 164, 74, 0.1) !important; }
+
+.entity-row--open {
+  background: rgba(201, 164, 74, 0.08) !important;
+  border-bottom-color: rgba(201, 164, 74, 0.4) !important;
+}
+
+/* ── Summary row ─────────────────────────────────────────────────────────── */
+.entity-row__summary {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 3px 6px !important;
+  min-height: 28px !important;
+  cursor: pointer !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+.entity-row--open .entity-row__summary {
+  border-bottom: 1px solid rgba(201, 164, 74, 0.2) !important;
+}
+
+/* ── Thumb toggle button ─────────────────────────────────────────────────── */
+.entity-row__toggle {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  line-height: 0 !important;
+  box-shadow: none !important;
+}
+
+.entity-row__thumb {
+  width: 20px !important;
+  height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  object-fit: cover !important;
+  border-radius: 2px !important;
+  border: 1px solid rgba(201, 164, 74, 0.35) !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
+.entity-row--open .entity-row__thumb {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  opacity: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.entity-row--open .entity-row__toggle {
+  width: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ── Text columns ────────────────────────────────────────────────────────── */
+.entity-row__qty {
+  color: #f3c267 !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.entity-row__name {
+  color: #efe6d8 !important;
+  font-size: 13px !important;
+  flex: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+}
+
+/* ── Reputation level badge ──────────────────────────────────────────────── */
+.entity-row__badge {
+  display: inline-block !important;
+  padding: 0 5px !important;
+  border-radius: 3px !important;
+  border: 1px solid rgba(201, 164, 74, 0.35) !important;
+  background: rgba(201, 164, 74, 0.12) !important;
+  color: #f3c267 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  width: 72px !important;
+  min-width: 72px !important;
+  text-align: center !important;
+  flex-shrink: 0 !important;
+}
+
+.entity-row__badge--level-1 { background: rgba(139,0,0,0.5)   !important; color: #ff6b6b !important; border-color: rgba(255,107,107,0.5) !important; }
+.entity-row__badge--level-2 { background: rgba(180,50,20,0.5)  !important; color: #ff8a65 !important; border-color: rgba(255,138,101,0.5) !important; }
+.entity-row__badge--level-3 { background: rgba(150,90,20,0.5)  !important; color: #ffb74d !important; border-color: rgba(255,183,77,0.5)  !important; }
+.entity-row__badge--level-4 { background: rgba(80,80,80,0.4)   !important; color: #bdbdbd !important; border-color: rgba(189,189,189,0.4) !important; }
+.entity-row__badge--level-5 { background: rgba(30,100,50,0.5)  !important; color: #81c784 !important; border-color: rgba(129,199,132,0.5) !important; }
+.entity-row__badge--level-6 { background: rgba(20,80,60,0.5)   !important; color: #4db6ac !important; border-color: rgba(77,182,172,0.5)  !important; }
+.entity-row__badge--level-7 { background: rgba(20,50,100,0.5)  !important; color: #64b5f6 !important; border-color: rgba(100,181,246,0.5) !important; }
+
+/* ── Action buttons ──────────────────────────────────────────────────────── */
+.entity-row__actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 2px !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+  opacity: 0 !important;
+  transition: opacity 0.12s ease !important;
+  align-items: center !important;
+}
+
+.entity-row__summary:hover .entity-row__actions,
+.entity-row--open .entity-row__actions {
+  opacity: 1 !important;
+}
+
+.entity-row__btn {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-radius: 3px !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: #f3c267 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+}
+
+.entity-row__btn:hover {
+  background: rgba(243, 194, 103, 0.8) !important;
+  border-color: #f3c267 !important;
+  color: #000 !important;
+}
+
+.entity-row__btn--danger:hover {
+  background: rgba(244, 67, 54, 0.8) !important;
+  border-color: #f44336 !important;
+  color: #fff !important;
+}
+
+/* ── Detail panel ────────────────────────────────────────────────────────── */
+.entity-row__detail {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 10px 8px !important;
+  border-top: 1px solid rgba(201, 164, 74, 0.2) !important;
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+.entity-row__detail[hidden] {
+  display: none !important;
+}
+
+.entity-row__detail-image {
+  flex-shrink: 0 !important;
+  width: 120px !important;
+  height: 120px !important;
+}
+
+.entity-row__detail-img {
+  width: 120px !important;
+  height: 120px !important;
+  max-width: 120px !important;
+  max-height: 120px !important;
+  min-width: 120px !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(201, 164, 74, 0.5) !important;
+  display: block !important;
+}
+
+.entity-row__detail-body {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+}
+
+.entity-row__detail-title {
+  color: #f3c267 !important;
+  font-weight: bold !important;
+  font-size: 15px !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.entity-row__detail-badge {
+  display: inline-block !important;
+  background: rgba(201, 164, 74, 0.2) !important;
+  border: 1px solid rgba(201, 164, 74, 0.4) !important;
+  border-radius: 4px !important;
+  padding: 1px 6px !important;
+  color: #efe6d8 !important;
+  font-size: 12px !important;
+  align-self: flex-start !important;
+}
+
+.entity-row__detail-badge--level-1 { background: rgba(139,0,0,0.5)   !important; color: #ff6b6b !important; border-color: #ff6b6b !important; }
+.entity-row__detail-badge--level-2 { background: rgba(180,50,20,0.5)  !important; color: #ff8a65 !important; border-color: #ff8a65 !important; }
+.entity-row__detail-badge--level-3 { background: rgba(150,90,20,0.5)  !important; color: #ffb74d !important; border-color: #ffb74d !important; }
+.entity-row__detail-badge--level-4 { background: rgba(80,80,80,0.5)   !important; color: #bdbdbd !important; border-color: #bdbdbd !important; }
+.entity-row__detail-badge--level-5 { background: rgba(30,100,50,0.5)  !important; color: #81c784 !important; border-color: #81c784 !important; }
+.entity-row__detail-badge--level-6 { background: rgba(20,80,60,0.5)   !important; color: #4db6ac !important; border-color: #4db6ac !important; }
+.entity-row__detail-badge--level-7 { background: rgba(20,50,100,0.5)  !important; color: #64b5f6 !important; border-color: #64b5f6 !important; }
+
+.entity-row__detail-meta {
+  color: rgba(239, 230, 216, 0.65) !important;
+  font-size: 12px !important;
+}
+
+.entity-row__detail-meta i {
+  margin-right: 4px !important;
+}
+
+.entity-row__detail-desc {
+  color: rgba(239, 230, 216, 0.85) !important;
+  font-size: 13px !important;
+  font-style: italic !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}

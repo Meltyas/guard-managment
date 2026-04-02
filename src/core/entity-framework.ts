@@ -227,7 +227,7 @@ export class EntityChatIntegration<T extends Identifiable> implements Chattable<
     const entityType = this.config.entityType;
 
     return `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         <details class="domain-card-move" open>
           <summary class="domain-card-header">
             <div class="domain-label">

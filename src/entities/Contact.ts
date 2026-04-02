@@ -97,7 +97,7 @@ export const CONTACT_TYPE: WarehouseItemType<Contact> = {
     const actionText = getChatActionText(action);
 
     return `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         ${contact.image ? `<img class="card-img" src="${contact.image}">` : ''}
         <details class="domain-card-move" open>
           <summary class="domain-card-header">

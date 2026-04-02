@@ -125,7 +125,7 @@ export const REPUTATION_TYPE: WarehouseItemType<Reputation> = {
             : 'Reputación';
 
     return `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         ${reputation.image ? `<img class="card-img" src="${reputation.image}">` : ''}
         <details class="domain-card-move" open>
           <summary class="domain-card-header">

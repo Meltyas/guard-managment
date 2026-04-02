@@ -1,48 +1,45 @@
 <div class="organization-info">
   <div class="info-section resources-section">
     <h3><i class="fas fa-coins"></i> Recursos</h3>
-    <div class="resources-list resources-list--grid" data-organization-id="{{organizationId}}">
+    <div class="entity-list" data-organization-id="{{organizationId}}">
       {{#if resources.length}}
         {{#each resources}}
-          <div class="dh-card dh-card--resource{{#unless this.image}} dh-card--no-image{{/unless}}" data-resource-id="{{this.id}}">
-            <div class="dh-card-inner">
-              <div class="dh-card-header">
-                {{#if this.image}}
-                <div class="dh-card-header-image">
-                  <img alt="{{this.name}}" src="{{this.image}}" />
-                </div>
-                <img class="dh-card-divider" src="modules/guard-management/assets/card/card-type-middle-deco.png" />
-                {{/if}}
-                <div class="dh-card-type">recurso</div>
-                <div class="dh-card-quantity-badge">×{{this.quantity}}</div>
-              </div>
-              <div class="dh-card-body">
-                <div class="dh-card-title-block">
-                  <div class="dh-card-title-wrapper">
-                    <h1 class="dh-card-title">{{this.name}}</h1>
-                  </div>
-                  {{#if this.description}}
-                  <div class="dh-card-subtitle">
-                    <p>{{this.description}}</p>
-                  </div>
-                  {{/if}}
-                </div>
+          <div class="entity-row" data-entity-id="{{this.id}}">
+            <!-- Collapsed row -->
+            <div class="entity-row__summary">
+              <button type="button" class="entity-row__toggle" aria-expanded="false" aria-label="Expandir">
+                <img class="entity-row__thumb" src="{{#if this.image}}{{this.image}}{{else}}icons/commodities/metal/ingot-stack-silver.webp{{/if}}" alt="{{this.name}}" />
+              </button>
+              <span class="entity-row__qty">×{{this.quantity}}</span>
+              <span class="entity-row__name">{{this.name}}</span>
+              <div class="entity-row__actions">
+                <button type="button" class="entity-row__btn send-to-chat-btn" title="Enviar al chat"
+                  data-resource-id="{{this.id}}" data-resource-name="{{this.name}}"
+                  data-organization-id="{{../organizationId}}">
+                  <i class="fas fa-comment"></i>
+                </button>
+                <button type="button" class="entity-row__btn edit-resource-btn" title="Editar"
+                  data-resource-id="{{this.id}}" data-resource-name="{{this.name}}">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="entity-row__btn entity-row__btn--danger remove-resource-btn" title="Remover"
+                  data-resource-id="{{this.id}}" data-resource-name="{{this.name}}">
+                  <i class="fas fa-trash"></i>
+                </button>
               </div>
             </div>
-            <div class="dh-card-actions dh-card-actions--list">
-              <button type="button" class="dh-card-action-btn send-to-chat-btn" title="Enviar al chat"
-                data-resource-id="{{this.id}}" data-resource-name="{{this.name}}"
-                data-organization-id="{{../organizationId}}">
-                <i class="fas fa-comment"></i>
-              </button>
-              <button type="button" class="dh-card-action-btn edit-resource-btn" title="Editar recurso"
-                data-resource-id="{{this.id}}" data-resource-name="{{this.name}}">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button type="button" class="dh-card-action-btn dh-card-action-btn--danger remove-resource-btn" title="Remover recurso"
-                data-resource-id="{{this.id}}" data-resource-name="{{this.name}}">
-                <i class="fas fa-trash"></i>
-              </button>
+            <!-- Expanded detail -->
+            <div class="entity-row__detail" hidden>
+              <div class="entity-row__detail-image">
+                <img class="entity-row__detail-img" src="{{#if this.image}}{{this.image}}{{else}}icons/commodities/metal/ingot-stack-silver.webp{{/if}}" alt="{{this.name}}" />
+              </div>
+              <div class="entity-row__detail-body">
+                <div class="entity-row__detail-title">{{this.name}}</div>
+                <div class="entity-row__detail-badge">{{this.quantity}} unidades</div>
+                {{#if this.description}}
+                  <p class="entity-row__detail-desc">{{this.description}}</p>
+                {{/if}}
+              </div>
             </div>
           </div>
         {{/each}}

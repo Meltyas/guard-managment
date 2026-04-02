@@ -56,7 +56,7 @@ const resourceActions: ActionButton[] = [
 
 function generateResourceChatTemplate(entity: Resource, _context: ChatContext): string {
   return `
-    <div class="daggerheart chat domain-card">
+    <div class="daggerheart chat domain-card dh-style">
       ${entity.image ? `<img class="card-img" src="${entity.image}">` : ''}
       <details class="domain-card-move" open>
         <summary class="domain-card-header">

@@ -91,7 +91,7 @@ export const RESOURCE_TYPE: WarehouseItemType<EnhancedResource> = {
     const actionText = getChatActionText(action);
 
     return `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         ${resource.image ? `<img class="card-img" src="${resource.image}">` : ''}
         <details class="domain-card-move" open>
           <summary class="domain-card-header">

@@ -610,7 +610,7 @@ export class PatrolsPanel {
     }
 
     const content = `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         ${patrol.officer?.img ? `<img class="card-img" src="${patrol.officer.img}">` : ''}
         <details class="domain-card-move" open>
           <summary class="domain-card-header">
@@ -730,7 +730,7 @@ export class PatrolsPanel {
               const notifyChat = form.querySelector('input[name="notifyChat"]')?.checked;
               if (notifyChat && text.trim()) {
                 const content = `
-                  <div class="daggerheart chat domain-card">
+                  <div class="daggerheart chat domain-card dh-style">
                     ${patrol.officer?.img ? `<img class="card-img" src="${patrol.officer.img}">` : ''}
                     <details class="domain-card-move" open>
                       <summary class="domain-card-header">
@@ -794,7 +794,7 @@ export class PatrolsPanel {
     if (!effect) return;
 
     const content = `
-      <div class="daggerheart chat domain-card">
+      <div class="daggerheart chat domain-card dh-style">
         <img class="card-img" src="${effect.img || 'icons/svg/aura.svg'}">
         <details class="domain-card-move" open>
           <summary class="domain-card-header">
