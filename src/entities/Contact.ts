@@ -95,23 +95,31 @@ export const CONTACT_TYPE: WarehouseItemType<Contact> = {
 
   renderChatMessage: (contact: Contact, action: string) => {
     const actionText = getChatActionText(action);
-    const relationshipClass = `relationship-${contact.relationship}`;
 
     return `
-      <div class="chat-message contact-message">
-        <div class="message-header ${relationshipClass}">
-          <strong>${actionText}: ${contact.name}</strong>
-        </div>
-        <div class="message-content">
-          <p><strong>Título:</strong> ${contact.title}</p>
-          <p><strong>Facción:</strong> ${contact.faction}</p>
-          <p><strong>Relación:</strong> ${getRelationshipName(contact.relationship)}</p>
-          <p><strong>Influencia:</strong> ${getInfluenceName(contact.influence)}</p>
-          ${contact.location ? `<p><strong>Ubicación:</strong> ${contact.location}</p>` : ''}
-          ${contact.specialties.length > 0 ? `<p><strong>Especialidades:</strong> ${contact.specialties.join(', ')}</p>` : ''}
-          ${contact.description ? `<p><strong>Descripción:</strong> ${contact.description}</p>` : ''}
-          ${contact.notes ? `<p><strong>Notas:</strong> ${contact.notes}</p>` : ''}
-        </div>
+      <div class="daggerheart chat domain-card">
+        ${contact.image ? `<img class="card-img" src="${contact.image}">` : ''}
+        <details class="domain-card-move" open>
+          <summary class="domain-card-header">
+            <div class="domain-label">
+              <h2 class="title">${contact.name}</h2>
+              <ul class="tags">
+                <li class="tag">${actionText}</li>
+                <li class="tag">${contact.title}</li>
+                <li class="tag">${contact.faction}</li>
+                <li class="tag">${getRelationshipName(contact.relationship)}</li>
+                <li class="tag">${getInfluenceName(contact.influence)}</li>
+              </ul>
+            </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </summary>
+          <div class="description">
+            ${contact.location ? `<p><strong>Ubicación:</strong> ${contact.location}</p>` : ''}
+            ${contact.specialties.length > 0 ? `<p><strong>Especialidades:</strong> ${contact.specialties.join(', ')}</p>` : ''}
+            ${contact.description ? `<p>${contact.description}</p>` : ''}
+            ${contact.notes ? `<p><strong>Notas:</strong> ${contact.notes}</p>` : ''}
+          </div>
+        </details>
       </div>
     `;
   },

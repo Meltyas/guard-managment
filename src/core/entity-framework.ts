@@ -227,21 +227,20 @@ export class EntityChatIntegration<T extends Identifiable> implements Chattable<
     const entityType = this.config.entityType;
 
     return `
-      <div class="guard-${entityType}-chat">
-        <div class="${entityType}-item">
-          <div class="${entityType}-info">
-            <span class="${entityType}-name">${entity.name}</span>
-          </div>
-        </div>
-        ${
-          context.organizationName
-            ? `        </div>
-      </div>
-      </div>
-        ${context.organizationName ? `<div class="${entityType}-source"><strong>${context.organizationName}</strong></div>` : ''}
-    </div>`
-            : ''
-        }
+      <div class="daggerheart chat domain-card">
+        <details class="domain-card-move" open>
+          <summary class="domain-card-header">
+            <div class="domain-label">
+              <h2 class="title">${entity.name}</h2>
+              <ul class="tags">
+                <li class="tag">${entityType}</li>
+                ${context.organizationName ? `<li class="tag">${context.organizationName}</li>` : ''}
+              </ul>
+            </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </summary>
+          <div class="description"></div>
+        </details>
       </div>
     `;
   }

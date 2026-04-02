@@ -125,17 +125,26 @@ export const REPUTATION_TYPE: WarehouseItemType<Reputation> = {
             : 'Reputación';
 
     return `
-      <div class="chat-message reputation-message">
-        <div class="message-header">
-          <strong>${actionText}: ${reputation.name}</strong>
-        </div>
-        <div class="message-content">
-          <p><strong>Descripción:</strong> ${reputation.description}</p>
-          <p><strong>Nivel:</strong> ${levelText}</p>
-          ${reputation.faction ? `<p><strong>Facción:</strong> ${reputation.faction}</p>` : ''}
-          ${reputation.relationship ? `<p><strong>Relación:</strong> ${reputation.relationship}</p>` : ''}
-          ${reputation.notes ? `<p><strong>Notas:</strong> ${reputation.notes}</p>` : ''}
-        </div>
+      <div class="daggerheart chat domain-card">
+        ${reputation.image ? `<img class="card-img" src="${reputation.image}">` : ''}
+        <details class="domain-card-move" open>
+          <summary class="domain-card-header">
+            <div class="domain-label">
+              <h2 class="title">${reputation.name}</h2>
+              <ul class="tags">
+                <li class="tag">${actionText}</li>
+                <li class="tag">Nivel: ${levelText}</li>
+                ${reputation.faction ? `<li class="tag">${reputation.faction}</li>` : ''}
+              </ul>
+            </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </summary>
+          <div class="description">
+            ${reputation.description ? `<p>${reputation.description}</p>` : ''}
+            ${reputation.relationship ? `<p><strong>Relación:</strong> ${reputation.relationship}</p>` : ''}
+            ${reputation.notes ? `<p><strong>Notas:</strong> ${reputation.notes}</p>` : ''}
+          </div>
+        </details>
       </div>
     `;
   },

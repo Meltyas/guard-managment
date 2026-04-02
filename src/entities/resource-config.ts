@@ -54,48 +54,25 @@ const resourceActions: ActionButton[] = [
 // Resource Chat Integration
 // ============================================================================
 
-function generateResourceChatTemplate(entity: Resource, context: ChatContext): string {
-  const MODULE_PATH = 'modules/guard-management';
-  const hasImage = !!entity.image;
-  const image = entity.image || '';
-  const noImageClass = hasImage ? '' : ' dh-card--no-image';
-
+function generateResourceChatTemplate(entity: Resource, _context: ChatContext): string {
   return `
-    <div class="dh-card-chat-wrapper">
-      <div class="dh-card dh-card--resource${noImageClass}">
-        <div class="dh-card-inner">
-          <div class="dh-card-header">
-            ${hasImage ? `
-            <div class="dh-card-header-image">
-              <img alt="${entity.name}" src="${image}" />
-            </div>
-            <img class="dh-card-divider" src="${MODULE_PATH}/assets/card/card-type-middle-deco.png" />
-            ` : ''}
-            <div class="dh-card-type">recurso</div>
-            <div class="dh-card-quantity-badge">×${entity.quantity}</div>
+    <div class="daggerheart chat domain-card">
+      ${entity.image ? `<img class="card-img" src="${entity.image}">` : ''}
+      <details class="domain-card-move" open>
+        <summary class="domain-card-header">
+          <div class="domain-label">
+            <h2 class="title">${entity.name}</h2>
+            <ul class="tags">
+              <li class="tag">Recurso</li>
+              <li class="tag">Cantidad: ${entity.quantity}</li>
+            </ul>
           </div>
-          <div class="dh-card-body">
-            <div class="dh-card-title-block">
-              <div class="dh-card-title-wrapper">
-                <h1 class="dh-card-title">${entity.name}</h1>
-              </div>
-              ${
-                entity.description?.trim()
-                  ? `
-              <div class="dh-card-subtitle">
-                <p>${entity.description.trim()}</p>
-              </div>
-              `
-                  : ''
-              }
-            </div>
-            <div class="dh-card-content">
-              <p><strong>Cantidad:</strong> ${entity.quantity}</p>
-            </div>
-          </div>
+          <i class="fa-solid fa-chevron-down"></i>
+        </summary>
+        <div class="description">
+          ${entity.description?.trim() ? `<p>${entity.description.trim()}</p>` : ''}
         </div>
-
-      </div>
+      </details>
     </div>
   `;
 }

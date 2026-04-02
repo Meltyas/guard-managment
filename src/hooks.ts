@@ -21,7 +21,7 @@ export function registerHooks(): void {
 
   // Intercept preCreate for Guard Management actors/items BEFORE Daggerheart processes them
   // By returning false from a preCreate hook, we prevent the default creation and do it ourselves
-  Hooks.on('preCreateActor', async (document: any, data: any, options: any, userId: string) => {
+  (Hooks as any).on('preCreateActor', async (document: any, _data: any, options: any, _userId: string) => {
     if (document.type?.startsWith('guard-management.')) {
       console.log(`GuardManagement | Intercepting actor creation: ${document.type}`);
       // Mark as handled so we don't create it again
@@ -31,7 +31,7 @@ export function registerHooks(): void {
     }
   });
 
-  Hooks.on('preCreateItem', async (document: any, data: any, options: any, userId: string) => {
+  (Hooks as any).on('preCreateItem', async (document: any, _data: any, options: any, _userId: string) => {
     if (document.type?.startsWith('guard-management.')) {
       console.log(`GuardManagement | Intercepting item creation: ${document.type}`);
       // Mark as handled
@@ -107,15 +107,35 @@ export function registerHooks(): void {
     console.log('GuardManagement | Game ready, setting up Guard Management');
 
     // Register global access
-    const guardManagement = (window as any).guardManagementInstance;
-    (window as any).GuardManagement = guardManagement;
+    const guardManagement =
+      (window as any).GuardManagement || (window as any).guardManagementInstance;
+    if (guardManagement && !(window as any).GuardManagement) {
+      (window as any).GuardManagement = guardManagement;
+    }
 
     // Setup socket listener for organization sync
-    if (game?.socket && guardManagement?.guardOrganizationManager) {
+    if (game?.socket) {
       game.socket.on('module.guard-management', async (data: any) => {
-        await guardManagement.guardOrganizationManager.handleSocketMessage(data);
+        const gm = (window as any).GuardManagement || (window as any).guardManagementInstance;
+        if (!gm?.guardOrganizationManager?.handleSocketMessage) {
+          console.warn('GuardManagement | Socket message received but manager is unavailable', {
+            type: data?.type,
+            hasGM: !!gm,
+          });
+          return;
+        }
+
+        console.log('GuardManagement | Socket message received', {
+          type: data?.type,
+          fromUser: data?.userId,
+          localUser: game?.user?.id,
+        });
+
+        await gm.guardOrganizationManager.handleSocketMessage(data);
       });
-      console.log('GuardManagement | Socket listener registered for organization sync');
+      console.log('GuardManagement | Socket listener registered for guard-management channel');
+    } else {
+      console.warn('GuardManagement | Socket unavailable - listener not registered');
     }
 
     // Register keybindings
@@ -163,12 +183,12 @@ export function registerHooks(): void {
   });
 
   // Custom hook for user connection events
-  Hooks.on('guard-management.userConnected', (user: any) => {
+  (Hooks as any).on('guard-management.userConnected', (user: any) => {
     console.log('GuardManagement | Processing new user connection:', user?.name);
   });
 
   // Custom hook for guard token updates
-  Hooks.on(
+  (Hooks as any).on(
     'guard-management.guardTokenUpdated',
     (token: any, _updateData: any, _userId: string) => {
       const tName = token?.name || token?.document?.name || '';
@@ -264,17 +284,20 @@ export function registerHooks(): void {
   };
   hideGuardDocs();
 
-  // Hook to inject custom modifier breakdown into chat messages
-  Hooks.on('renderChatMessage', (message: any, html: any, data: any) => {
+  // Inject custom modifier breakdown into chat messages.
+  // Supports both Foundry V13 (jQuery html) and V14 (HTMLElement html).
+  const injectBreakdown = (message: any, html: any) => {
     try {
       const breakdown = message.getFlag('guard-management', 'breakdown');
       if (!breakdown || !Array.isArray(breakdown)) return;
 
-      // Find the roll content container
-      const rollContent = html.find('.roll-part-content.dice-result');
-      if (!rollContent.length) return;
+      // Normalise html to a plain HTMLElement for both V13 (jQuery) and V14 (DOM)
+      const root: HTMLElement = html instanceof HTMLElement ? html : (html[0] as HTMLElement);
+      if (!root) return;
 
-      // Generate HTML for breakdown
+      const rollContent = root.querySelector('.roll-part-content.dice-result');
+      if (!rollContent) return;
+
       let breakdownHtml =
         '<div class="guard-roll-breakdown" style="margin-top: 10px; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
 
@@ -314,12 +337,16 @@ export function registerHooks(): void {
       }
       breakdownHtml += '</div>';
 
-      // Append to the roll content
-      rollContent.append(breakdownHtml);
+      rollContent.insertAdjacentHTML('beforeend', breakdownHtml);
     } catch (e) {
       console.error('GuardManagement | Error rendering chat breakdown:', e);
     }
-  });
+  };
+
+  // V14 hook (HTMLElement) – preferred
+  Hooks.on('renderChatMessageHTML', injectBreakdown);
+  // V13 compatibility (jQuery) – kept so the module still works on V13
+  Hooks.on('renderChatMessage', injectBreakdown);
 
   console.log('GuardManagement | Hooks registered successfully');
 }
@@ -335,7 +362,7 @@ function registerKeybindings(guardManagement: any): void {
     editable: [
       {
         key: 'KeyG',
-        modifiers: ['Control', 'Shift'],
+        modifiers: ['CONTROL', 'SHIFT'],
       },
     ],
     onDown: () => {
@@ -351,7 +378,7 @@ function registerKeybindings(guardManagement: any): void {
     editable: [
       {
         key: 'KeyN',
-        modifiers: ['Control', 'Shift'],
+        modifiers: ['CONTROL', 'SHIFT'],
       },
     ],
     onDown: () => {

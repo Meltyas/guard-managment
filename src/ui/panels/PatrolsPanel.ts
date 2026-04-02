@@ -6,10 +6,23 @@ export class PatrolsPanel {
     return 'modules/guard-management/templates/panels/patrols.hbs';
   }
 
-  static async getData() {
+  static async getData(mode: 'patrol' | 'auxiliary' = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
-    const patrols = orgMgr ? orgMgr.listOrganizationPatrols() : [];
+    const patrols = orgMgr
+      ? mode === 'auxiliary'
+        ? orgMgr.listOrganizationAuxiliaries?.() || []
+        : orgMgr.listOrganizationPatrols()
+      : [];
+
+    // Build actorId → officer skill map for quick lookup
+    const officerSkillByActorId = new Map<string, any>();
+    const allOfficers: any[] = gm?.officerManager?.list?.() || [];
+    for (const officer of allOfficers) {
+      if (officer.skill?.name && officer.actorId) {
+        officerSkillByActorId.set(officer.actorId, officer.skill);
+      }
+    }
 
     // Enrich patrols
     const enrichedPatrols = patrols.map((p: any) => {
@@ -42,6 +55,7 @@ export class PatrolsPanel {
         ageClass,
         statsBreakdown,
         slots,
+        officerSkill: p.officer?.actorId ? (officerSkillByActorId.get(p.officer.actorId) ?? null) : null,
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
           ? {
@@ -60,8 +74,8 @@ export class PatrolsPanel {
     return { patrols: enrichedPatrols };
   }
 
-  static async render(container: HTMLElement) {
-    const data = await this.getData();
+  static async render(container: HTMLElement, mode: 'patrol' | 'auxiliary' = 'patrol') {
+    const data = await this.getData(mode);
     const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
     
     // Use jQuery html() to forcibly replace content
@@ -302,6 +316,13 @@ export class PatrolsPanel {
     const resolveActor = async (data: any): Promise<any | null> => {
       const g: any = (globalThis as any).game;
       if (!g) return null;
+
+      // Handle Officer drag from OfficerWarehouseDialog
+      if (data.type === 'Officer' && data.officerData?.actorId) {
+        const actor = g.actors?.get?.(data.officerData.actorId);
+        if (actor) return actor;
+      }
+
       const directId = data.id || data.actorId || data._id;
       if (directId) {
         const byId =
@@ -589,42 +610,28 @@ export class PatrolsPanel {
     }
 
     const content = `
-      <div class="guard-resource-chat">
-        <div class="chat-header" style="display: flex; align-items: center; gap: 10px;">
-            ${patrol.officer?.img ? `<img src="${patrol.officer.img}" style="width: 32px; height: 32px; border: none; object-fit: cover;" />` : ''}
-            <div>
-                <div style="font-weight: bold; font-size: 1.2em;">${patrol.name}</div>
-                ${patrol.subtitle ? `<div style="font-size: 0.9em; opacity: 0.8;">${patrol.subtitle}</div>` : ''}
+      <div class="daggerheart chat domain-card">
+        ${patrol.officer?.img ? `<img class="card-img" src="${patrol.officer.img}">` : ''}
+        <details class="domain-card-move" open>
+          <summary class="domain-card-header">
+            <div class="domain-label">
+              <h2 class="title">${patrol.name}</h2>
+              <ul class="tags">
+                <li class="tag">Patrulla</li>
+                ${patrol.subtitle ? `<li class="tag">${patrol.subtitle}</li>` : ''}
+                <li class="tag">Soldados: ${soldierCount}/${maxSoldiers}</li>
+                <li class="tag">Oficial: ${patrol.officer?.name || 'Sin asignar'}</li>
+              </ul>
             </div>
-        </div>
-
-        <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
-            <div style="margin-bottom: 8px;">
-                <strong>Oficial:</strong> ${patrol.officer?.name || 'Sin asignar'}
-            </div>
-            <div style="margin-bottom: 8px;">
-                <strong>Soldados:</strong> ${soldierCount} / ${maxSoldiers}
-            </div>
-            ${
-              patrol.lastOrder
-                ? `
-            <div style="margin-bottom: 8px; padding: 5px; background: rgba(255,255,255,0.1); border-radius: 4px;">
-                <strong>Última Orden:</strong><br/>
-                <em style="font-size: 0.95em;">${patrol.lastOrder.text}</em>
-            </div>
-            `
-                : ''
-            }
-
-            <div style="margin-top: 10px;">
-                <strong>Estadísticas:</strong>
-                <div style="margin-top: 4px; padding-left: 5px;">
-                    ${statsHtml}
-                </div>
-            </div>
-
+            <i class="fa-solid fa-chevron-down"></i>
+          </summary>
+          <div class="description">
+            ${patrol.lastOrder ? `<p><strong>Última Orden:</strong> <em>${patrol.lastOrder.text}</em></p>` : ''}
+            <p><strong>Estadísticas:</strong></p>
+            ${statsHtml}
             ${effectsHtml}
-        </div>
+          </div>
+        </details>
       </div>
     `;
 
@@ -722,17 +729,23 @@ export class PatrolsPanel {
               // Handle chat notification
               const notifyChat = form.querySelector('input[name="notifyChat"]')?.checked;
               if (notifyChat && text.trim()) {
-                const officerImg = patrol.officer?.img
-                  ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${patrol.officer.img}" /></div>`
-                  : '';
-
                 const content = `
-                  <div class="guard-resource-chat">
-                    ${officerImg}
-                    <div class="chat-header">Nueva Orden: ${patrol.name}</div>
-                    <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-                      ${text}
-                    </div>
+                  <div class="daggerheart chat domain-card">
+                    ${patrol.officer?.img ? `<img class="card-img" src="${patrol.officer.img}">` : ''}
+                    <details class="domain-card-move" open>
+                      <summary class="domain-card-header">
+                        <div class="domain-label">
+                          <h2 class="title">${patrol.name}</h2>
+                          <ul class="tags">
+                            <li class="tag">Nueva Orden</li>
+                          </ul>
+                        </div>
+                        <i class="fa-solid fa-chevron-down"></i>
+                      </summary>
+                      <div class="description">
+                        <p>${text}</p>
+                      </div>
+                    </details>
                   </div>
                 `;
 
@@ -780,21 +793,26 @@ export class PatrolsPanel {
     const effect = patrol.patrolEffects.find((e: any) => e.id === effectId);
     if (!effect) return;
 
-    // Construct chat message content
     const content = `
-      <div class="guard-resource-chat">
-        <div class="resource-image" style="margin-bottom: 8px;">
-            <img src="${effect.img || 'icons/svg/aura.svg'}" style="max-width: 64px; border: none;" />
-        </div>
-        <div class="chat-header" style="font-weight: bold; font-size: 1.2em; margin-bottom: 5px;">${effect.label}</div>
-        <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
-          ${effect.description || 'Sin descripción'}
-        </div>
-        <div class="stat-modifiers">
-            ${Object.entries(effect.modifiers || {})
-              .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`)
-              .join('')}
-        </div>
+      <div class="daggerheart chat domain-card">
+        <img class="card-img" src="${effect.img || 'icons/svg/aura.svg'}">
+        <details class="domain-card-move" open>
+          <summary class="domain-card-header">
+            <div class="domain-label">
+              <h2 class="title">${effect.label}</h2>
+              <ul class="tags">
+                <li class="tag">Efecto de Patrulla</li>
+                ${Object.entries(effect.modifiers || {})
+                  .map(([k, v]) => `<li class="tag">${k}: ${v}</li>`)
+                  .join('')}
+              </ul>
+            </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </summary>
+          <div class="description">
+            <p>${effect.description || 'Sin descripción'}</p>
+          </div>
+        </details>
       </div>
     `;
 

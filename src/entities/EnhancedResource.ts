@@ -89,20 +89,28 @@ export const RESOURCE_TYPE: WarehouseItemType<EnhancedResource> = {
 
   renderChatMessage: (resource: EnhancedResource, action: string) => {
     const actionText = getChatActionText(action);
-    const rarityClass = `rarity-${resource.rarity}`;
 
     return `
-      <div class="chat-message resource-message">
-        <div class="message-header ${rarityClass}">
-          <strong>${actionText}: ${resource.name}</strong>
-        </div>
-        <div class="message-content">
-          <p><strong>Descripción:</strong> ${resource.description}</p>
-          <p><strong>Cantidad:</strong> ${resource.quantity}</p>
-          <p><strong>Categoría:</strong> ${getCategoryName(resource.category)}</p>
-          <p><strong>Rareza:</strong> ${getRarityName(resource.rarity)}</p>
-          ${resource.value ? `<p><strong>Valor:</strong> ${resource.value} oro</p>` : ''}
-        </div>
+      <div class="daggerheart chat domain-card">
+        ${resource.image ? `<img class="card-img" src="${resource.image}">` : ''}
+        <details class="domain-card-move" open>
+          <summary class="domain-card-header">
+            <div class="domain-label">
+              <h2 class="title">${resource.name}</h2>
+              <ul class="tags">
+                <li class="tag">${actionText}</li>
+                <li class="tag">${getCategoryName(resource.category)}</li>
+                <li class="tag">${getRarityName(resource.rarity)}</li>
+                <li class="tag">Cantidad: ${resource.quantity}</li>
+                ${resource.value ? `<li class="tag">${resource.value} oro</li>` : ''}
+              </ul>
+            </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </summary>
+          <div class="description">
+            ${resource.description ? `<p>${resource.description}</p>` : ''}
+          </div>
+        </details>
       </div>
     `;
   },

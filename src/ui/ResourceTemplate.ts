@@ -41,29 +41,25 @@ export class ResourceTemplate {
       return '';
     }
 
-    // Use Daggerheart structure but with our resource content
+    // Daggerheart 2.0 domain-card structure — renders correctly inside .message-content
     return `
-      <div class="message-content">
-        <div class="daggerheart chat domain-card">
-          <img class="card-img" src="${resourceData.image || 'icons/commodities/metal/ingot-stack-silver.webp'}">
-          <details class="domain-card-move" open>
-            <summary class="domain-card-header">
-              <div class="domain-label">
-                <h2 class="title">${resourceData.name}</h2>
-              </div>
-              <i class="fa-solid fa-chevron-down"></i>
-            </summary>
-            <div class="description">
-              ${resourceData.description ? `<p>${resourceData.description.trim()}</p>` : ''}
+      <div class="daggerheart chat domain-card">
+        <img class="card-img" src="${resourceData.image || 'icons/commodities/metal/ingot-stack-silver.webp'}">
+        <details class="domain-card-move" open>
+          <summary class="domain-card-header">
+            <div class="domain-label">
+              <h2 class="title">${resourceData.name}</h2>
+              <ul class="tags">
+                <li class="tag">Recurso</li>
+                <li class="tag">Cantidad: ${resourceData.quantity}</li>
+              </ul>
             </div>
-          </details>
-          <footer class="ability-card-footer">
-            <ul class="tags">
-              <li class="tag">Recurso</li>
-              <li class="tag">Cantidad: ${resourceData.quantity}</li>
-            </ul>
-          </footer>
-        </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </summary>
+          <div class="description">
+            ${resourceData.description ? `<p>${resourceData.description.trim()}</p>` : ''}
+          </div>
+        </details>
       </div>
     `;
   }

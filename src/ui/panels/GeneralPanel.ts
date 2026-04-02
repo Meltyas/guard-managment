@@ -200,24 +200,28 @@ export class GeneralPanel {
       return;
     }
 
-    // Construct chat message content matching Patrol Effects style
     const content = `
-      <div class="guard-resource-chat">
-        <div class="resource-image" style="margin-bottom: 8px;">
-            <img src="${modifier.img}" style="max-width: 64px; border: none;" />
-        </div>
-        <div class="chat-header" style="font-weight: bold; font-size: 1.2em; margin-bottom: 5px;">${modifier.name}</div>
-        <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
-          ${modifier.system.description || 'Sin descripción'}
-        </div>
-        <div class="stat-modifiers">
-            ${(modifier.system.statModifications || [])
-              .map(
-                (m: any) =>
-                  `<div><strong>${m.statName}:</strong> ${m.value > 0 ? '+' : ''}${m.value}</div>`
-              )
-              .join('')}
-        </div>
+      <div class="daggerheart chat domain-card">
+        <img class="card-img" src="${modifier.img || 'icons/svg/shield.svg'}">
+        <details class="domain-card-move" open>
+          <summary class="domain-card-header">
+            <div class="domain-label">
+              <h2 class="title">${modifier.name}</h2>
+              <ul class="tags">
+                <li class="tag">Modificador de Guardia</li>
+                ${(modifier.system.statModifications || [])
+                  .map(
+                    (m: any) => `<li class="tag">${m.statName}: ${m.value > 0 ? '+' : ''}${m.value}</li>`
+                  )
+                  .join('')}
+              </ul>
+            </div>
+            <i class="fa-solid fa-chevron-down"></i>
+          </summary>
+          <div class="description">
+            <p>${modifier.system.description || 'Sin descripción'}</p>
+          </div>
+        </details>
       </div>
     `;
 
