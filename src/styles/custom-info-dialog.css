@@ -288,36 +288,7 @@
   text-align: right;
 }
 
-/* Stats Display - Styled like Daggerheart */
-.stats-display {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0;
-  margin-bottom: 15px;
-}
-
-.stat-value {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 20px;
-  font-weight: 400;
-  color: #efe6d8; /* Daggerheart text color */
-  margin-bottom: 0;
-  text-align: center;
-}
-
-.stat-label {
-  display: flex;
-  padding-top: 5px;
-  color: #f3c267; /* Daggerheart gold color */
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-}
+/* Stats Display — chips version defined below */
 
 /* Count Displays */
 .patrol-count,
@@ -411,46 +382,108 @@
   width: 100%;
 }
 
-/* Stats Display - Styled like Daggerheart */
+/* Stats + Effects: 2 columns 50/50 */
+.stats-effects-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.stats-effects-cols .modifiers-grid.compact {
+  min-height: 44px;
+  border: 1px dashed rgba(243, 194, 103, 0.25);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin-top: 0;
+}
+
+.stats-effects-cols .effects-empty {
+  font-size: 0.7rem;
+  color: rgba(239, 230, 216, 0.35);
+  font-style: italic;
+}
+
+/* Stats Display: 3 chips per row */
 .stats-display {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   padding: 0;
-  margin-bottom: 15px;
-}
-
-.stat-box {
-  background: url('../assets/svg/trait-shield.svg') no-repeat;
-  text-align: center;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  cursor: pointer;
-}
-
-.stat-value {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 20px;
-  font-weight: 400;
-  color: #efe6d8; /* Daggerheart text color */
   margin-bottom: 0;
-  text-align: center;
 }
 
-.stat-label {
-  display: flex;
-  padding-top: 5px;
-  color: #f3c267; /* Daggerheart gold color */
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  align-items: center;
-  justify-content: center;
+/* ── Stat Chip: image top, base|total bottom ── */
+.stat-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  border: 2.5px solid #f3c267;
+  border-radius: 10px;
+  background: #000;
+  padding: 4px 4px 3px;
   gap: 3px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.1s ease;
+  font: inherit;
+  min-width: 56px;
 }
 
+.stat-chip:hover {
+  border-color: #ffd966;
+  transform: scale(1.06);
+}
+
+.stat-chip__img {
+  width: 100%;
+  height: 30px;
+  flex-shrink: 0;
+  background-color: transparent;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-sizing: border-box;
+}
+
+.stat-chip__nums {
+  display: flex;
+  width: 100%;
+  border-top: 1px solid rgba(243, 194, 103, 0.3);
+  padding-top: 2px;
+}
+
+.stat-chip__base {
+  flex: 1;
+  text-align: center;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #efe6d8;
+  border-right: 1px solid rgba(243, 194, 103, 0.25);
+  padding: 0 2px;
+}
+
+.stat-chip__total {
+  flex: 1;
+  text-align: center;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f3c267;
+  padding: 0 2px;
+  opacity: 0.9;
+}
+
+.stat-chip.positive .stat-chip__base {
+  color: #4ae89a;
+}
+.stat-chip.negative .stat-chip__base {
+  color: #e84a4a;
+}
+
+/* Mini variant for patrol cards */
 /* Count Displays */
 .patrol-count,
 .resource-count,
@@ -845,7 +878,7 @@
 }
 
 /* Button styling like Daggerheart */
-.custom-info-dialog button:not(.custom-dialog-btn) {
+.custom-info-dialog button:not(.custom-dialog-btn):not(.stat-chip) {
   background: rgba(24, 22, 46, 0.7); /* Daggerheart background */
   border: 1px solid #f3c267; /* Daggerheart gold border */
   color: #f3c267; /* Daggerheart gold text */
@@ -857,7 +890,7 @@
   font-size: 14px;
 }
 
-.custom-info-dialog button:not(.custom-dialog-btn):hover {
+.custom-info-dialog button:not(.custom-dialog-btn):not(.stat-chip):hover {
   background: #f3c267; /* Daggerheart gold */
   color: #18162e; /* Daggerheart dark background */
 }
@@ -1195,6 +1228,46 @@
   display: block;
 }
 
+/* Shift-held: red removal mode for org modifiers */
+.shift-held .modifiers-grid .modifier-compact {
+  cursor: crosshair !important;
+  box-shadow: 0 0 0 2px rgba(232, 74, 74, 0.6);
+  border-color: rgba(232, 74, 74, 0.6) !important;
+  position: relative;
+}
+.shift-held .modifiers-grid .modifier-compact img {
+  filter: contrast(0.9) saturate(0.8);
+  transition: filter 0.15s ease;
+}
+.shift-held .modifiers-grid .modifier-compact:hover {
+  box-shadow: 0 0 0 3px #e84a4a;
+  border-color: #e84a4a !important;
+}
+.shift-held .modifiers-grid .modifier-compact:hover img {
+  filter: brightness(0.75) sepia(0.5) saturate(1.4);
+}
+.shift-held .modifiers-grid .modifier-compact::after {
+  content: '×';
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 14px;
+  height: 14px;
+  background: #e84a4a;
+  color: #fff;
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  z-index: 10;
+}
+.shift-held .modifiers-grid .modifier-compact:hover::after {
+  opacity: 1;
+}
+
 /* Tooltip Styles for Custom Info Dialog */
 .stat-tooltip-list {
   list-style: none;
@@ -1311,6 +1384,10 @@
 .clickable-stat {
   cursor: pointer;
   transition: all 0.2s ease;
+  overflow: hidden;
+  padding: 0;
+  gap: 0;
+  height: 55px;
 }
 
 .clickable-stat:hover {
@@ -1381,10 +1458,22 @@
 
 /* Flash animation when a remote open arrives but the player is actively using the dialog */
 @keyframes guard-dialog-attention-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(243, 194, 103, 0.0); outline: 2px solid transparent; }
-  20%  { box-shadow: 0 0 0 6px rgba(243, 194, 103, 0.6); outline: 2px solid #f3c267; }
-  60%  { box-shadow: 0 0 0 12px rgba(243, 194, 103, 0.2); outline: 2px solid #f3c267; }
-  100% { box-shadow: 0 0 0 0 rgba(243, 194, 103, 0.0); outline: 2px solid transparent; }
+  0% {
+    box-shadow: 0 0 0 0 rgba(243, 194, 103, 0);
+    outline: 2px solid transparent;
+  }
+  20% {
+    box-shadow: 0 0 0 6px rgba(243, 194, 103, 0.6);
+    outline: 2px solid #f3c267;
+  }
+  60% {
+    box-shadow: 0 0 0 12px rgba(243, 194, 103, 0.2);
+    outline: 2px solid #f3c267;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(243, 194, 103, 0);
+    outline: 2px solid transparent;
+  }
 }
 
 .custom-info-dialog.guard-dialog-attention {
@@ -1407,8 +1496,14 @@
 }
 
 @keyframes guard-gm-banner-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .guard-gm-banner-text {
@@ -1449,7 +1544,7 @@
 
 .guard-gm-banner-dismiss {
   padding: 2px 6px;
-  border-color: rgba(255,255,255,0.15);
+  border-color: rgba(255, 255, 255, 0.15);
   background: transparent;
 }
 

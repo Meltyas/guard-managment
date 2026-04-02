@@ -30,7 +30,7 @@ const ENTITY_SELECTORS: Array<{ container: string; idAttr: string; name: string 
   { container: '.finances-entry-row', idAttr: 'data-entry-id', name: '.finances-entry-name' },
   { container: '.dh-card[data-resource-id]', idAttr: 'data-resource-id', name: '.dh-card-title' },
   { container: '.dh-card[data-reputation-id]', idAttr: 'data-reputation-id', name: '.dh-card-title' },
-  { container: '.stat-box.clickable-stat', idAttr: 'data-stat', name: '.stat-label' },
+  { container: '.stat-chip.clickable-stat', idAttr: 'data-stat', name: '.stat-label' },
 ];
 
 /**

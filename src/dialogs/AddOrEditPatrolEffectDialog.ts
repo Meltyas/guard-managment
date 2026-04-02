@@ -41,16 +41,17 @@ export class AddOrEditPatrolEffectDialog {
           if (filePickerBtn) {
             filePickerBtn.addEventListener('click', (ev: Event) => {
               ev.preventDefault();
+              const input = bodyEl.querySelector('input[name="image"]') as HTMLInputElement;
               const fp = new FilePicker({
                 type: 'image',
+                current: input?.value || '',
                 callback: (path: string) => {
-                  const input = bodyEl.querySelector('input[name="image"]') as HTMLInputElement;
                   const img = bodyEl.querySelector('.image-preview img') as HTMLImageElement;
                   if (input) input.value = path;
                   if (img) img.src = path;
                 },
               });
-              fp.browse();
+              fp.render(true);
             });
           }
         },

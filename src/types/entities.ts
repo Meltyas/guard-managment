@@ -122,6 +122,9 @@ export interface Patrol extends BaseEntity {
   currentHope?: number; // 0 to maxHope
   maxHope?: number; // 0-6, default 0 (inherited from org or per-patrol)
 
+  // Spellcasting abilities (up to 6)
+  patrolSpells?: PatrolSpellAbility[];
+
   // Last order issued to patrol
   lastOrder: PatrolLastOrder | null;
 
@@ -174,6 +177,12 @@ export interface PatrolEffectInstance {
 export interface PatrolLastOrder {
   text: string;
   issuedAt: number; // epoch ms
+}
+
+export interface PatrolSpellAbility {
+  id: string;
+  name: string; // e.g. "Lanza Llamas"
+  modifier: number; // flat bonus added to the dHope + dFear roll
 }
 
 export type PatrolStatus = 'idle' | 'deployed' | 'recalled';

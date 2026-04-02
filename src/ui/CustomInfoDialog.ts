@@ -7,16 +7,16 @@ import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-
 // Import CSS for drag & drop styling
 import '../styles/custom-info-dialog.css';
 import { NotificationService } from '../utils/services/NotificationService.js';
-import { CrimesPanel } from './panels/CrimesPanel.js';
-import { GangsPanel } from './panels/GangsPanel.js';
 import { BuildingsPanel } from './panels/BuildingsPanel.js';
-import { PoiPanel } from './panels/PoiPanel.js';
+import { CrimesPanel } from './panels/CrimesPanel.js';
+import { FinancesPanel } from './panels/FinancesPanel.js';
+import { GangsPanel } from './panels/GangsPanel.js';
 import { GeneralPanel } from './panels/GeneralPanel.js';
 import { PatrolsPanel } from './panels/PatrolsPanel.js';
+import { PoiPanel } from './panels/PoiPanel.js';
 import { PrisonersPanel } from './panels/PrisonersPanel.js';
 import { ReputationPanel } from './panels/ReputationPanel.js';
 import { ResourcesPanel } from './panels/ResourcesPanel.js';
-import { FinancesPanel } from './panels/FinancesPanel.js';
 import { PresenceIndicator } from './PresenceIndicator.js';
 
 export class CustomInfoDialog implements FocusableDialog {
@@ -381,9 +381,7 @@ export class CustomInfoDialog implements FocusableDialog {
           await BuildingsPanel.render(buildingsContainer);
         }
 
-        const poiContainer = this.element.querySelector(
-          '[data-tab-panel="poi"]'
-        ) as HTMLElement;
+        const poiContainer = this.element.querySelector('[data-tab-panel="poi"]') as HTMLElement;
         if (poiContainer) {
           console.log('🔄 Rendering PoiPanel...');
           await PoiPanel.render(poiContainer);
@@ -505,7 +503,9 @@ export class CustomInfoDialog implements FocusableDialog {
     });
 
     // Share button (GM only — visibility already set by template via isGM)
-    const shareBtn = this.element.querySelector('.custom-dialog-share-players') as HTMLElement | null;
+    const shareBtn = this.element.querySelector(
+      '.custom-dialog-share-players'
+    ) as HTMLElement | null;
     if (shareBtn) {
       shareBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -913,9 +913,7 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   public refreshPoiPanel() {
-    const tabPanel = this.element?.querySelector(
-      '[data-tab-panel="poi"]'
-    ) as HTMLElement | null;
+    const tabPanel = this.element?.querySelector('[data-tab-panel="poi"]') as HTMLElement | null;
     if (!tabPanel) return;
 
     PoiPanel.render(tabPanel);
@@ -1433,7 +1431,9 @@ export class CustomInfoDialog implements FocusableDialog {
    */
   public activateTab(tab: string): void {
     if (!this.element) return;
-    const btn = this.element.querySelector(`.org-tab-btn[data-tab="${tab}"]`) as HTMLButtonElement | null;
+    const btn = this.element.querySelector(
+      `.org-tab-btn[data-tab="${tab}"]`
+    ) as HTMLButtonElement | null;
     if (btn) btn.click();
   }
 

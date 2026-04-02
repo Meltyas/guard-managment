@@ -107,7 +107,7 @@ export class OfficerFormApplication extends FormApplication {
           if (imageInput) imageInput.value = path;
         },
       });
-      picker.browse();
+      picker.render(true);
     };
   }
 

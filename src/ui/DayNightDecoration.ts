@@ -96,7 +96,7 @@ export class DayNightDecoration {
       <div class="day-night-container">
         <img
           class="day-night-image"
-          src="modules/guard-management/img/DayNightPhase.png"
+          src="modules/guard-management/assets/DayNightPhase.webp"
           alt="Day/Night Phase"
           draggable="false"
         />

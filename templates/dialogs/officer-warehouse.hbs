@@ -5,10 +5,20 @@
       Almacén de Oficiales
     </h2>
     {{#if isGM}}
-    <button type='button' class='add-officer-btn'>
-      <i class='fas fa-plus'></i>
-      Nuevo Oficial
-    </button>
+    <div class='content-header-actions'>
+      <button type='button' class='add-officer-btn'>
+        <i class='fas fa-plus'></i>
+        Nuevo Oficial
+      </button>
+      <button type='button' class='warehouse-export-btn' data-section='officers' data-section-label='oficiales' title='Exportar oficiales a JSON'>
+        <i class='fas fa-file-export'></i>
+        Exportar
+      </button>
+      <button type='button' class='warehouse-import-btn' data-section='officers' data-section-label='oficiales' title='Importar oficiales desde JSON'>
+        <i class='fas fa-file-import'></i>
+        Importar
+      </button>
+    </div>
     {{/if}}
   </div>
 

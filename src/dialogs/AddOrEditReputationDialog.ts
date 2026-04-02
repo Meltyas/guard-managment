@@ -57,7 +57,7 @@ export class AddOrEditReputationDialog {
               }
             },
           });
-          this.filePicker.browse();
+          this.filePicker.render(true);
         };
       }
     } catch (error) {

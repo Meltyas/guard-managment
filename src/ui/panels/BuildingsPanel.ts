@@ -244,7 +244,7 @@ export class BuildingsPanel {
                 imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
               }
             },
-          }).browse();
+          }).render(true);
         });
 
         imgInput?.addEventListener('change', () => {
@@ -267,7 +267,8 @@ export class BuildingsPanel {
           return false;
         }
 
-        const description = (bodyEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() || '';
+        const description =
+          (bodyEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() || '';
 
         const tags: BuildingTag[] = [];
         bodyEl.querySelectorAll('input[name="building-tag"]:checked').forEach((cb: any) => {
@@ -279,7 +280,9 @@ export class BuildingsPanel {
         if (gangId) {
           const gangs = BuildingsPanel.getGangOptions();
           const gang = gangs.find((g) => g.id === gangId);
-          const gangNotes = (bodyEl.querySelector('#building-gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+          const gangNotes =
+            (bodyEl.querySelector('#building-gang-notes') as HTMLTextAreaElement)?.value?.trim() ||
+            '';
           gangLink = { gangId, gangName: gang?.name || '', notes: gangNotes };
         }
 
@@ -374,7 +377,7 @@ export class BuildingsPanel {
                 imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
               }
             },
-          }).browse();
+          }).render(true);
         });
 
         imgInput?.addEventListener('change', () => {
@@ -392,7 +395,8 @@ export class BuildingsPanel {
           return false;
         }
 
-        const description = (bodyEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() || '';
+        const description =
+          (bodyEl.querySelector('#building-desc') as HTMLTextAreaElement)?.value?.trim() || '';
 
         const tags: BuildingTag[] = [];
         bodyEl.querySelectorAll('input[name="building-tag"]:checked').forEach((cb: any) => {
@@ -404,7 +408,9 @@ export class BuildingsPanel {
         if (gangId) {
           const gangs = BuildingsPanel.getGangOptions();
           const gang = gangs.find((g) => g.id === gangId);
-          const gangNotes = (bodyEl.querySelector('#building-gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+          const gangNotes =
+            (bodyEl.querySelector('#building-gang-notes') as HTMLTextAreaElement)?.value?.trim() ||
+            '';
           gangLink = { gangId, gangName: gang?.name || '', notes: gangNotes };
         }
 

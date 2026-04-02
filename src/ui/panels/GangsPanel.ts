@@ -138,10 +138,32 @@ export class GangsPanel {
 
     // Ctrl+click on subleader/member avatars to increment count
     // Ctrl+right-click to decrement count
-    container.querySelectorAll('.gang-member-avatar[data-role="subleader"], .gang-member-avatar[data-role="member"]').forEach((avatar) => {
-      avatar.addEventListener('click', async (e) => {
-        const me = e as MouseEvent;
-        if (me.ctrlKey) {
+    container
+      .querySelectorAll(
+        '.gang-member-avatar[data-role="subleader"], .gang-member-avatar[data-role="member"]'
+      )
+      .forEach((avatar) => {
+        avatar.addEventListener('click', async (e) => {
+          const me = e as MouseEvent;
+          if (me.ctrlKey) {
+            e.stopPropagation();
+            const el = avatar as HTMLElement;
+            const gangId = el.dataset.gangId;
+            const actorId = el.dataset.actorId;
+            const role = el.dataset.role as 'subleader' | 'member';
+            if (!gangId || !actorId || !role) return;
+
+            const gm = (window as any).GuardManagement;
+            if (!gm?.gangManager) return;
+
+            await gm.gangManager.incrementMemberCount(gangId, actorId, role);
+            await GangsPanel.render(container);
+          }
+        });
+
+        avatar.addEventListener('contextmenu', async (e) => {
+          if (!(e as MouseEvent).ctrlKey) return;
+          e.preventDefault();
           e.stopPropagation();
           const el = avatar as HTMLElement;
           const gangId = el.dataset.gangId;
@@ -152,28 +174,10 @@ export class GangsPanel {
           const gm = (window as any).GuardManagement;
           if (!gm?.gangManager) return;
 
-          await gm.gangManager.incrementMemberCount(gangId, actorId, role);
+          await gm.gangManager.decrementMemberCount(gangId, actorId, role);
           await GangsPanel.render(container);
-        }
+        });
       });
-
-      avatar.addEventListener('contextmenu', async (e) => {
-        if (!(e as MouseEvent).ctrlKey) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const el = avatar as HTMLElement;
-        const gangId = el.dataset.gangId;
-        const actorId = el.dataset.actorId;
-        const role = el.dataset.role as 'subleader' | 'member';
-        if (!gangId || !actorId || !role) return;
-
-        const gm = (window as any).GuardManagement;
-        if (!gm?.gangManager) return;
-
-        await gm.gangManager.decrementMemberCount(gangId, actorId, role);
-        await GangsPanel.render(container);
-      });
-    });
 
     // Shift+click to delete history entries and member avatars
     let shiftHeld = false;
@@ -380,7 +384,7 @@ export class GangsPanel {
                 imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
               }
             },
-          }).browse();
+          }).render(true);
         });
 
         imgInput?.addEventListener('change', () => {
@@ -399,7 +403,8 @@ export class GangsPanel {
           return false;
         }
 
-        const notes = (bodyEl.querySelector('#gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+        const notes =
+          (bodyEl.querySelector('#gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
 
         const gm = (window as any).GuardManagement;
         if (!gm?.gangManager) return false;
@@ -472,7 +477,7 @@ export class GangsPanel {
                 imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
               }
             },
-          }).browse();
+          }).render(true);
         });
 
         imgInput?.addEventListener('change', () => {
@@ -486,7 +491,8 @@ export class GangsPanel {
           return false;
         }
 
-        const notes = (bodyEl.querySelector('#gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+        const notes =
+          (bodyEl.querySelector('#gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
 
         const updates: any = { notes };
         if (name !== gang.name) {

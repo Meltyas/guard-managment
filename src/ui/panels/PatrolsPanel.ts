@@ -34,9 +34,9 @@ export class PatrolsPanel {
 
       // Format stats breakdown for template
       const statsBreakdown: Record<string, any> = {};
-      Object.entries(p.derivedStats || p.baseStats || {}).forEach(([k, v]) => {
-        const b = (bd as any)[k] || { base: 0, effects: 0, effectList: [], org: 0, total: v };
-        statsBreakdown[k] = { ...b, total: v as number };
+      Object.entries(p.baseStats || {}).forEach(([k]) => {
+        const b = (bd as any)[k] || { base: 0, effects: 0, effectList: [], org: 0, total: 0 };
+        statsBreakdown[k] = { ...b }; // total is already live-computed inside computePatrolStatBreakdown
       });
 
       // Prepare slots
@@ -58,6 +58,11 @@ export class PatrolsPanel {
         officerSkill: p.officer?.actorId
           ? (officerSkillByActorId.get(p.officer.actorId) ?? null)
           : null,
+        // Enrich spellcasting abilities with formatted modifier string
+        patrolSpells: (p.patrolSpells || []).map((s: any) => ({
+          ...s,
+          modifierStr: s.modifier > 0 ? `+${s.modifier}` : s.modifier < 0 ? `${s.modifier}` : '±0',
+        })),
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
           ? {
@@ -119,14 +124,79 @@ export class PatrolsPanel {
       const id = target.dataset.patrolId;
       if (id) this.handleEditLastOrder(id, () => this.refresh(container));
     });
-    $html.find('[data-action="open-sheet"]').on('click', (ev) => {
+    // Shift+click on officer/soldier unassigns them; normal click opens sheet
+    let _shiftHeld = false;
+    const _onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        _shiftHeld = true;
+        container.classList.add('shift-held');
+      }
+    };
+    const _onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        _shiftHeld = false;
+        container.classList.remove('shift-held');
+      }
+    };
+    document.addEventListener('keydown', _onKeyDown);
+    document.addEventListener('keyup', _onKeyUp);
+    // Clean up listeners when container is removed from DOM
+    const _observer = new MutationObserver(() => {
+      if (!document.contains(container)) {
+        document.removeEventListener('keydown', _onKeyDown);
+        document.removeEventListener('keyup', _onKeyUp);
+        _observer.disconnect();
+      }
+    });
+    _observer.observe(document.body, { childList: true, subtree: true });
+
+    $html.find('[data-action="open-sheet"]').on('click', async (ev) => {
       ev.preventDefault();
-      const id = ev.currentTarget.dataset.actorId;
-      if (id) this.handleOpenActorSheet(id);
+      ev.stopPropagation();
+      const actorId = ev.currentTarget.dataset.actorId;
+      if (!actorId) return;
+
+      if (_shiftHeld) {
+        const card = ev.currentTarget.closest('.patrol-card') as HTMLElement | null;
+        const patrolId = card?.dataset.patrolId;
+        if (!patrolId) return;
+
+        const isOfficer = !!ev.currentTarget.closest('.officer-slot');
+        const gm = (window as any).GuardManagement;
+        const orgMgr = gm?.guardOrganizationManager;
+        const pMgr = orgMgr?.getPatrolManager?.();
+        if (!pMgr) return;
+
+        const patrol = pMgr.getPatrol(patrolId);
+        const name = isOfficer
+          ? (patrol?.officer?.name ?? 'Oficial')
+          : (patrol?.soldiers?.find((s: any) => s.actorId === actorId)?.name ?? 'Soldado');
+
+        const role = isOfficer ? 'oficial' : 'soldado';
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+          window: { title: 'Desasignar personaje' },
+          content: `<p>¿Desasignar a <strong>${name}</strong> como ${role} de esta patrulla?</p>`,
+          yes: { label: 'Desasignar', icon: 'fas fa-user-minus' },
+          no: { label: 'Cancelar', icon: 'fas fa-times' },
+          rejectClose: false,
+        });
+        if (!confirmed) return;
+
+        if (isOfficer) {
+          await pMgr.unassignOfficer(patrolId);
+          ui?.notifications?.info?.(`${name} desasignado como oficial`);
+        } else {
+          await pMgr.removeSoldier(patrolId, actorId);
+          ui?.notifications?.info?.(`${name} eliminado de la patrulla`);
+        }
+        this.refresh(container);
+      } else {
+        this.handleOpenActorSheet(actorId);
+      }
     });
 
     // Stat interactions
-    $html.find('.stat.clickable-stat').on('click', (ev) => {
+    $html.find('.stat-chip.clickable-stat').on('click', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       const target = ev.currentTarget;
@@ -140,6 +210,25 @@ export class PatrolsPanel {
         const pMgr = orgMgr?.getPatrolManager();
         if (pMgr) {
           pMgr.rollStat(patrolId, statKey);
+        }
+      }
+    });
+
+    // Spellcasting roll interactions
+    $html.find('.patrol-spell-tag.clickable-spell').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const target = ev.currentTarget;
+      const card = target.closest('.patrol-card') as HTMLElement;
+      const patrolId = card?.dataset.patrolId;
+      const spellId = target.dataset.spellId;
+
+      if (patrolId && spellId) {
+        const gm = (window as any).GuardManagement;
+        const orgMgr = gm?.guardOrganizationManager;
+        const pMgr = orgMgr?.getPatrolManager();
+        if (pMgr) {
+          pMgr.rollSpell(patrolId, spellId);
         }
       }
     });
@@ -158,7 +247,12 @@ export class PatrolsPanel {
       const target = ev.currentTarget;
       const patrolId = target.dataset.patrolId;
       const effectId = target.dataset.effectId;
-      if (patrolId && effectId) this.handleEffectClick(patrolId, effectId);
+      if (!patrolId || !effectId) return;
+      if (_shiftHeld) {
+        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container));
+      } else {
+        this.handleEffectClick(patrolId, effectId);
+      }
     });
 
     $html.find('.effect-item').on('contextmenu', (ev) => {
@@ -177,19 +271,29 @@ export class PatrolsPanel {
 
   private static computePatrolStatBreakdown(patrol: any) {
     try {
-      const derived = patrol.derivedStats || patrol.baseStats || {};
+      const baseStats = patrol.baseStats || {};
 
-      // Get Organization Modifiers
+      // Get Organization data
       const gm = (window as any).GuardManagement;
       const orgMgr = gm?.guardOrganizationManager;
       const activeModifiers = orgMgr?.getActiveModifiers() || [];
+      const organization = orgMgr?.getOrganization();
 
+      // Org base stats contribution
+      const orgBaseStats: Record<string, number> = {};
+      if (organization?.baseStats) {
+        for (const [k, v] of Object.entries(organization.baseStats)) {
+          orgBaseStats[k] = (v as number) || 0;
+        }
+      }
+
+      // Org modifier totals (detail list)
       const orgModTotals: Record<string, number> = {};
       const orgModDetails: Record<string, Array<{ name: string; img: string; value: number }>> = {};
 
       for (const mod of activeModifiers) {
-        if (mod.system?.statModifications) {
-          for (const statMod of mod.system.statModifications) {
+        if (mod.statModifications) {
+          for (const statMod of mod.statModifications) {
             const k = statMod.statName;
             const v = statMod.value;
             orgModTotals[k] = (orgModTotals[k] || 0) + v;
@@ -197,7 +301,7 @@ export class PatrolsPanel {
             if (!orgModDetails[k]) orgModDetails[k] = [];
             orgModDetails[k].push({
               name: mod.name,
-              img: mod.img,
+              img: mod.image || 'icons/svg/item-bag.svg',
               value: v,
             });
           }
@@ -234,16 +338,17 @@ export class PatrolsPanel {
           total: number;
         }
       > = {};
-      for (const key of Object.keys(derived)) {
-        const base = patrol.baseStats?.[key] ?? 0;
+      for (const key of Object.keys(baseStats)) {
+        const base = baseStats[key] ?? 0;
         const effects = effectTotals[key] || 0;
         const effectList = effectDetails[key] || [];
-        const total = derived[key] ?? 0; // preserve negatives
-
-        const orgTotal = total - base - effects;
+        // Compute org contribution directly (org base + org mods) — never rely on derivedStats
+        const orgBase = orgBaseStats[key] || 0;
         const orgMods = orgModTotals[key] || 0;
-        const orgBase = orgTotal - orgMods;
+        const orgTotal = orgBase + orgMods;
         const orgModList = orgModDetails[key] || [];
+        // Live-computed total
+        const total = base + orgTotal + effects;
 
         breakdown[key] = {
           base,
@@ -387,6 +492,48 @@ export class PatrolsPanel {
         ev.preventDefault();
         zone.classList.remove('dnd-hover');
         card?.classList.remove('dnd-active');
+
+        // Officer slot: only accept Officer drags from the personnel panel
+        if (mode === 'officer') {
+          let isOfficerDrag = false;
+          for (const raw of pullAllDataStrings(ev)) {
+            const data = parseCandidate(raw);
+            if (data?.type === 'Officer') {
+              isOfficerDrag = true;
+              break;
+            }
+          }
+          if (!isOfficerDrag) {
+            ui?.notifications?.warn?.('Solo puedes asignar Oficiales desde el panel de personal');
+            return;
+          }
+        }
+
+        // For the officer drop, resolve by officer data directly (skip resolveActor)
+        if (mode === 'officer') {
+          for (const raw of pullAllDataStrings(ev)) {
+            const data = parseCandidate(raw);
+            if (data?.type === 'Officer' && data.officerData) {
+              const officer = data.officerData;
+              try {
+                await pMgr.assignOfficer(pid, {
+                  actorId: officer.actorId,
+                  name: officer.name,
+                  img: officer.img,
+                  isLinked: true,
+                });
+                ui?.notifications?.info?.(`Oficial asignado: ${officer.name}`);
+                refreshCallback();
+              } catch (e) {
+                console.warn('PatrolsPanel | officer drop error', e);
+                ui?.notifications?.error?.('Error al asignar oficial');
+              }
+              return;
+            }
+          }
+          return;
+        }
+
         const actor = await obtainActor(ev);
         if (!actor) {
           console.warn('PatrolsPanel | Actor no resuelto desde drag data', ev.dataTransfer?.types);
@@ -395,24 +542,14 @@ export class PatrolsPanel {
         try {
           const patrol = pMgr.getPatrol(pid);
           if (!patrol) return;
-          if (mode === 'officer') {
-            pMgr.assignOfficer(pid, {
-              actorId: actor.id,
-              name: actor.name,
-              img: actor.img,
-              isLinked: actor.isOwner ?? true,
-            });
-            ui?.notifications?.info?.(`Oficial asignado: ${actor.name}`);
-          } else {
-            pMgr.addSoldier(pid, {
-              actorId: actor.id,
-              name: actor.name,
-              img: actor.img,
-              referenceType: 'linked',
-              addedAt: Date.now(),
-            });
-            ui?.notifications?.info?.(`Soldado añadido: ${actor.name}`);
-          }
+          pMgr.addSoldier(pid, {
+            actorId: actor.id,
+            name: actor.name,
+            img: actor.img,
+            referenceType: 'linked',
+            addedAt: Date.now(),
+          });
+          ui?.notifications?.info?.(`Soldado añadido: ${actor.name}`);
           refreshCallback();
         } catch (e) {
           console.warn('PatrolsPanel | drop error', e);
@@ -839,12 +976,15 @@ export class PatrolsPanel {
     const effect = patrol.patrolEffects.find((e: any) => e.id === effectId);
     const effectName = effect?.label || 'Efecto';
 
-    const confirm = await Dialog.confirm({
-      title: 'Eliminar Efecto',
-      content: `<p>¿Seguro que deseas eliminar el efecto "<strong>${effectName}</strong>" de la patrulla?</p>`,
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: 'Eliminar efecto de patrulla' },
+      content: `<p>¿Eliminar el efecto <strong>${effectName}</strong> de esta patrulla?</p>`,
+      yes: { label: 'Eliminar', icon: 'fas fa-trash' },
+      no: { label: 'Cancelar', icon: 'fas fa-times' },
+      rejectClose: false,
     });
 
-    if (!confirm) return;
+    if (!confirmed) return;
 
     pMgr.removeEffect(patrolId, effectId);
     ui?.notifications?.info('Efecto eliminado');

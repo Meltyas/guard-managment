@@ -1,5 +1,11 @@
 import { GuardRollDialog } from '../dialogs/GuardRollDialog';
-import { GuardStats, Patrol, PatrolEffectInstance, PatrolLastOrder } from '../types/entities';
+import {
+  GuardStats,
+  Patrol,
+  PatrolEffectInstance,
+  PatrolLastOrder,
+  PatrolSpellAbility,
+} from '../types/entities';
 
 /**
  * Simple in-memory PatrolManager (initial implementation for TDD Green phase)
@@ -42,6 +48,7 @@ export class PatrolManager {
       soldierSlots: data.soldierSlots || 5, // Default to 5 if not provided
       patrolEffects: [],
       lastOrder: null,
+      patrolSpells: data.patrolSpells || [],
       // deprecated legacy padding
       leaderId: undefined,
       unitCount: 0,
@@ -132,6 +139,31 @@ export class PatrolManager {
     patrol.updatedAt = new Date();
     this.onChange?.(patrol, 'update', { field: 'soldiers' });
     await this.persistToSettings();
+    return patrol;
+  }
+
+  public async unassignOfficer(patrolId: string) {
+    const patrol = this.patrols.get(patrolId);
+    if (!patrol) return undefined;
+    patrol.officer = null as any;
+    patrol.version += 1;
+    patrol.updatedAt = new Date();
+    this.onChange?.(patrol, 'update', { field: 'officer' });
+    await this.persistToSettings();
+    return patrol;
+  }
+
+  public async removeSoldier(patrolId: string, actorId: string) {
+    const patrol = this.patrols.get(patrolId);
+    if (!patrol) return undefined;
+    const before = patrol.soldiers.length;
+    patrol.soldiers = patrol.soldiers.filter((s: any) => s.actorId !== actorId);
+    if (patrol.soldiers.length !== before) {
+      patrol.version += 1;
+      patrol.updatedAt = new Date();
+      this.onChange?.(patrol, 'update', { field: 'soldiers' });
+      await this.persistToSettings();
+    }
     return patrol;
   }
 
@@ -274,15 +306,40 @@ export class PatrolManager {
     }
   }
 
+  public async rollSpell(patrolId: string, spellId: string): Promise<void> {
+    const patrol = this.patrols.get(patrolId);
+    if (!patrol) return;
+
+    const spell = (patrol.patrolSpells || []).find((s: PatrolSpellAbility) => s.id === spellId);
+    if (!spell) return;
+
+    // Pre-populate the dialog with the spell modifier as extra formula
+    const extraFormula = spell.modifier !== 0 ? `${spell.modifier}[${spell.name}]` : '';
+
+    const config: any = await GuardRollDialog.create(patrol, [], '', extraFormula);
+    if (config) {
+      // Attach spell metadata so performRoll can label the chat message
+      config._spellName = spell.name;
+      config._spellModifier = spell.modifier;
+      await this.performRoll(patrol, config);
+    }
+  }
+
   private async performRoll(patrol: Patrol, config: any) {
     const DualityRoll = (game as any).system.api.dice.DualityRoll;
+
+    const STAT_LABELS: Record<string, string> = {
+      agility: 'Agilidad',
+      strength: 'Fuerza',
+      finesse: 'Destreza',
+      instinct: 'Instinto',
+      presence: 'Presencia',
+      knowledge: 'Conocimiento',
+    };
 
     let formula = `1${config.roll.dice.dHope} + 1${config.roll.dice.dFear}`;
 
     const baseStats = patrol.baseStats;
-    // const derivedStats = patrol.derivedStats || baseStats; // Rebuilding from components for breakdown
-
-    const breakdown: any[] = [];
 
     if (config.roll.trait) {
       const stat = config.roll.trait as keyof GuardStats;
@@ -290,70 +347,43 @@ export class PatrolManager {
       // 1. Patrol Base Trait
       const baseValue = baseStats[stat] || 0;
       if (baseValue !== 0) {
-        const label = config.roll.trait.charAt(0).toUpperCase() + config.roll.trait.slice(1);
+        const label = STAT_LABELS[stat] ?? stat;
         formula += ` ${baseValue >= 0 ? '+' : '-'} ${Math.abs(baseValue)}[${label}]`;
-        breakdown.push({ label: label, value: baseValue });
       }
 
       // 2. Patrol Effects
-      let effectsSum = 0;
       for (const eff of patrol.patrolEffects) {
         const val = eff.modifiers[stat] || 0;
         if (val !== 0) {
           formula += ` ${val >= 0 ? '+' : '-'} ${Math.abs(val)}[${eff.label}]`;
-          effectsSum += val;
-          breakdown.push({ label: eff.label, value: val });
         }
       }
 
-      // 3. Organization Breakdown
+      // 3. Organization contribution
       const gm = (window as any).GuardManagement;
       const orgManager = gm?.guardOrganizationManager;
       const organization = orgManager?.getOrganization();
 
       if (organization && organization.id === patrol.organizationId) {
-        const orgNode: any = { label: 'Organización', value: 0, children: [] };
-        let orgTotal = 0;
-
         // 3a. Organization Base
         const orgBase = organization.baseStats[stat] || 0;
         if (orgBase !== 0) {
           formula += ` ${orgBase >= 0 ? '+' : '-'} ${Math.abs(orgBase)}[Org. Base]`;
-          orgNode.children.push({ label: 'Base', value: orgBase });
-          orgTotal += orgBase;
         }
 
         // 3b. Organization Modifiers
-        if (gm?.documentManager && organization.activeModifiers?.length) {
-          const allModifiers = gm.documentManager.getGuardModifiers();
+        if (gm?.modifierManager && organization.activeModifiers?.length) {
+          const allModifiers = gm.modifierManager.getAllModifiers();
           for (const modId of organization.activeModifiers) {
             const mod = allModifiers.find((m: any) => m.id === modId);
-            if (mod && mod.system?.statModifications) {
-              for (const change of mod.system.statModifications) {
+            if (mod && mod.statModifications) {
+              for (const change of mod.statModifications) {
                 if (change.statName === stat && change.value !== 0) {
-                  formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[Org. ${mod.name}]`;
-                  orgNode.children.push({ label: mod.name, value: change.value });
-                  orgTotal += change.value;
+                  formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[${mod.name}]`;
                 }
               }
             }
           }
-        }
-
-        if (orgTotal !== 0) {
-          orgNode.value = orgTotal;
-          breakdown.push(orgNode);
-        }
-      } else {
-        // Fallback: Organization Bonus (Derived - Base - Effects)
-        // This handles cases where organization is not loaded or ID mismatch
-        const derivedStats = patrol.derivedStats || baseStats;
-        const total = derivedStats[stat] || 0;
-        const orgBonus = total - baseValue - effectsSum;
-
-        if (orgBonus !== 0) {
-          formula += ` ${orgBonus >= 0 ? '+' : '-'} ${Math.abs(orgBonus)}[Organization]`;
-          breakdown.push({ label: 'Organización', value: orgBonus });
         }
       }
     }
@@ -368,7 +398,7 @@ export class PatrolManager {
       knowledge: { value: baseStats.knowledge, label: 'Conocimiento' },
     };
 
-    const rollData = { traits: traitsData, bonuses: {} };
+    const rollData = { traits: traitsData, bonuses: {}, rules: { dualityRoll: { defaultHopeDice: 12, defaultFearDice: 12 } } };
 
     const options = {
       roll: {
@@ -384,6 +414,12 @@ export class PatrolManager {
     if (options.roll.trait && (traitsData as any)[options.roll.trait]?.value === 0) {
       delete options.roll.trait;
     }
+
+    const rollLabel = {
+      type: 'patrol',
+      name: patrol.name,
+      stat: config._spellName ?? STAT_LABELS[config.roll.trait] ?? config.roll.trait ?? '',
+    };
 
     const roll = new DualityRoll(formula, rollData, options);
 
@@ -411,11 +447,7 @@ export class PatrolManager {
           title: complexRoll.title,
         },
         rolls: [complexRoll],
-        flags: {
-          'guard-management': {
-            breakdown: breakdown,
-          },
-        },
+        flags: { 'guard-management': { rollLabel } },
       };
 
       await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
@@ -437,11 +469,7 @@ export class PatrolManager {
         title: roll.title,
       },
       rolls: [roll],
-      flags: {
-        'guard-management': {
-          breakdown: breakdown,
-        },
-      },
+      flags: { 'guard-management': { rollLabel } },
     };
 
     await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });

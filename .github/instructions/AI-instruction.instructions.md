@@ -8,7 +8,7 @@ NEVER TOUCH THE DAGGERHEART WORKSPACE, IS JUST READ ONLY.
 
 ## 📋 Project Overview
 
-**Guard Management** is a **Foundry VTT V13 module** designed for the **Foundryborne system (Daggerheart)** to manage guard operations in campaigns. The module handles comprehensive guard management including statistics, patrols, resources, reputation, and temporary effects with full synchronization between GM and Players.
+**Guard Management** is a **Foundry VTT V14 module** designed for the **Foundryborne system (Daggerheart)** to manage guard operations in campaigns. The module handles comprehensive guard management including statistics, patrols, resources, reputation, and temporary effects with full synchronization between GM and Players.
 
 ---
 
@@ -19,10 +19,10 @@ NEVER TOUCH THE DAGGERHEART WORKSPACE, IS JUST READ ONLY.
 | **TypeScript**  | Latest  | Type-safe JavaScript development       |
 | **Vite**        | Latest  | Fast build tool and development server |
 | **Vitest**      | Latest  | Fast unit testing framework            |
-| **Foundry VTT** | V13     | Target platform                        |
+| **Foundry VTT** | V14     | Target platform                        |
 | **Node.js**     | 20.11.0 | Required version (managed via nvm)     |
 
-### Foundry V13 API Notes
+### Foundry V14 API Notes
 
 - **Use** `foundry.applications.handlebars.loadTemplates(...)` instead of the deprecated global `loadTemplates(...)`
 - **Use** `foundry.applications.handlebars.renderTemplate(...)` instead of the deprecated global `renderTemplate(...)`
@@ -85,7 +85,7 @@ npm run test:watch   # Tests in watch mode
 
 ### ✅ Core Requirements
 
-- **Make sure you are using v13 on foundry**: Look for the documentation if you don't know how to do it.
+- **Make sure you are using v14 on foundry**: Look for the documentation if you don't know how to do it.
 - **Clarity**: Tasks must be clear, specific, and actionable—avoid ambiguity
 - **Ownership**: Every task must be assigned a responsible agent, explicitly tagged
 - **Atomicity**: Complex tasks must be broken into atomic, trackable subtasks

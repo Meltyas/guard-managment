@@ -240,7 +240,8 @@ export class GuardRollDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   static async create(
     entity: GuardOrganization | Patrol,
     activeModifiers: { name: string; value: number }[] = [],
-    initialTrait: string = ''
+    initialTrait: string = '',
+    initialExtraFormula: string = ''
   ) {
     const config: GuardRollDialogConfig = {
       roll: {
@@ -253,7 +254,7 @@ export class GuardRollDialog extends HandlebarsApplicationMixin(ApplicationV2) {
         advantage: 0,
         trait: initialTrait,
       },
-      extraFormula: '',
+      extraFormula: initialExtraFormula,
       selectedRollMode: (game as any).settings.get('core', 'rollMode'),
       entity,
       activeModifiers,

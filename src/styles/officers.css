@@ -339,20 +339,56 @@
   font-size: 1.5rem;
 }
 
-.add-officer-btn {
+/* Action buttons group in officer warehouse header */
+.warehouse-header .content-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-officer-btn,
+.warehouse-header .warehouse-export-btn,
+.warehouse-header .warehouse-import-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--color-bg-btn);
   border: 1px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: white;
+  font-size: 0.85rem;
+}
+
+.add-officer-btn {
+  background: var(--color-bg-btn);
 }
 
 .add-officer-btn:hover {
   background: var(--color-bg-btn-hover);
+}
+
+/* Export button — blue */
+.warehouse-header .warehouse-export-btn {
+  background: linear-gradient(135deg, #2980b9, #1a6a99);
+  border-color: #1a6a99;
+}
+
+.warehouse-header .warehouse-export-btn:hover {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  box-shadow: 0 3px 6px rgba(52, 152, 219, 0.35);
+}
+
+/* Import button — amber */
+.warehouse-header .warehouse-import-btn {
+  background: linear-gradient(135deg, #d4860a, #b8720a);
+  border-color: #b8720a;
+}
+
+.warehouse-header .warehouse-import-btn:hover {
+  background: linear-gradient(135deg, #f39c12, #d4860a);
+  box-shadow: 0 3px 6px rgba(243, 156, 18, 0.35);
 }
 
 .officers-list {

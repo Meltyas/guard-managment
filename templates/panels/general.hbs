@@ -15,35 +15,40 @@
 
   <div class='info-section'>
     <h3><i class='fas fa-chart-bar'></i> Estadísticas</h3>
-    <div class='stats-display'>
-      {{#each statsDisplay}}
-        <div
-          class='stat-box clickable-stat'
-          data-stat='{{this.key}}'
-          data-tooltip='{{this.tooltip}}'
-        >
-          <div class='stat-value {{this.cssClass}}'>
-            {{this.base}}
-            {{#if this.showTotal}}({{this.total}}){{/if}}
-          </div>
-          <div class='stat-label'>{{this.label}}</div>
-        </div>
-      {{/each}}
-    </div>
-
-    {{#if activeModifiers.length}}
-      <div class='modifiers-grid compact' style='margin-top: 1rem;'>
-        {{#each activeModifiers}}
-          <div
-            class='modifier-compact {{this.borderClass}}'
-            data-id='{{this.id}}'
-            data-tooltip='{{this.tooltip}}'
+    <div class='stats-effects-cols'>
+      <div class='stats-display'>
+        {{#each statsDisplay}}
+          <button
+            type='button'
+            class='stat-chip {{this.cssClass}} clickable-stat'
+            data-stat='{{this.key}}'
+            data-tooltip='{{patrolStatTooltip this.orgStatData this.key}}'
+            title='{{this.label}}'
           >
-            <img src='{{this.img}}' alt='{{this.name}}' class='modifier-icon-large' />
-          </div>
+            <div class='stat-chip__img' style='background-image: url("{{this.img}}");'></div>
+            <div class='stat-chip__nums'>
+              <span class='stat-chip__base'>{{this.base}}</span>
+              <span class='stat-chip__total'>({{this.total}})</span>
+            </div>
+          </button>
         {{/each}}
       </div>
-    {{/if}}
+      <div class='modifiers-grid compact'>
+        {{#if activeModifiers.length}}
+          {{#each activeModifiers}}
+            <div
+              class='modifier-compact {{this.borderClass}}'
+              data-id='{{this.id}}'
+              data-tooltip='{{this.tooltip}}'
+            >
+              <img src='{{this.img}}' alt='{{this.name}}' class='modifier-icon-large' />
+            </div>
+          {{/each}}
+        {{else}}
+          <span class='effects-empty'>Sin modificadores</span>
+        {{/if}}
+      </div>
+    </div>
   </div>
 
   <div class='info-section'>
@@ -55,26 +60,30 @@
   </div>
 
   {{#if officerSkills.length}}
-  <div class='info-section'>
-    <h3><i class='fas fa-bolt'></i> Habilidades Disponibles</h3>
-    <div class='officer-skills-list'>
-      {{#each officerSkills}}
-      <div class='officer-skill-entry'>
-        <div class='skill-info'>
-          {{#if this.skillImage}}
-          <img src='{{this.skillImage}}' alt='{{this.skillName}}' class='skill-icon' />
-          {{/if}}
-          <span class='skill-name'>{{this.skillName}}</span>
-        </div>
-        <div class='skill-officer'>
-          {{#if this.officerImg}}
-          <img src='{{this.officerImg}}' alt='{{this.officerName}}' class='officer-mini-avatar' />
-          {{/if}}
-          <span class='officer-info-text'>{{this.officerName}} — {{this.patrolName}}</span>
-        </div>
+    <div class='info-section'>
+      <h3><i class='fas fa-bolt'></i> Habilidades Disponibles</h3>
+      <div class='officer-skills-list'>
+        {{#each officerSkills}}
+          <div class='officer-skill-entry'>
+            <div class='skill-info'>
+              {{#if this.skillImage}}
+                <img src='{{this.skillImage}}' alt='{{this.skillName}}' class='skill-icon' />
+              {{/if}}
+              <span class='skill-name'>{{this.skillName}}</span>
+            </div>
+            <div class='skill-officer'>
+              {{#if this.officerImg}}
+                <img
+                  src='{{this.officerImg}}'
+                  alt='{{this.officerName}}'
+                  class='officer-mini-avatar'
+                />
+              {{/if}}
+              <span class='officer-info-text'>{{this.officerName}} — {{this.patrolName}}</span>
+            </div>
+          </div>
+        {{/each}}
       </div>
-      {{/each}}
     </div>
-  </div>
   {{/if}}
 </div>

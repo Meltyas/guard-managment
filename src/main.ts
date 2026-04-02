@@ -19,6 +19,8 @@ import { PhaseManager } from './managers/PhaseManager';
 import { PoiManager } from './managers/PoiManager';
 import { PrisonerManager } from './managers/PrisonerManager';
 import { SentenceConfigManager } from './managers/SentenceConfigManager';
+import { SimpleModifierManager } from './managers/SimpleModifierManager';
+import { SimplePatrolEffectManager } from './managers/SimplePatrolEffectManager';
 import { SimpleReputationManager } from './managers/SimpleReputationManager';
 import { SimpleResourceManager } from './managers/SimpleResourceManager';
 import { runMigrationIfNeeded } from './migration';
@@ -121,6 +123,8 @@ class GuardManagementModule {
   public phaseManager: PhaseManager;
   public buildingManager: BuildingManager;
   public financeManager: FinanceManager;
+  public modifierManager: SimpleModifierManager;
+  public patrolEffectManager: SimplePatrolEffectManager;
   public dayNightDecoration: DayNightDecoration;
   public floatingPanel: FloatingGuardPanel;
   public isInitialized: boolean = false;
@@ -139,6 +143,8 @@ class GuardManagementModule {
     this.phaseManager = new PhaseManager();
     this.buildingManager = new BuildingManager();
     this.financeManager = new FinanceManager();
+    this.modifierManager = new SimpleModifierManager();
+    this.patrolEffectManager = new SimplePatrolEffectManager();
     this.dayNightDecoration = new DayNightDecoration();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
   }
@@ -170,6 +176,13 @@ class GuardManagementModule {
     await this.prisonerManager.initialize(); // Load prisoners from settings
     await this.buildingManager.initialize(); // Load buildings from settings
     await this.financeManager.initialize(); // Load finances from settings
+    await this.modifierManager.initialize(); // Load guard modifiers from settings
+    await this.patrolEffectManager.initialize(); // Load patrol effects from settings
+
+    // Recalc patrol derived stats again now that modifierManager is loaded.
+    // The first recalc (inside guardOrganizationManager.initialize) ran before modifiers
+    // were available, so org modifier contributions were missing.
+    this.guardOrganizationManager.recalcAllPatrols();
 
     // Initialize floating panel (but don't show it yet)
     this.floatingPanel.initialize();
@@ -283,9 +296,18 @@ Hooks.once('init', async () => {
     ]);
 
     // Register Handlebars helpers
-    Handlebars.registerHelper('eq', (a, b) => {
-      return a === b;
-    });
+    const STAT_IMAGES: Record<string, string> = {
+      agility: 'modules/guard-management/assets/stats/agilidad.webp',
+      strength: 'modules/guard-management/assets/stats/fuerza.webp',
+      finesse: 'modules/guard-management/assets/stats/finesa.webp',
+      instinct: 'modules/guard-management/assets/stats/instinto.webp',
+      presence: 'modules/guard-management/assets/stats/presencia.webp',
+      knowledge: 'modules/guard-management/assets/stats/conocimiento.webp',
+    };
+    Handlebars.registerHelper('statImage', (key: string) => STAT_IMAGES[key] ?? '');
+
+    Handlebars.registerHelper('eq', (a, b) => a === b);
+    Handlebars.registerHelper('neq', (a, b) => a !== b);
 
     Handlebars.registerHelper('guardTooltip', (item, type) => {
       if (type === 'resource') {
@@ -298,7 +320,16 @@ Hooks.once('init', async () => {
       }
     });
 
-    Handlebars.registerHelper('patrolStatTooltip', (stat) => {
+    Handlebars.registerHelper('patrolStatTooltip', (stat, key) => {
+      const STAT_LABELS: Record<string, string> = {
+        agility: 'Agilidad',
+        strength: 'Fuerza',
+        finesse: 'Destreza',
+        instinct: 'Instinto',
+        presence: 'Presencia',
+        knowledge: 'Conocimiento',
+      };
+      const statLabel = STAT_LABELS[key] ?? key;
       const orgSign = stat.org >= 0 ? '+' : '';
       const effSign = stat.effects >= 0 ? '+' : '';
 
@@ -311,6 +342,11 @@ Hooks.once('init', async () => {
       else if (stat.effects < 0) effColor = '#e84a4a';
 
       let html = `<table style="border-collapse: collapse; width: 100%; font-size: 17px;">`;
+
+      // Stat name header
+      html += `<tr>
+        <td colspan="2" style="padding: 0 0 6px 0; font-family: 'Cinzel', serif; font-size: 1em; font-weight: bold; color: #f3c267; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(243,194,103,0.4);">${statLabel}</td>
+      </tr>`;
 
       // Base
       html += `<tr>

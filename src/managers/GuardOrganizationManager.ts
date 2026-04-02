@@ -685,9 +685,9 @@ export class GuardOrganizationManager {
   public getActiveModifiers(): any[] {
     if (!this.organization || !this.organization.activeModifiers?.length) return [];
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) return [];
+    if (!gm?.modifierManager) return [];
 
-    const allModifiers = gm.documentManager.getGuardModifiers();
+    const allModifiers = gm.modifierManager.getAllModifiers();
     return allModifiers.filter((m: any) => this.organization!.activeModifiers.includes(m.id));
   }
 
@@ -740,18 +740,18 @@ export class GuardOrganizationManager {
     }
 
     const gm = (window as any).GuardManagement;
-    if (gm?.documentManager && this.organization.activeModifiers?.length) {
-      const allModifiers = gm.documentManager.getGuardModifiers();
+    if (gm?.modifierManager && this.organization.activeModifiers?.length) {
+      const allModifiers = gm.modifierManager.getAllModifiers();
 
       for (const modId of this.organization.activeModifiers) {
         const modifier = allModifiers.find((m: any) => m.id === modId);
-        if (modifier && modifier.system?.statModifications) {
-          for (const mod of modifier.system.statModifications) {
+        if (modifier && modifier.statModifications) {
+          for (const mod of modifier.statModifications) {
             if (total[mod.statName] !== undefined) {
               total[mod.statName] += mod.value;
               modifiers[mod.statName].push({
                 name: modifier.name,
-                img: modifier.img,
+                img: modifier.image || 'icons/svg/item-bag.svg',
                 value: mod.value,
               });
             }
@@ -772,13 +772,13 @@ export class GuardOrganizationManager {
     const stats = { ...this.organization.baseStats };
     const gm = (window as any).GuardManagement;
 
-    if (gm?.documentManager && this.organization.activeModifiers?.length) {
-      const modifiers = gm.documentManager.getGuardModifiers();
+    if (gm?.modifierManager && this.organization.activeModifiers?.length) {
+      const modifiers = gm.modifierManager.getAllModifiers();
 
       for (const modId of this.organization.activeModifiers) {
         const modifier = modifiers.find((m: any) => m.id === modId);
-        if (modifier && modifier.system?.statModifications) {
-          for (const mod of modifier.system.statModifications) {
+        if (modifier && modifier.statModifications) {
+          for (const mod of modifier.statModifications) {
             if (stats[mod.statName] !== undefined) {
               stats[mod.statName] += mod.value;
             }
@@ -808,6 +808,15 @@ export class GuardOrganizationManager {
   private async performRoll(config: any) {
     const DualityRoll = (game as any).system.api.dice.DualityRoll;
 
+    const STAT_LABELS: Record<string, string> = {
+      agility: 'Agilidad',
+      strength: 'Fuerza',
+      finesse: 'Destreza',
+      instinct: 'Instinto',
+      presence: 'Presencia',
+      knowledge: 'Conocimiento',
+    };
+
     // Construct base formula
     let formula = `1${config.roll.dice.dHope} + 1${config.roll.dice.dFear}`;
 
@@ -819,18 +828,18 @@ export class GuardOrganizationManager {
       // 1. Base Trait
       const baseValue = baseStats[stat] || 0;
       if (baseValue !== 0) {
-        const label = config.roll.trait.charAt(0).toUpperCase() + config.roll.trait.slice(1);
+        const label = STAT_LABELS[stat] ?? stat;
         formula += ` ${baseValue >= 0 ? '+' : '-'} ${Math.abs(baseValue)}[${label}]`;
       }
 
       // 2. Active Modifiers
       const gm = (window as any).GuardManagement;
-      if (gm?.documentManager && this.organization!.activeModifiers?.length) {
-        const allModifiers = gm.documentManager.getGuardModifiers();
+      if (gm?.modifierManager && this.organization!.activeModifiers?.length) {
+        const allModifiers = gm.modifierManager.getAllModifiers();
         for (const modId of this.organization!.activeModifiers) {
           const mod = allModifiers.find((m: any) => m.id === modId);
-          if (mod && mod.system?.statModifications) {
-            for (const change of mod.system.statModifications) {
+          if (mod && mod.statModifications) {
+            for (const change of mod.statModifications) {
               if (change.statName === stat && change.value !== 0) {
                 formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[${mod.name}]`;
               }
@@ -849,7 +858,7 @@ export class GuardOrganizationManager {
       knowledge: { value: baseStats.knowledge, label: 'Conocimiento' },
     };
 
-    const rollData = { traits: traitsData, bonuses: {} };
+    const rollData = { traits: traitsData, bonuses: {}, rules: { dualityRoll: { defaultHopeDice: 12, defaultFearDice: 12 } } };
 
     const options = {
       roll: {
@@ -866,33 +875,19 @@ export class GuardOrganizationManager {
       delete options.roll.trait;
     }
 
+    const rollLabel = {
+      type: 'organization',
+      name: this.organization!.name,
+      stat: STAT_LABELS[config.roll.trait] ?? config.roll.trait ?? '',
+    };
+
     const roll = new DualityRoll(formula, rollData, options);
 
     // Set advantage properties
     roll.advantageNumber = Number(config.roll.dice.advantageNumber);
     roll.advantageFaces = config.roll.dice.advantageFaces;
 
-    // Add extra formula if present
     if (config.extraFormula) {
-      // We can't easily append to formula after construction without re-parsing or manipulating terms.
-      // But DualityRoll extends D20Roll which extends Roll.
-      // We can try to create a new roll with the full formula.
-      // But DualityRoll expects specific terms at specific indices (0, 1, 2).
-
-      // Alternatively, we can add terms manually.
-      // But parsing "1d6 + 5" into terms is hard without Roll.parse.
-
-      // Let's try to append to the formula string passed to constructor?
-      // But DualityRoll constructor might be strict.
-      // "1d12 + 1d12 + 1d6 + 5"
-
-      // If we pass a longer formula, DualityRoll might not identify dHope/dFear correctly if it relies on indices.
-      // DualityRoll.mjs:
-      // get dHope() { if (!(this.dice[0] instanceof foundry.dice.terms.Die)) this.createBaseDice(); return this.dice[0]; }
-      // It assumes dice[0] is Hope.
-
-      // So if we append, it should be fine as long as the first two dice are Hope and Fear.
-
       const fullFormula = `${formula} + ${config.extraFormula}`;
       const complexRoll = new DualityRoll(fullFormula, rollData, options);
       complexRoll.advantageNumber = Number(config.roll.dice.advantageNumber);
@@ -913,6 +908,7 @@ export class GuardOrganizationManager {
           title: complexRoll.title,
         },
         rolls: [complexRoll],
+        flags: { 'guard-management': { rollLabel } },
       };
 
       await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
@@ -934,6 +930,7 @@ export class GuardOrganizationManager {
         title: roll.title,
       },
       rolls: [roll],
+      flags: { 'guard-management': { rollLabel } },
     };
 
     await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });

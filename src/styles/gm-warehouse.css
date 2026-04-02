@@ -113,6 +113,13 @@
   border-bottom: 1px solid #444;
 }
 
+/* Action buttons group in section headers */
+.content-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .content-header h3 {
   color: #ecf0f1;
   margin: 0;
@@ -131,9 +138,10 @@
   border-radius: 2px;
 }
 
-.content-header button {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #27ae60, #229f56);
+/* Default (add) button — green */
+.content-header button,
+.content-header-actions button {
+  padding: 8px 14px;
   border: none;
   border-radius: 4px;
   color: white;
@@ -144,16 +152,37 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  background: linear-gradient(135deg, #27ae60, #229f56);
 }
 
-.content-header button:hover {
-  background: linear-gradient(135deg, #2ecc71, #27ae60);
+.content-header button:hover,
+.content-header-actions button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
 }
 
-.content-header button i {
+.content-header button i,
+.content-header-actions button i {
   font-size: 0.9rem;
+}
+
+/* Export button — blue */
+.content-header-actions .warehouse-export-btn {
+  background: linear-gradient(135deg, #2980b9, #1a6a99);
+}
+
+.content-header-actions .warehouse-export-btn:hover {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.35);
+}
+
+/* Import button — amber */
+.content-header-actions .warehouse-import-btn {
+  background: linear-gradient(135deg, #d4860a, #b8720a);
+}
+
+.content-header-actions .warehouse-import-btn:hover {
+  background: linear-gradient(135deg, #f39c12, #d4860a);
+  box-shadow: 0 4px 8px rgba(243, 156, 18, 0.35);
 }
 
 .templates-list {

@@ -285,69 +285,38 @@ export function registerHooks(): void {
   };
   hideGuardDocs();
 
-  // Inject custom modifier breakdown into chat messages.
-  // Supports both Foundry V13 (jQuery html) and V14 (HTMLElement html).
-  const injectBreakdown = (message: any, html: any) => {
+  // Inject roll label header (entity name + stat) into guard roll chat messages.
+  Hooks.on('renderChatMessageHTML', (message: any, html: HTMLElement) => {
     try {
-      const breakdown = message.getFlag('guard-management', 'breakdown');
-      if (!breakdown || !Array.isArray(breakdown)) return;
+      const rollLabel = message.getFlag('guard-management', 'rollLabel') as
+        | { type: string; name: string; stat: string }
+        | undefined;
+      if (!rollLabel) return;
 
-      // Normalise html to a plain HTMLElement for both V13 (jQuery) and V14 (DOM)
-      const root: HTMLElement = html instanceof HTMLElement ? html : (html[0] as HTMLElement);
-      if (!root) return;
-
-      const rollContent = root.querySelector('.roll-part-content.dice-result');
+      const rollContent = html.querySelector('.roll-part-content.dice-result');
       if (!rollContent) return;
 
-      let breakdownHtml =
-        '<div class="guard-roll-breakdown" style="margin-top: 10px; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
+      const typeLabel = rollLabel.type === 'patrol' ? 'Patrulla' : 'Organización';
+      const headerHtml = `<div style="
+        font-family: 'Cinzel', serif;
+        font-size: 0.85em;
+        color: #f3c267;
+        text-align: center;
+        padding: 4px 0 6px;
+        border-bottom: 1px solid rgba(243,194,103,0.3);
+        margin-bottom: 6px;
+        letter-spacing: 0.5px;
+      ">
+        <span style="opacity:0.7;">${typeLabel}:</span>
+        <strong style="margin: 0 6px;">${rollLabel.name}</strong>
+        ${rollLabel.stat ? `<span style="opacity:0.7;">— ${rollLabel.stat}</span>` : ''}
+      </div>`;
 
-      for (const item of breakdown) {
-        const sign = item.value >= 0 ? '+' : '';
-        const color = item.value > 0 ? '#4ae89a' : item.value < 0 ? '#e84a4a' : '#ffffff';
-
-        breakdownHtml += `<div style="display: flex; justify-content: space-between;">
-          <span>${item.label}</span>
-          <span style="color: ${color}; font-weight: bold;">${sign}${item.value}</span>
-        </div>`;
-
-        if (item.children && item.children.length > 0) {
-          for (const child of item.children) {
-            const childSign = child.value >= 0 ? '+' : '';
-            const childColor =
-              child.value > 0 ? '#4ae89a' : child.value < 0 ? '#e84a4a' : '#ffffff';
-
-            breakdownHtml += `<div style="display: flex; justify-content: space-between; padding-left: 15px; font-size: 0.9em; opacity: 0.8;">
-              <span>↳ ${child.label}</span>
-              <span style="color: ${childColor};">${childSign}${child.value}</span>
-            </div>`;
-
-            if (child.children && child.children.length > 0) {
-              for (const subChild of child.children) {
-                const subSign = subChild.value >= 0 ? '+' : '';
-                const subColor =
-                  subChild.value > 0 ? '#4ae89a' : subChild.value < 0 ? '#e84a4a' : '#ffffff';
-                breakdownHtml += `<div style="display: flex; justify-content: space-between; padding-left: 30px; font-size: 0.85em; opacity: 0.7;">
-                    <span>↳ ${subChild.label}</span>
-                    <span style="color: ${subColor};">${subSign}${subChild.value}</span>
-                  </div>`;
-              }
-            }
-          }
-        }
-      }
-      breakdownHtml += '</div>';
-
-      rollContent.insertAdjacentHTML('beforeend', breakdownHtml);
+      rollContent.insertAdjacentHTML('afterbegin', headerHtml);
     } catch (e) {
-      console.error('GuardManagement | Error rendering chat breakdown:', e);
+      console.error('GuardManagement | Error rendering roll label:', e);
     }
-  };
-
-  // V14 hook (HTMLElement) – preferred
-  Hooks.on('renderChatMessageHTML', injectBreakdown);
-  // V13 compatibility (jQuery) – kept so the module still works on V13
-  Hooks.on('renderChatMessage', injectBreakdown);
+  });
 
   // Keybindings must be registered during init (registerHooks is called from init)
   registerKeybindings();

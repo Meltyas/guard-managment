@@ -28,6 +28,15 @@ export class GeneralPanel {
       elocuencia: 'Elocuencia',
     };
 
+    const statImages: Record<string, string> = {
+      agility: 'modules/guard-management/assets/stats/agilidad.webp',
+      strength: 'modules/guard-management/assets/stats/fuerza.webp',
+      finesse: 'modules/guard-management/assets/stats/finesa.webp',
+      instinct: 'modules/guard-management/assets/stats/instinto.webp',
+      presence: 'modules/guard-management/assets/stats/presencia.webp',
+      knowledge: 'modules/guard-management/assets/stats/conocimiento.webp',
+    };
+
     const statsDisplay = breakdown
       ? Object.keys(breakdown.base).map((key) => {
           const k = key as keyof import('../../types/entities').GuardStats;
@@ -58,14 +67,25 @@ export class GeneralPanel {
                 '</ul>'
               : '';
 
+          const orgMod = mods.reduce((sum: number, m: any) => sum + (m.value || 0), 0);
+
           return {
             key: k,
             label: statLabels[k] || k,
+            img: statImages[k] ?? '',
             base,
             total,
             showTotal: total !== base,
             cssClass,
-            tooltip,
+            // Shape expected by patrolStatTooltip helper
+            orgStatData: {
+              base,
+              org: orgMod,
+              effects: 0,
+              orgModList: mods.map((m: any) => ({ name: m.name, img: m.img, value: m.value })),
+              effectList: [],
+              total,
+            },
           };
         })
       : [];
@@ -74,22 +94,21 @@ export class GeneralPanel {
     const processedModifiers = activeModifiers
       .map((mod: any) => {
         const netValue =
-          mod.system?.statModifications?.reduce((acc: number, curr: any) => acc + curr.value, 0) ||
-          0;
+          mod.statModifications?.reduce((acc: number, curr: any) => acc + curr.value, 0) || 0;
         let borderClass = 'neutral-border';
         if (netValue > 0) borderClass = 'positive-border';
         else if (netValue < 0) borderClass = 'negative-border';
 
         // Generate tooltip
         let tooltip = `<strong>${mod.name}</strong><br/>`;
-        if (mod.system.description) {
-          tooltip += `<div style="margin-bottom:5px; font-size:0.9em; font-style:italic;">${mod.system.description}</div>`;
+        if (mod.description) {
+          tooltip += `<div style="margin-bottom:5px; font-size:0.9em; font-style:italic;">${mod.description}</div>`;
         }
 
-        if (mod.system.statModifications && mod.system.statModifications.length > 0) {
+        if (mod.statModifications && mod.statModifications.length > 0) {
           tooltip +=
             '<div class="tooltip-modifiers" style="margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
-          for (const m of mod.system.statModifications) {
+          for (const m of mod.statModifications) {
             const val = m.value;
             const valStr = val >= 0 ? `+${val}` : `${val}`;
             let color = '#ffffff'; // Neutral
@@ -97,20 +116,24 @@ export class GeneralPanel {
               color = '#4ae89a'; // Green
             else if (val < 0) color = '#e84a4a'; // Red
 
-            tooltip += `<div style="display: flex; justify-content: space-between; font-size: 0.9em;"><span>${m.statName}:</span> <strong style="color: ${color}">${valStr}</strong></div>`;
+            const statIcon = statImages[m.statName] || '';
+            const iconHtml = statIcon
+              ? `<img src="${statIcon}" style="width:24px;height:24px;object-fit:cover;border-radius:2px;flex-shrink:0;" />`
+              : '';
+            const statLabel = statLabels[m.statName] || m.statName;
+            tooltip += `<div style="display: flex; justify-content: space-between; font-size: 0.9em; align-items: center; gap: 8px;">${iconHtml}<span style="flex:1;">${statLabel}:</span> <strong style="color: ${color}">${valStr}</strong></div>`;
           }
           tooltip += '</div>';
         }
 
-        tooltip += '<hr>Left Click: Send to Chat<br/>Right Click: Remove';
+        tooltip += '<hr>Click: Send to Chat<br/>Shift+Click: Remove';
 
-        // Create a plain object with all necessary properties explicitly
-        // This handles cases where 'mod' is a Foundry Document (where id/name/img are getters)
         return {
-          id: mod.id || mod._id,
+          id: mod.id,
           name: mod.name,
-          img: mod.img || mod.texture?.src || 'icons/svg/item-bag.svg',
-          system: mod.system,
+          img: mod.image || 'icons/svg/item-bag.svg',
+          statModifications: mod.statModifications || [],
+          description: mod.description || '',
           netValue,
           borderClass,
           tooltip,
@@ -166,25 +189,50 @@ export class GeneralPanel {
     // Activate listeners using jQuery for consistency
     const $html = $(container);
 
+    // Shift-held state for removal mode
+    let _shiftHeld = false;
+    const _onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        _shiftHeld = true;
+        container.classList.add('shift-held');
+      }
+    };
+    const _onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        _shiftHeld = false;
+        container.classList.remove('shift-held');
+      }
+    };
+    document.addEventListener('keydown', _onKeyDown);
+    document.addEventListener('keyup', _onKeyUp);
+    const _observer = new MutationObserver(() => {
+      if (!document.contains(container)) {
+        document.removeEventListener('keydown', _onKeyDown);
+        document.removeEventListener('keyup', _onKeyUp);
+        _observer.disconnect();
+      }
+    });
+    _observer.observe(document.body, { childList: true, subtree: true });
+
     // Use event delegation to ensure listeners work even if DOM updates
     $html.off('click', '.modifier-compact').on('click', '.modifier-compact', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       const id = ev.currentTarget.dataset.id;
-      console.log('Guard Management | Modifier clicked:', id);
-      if (id) this.handleModifierClick(id);
+      if (_shiftHeld) {
+        if (id) this.handleRemoveModifier(id, onRefresh);
+      } else {
+        if (id) this.handleModifierClick(id);
+      }
     });
 
     $html.off('contextmenu', '.modifier-compact').on('contextmenu', '.modifier-compact', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
-      const id = ev.currentTarget.dataset.id;
-      console.log('Guard Management | Modifier right-clicked:', id);
-      if (id) this.handleRemoveModifier(id, onRefresh);
     });
 
     // Stat click listener
-    $html.off('click', '.stat-box.clickable-stat').on('click', '.stat-box.clickable-stat', (ev) => {
+    $html.off('click', '.stat-chip.clickable-stat').on('click', '.stat-chip.clickable-stat', (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
       const statKey = ev.currentTarget.dataset.stat;
@@ -196,12 +244,12 @@ export class GeneralPanel {
 
   static async handleModifierClick(modifierId: string) {
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) {
-      console.warn('Guard Management | DocumentManager not found');
+    if (!gm?.modifierManager) {
+      console.warn('Guard Management | ModifierManager not found');
       return;
     }
 
-    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
+    const modifier = gm.modifierManager.getModifier(modifierId);
     if (!modifier) {
       console.warn('Guard Management | Modifier not found:', modifierId);
       return;
@@ -209,14 +257,14 @@ export class GeneralPanel {
 
     const content = `
       <div class="daggerheart chat domain-card dh-style">
-        <img class="card-img" src="${modifier.img || 'icons/svg/shield.svg'}">
+        <img class="card-img" src="${modifier.image || 'icons/svg/shield.svg'}">
         <details class="domain-card-move" open>
           <summary class="domain-card-header">
             <div class="domain-label">
               <h2 class="title">${modifier.name}</h2>
               <ul class="tags">
                 <li class="tag">Modificador de Guardia</li>
-                ${(modifier.system.statModifications || [])
+                ${(modifier.statModifications || [])
                   .map(
                     (m: any) =>
                       `<li class="tag">${m.statName}: ${m.value > 0 ? '+' : ''}${m.value}</li>`
@@ -227,7 +275,7 @@ export class GeneralPanel {
             <i class="fa-solid fa-chevron-down"></i>
           </summary>
           <div class="description">
-            <p>${modifier.system.description || 'Sin descripción'}</p>
+            <p>${modifier.description || 'Sin descripción'}</p>
           </div>
         </details>
       </div>
@@ -241,12 +289,12 @@ export class GeneralPanel {
 
   static async handleRemoveModifier(modifierId: string, onRefresh?: () => void) {
     const gm = (window as any).GuardManagement;
-    if (!gm?.guardOrganizationManager || !gm?.documentManager) {
+    if (!gm?.guardOrganizationManager || !gm?.modifierManager) {
       console.warn('Guard Management | Managers not found');
       return;
     }
 
-    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
+    const modifier = gm.modifierManager.getModifier(modifierId);
     const modifierName = modifier?.name || 'Modificador';
 
     const confirm = await Dialog.confirm({

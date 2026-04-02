@@ -6,6 +6,7 @@
 
 import type { Officer } from '../types/officer';
 import { AddOrEditOfficerDialog } from './AddOrEditOfficerDialog.js';
+import { ImportExportService } from '../utils/ImportExportService.js';
 
 export class OfficerWarehouseDialog {
   private static instance: OfficerWarehouseDialog | null = null;
@@ -181,6 +182,28 @@ export class OfficerWarehouseDialog {
         if (officerId) {
           this.handleDeleteOfficer(officerId);
         }
+      });
+    });
+
+    // Export / Import buttons
+    this.element.querySelectorAll('.warehouse-export-btn').forEach((btn) => {
+      (btn as HTMLElement).addEventListener('click', async (e) => {
+        e.preventDefault();
+        const section = (btn as HTMLElement).dataset.section;
+        const label = (btn as HTMLElement).dataset.sectionLabel || section;
+        if (section) await ImportExportService.exportSection(label, section);
+      });
+    });
+
+    this.element.querySelectorAll('.warehouse-import-btn').forEach((btn) => {
+      (btn as HTMLElement).addEventListener('click', async (e) => {
+        e.preventDefault();
+        const section = (btn as HTMLElement).dataset.section;
+        const label = (btn as HTMLElement).dataset.sectionLabel || section;
+        if (!section) return;
+        await ImportExportService.importSection(label, section, async () => {
+          await this.refresh();
+        });
       });
     });
   }

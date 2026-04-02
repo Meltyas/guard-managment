@@ -420,7 +420,7 @@ export class PoiPanel {
                 imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
               }
             },
-          }).browse();
+          }).render(true);
         });
 
         imgInput?.addEventListener('change', () => {
@@ -511,7 +511,7 @@ export class PoiPanel {
                 imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
               }
             },
-          }).browse();
+          }).render(true);
         });
 
         imgInput?.addEventListener('change', () => {

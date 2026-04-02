@@ -4,6 +4,7 @@ import { ReputationTemplate } from '../ui/ReputationTemplate.js';
 import { ResourceTemplate } from '../ui/ResourceTemplate.js';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { DOMEventSetup } from '../utils/DOMEventSetup.js';
+import { ImportExportService } from '../utils/ImportExportService.js';
 import { ResourceErrorHandler } from '../utils/ResourceErrorHandler.js';
 import { ResourceEventHandler, type ResourceEventContext } from '../utils/ResourceEventHandler.js';
 
@@ -99,15 +100,6 @@ export class GMWarehouseDialog implements FocusableDialog {
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.error(
           'Guard Management module still loading. Please wait a moment and try again.'
-        );
-      }
-      return;
-    }
-
-    if (!gm.documentManager) {
-      if ((globalThis as any).ui?.notifications) {
-        (globalThis as any).ui.notifications.error(
-          'Document manager not available. Please reload the module.'
         );
       }
       return;
@@ -212,7 +204,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
     // Render using Handlebars template
-    const content = await renderTemplate(
+    const content = await foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/gm-warehouse.hbs',
       {}
     );
@@ -272,12 +264,12 @@ export class GMWarehouseDialog implements FocusableDialog {
     try {
       const gm = (window as any).GuardManagement;
 
-      if (!gm || !gm.isInitialized || !gm.documentManager) {
+      if (!gm || !gm.isInitialized || !gm.patrolEffectManager) {
         this.patrolEffectTemplates = [];
         return this.patrolEffectTemplates;
       }
 
-      this.patrolEffectTemplates = await gm.documentManager.getPatrolEffects();
+      this.patrolEffectTemplates = gm.patrolEffectManager.getAllEffects();
       return this.patrolEffectTemplates;
     } catch (error) {
       console.error('Error loading patrol effect templates:', error);
@@ -293,12 +285,12 @@ export class GMWarehouseDialog implements FocusableDialog {
     try {
       const gm = (window as any).GuardManagement;
 
-      if (!gm || !gm.isInitialized || !gm.documentManager) {
+      if (!gm || !gm.isInitialized || !gm.modifierManager) {
         this.guardModifierTemplates = [];
         return this.guardModifierTemplates;
       }
 
-      this.guardModifierTemplates = await gm.documentManager.getGuardModifiers();
+      this.guardModifierTemplates = gm.modifierManager.getAllModifiers();
       return this.guardModifierTemplates;
     } catch (error) {
       console.error('Error loading guard modifier templates:', error);
@@ -347,7 +339,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private async renderResourceTemplate(resource: any): Promise<string> {
     // Resource is already a plain object from resourceManager, no conversion needed
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/partials/warehouse-resource-item.hbs',
       resource
     );
@@ -369,7 +361,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       levelLabel: REPUTATION_LABELS[level as ReputationLevel] || `Level ${level}`,
     };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/partials/warehouse-reputation-item.hbs',
       reputationData
     );
@@ -382,13 +374,13 @@ export class GMWarehouseDialog implements FocusableDialog {
     const effectData = {
       id: effect.id,
       name: effect.name,
-      description: effect.system?.description || '',
-      type: effect.system?.type || 'neutral',
-      image: effect.img || '',
-      statModifications: effect.system?.statModifications || [],
+      description: effect.description || '',
+      type: effect.type || 'neutral',
+      image: effect.image || effect.img || '',
+      statModifications: effect.statModifications || [],
     };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/partials/warehouse-patrol-effect-item.hbs',
       effectData
     );
@@ -401,13 +393,13 @@ export class GMWarehouseDialog implements FocusableDialog {
     const modifierData = {
       id: modifier.id,
       name: modifier.name,
-      description: modifier.system?.description || '',
-      type: modifier.system?.type || 'neutral',
-      image: modifier.img || '',
-      statModifications: modifier.system?.statModifications || [],
+      description: modifier.description || '',
+      type: modifier.type || 'neutral',
+      image: modifier.image || modifier.img || '',
+      statModifications: modifier.statModifications || [],
     };
 
-    return renderTemplate(
+    return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/partials/warehouse-guard-modifier-item.hbs',
       modifierData
     );
@@ -483,6 +475,31 @@ export class GMWarehouseDialog implements FocusableDialog {
             );
           }
         }
+      });
+    });
+
+    // Export / Import buttons
+    this.element.querySelectorAll('.warehouse-export-btn').forEach((btn) => {
+      (btn as HTMLElement).addEventListener('click', async (e) => {
+        e.preventDefault();
+        const section = (btn as HTMLElement).dataset.section;
+        const label = (btn as HTMLElement).dataset.sectionLabel || section;
+        if (section) await ImportExportService.exportSection(label, section);
+      });
+    });
+
+    this.element.querySelectorAll('.warehouse-import-btn').forEach((btn) => {
+      (btn as HTMLElement).addEventListener('click', async (e) => {
+        e.preventDefault();
+        const section = (btn as HTMLElement).dataset.section;
+        const label = (btn as HTMLElement).dataset.sectionLabel || section;
+        if (!section) return;
+        await ImportExportService.importSection(label, section, async () => {
+          if (section === 'resources') await this.refreshResourcesTab();
+          else if (section === 'reputations') await this.refreshReputationTab();
+          else if (section === 'patrolEffects') await this.refreshPatrolEffectsTab();
+          else if (section === 'modifiers') await this.refreshGuardModifiersTab();
+        });
       });
     });
 
@@ -791,9 +808,9 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (newEffect) {
         const gm = (window as any).GuardManagement;
-        if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+        if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
 
-        await gm.documentManager.createPatrolEffect(newEffect);
+        await gm.patrolEffectManager.createEffect(newEffect);
         await this.refreshPatrolEffectsTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -820,9 +837,9 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (newModifier) {
         const gm = (window as any).GuardManagement;
-        if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+        if (!gm?.modifierManager) throw new Error('ModifierManager not available');
 
-        await gm.documentManager.createGuardModifier(newModifier);
+        await gm.modifierManager.createModifier(newModifier);
         await this.refreshGuardModifiersTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -1181,7 +1198,9 @@ export class GMWarehouseDialog implements FocusableDialog {
       return;
     }
 
-    const reputation = gm.reputationManager.getAllReputations()?.find((r: any) => r.id === reputationId);
+    const reputation = gm.reputationManager
+      .getAllReputations()
+      ?.find((r: any) => r.id === reputationId);
     if (!reputation) {
       console.error('Reputation not found for drag operation:', reputationId);
       return;
@@ -1256,18 +1275,18 @@ export class GMWarehouseDialog implements FocusableDialog {
     if (!effectId) return;
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) return;
+    if (!gm?.patrolEffectManager) return;
 
-    const effect = gm.documentManager.getPatrolEffects().find((e: any) => e.id === effectId);
+    const effect = gm.patrolEffectManager.getAllEffects().find((e: any) => e.id === effectId);
     if (!effect) return;
 
     const effectData = {
       id: effect.id,
       name: effect.name,
-      description: effect.system?.description || '',
-      type: effect.system?.type || 'neutral',
-      image: effect.img || '',
-      statModifications: effect.system?.statModifications || [],
+      description: effect.description || '',
+      type: effect.type || 'neutral',
+      image: effect.image || '',
+      statModifications: effect.statModifications || [],
     };
 
     const dragData = {
@@ -1309,18 +1328,18 @@ export class GMWarehouseDialog implements FocusableDialog {
     if (!modifierId) return;
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.documentManager) return;
+    if (!gm?.modifierManager) return;
 
-    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
+    const modifier = gm.modifierManager.getAllModifiers().find((m: any) => m.id === modifierId);
     if (!modifier) return;
 
     const modifierData = {
       id: modifier.id,
       name: modifier.name,
-      description: modifier.system?.description || '',
-      type: modifier.system?.type || 'neutral',
-      image: modifier.img || '',
-      statModifications: modifier.system?.statModifications || [],
+      description: modifier.description || '',
+      type: modifier.type || 'neutral',
+      image: modifier.image || '',
+      statModifications: modifier.statModifications || [],
     };
 
     const dragData = {
@@ -1403,21 +1422,20 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleEditPatrolEffectTemplate(effectId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+      if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
 
-      const effects = gm.documentManager.getPatrolEffects();
-      const effect = effects.find((e: any) => e.id === effectId);
+      const effect = gm.patrolEffectManager.getEffect(effectId);
 
       if (!effect) throw new Error('Patrol effect not found');
 
       const effectData = {
         id: effect.id,
         name: effect.name,
-        description: effect.system?.description || '',
-        type: effect.system?.type || 'neutral',
-        image: effect.img || '',
-        statModifications: effect.system?.statModifications || [],
-        version: effect.system?.version || 1,
+        description: effect.description || '',
+        type: effect.type || 'neutral',
+        image: effect.image || '',
+        statModifications: effect.statModifications || [],
+        version: effect.version || 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1426,7 +1444,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       const updatedEffect = await AddOrEditPatrolEffectDialog.edit(effectData as any);
 
       if (updatedEffect) {
-        await gm.documentManager.updatePatrolEffect(updatedEffect.id, updatedEffect);
+        await gm.patrolEffectManager.updateEffect(updatedEffect.id, updatedEffect);
         await this.refreshPatrolEffectsTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -1579,21 +1597,20 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleEditGuardModifierTemplate(modifierId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+      if (!gm?.modifierManager) throw new Error('ModifierManager not available');
 
-      const modifiers = gm.documentManager.getGuardModifiers();
-      const modifier = modifiers.find((m: any) => m.id === modifierId);
+      const modifier = gm.modifierManager.getModifier(modifierId);
 
       if (!modifier) throw new Error('Guard modifier not found');
 
       const modifierData = {
         id: modifier.id,
         name: modifier.name,
-        description: modifier.system?.description || '',
-        type: modifier.system?.type || 'neutral',
-        image: modifier.img || '',
-        statModifications: modifier.system?.statModifications || [],
-        version: modifier.system?.version || 1,
+        description: modifier.description || '',
+        type: modifier.type || 'neutral',
+        image: modifier.image || '',
+        statModifications: modifier.statModifications || [],
+        version: modifier.version || 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1602,7 +1619,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       const updatedModifier = await AddOrEditGuardModifierDialog.edit(modifierData as any);
 
       if (updatedModifier) {
-        await gm.documentManager.updateGuardModifier(updatedModifier.id, updatedModifier);
+        await gm.modifierManager.updateModifier(updatedModifier.id, updatedModifier);
         await this.refreshGuardModifiersTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -1641,8 +1658,8 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async showDeleteResourceDialog(resourceName: string): Promise<boolean> {
     try {
       // Use foundry's built-in confirmation dialog
-      const result = await Dialog.confirm({
-        title: 'Confirmar Eliminación Permanente',
+      const result = await foundry.applications.api.DialogV2.confirm({
+        window: { title: 'Confirmar Eliminación Permanente' },
         content: `
           <div style="margin-bottom: 1rem;">
             <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
@@ -1652,12 +1669,12 @@ export class GMWarehouseDialog implements FocusableDialog {
           <p><strong style="color: #ff6b6b;">Esta acción NO se puede deshacer.</strong></p>
           <p><small>El recurso será removido de todas las organizaciones y eliminado completamente del sistema.</small></p>
         `,
-        yes: () => true,
-        no: () => false,
-        defaultYes: false,
+        yes: { label: 'Eliminar', icon: 'fas fa-trash' },
+        no: { label: 'Cancelar', icon: 'fas fa-times' },
+        rejectClose: false,
       });
 
-      return result;
+      return !!result;
     } catch (error) {
       console.error('Error showing delete confirmation dialog:', error);
       // Fallback to browser confirm if Dialog fails
@@ -1701,18 +1718,8 @@ export class GMWarehouseDialog implements FocusableDialog {
         return;
       }
 
-      // Check if resource is assigned to any organization before deleting
-      const organizations = gm.documentManager.getGuardOrganizations();
-      const assignedOrganizations = organizations.filter((org: any) =>
-        org.system?.resources?.includes(resourceId)
-      );
-
-      if (assignedOrganizations.length > 0) {
-        console.log(`🔍 Resource is assigned to ${assignedOrganizations.length} organizations`);
-      }
-
-      // Use the DocumentBasedManager method to delete the resource and clean up references
-      const deleted = await gm.documentManager.deleteGuardResource(resourceId);
+      // Use the ResourceManager to delete the resource
+      const deleted = await gm.resourceManager.deleteResource(resourceId);
 
       if (!deleted) {
         console.error('❌ Failed to delete resource');
@@ -1762,16 +1769,18 @@ export class GMWarehouseDialog implements FocusableDialog {
       const reputationName = reputation?.name || 'Unknown Reputation';
 
       // Confirm deletion
-      const confirmed = await Dialog.confirm({
-        title: 'Delete Reputation Template',
-        content: `<p>Are you sure you want to delete the reputation template "<strong>${reputationName}</strong>"?</p><p><em>This action cannot be undone.</em></p>`,
-        defaultYes: false,
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        window: { title: 'Eliminar reputación' },
+        content: `<p>¿Eliminar permanentemente la reputación "<strong>${reputationName}</strong>"?</p><p><em>Esta acción no se puede deshacer.</em></p>`,
+        yes: { label: 'Eliminar', icon: 'fas fa-trash' },
+        no: { label: 'Cancelar', icon: 'fas fa-times' },
+        rejectClose: false,
       });
 
       if (!confirmed) return;
 
       // Delete the reputation
-      const deleteSuccess = await gm.documentManager.deleteGuardReputation(reputationId);
+      const deleteSuccess = await gm.reputationManager.deleteReputation(reputationId);
       if (!deleteSuccess) {
         throw new Error('Failed to delete reputation from database');
       }
@@ -1799,21 +1808,22 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleDeletePatrolEffectTemplate(effectId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+      if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
 
-      const effects = gm.documentManager.getPatrolEffects();
-      const effect = effects.find((e: any) => e.id === effectId);
-      const effectName = effect?.name || 'Unknown Effect';
+      const effect = gm.patrolEffectManager.getEffect(effectId);
+      const effectName = effect?.name || 'Efecto desconocido';
 
-      const confirmed = await Dialog.confirm({
-        title: 'Delete Patrol Effect Template',
-        content: `<p>Are you sure you want to delete the patrol effect template "<strong>${effectName}</strong>"?</p><p><em>This action cannot be undone.</em></p>`,
-        defaultYes: false,
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        window: { title: 'Eliminar efecto de patrulla' },
+        content: `<p>¿Eliminar permanentemente el efecto "<strong>${effectName}</strong>"?</p><p><em>Esta acción no se puede deshacer.</em></p>`,
+        yes: { label: 'Eliminar', icon: 'fas fa-trash' },
+        no: { label: 'Cancelar', icon: 'fas fa-times' },
+        rejectClose: false,
       });
 
       if (!confirmed) return;
 
-      await gm.documentManager.deletePatrolEffect(effectId);
+      await gm.patrolEffectManager.deleteEffect(effectId);
       await this.refreshPatrolEffectsTab();
 
       if ((globalThis as any).ui?.notifications) {
@@ -1835,21 +1845,22 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleDeleteGuardModifierTemplate(modifierId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
+      if (!gm?.modifierManager) throw new Error('ModifierManager not available');
 
-      const modifiers = gm.documentManager.getGuardModifiers();
-      const modifier = modifiers.find((m: any) => m.id === modifierId);
-      const modifierName = modifier?.name || 'Unknown Modifier';
+      const modifier = gm.modifierManager.getModifier(modifierId);
+      const modifierName = modifier?.name || 'Modificador desconocido';
 
-      const confirmed = await Dialog.confirm({
-        title: 'Delete Guard Modifier Template',
-        content: `<p>Are you sure you want to delete the guard modifier template "<strong>${modifierName}</strong>"?</p><p><em>This action cannot be undone.</em></p>`,
-        defaultYes: false,
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        window: { title: 'Eliminar modificador de guardia' },
+        content: `<p>¿Eliminar permanentemente el modificador "<strong>${modifierName}</strong>"?</p><p><em>Esta acción no se puede deshacer.</em></p>`,
+        yes: { label: 'Eliminar', icon: 'fas fa-trash' },
+        no: { label: 'Cancelar', icon: 'fas fa-times' },
+        rejectClose: false,
       });
 
       if (!confirmed) return;
 
-      await gm.documentManager.deleteGuardModifier(modifierId);
+      await gm.modifierManager.deleteModifier(modifierId);
       await this.refreshGuardModifiersTab();
 
       if ((globalThis as any).ui?.notifications) {

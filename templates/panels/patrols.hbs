@@ -41,12 +41,30 @@
                             </div>
                             <div class="stats-mini">
                                 {{#each this.statsBreakdown as |stat key|}}
-                                <span class="stat clickable-stat" data-stat="{{key}}" data-tooltip="{{patrolStatTooltip stat}}">
-                                    {{key}}: {{stat.total}}
-                                </span>
+                                <button type="button" class="stat-chip stat-chip--mini clickable-stat" data-stat="{{key}}" data-tooltip="{{patrolStatTooltip stat key}}">
+                                    <div class="stat-chip__img" style="background-image: url('{{statImage key}}');"></div>
+                                    <div class="stat-chip__nums">
+                                        <span class="stat-chip__base">{{stat.base}}</span>
+                                        <span class="stat-chip__total">({{stat.total}})</span>
+                                    </div>
+                                </button>
                                 {{/each}}
                             </div>
                         </div>
+
+                        <!-- Spellcasting abilities row (just below stats) -->
+                        {{#if this.patrolSpells.length}}
+                        <div class="patrol-spells-row">
+                            {{#each this.patrolSpells}}
+                            <span class="patrol-spell-tag clickable-spell"
+                                  data-spell-id="{{this.id}}"
+                                  data-tooltip="Tirada de lanzamiento: dEsperanza + dMiedo {{this.modifierStr}}">
+                                <i class="fas fa-magic"></i>
+                                {{this.name}}<em class="spell-mod">{{this.modifierStr}}</em>
+                            </span>
+                            {{/each}}
+                        </div>
+                        {{/if}}
 
                         <!-- Bottom row: soldiers (left) + effects (right) -->
                         <div class="patrol-bottom-row">

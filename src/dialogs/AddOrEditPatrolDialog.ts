@@ -1,4 +1,10 @@
-import { GUARD_STAT_MAX, GUARD_STAT_MIN, GuardStats, Patrol } from '../types/entities';
+import {
+  GUARD_STAT_MAX,
+  GUARD_STAT_MIN,
+  GuardStats,
+  Patrol,
+  PatrolSpellAbility,
+} from '../types/entities';
 import { GuardModal } from '../ui/GuardModal.js';
 
 interface PatrolDialogData {
@@ -8,6 +14,7 @@ interface PatrolDialogData {
   organizationId: string;
   soldierSlots: number;
   maxHope: number;
+  patrolSpells: PatrolSpellAbility[];
 }
 
 export type UnitType = 'patrol' | 'auxiliary';
@@ -36,12 +43,29 @@ export class AddOrEditPatrolDialog {
           const form = bodyEl.querySelector('form.guard-modal-form') as HTMLFormElement;
           if (!form) return false;
           const fd = new FormData(form);
+          // Parse spell abilities (up to 6 slots)
+          const patrolSpells: PatrolSpellAbility[] = [];
+          for (let i = 0; i < 6; i++) {
+            const spellName = ((fd.get(`spell_name_${i}`) as string) || '').trim();
+            if (spellName) {
+              const mod = parseInt(fd.get(`spell_modifier_${i}`) as string);
+              patrolSpells.push({
+                id:
+                  existing?.patrolSpells?.[i]?.id ||
+                  (globalThis as any).foundry?.utils?.randomID?.() ||
+                  crypto.randomUUID(),
+                name: spellName,
+                modifier: Number.isNaN(mod) ? 0 : mod,
+              });
+            }
+          }
           const data: PatrolDialogData = {
             name: (fd.get('name') as string) || '',
             subtitle: (fd.get('subtitle') as string) || '',
             organizationId: fd.get('organizationId') as string,
             soldierSlots: parseInt(fd.get('soldierSlots') as string) || 5,
             maxHope: Math.min(6, Math.max(0, parseInt(fd.get('maxHope') as string) || 0)),
+            patrolSpells,
             baseStats: {
               agility: (() => {
                 const v = parseInt(fd.get('stat_agility') as string);
@@ -90,6 +114,7 @@ export class AddOrEditPatrolDialog {
               soldierSlots: data.soldierSlots,
               maxHope: data.maxHope,
               currentHope: 0,
+              patrolSpells: data.patrolSpells,
             } as any);
             orgMgr.upsertPatrolSnapshot(patrolMgr.getPatrol(created.id)!);
             return created;
@@ -100,6 +125,7 @@ export class AddOrEditPatrolDialog {
               baseStats: data.baseStats,
               soldierSlots: data.soldierSlots,
               maxHope: data.maxHope,
+              patrolSpells: data.patrolSpells,
             });
             const updated = patrolMgr.getPatrol(existing.id) || null;
             if (updated) {
@@ -131,6 +157,7 @@ export class AddOrEditPatrolDialog {
       organizationId,
       soldierSlots: existing?.soldierSlots || 5,
       maxHope: existing?.maxHope ?? 0,
+      patrolSpells: existing?.patrolSpells || [],
       baseStats: existing?.baseStats || {
         agility: 0,
         strength: 0,
@@ -156,11 +183,19 @@ export class AddOrEditPatrolDialog {
       selected: n === data.soldierSlots,
     }));
 
+    // Build 6 spell slots (pre-filled from existing data)
+    const spellSlots = Array.from({ length: 6 }, (_, i) => ({
+      index: i,
+      name: data.patrolSpells[i]?.name || '',
+      modifier: data.patrolSpells[i]?.modifier ?? 0,
+    }));
+
     const templatePath = 'modules/guard-management/templates/dialogs/add-edit-patrol.hbs';
     return await foundry.applications.handlebars.renderTemplate(templatePath, {
       ...data,
       stats,
       slotOptions,
+      spellSlots,
       isCreate: mode === 'create',
       minStat: GUARD_STAT_MIN,
       maxStat: GUARD_STAT_MAX,

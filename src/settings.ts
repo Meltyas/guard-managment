@@ -170,6 +170,32 @@ export function registerSettings(): void {
     },
   });
 
+  // Patrol Effect templates
+  game?.settings?.register('guard-management', 'patrolEffects', {
+    name: 'Patrol Effects Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.patrolEffectManager) gm.patrolEffectManager.loadFromSettings?.();
+    },
+  });
+
+  // Guard Modifier templates
+  game?.settings?.register('guard-management', 'modifiers', {
+    name: 'Guard Modifiers Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.modifierManager) gm.modifierManager.loadFromSettings?.();
+    },
+  });
+
   // Officers data storage
   game?.settings?.register('guard-management', 'officers', {
     name: 'Officers Data',
