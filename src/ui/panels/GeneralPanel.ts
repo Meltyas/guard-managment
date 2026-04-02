@@ -15,6 +15,13 @@ export class GeneralPanel {
     const breakdown = gm?.guardOrganizationManager?.getStatsBreakdown();
 
     const statLabels: Record<string, string> = {
+      agility: 'Agilidad',
+      strength: 'Fuerza',
+      finesse: 'Destreza',
+      instinct: 'Instinto',
+      presence: 'Presencia',
+      knowledge: 'Conocimiento',
+      // Legacy fallbacks (pre-migration)
       robustismo: 'Robustismo',
       analitica: 'Analítica',
       subterfugio: 'Subterfugio',
@@ -26,7 +33,7 @@ export class GeneralPanel {
           const k = key as keyof import('../../types/entities').GuardStats;
           const base = breakdown.base[k];
           const total = breakdown.total[k];
-          const mods = breakdown.modifiers[k];
+          const mods = breakdown.modifiers[k] ?? [];
 
           let cssClass = '';
           if (total > base) cssClass = 'positive';

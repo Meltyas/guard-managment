@@ -31,20 +31,28 @@ const patrolStatsRenderer: FieldRenderer<ExtendedPatrol> = {
     return `
       <div class="patrol-stats">
         <div class="stat-row">
-          <span class="stat-label">Robustismo:</span>
-          <span class="stat-value">${value.robustismo ?? 0}</span>
+          <span class="stat-label">Agilidad:</span>
+          <span class="stat-value">${value.agility ?? 0}</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Analítica:</span>
-          <span class="stat-value">${value.analitica ?? 0}</span>
+          <span class="stat-label">Fuerza:</span>
+          <span class="stat-value">${value.strength ?? 0}</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Subterfugio:</span>
-          <span class="stat-value">${value.subterfugio ?? 0}</span>
+          <span class="stat-label">Destreza:</span>
+          <span class="stat-value">${value.finesse ?? 0}</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Elocuencia:</span>
-          <span class="stat-value">${value.elocuencia ?? 0}</span>
+          <span class="stat-label">Instinto:</span>
+          <span class="stat-value">${value.instinct ?? 0}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Presencia:</span>
+          <span class="stat-value">${value.presence ?? 0}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Conocimiento:</span>
+          <span class="stat-value">${value.knowledge ?? 0}</span>
         </div>
       </div>
     `;
@@ -146,10 +154,12 @@ function generatePatrolChatTemplate(entity: ExtendedPatrol, context: ChatContext
         <div class="patrol-stats">
           <h4>Estadísticas:</h4>
           <ul>
-            <li>Robustismo: ${entity.derivedStats?.robustismo ?? 0}</li>
-            <li>Analítica: ${entity.derivedStats?.analitica ?? 0}</li>
-            <li>Subterfugio: ${entity.derivedStats?.subterfugio ?? 0}</li>
-            <li>Elocuencia: ${entity.derivedStats?.elocuencia ?? 0}</li>
+            <li>Agilidad: ${entity.derivedStats?.agility ?? 0}</li>
+            <li>Fuerza: ${entity.derivedStats?.strength ?? 0}</li>
+            <li>Destreza: ${entity.derivedStats?.finesse ?? 0}</li>
+            <li>Instinto: ${entity.derivedStats?.instinct ?? 0}</li>
+            <li>Presencia: ${entity.derivedStats?.presence ?? 0}</li>
+            <li>Conocimiento: ${entity.derivedStats?.knowledge ?? 0}</li>
           </ul>
         </div>
 
@@ -221,10 +231,12 @@ const statCalculationExtension: EntityExtension<ExtendedPatrol> = {
       const leaderBonus = entity.leaderId ? 2 : 0;
 
       entity.derivedStats = {
-        robustismo: organization.baseStats.robustismo + memberBonus + leaderBonus,
-        analitica: organization.baseStats.analitica + memberBonus,
-        subterfugio: organization.baseStats.subterfugio + memberBonus,
-        elocuencia: organization.baseStats.elocuencia + memberBonus + leaderBonus,
+        agility: organization.baseStats.agility + memberBonus + leaderBonus,
+        strength: organization.baseStats.strength + memberBonus + leaderBonus,
+        finesse: organization.baseStats.finesse + memberBonus,
+        instinct: organization.baseStats.instinct + memberBonus,
+        presence: organization.baseStats.presence + memberBonus + leaderBonus,
+        knowledge: organization.baseStats.knowledge + memberBonus,
       };
 
       return entity;

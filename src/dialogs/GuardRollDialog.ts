@@ -93,10 +93,12 @@ export class GuardRollDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     // Prepare traits from entity stats
     const stats = this.getStats();
     context.traits = [
-      { id: 'robustismo', label: 'Robustismo', value: stats.robustismo },
-      { id: 'analitica', label: 'Analítica', value: stats.analitica },
-      { id: 'subterfugio', label: 'Subterfugio', value: stats.subterfugio },
-      { id: 'elocuencia', label: 'Elocuencia', value: stats.elocuencia },
+      { id: 'agility', label: 'Agilidad', value: stats.agility },
+      { id: 'strength', label: 'Fuerza', value: stats.strength },
+      { id: 'finesse', label: 'Destreza', value: stats.finesse },
+      { id: 'instinct', label: 'Instinto', value: stats.instinct },
+      { id: 'presence', label: 'Presencia', value: stats.presence },
+      { id: 'knowledge', label: 'Conocimiento', value: stats.knowledge },
     ];
 
     context.activeModifiers = this.config.activeModifiers;
@@ -114,10 +116,17 @@ export class GuardRollDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       const entity = this.config.entity as any;
       return (
         entity.derivedStats ||
-        entity.baseStats || { robustismo: 0, analitica: 0, subterfugio: 0, elocuencia: 0 }
+        entity.baseStats || {
+          agility: 0,
+          strength: 0,
+          finesse: 0,
+          instinct: 0,
+          presence: 0,
+          knowledge: 0,
+        }
       );
     }
-    return { robustismo: 0, analitica: 0, subterfugio: 0, elocuencia: 0 };
+    return { agility: 0, strength: 0, finesse: 0, instinct: 0, presence: 0, knowledge: 0 };
   }
 
   constructFormula(): string {

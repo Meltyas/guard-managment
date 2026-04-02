@@ -78,7 +78,7 @@ export class PatrolModel extends foundry.abstract.TypeDataModel {
         new fields.SchemaField({
           statName: new fields.StringField({
             required: true,
-            choices: ['robustismo', 'analitica', 'subterfugio', 'elocuencia'],
+            choices: ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'],
           }),
           value: new fields.NumberField({
             required: true,

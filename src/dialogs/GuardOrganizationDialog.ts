@@ -9,10 +9,12 @@ import { GuardModal } from '../ui/GuardModal.js';
 export interface GuardOrganizationDialogData {
   name: string;
   subtitle: string;
-  robustismo: number;
-  analitica: number;
-  subterfugio: number;
-  elocuencia: number;
+  agility: number;
+  strength: number;
+  finesse: number;
+  instinct: number;
+  presence: number;
+  knowledge: number;
 }
 
 // New internal type for rendering instead of using any
@@ -109,30 +111,40 @@ export class GuardOrganizationDialog {
    * Extract form data and convert to typed object
    */
   private extractFormData(formData: FormData): GuardOrganizationDialogData {
-    const robustismoValue = formData.get('robustismo') as string;
-    const analiticaValue = formData.get('analitica') as string;
-    const subterfugioValue = formData.get('subterfugio') as string;
-    const elocuenciaValue = formData.get('elocuencia') as string;
+    const agilityValue = formData.get('agility') as string;
+    const strengthValue = formData.get('strength') as string;
+    const finesseValue = formData.get('finesse') as string;
+    const instinctValue = formData.get('instinct') as string;
+    const presenceValue = formData.get('presence') as string;
+    const knowledgeValue = formData.get('knowledge') as string;
 
     return {
       name: (formData.get('name') as string) || '',
       subtitle: (formData.get('subtitle') as string) || '',
-      robustismo:
-        robustismoValue !== null && robustismoValue !== ''
-          ? parseInt(robustismoValue)
-          : DEFAULT_GUARD_STATS.robustismo,
-      analitica:
-        analiticaValue !== null && analiticaValue !== ''
-          ? parseInt(analiticaValue)
-          : DEFAULT_GUARD_STATS.analitica,
-      subterfugio:
-        subterfugioValue !== null && subterfugioValue !== ''
-          ? parseInt(subterfugioValue)
-          : DEFAULT_GUARD_STATS.subterfugio,
-      elocuencia:
-        elocuenciaValue !== null && elocuenciaValue !== ''
-          ? parseInt(elocuenciaValue)
-          : DEFAULT_GUARD_STATS.elocuencia,
+      agility:
+        agilityValue !== null && agilityValue !== ''
+          ? parseInt(agilityValue)
+          : DEFAULT_GUARD_STATS.agility,
+      strength:
+        strengthValue !== null && strengthValue !== ''
+          ? parseInt(strengthValue)
+          : DEFAULT_GUARD_STATS.strength,
+      finesse:
+        finesseValue !== null && finesseValue !== ''
+          ? parseInt(finesseValue)
+          : DEFAULT_GUARD_STATS.finesse,
+      instinct:
+        instinctValue !== null && instinctValue !== ''
+          ? parseInt(instinctValue)
+          : DEFAULT_GUARD_STATS.instinct,
+      presence:
+        presenceValue !== null && presenceValue !== ''
+          ? parseInt(presenceValue)
+          : DEFAULT_GUARD_STATS.presence,
+      knowledge:
+        knowledgeValue !== null && knowledgeValue !== ''
+          ? parseInt(knowledgeValue)
+          : DEFAULT_GUARD_STATS.knowledge,
     };
   }
 
@@ -160,10 +172,12 @@ export class GuardOrganizationDialog {
     }
 
     const statChecks = [
-      { value: data.robustismo, name: 'robustismo', label: 'Robustismo' },
-      { value: data.analitica, name: 'analitica', label: 'Analítica' },
-      { value: data.subterfugio, name: 'subterfugio', label: 'Subterfugio' },
-      { value: data.elocuencia, name: 'elocuencia', label: 'Elocuencia' },
+      { value: data.agility, name: 'agility', label: 'Agilidad' },
+      { value: data.strength, name: 'strength', label: 'Fuerza' },
+      { value: data.finesse, name: 'finesse', label: 'Destreza' },
+      { value: data.instinct, name: 'instinct', label: 'Instinto' },
+      { value: data.presence, name: 'presence', label: 'Presencia' },
+      { value: data.knowledge, name: 'knowledge', label: 'Conocimiento' },
     ];
 
     for (const stat of statChecks) {
@@ -209,10 +223,12 @@ export class GuardOrganizationDialog {
     existingOrganization?: GuardOrganization
   ): GuardOrganization {
     const baseStats: GuardStats = {
-      robustismo: data.robustismo,
-      analitica: data.analitica,
-      subterfugio: data.subterfugio,
-      elocuencia: data.elocuencia,
+      agility: data.agility,
+      strength: data.strength,
+      finesse: data.finesse,
+      instinct: data.instinct,
+      presence: data.presence,
+      knowledge: data.knowledge,
     };
 
     if (mode === 'edit' && existingOrganization) {

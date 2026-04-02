@@ -378,6 +378,15 @@ export function registerSettings(): void {
     },
   });
 
+  // Migration version tracker
+  game?.settings?.register('guard-management', 'migrationVersion', {
+    name: 'Migration Version',
+    scope: 'world',
+    config: false,
+    type: Number,
+    default: 0,
+  });
+
   console.log('GuardManagement | Settings registered successfully');
 }
 

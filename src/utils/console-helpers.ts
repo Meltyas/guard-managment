@@ -246,10 +246,12 @@ export class GuardManagementHelpers {
         id: o.id,
         name: o.name,
         subtitle: o.subtitle,
-        robustismo: o.baseStats?.robustismo,
-        analitica: o.baseStats?.analitica,
-        subterfugio: o.baseStats?.subterfugio,
-        elocuencia: o.baseStats?.elocuencia,
+        agility: o.baseStats?.agility,
+        strength: o.baseStats?.strength,
+        finesse: o.baseStats?.finesse,
+        instinct: o.baseStats?.instinct,
+        presence: o.baseStats?.presence,
+        knowledge: o.baseStats?.knowledge,
       }))
     );
 
@@ -377,10 +379,12 @@ export class GuardManagementHelpers {
       name: name,
       subtitle: 'Test organization for development',
       baseStats: {
-        robustismo: Math.floor(Math.random() * 10) + 8,
-        analitica: Math.floor(Math.random() * 10) + 8,
-        subterfugio: Math.floor(Math.random() * 10) + 8,
-        elocuencia: Math.floor(Math.random() * 10) + 8,
+        agility: Math.floor(Math.random() * 10) + 8,
+        strength: Math.floor(Math.random() * 10) + 8,
+        finesse: Math.floor(Math.random() * 10) + 8,
+        instinct: Math.floor(Math.random() * 10) + 8,
+        presence: Math.floor(Math.random() * 10) + 8,
+        knowledge: Math.floor(Math.random() * 10) + 8,
       },
     });
 

@@ -43,20 +43,28 @@ export class AddOrEditPatrolDialog {
             soldierSlots: parseInt(fd.get('soldierSlots') as string) || 5,
             maxHope: Math.min(6, Math.max(0, parseInt(fd.get('maxHope') as string) || 0)),
             baseStats: {
-              robustismo: (() => {
-                const v = parseInt(fd.get('stat_robustismo') as string);
+              agility: (() => {
+                const v = parseInt(fd.get('stat_agility') as string);
                 return Number.isNaN(v) ? 0 : v;
               })(),
-              analitica: (() => {
-                const v = parseInt(fd.get('stat_analitica') as string);
+              strength: (() => {
+                const v = parseInt(fd.get('stat_strength') as string);
                 return Number.isNaN(v) ? 0 : v;
               })(),
-              subterfugio: (() => {
-                const v = parseInt(fd.get('stat_subterfugio') as string);
+              finesse: (() => {
+                const v = parseInt(fd.get('stat_finesse') as string);
                 return Number.isNaN(v) ? 0 : v;
               })(),
-              elocuencia: (() => {
-                const v = parseInt(fd.get('stat_elocuencia') as string);
+              instinct: (() => {
+                const v = parseInt(fd.get('stat_instinct') as string);
+                return Number.isNaN(v) ? 0 : v;
+              })(),
+              presence: (() => {
+                const v = parseInt(fd.get('stat_presence') as string);
+                return Number.isNaN(v) ? 0 : v;
+              })(),
+              knowledge: (() => {
+                const v = parseInt(fd.get('stat_knowledge') as string);
                 return Number.isNaN(v) ? 0 : v;
               })(),
             },
@@ -124,18 +132,22 @@ export class AddOrEditPatrolDialog {
       soldierSlots: existing?.soldierSlots || 5,
       maxHope: existing?.maxHope ?? 0,
       baseStats: existing?.baseStats || {
-        robustismo: 0,
-        analitica: 0,
-        subterfugio: 0,
-        elocuencia: 0,
+        agility: 0,
+        strength: 0,
+        finesse: 0,
+        instinct: 0,
+        presence: 0,
+        knowledge: 0,
       },
     };
 
     const stats = [
-      { label: 'Robustismo', key: 'robustismo', value: data.baseStats.robustismo },
-      { label: 'Analítica', key: 'analitica', value: data.baseStats.analitica },
-      { label: 'Subterfugio', key: 'subterfugio', value: data.baseStats.subterfugio },
-      { label: 'Elocuencia', key: 'elocuencia', value: data.baseStats.elocuencia },
+      { label: 'Agilidad', key: 'agility', value: data.baseStats.agility },
+      { label: 'Fuerza', key: 'strength', value: data.baseStats.strength },
+      { label: 'Destreza', key: 'finesse', value: data.baseStats.finesse },
+      { label: 'Instinto', key: 'instinct', value: data.baseStats.instinct },
+      { label: 'Presencia', key: 'presence', value: data.baseStats.presence },
+      { label: 'Conocimiento', key: 'knowledge', value: data.baseStats.knowledge },
     ];
 
     const slotOptions = Array.from({ length: 11 }, (_, i) => i + 1).map((n) => ({

@@ -4,9 +4,9 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import './setup/foundryMocks';
 import { DocumentBasedManager } from '../managers/DocumentBasedManager';
 import { DEFAULT_GUARD_STATS, GuardStats } from '../types/entities';
+import './setup/foundryMocks';
 import { clearMockData } from './setup/foundryMocks';
 
 describe('Guard Organization CRUD Operations', () => {
@@ -45,10 +45,12 @@ describe('Guard Organization CRUD Operations', () => {
 
     it('should create organization with custom stats', async () => {
       const customStats: GuardStats = {
-        robustismo: 15,
-        analitica: 8,
-        subterfugio: 12,
-        elocuencia: 10,
+        agility: 15,
+        strength: 8,
+        finesse: 12,
+        instinct: 10,
+        presence: 10,
+        knowledge: 8,
       };
 
       const organization = await guardManager.createGuardOrganization({
@@ -149,10 +151,12 @@ describe('Guard Organization CRUD Operations', () => {
       });
 
       const newStats: GuardStats = {
-        robustismo: 20,
-        analitica: 15,
-        subterfugio: 18,
-        elocuencia: 12,
+        agility: 20,
+        strength: 15,
+        finesse: 18,
+        instinct: 12,
+        presence: 12,
+        knowledge: 15,
       };
 
       const updateResult = await guardManager.updateGuardOrganization(organization.id, {

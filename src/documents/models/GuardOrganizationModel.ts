@@ -61,30 +61,44 @@ export class GuardOrganizationModel extends foundry.abstract.TypeDataModel {
       }),
 
       baseStats: new fields.SchemaField({
-        robustismo: new fields.NumberField({
+        agility: new fields.NumberField({
           required: true,
-          initial: DEFAULT_GUARD_STATS.robustismo,
+          initial: DEFAULT_GUARD_STATS.agility,
           min: -99,
           max: 99,
           integer: true,
         }),
-        analitica: new fields.NumberField({
+        strength: new fields.NumberField({
           required: true,
-          initial: DEFAULT_GUARD_STATS.analitica,
+          initial: DEFAULT_GUARD_STATS.strength,
           min: -99,
           max: 99,
           integer: true,
         }),
-        subterfugio: new fields.NumberField({
+        finesse: new fields.NumberField({
           required: true,
-          initial: DEFAULT_GUARD_STATS.subterfugio,
+          initial: DEFAULT_GUARD_STATS.finesse,
           min: -99,
           max: 99,
           integer: true,
         }),
-        elocuencia: new fields.NumberField({
+        instinct: new fields.NumberField({
           required: true,
-          initial: DEFAULT_GUARD_STATS.elocuencia,
+          initial: DEFAULT_GUARD_STATS.instinct,
+          min: -99,
+          max: 99,
+          integer: true,
+        }),
+        presence: new fields.NumberField({
+          required: true,
+          initial: DEFAULT_GUARD_STATS.presence,
+          min: -99,
+          max: 99,
+          integer: true,
+        }),
+        knowledge: new fields.NumberField({
+          required: true,
+          initial: DEFAULT_GUARD_STATS.knowledge,
           min: -99,
           max: 99,
           integer: true,
@@ -126,10 +140,12 @@ export class GuardOrganizationModel extends foundry.abstract.TypeDataModel {
   prepareBaseData() {
     // Calculate any base-level derived data here
     this.totalStats =
-      this.baseStats.robustismo +
-      this.baseStats.analitica +
-      this.baseStats.subterfugio +
-      this.baseStats.elocuencia;
+      this.baseStats.agility +
+      this.baseStats.strength +
+      this.baseStats.finesse +
+      this.baseStats.instinct +
+      this.baseStats.presence +
+      this.baseStats.knowledge;
   }
 
   /**

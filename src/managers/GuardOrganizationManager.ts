@@ -96,6 +96,7 @@ export class GuardOrganizationManager {
       resources: [],
       reputation: [],
       patrols: [],
+      auxiliaries: [],
       // patrolSnapshots eliminado: datos de patrulla se guardan centralizados en PatrolManager / flags
     } as any;
 
@@ -246,6 +247,7 @@ export class GuardOrganizationManager {
       resources: [],
       reputation: [],
       patrols: [],
+      auxiliaries: [],
       // patrolSnapshots removido (se centraliza en PatrolManager)
     } as any;
 
@@ -319,7 +321,14 @@ export class GuardOrganizationManager {
     const sampleData = {
       name: 'Guardia de la Ciudad',
       subtitle: 'Protectores del Pueblo',
-      baseStats: { robustismo: 12, analitica: 10, subterfugio: 8, elocuencia: 11 },
+      baseStats: {
+        agility: 8,
+        strength: 10,
+        finesse: 10,
+        instinct: 8,
+        presence: 10,
+        knowledge: 10,
+      },
     };
 
     await this.createOrganization(sampleData);
@@ -372,104 +381,6 @@ export class GuardOrganizationManager {
     }
   }
 
-  /** Persist organization into a dedicated Actor so players (with permissions) can modify */
-  private async saveToActor(): Promise<void> {
-    try {
-      if (!this.organization) return;
-      if (!game?.actors) return;
-      // Buscar actor existente por flag
-      const candidates = game.actors.filter(
-        (a: any) => a?.flags?.['guard-management']?.orgStore === true
-      );
-      let actor: any = candidates[0];
-      if (!actor) {
-        // Crear actor si GM; si no, abortar silenciosamente
-        if (!(game as any).user?.isGM) return;
-        const fallbackType = (CONFIG as any).Actor?.type || 'character';
-        // Asegurar carpeta
-        let folder: any = null;
-        try {
-          const allFolders: any[] = (game as any).folders?.contents || [];
-          folder =
-            allFolders.find((f) => f.type === 'Actor' && f.name === 'Guard Management') || null;
-          if (!folder) {
-            folder = await (Folder as any).create({
-              name: 'Guard Management',
-              type: 'Actor',
-              parent: null,
-            });
-            console.log('GuardOrganizationManager | Created folder Guard Management');
-          }
-        } catch {
-          /* ignore */
-        }
-        actor = await (Actor as any).create({
-          name: 'Guard Organization Store',
-          type: fallbackType,
-          flags: { 'guard-management': { orgStore: true } },
-          ownership: { default: 3 }, // OWNER para que todos puedan editar (nivel 3)
-          folder: folder?.id || null,
-        });
-        console.log('GuardOrganizationManager | Created organization actor store');
-      }
-      // Ensure actor in folder if GM
-      if ((game as any).user?.isGM) {
-        try {
-          const allFolders: any[] = (game as any).folders?.contents || [];
-          const targetFolder =
-            allFolders.find((f) => f.type === 'Actor' && f.name === 'Guard Management') || null;
-          if (targetFolder && actor.folder?.id !== targetFolder.id) {
-            await actor.update({ folder: targetFolder.id });
-            console.log(
-              'GuardOrganizationManager | Moved organization actor to Guard Management folder'
-            );
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      const current = actor?.getFlag('guard-management', 'organization');
-      // Solo actualizar si versión nueva para evitar writes innecesarios
-      if (!current || current.version !== this.organization.version) {
-        await actor.setFlag('guard-management', 'organization', this.organization);
-        // Guardar una copia ligera también en notas (opcional) para fácil inspección
-        try {
-          const summary = `${this.organization.name} v${this.organization.version} | Patrols: ${this.organization.patrols?.length || 0}`;
-          // No sobreescribir bio largo existente
-          if (!actor.system?.details?.biography || actor.system.details.biography === '') {
-            await actor.update({ 'system.details.biography': { value: summary } });
-          }
-        } catch {
-          /* ignore */
-        }
-        console.log('GuardOrganizationManager | Saved organization to actor flags');
-      }
-    } catch (e) {
-      console.warn('GuardOrganizationManager | saveToActor failed:', e);
-    }
-  }
-
-  /** Load from actor if available; used mainly for players */
-  private async loadFromActor(): Promise<boolean> {
-    try {
-      if (!game?.actors) return false;
-      const matches = game.actors.filter(
-        (a: any) => a?.flags?.['guard-management']?.orgStore === true
-      );
-      const actor: any = matches[0];
-      if (!actor) return false;
-      const data = await actor.getFlag('guard-management', 'organization');
-      if (data) {
-        this.organization = data as any;
-        console.log('GuardOrganizationManager | Loaded organization from actor flags');
-        return true;
-      }
-    } catch (e) {
-      console.warn('GuardOrganizationManager | loadFromActor failed:', e);
-    }
-    return false;
-  }
-
   /**
    * Broadcast organization to all clients via socket
    */
@@ -490,6 +401,30 @@ export class GuardOrganizationManager {
    */
   public async handleSocketMessage(data: any): Promise<void> {
     if (!game) return;
+
+    if (data.type === 'openOrganizationDialogForPlayers' && data.userId !== game.user?.id) {
+      if ((game as any)?.user?.isGM) return;
+
+      const gm = (window as any).GuardManagement;
+      const targetTab = data?.data?.tab || 'general';
+
+      console.log('GuardOrganizationManager | Received open dialog broadcast', {
+        tab: targetTab,
+        fromUser: data?.userId,
+        localUser: game.user?.id,
+      });
+
+      try {
+        await gm?.guardDialogManager?.showManageOrganizationsDialog(undefined, targetTab);
+        ui?.notifications?.info('El GM abrió la vista de organización para ti');
+      } catch (error) {
+        console.error(
+          'GuardOrganizationManager | Error opening organization dialog from GM broadcast:',
+          error
+        );
+      }
+      return;
+    }
 
     if (data.type === 'updateOrganization' && data.userId !== game.user?.id) {
       this.organization = data.data;
@@ -535,6 +470,13 @@ export class GuardOrganizationManager {
     });
 
     console.log('GuardOrganizationManager | Requested organization sync from other clients');
+  }
+
+  /**
+   * Public alias for loadOrganization - called from settings onChange on all clients
+   */
+  public async loadFromSettings(): Promise<void> {
+    await this.loadOrganization();
   }
 
   /**
@@ -615,12 +557,15 @@ export class GuardOrganizationManager {
   }
 
   // Helper: create patrol and attach to organization
-  public createPatrolForOrganization(data: { name: string; baseStats: GuardStats }): Patrol | null {
+  public async createPatrolForOrganization(data: {
+    name: string;
+    baseStats: GuardStats;
+  }): Promise<Patrol | null> {
     if (!this.organization) {
       console.warn('GuardOrganizationManager | No organization for patrol creation');
       return null;
     }
-    const patrol = this.patrolManager.createPatrol({
+    const patrol = await this.patrolManager.createPatrol({
       name: data.name,
       organizationId: this.organization.id,
       baseStats: data.baseStats,
@@ -660,6 +605,45 @@ export class GuardOrganizationManager {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.saveOrganization(this.organization, false);
     }
+    return result;
+  }
+
+  /**
+   * Compatibility helper for older panel bundles that still call listOrganizationAuxiliaries().
+   * Auxiliary units are stored as Patrol-like records referenced by organization.auxiliaries.
+   */
+  public listOrganizationAuxiliaries(): Patrol[] {
+    if (!this.organization) return [];
+
+    const auxiliaryIds = Array.isArray((this.organization as any).auxiliaries)
+      ? [...((this.organization as any).auxiliaries as string[])]
+      : [];
+
+    if (!auxiliaryIds.length) return [];
+
+    const result: Patrol[] = [];
+    let changed = false;
+
+    for (const id of auxiliaryIds) {
+      const unit = this.patrolManager.getPatrol(id);
+      if (unit) {
+        result.push(unit);
+      } else {
+        const idx = (this.organization as any).auxiliaries.indexOf(id);
+        if (idx >= 0) {
+          (this.organization as any).auxiliaries.splice(idx, 1);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      this.organization.updatedAt = new Date();
+      this.organization.version += 1;
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.saveOrganization(this.organization, false);
+    }
+
     return result;
   }
 
@@ -736,21 +720,24 @@ export class GuardOrganizationManager {
       return {
         base: { ...DEFAULT_GUARD_STATS },
         total: { ...DEFAULT_GUARD_STATS },
-        modifiers: { robustismo: [], analitica: [], subterfugio: [], elocuencia: [] },
+        modifiers: {
+          agility: [],
+          strength: [],
+          finesse: [],
+          instinct: [],
+          presence: [],
+          knowledge: [],
+        },
       };
     }
 
     const base = { ...this.organization.baseStats };
     const total = { ...base };
-    const modifiers: Record<
-      keyof GuardStats,
-      Array<{ name: string; img: string; value: number }>
-    > = {
-      robustismo: [],
-      analitica: [],
-      subterfugio: [],
-      elocuencia: [],
-    };
+    // Build modifiers map from actual keys in base — handles legacy stored keys gracefully
+    const modifiers: Record<string, Array<{ name: string; img: string; value: number }>> = {};
+    for (const key of Object.keys(base)) {
+      modifiers[key] = [];
+    }
 
     const gm = (window as any).GuardManagement;
     if (gm?.documentManager && this.organization.activeModifiers?.length) {
@@ -854,10 +841,12 @@ export class GuardOrganizationManager {
     }
 
     const traitsData = {
-      robustismo: { value: baseStats.robustismo, label: 'Robustismo' },
-      analitica: { value: baseStats.analitica, label: 'Analítica' },
-      subterfugio: { value: baseStats.subterfugio, label: 'Subterfugio' },
-      elocuencia: { value: baseStats.elocuencia, label: 'Elocuencia' },
+      agility: { value: baseStats.agility, label: 'Agilidad' },
+      strength: { value: baseStats.strength, label: 'Fuerza' },
+      finesse: { value: baseStats.finesse, label: 'Destreza' },
+      instinct: { value: baseStats.instinct, label: 'Instinto' },
+      presence: { value: baseStats.presence, label: 'Presencia' },
+      knowledge: { value: baseStats.knowledge, label: 'Conocimiento' },
     };
 
     const rollData = { traits: traitsData, bonuses: {} };

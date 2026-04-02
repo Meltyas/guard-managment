@@ -21,6 +21,7 @@ import { PrisonerManager } from './managers/PrisonerManager';
 import { SentenceConfigManager } from './managers/SentenceConfigManager';
 import { SimpleReputationManager } from './managers/SimpleReputationManager';
 import { SimpleResourceManager } from './managers/SimpleResourceManager';
+import { runMigrationIfNeeded } from './migration';
 import { registerSettings } from './settings';
 import './styles/buildings.css';
 import './styles/crimes.css';
@@ -475,6 +476,9 @@ Hooks.once('ready', async () => {
     console.error('Guard Management | Module not properly initialized');
     return;
   }
+
+  // Run data migrations (GM only — converts old stat keys to Daggerheart traits, etc.)
+  await runMigrationIfNeeded();
 
   // Refresh floating panel to ensure GM status is correct
   if (guardManagementModule && guardManagementModule.floatingPanel) {

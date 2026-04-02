@@ -34,10 +34,12 @@ export interface GuardOrganization extends BaseEntity {
 }
 
 export interface GuardStats {
-  robustismo: number; // Robustness
-  analitica: number; // Analytical
-  subterfugio: number; // Subterfuge
-  elocuencia: number; // Eloquence
+  agility: number; // Agilidad
+  strength: number; // Fuerza
+  finesse: number; // Destreza
+  instinct: number; // Instinto
+  presence: number; // Presencia
+  knowledge: number; // Conocimiento
   [key: string]: number; // Support for future stats
 }
 
@@ -237,10 +239,12 @@ export interface GuardManagementConfig {
 
 // Default values
 export const DEFAULT_GUARD_STATS: GuardStats = {
-  robustismo: 0,
-  analitica: 0,
-  subterfugio: 0,
-  elocuencia: 0,
+  agility: 0,
+  strength: 0,
+  finesse: 0,
+  instinct: 0,
+  presence: 0,
+  knowledge: 0,
 };
 
 // ===================== Prison System =====================

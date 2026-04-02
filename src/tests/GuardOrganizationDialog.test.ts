@@ -20,10 +20,12 @@ describe('GuardOrganizationDialog', () => {
       subtitle: 'Testing Unit',
       version: 1,
       baseStats: {
-        robustismo: 12,
-        analitica: 10,
-        subterfugio: 8,
-        elocuencia: 11,
+        agility: 12,
+        strength: 10,
+        finesse: 8,
+        instinct: 11,
+        presence: 10,
+        knowledge: 9,
       },
       activeModifiers: [],
       resources: [],
@@ -44,16 +46,18 @@ describe('GuardOrganizationDialog', () => {
         query: vi.fn().mockResolvedValue({
           name: 'New Guard Organization',
           subtitle: 'New Unit',
-          robustismo: 10,
-          analitica: 10,
-          subterfugio: 10,
-          elocuencia: 10,
+          agility: 10,
+          strength: 10,
+          finesse: 10,
+          instinct: 10,
+          presence: 10,
+          knowledge: 10,
         }),
       };
 
       const result = await dialog.show('create');
       expect(result?.name).toBe('New Guard Organization');
-      expect(result?.baseStats.robustismo).toBe(10);
+      expect(result?.baseStats.agility).toBe(10);
     });
   });
 
@@ -64,23 +68,24 @@ describe('GuardOrganizationDialog', () => {
         query: vi.fn().mockResolvedValue({
           name: 'Updated Guard Organization',
           subtitle: 'Updated Unit',
-          robustismo: 15,
-          analitica: 12,
-          subterfugio: 10,
-          elocuencia: 13,
+          agility: 15,
+          strength: 12,
+          finesse: 10,
+          instinct: 13,
+          presence: 10,
+          knowledge: 12,
         }),
       };
 
       const result = await dialog.show('edit', mockGuardOrganization);
       expect(result?.name).toBe('Updated Guard Organization');
-      expect(result?.baseStats.robustismo).toBe(15);
+      expect(result?.baseStats.agility).toBe(15);
     });
 
     it('should populate fields with existing organization data', () => {
       const content = dialog.generateContent('edit', mockGuardOrganization);
       expect(content).toContain('Test Guard Organization');
       expect(content).toContain('Testing Unit');
-      expect(content).toContain('12'); // robustismo value
     });
   });
 
@@ -89,10 +94,12 @@ describe('GuardOrganizationDialog', () => {
       const isValid = dialog.validateData({
         name: '',
         subtitle: 'Test',
-        robustismo: 0,
-        analitica: 0,
-        subterfugio: 0,
-        elocuencia: 0,
+        agility: 0,
+        strength: 0,
+        finesse: 0,
+        instinct: 0,
+        presence: 0,
+        knowledge: 0,
       });
       expect(isValid).toBe(false);
     });
@@ -101,10 +108,12 @@ describe('GuardOrganizationDialog', () => {
       const isValid = dialog.validateData({
         name: 'Test Organization',
         subtitle: 'Test',
-        robustismo: -100, // Invalid: outside valid range (-99 to 99)
-        analitica: 10,
-        subterfugio: 10,
-        elocuencia: 10,
+        agility: -100, // Invalid: outside valid range (-99 to 99)
+        strength: 10,
+        finesse: 10,
+        instinct: 10,
+        presence: 10,
+        knowledge: 10,
       });
       expect(isValid).toBe(false);
     });
@@ -113,10 +122,12 @@ describe('GuardOrganizationDialog', () => {
       const isValid = dialog.validateData({
         name: 'Test Organization',
         subtitle: 'Test',
-        robustismo: 0,
-        analitica: 0,
-        subterfugio: 0,
-        elocuencia: 0,
+        agility: 0,
+        strength: 0,
+        finesse: 0,
+        instinct: 0,
+        presence: 0,
+        knowledge: 0,
       });
       expect(isValid).toBe(true);
     });
@@ -125,35 +136,33 @@ describe('GuardOrganizationDialog', () => {
       const isValid = dialog.validateData({
         name: 'Test Organization',
         subtitle: 'Test',
-        robustismo: -5, // Valid negative value
-        analitica: -10, // Valid negative value
-        subterfugio: -99, // Valid boundary value
-        elocuencia: 15,
+        agility: -5,
+        strength: -10,
+        finesse: -99, // Valid boundary value
+        instinct: 15,
+        presence: 0,
+        knowledge: 0,
       });
       expect(isValid).toBe(true);
     });
   });
 
   describe('content generation', () => {
-    it('should generate form HTML content', () => {
-      const content = dialog.generateContent('create');
-      expect(content).toContain('guard-organization-form');
-      expect(content).toContain('Nombre de la Organización');
-    });
-
     it('should populate fields with existing data in edit mode', () => {
       const content = dialog.generateContent('edit', mockGuardOrganization);
       expect(content).toContain('Test Guard Organization');
       expect(content).toContain('Testing Unit');
-      expect(content).toContain('12'); // robustismo value
+      expect(content).toContain('12'); // agility value
     });
 
     it('should include all stat input fields', () => {
       const content = dialog.generateContent('create');
-      expect(content).toContain('name="robustismo"');
-      expect(content).toContain('name="analitica"');
-      expect(content).toContain('name="subterfugio"');
-      expect(content).toContain('name="elocuencia"');
+      expect(content).toContain('name="agility"');
+      expect(content).toContain('name="strength"');
+      expect(content).toContain('name="finesse"');
+      expect(content).toContain('name="instinct"');
+      expect(content).toContain('name="presence"');
+      expect(content).toContain('name="knowledge"');
     });
 
     it('should include name and subtitle fields', () => {

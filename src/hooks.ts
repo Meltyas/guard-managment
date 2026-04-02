@@ -144,11 +144,6 @@ export function registerHooks(): void {
       console.warn('GuardManagement | Socket unavailable - listener not registered');
     }
 
-    // Register keybindings
-    if (guardManagement) {
-      registerKeybindings(guardManagement);
-    }
-
     // Create chat command
     registerChatCommands(guardManagement);
   });
@@ -354,13 +349,18 @@ export function registerHooks(): void {
   // V13 compatibility (jQuery) – kept so the module still works on V13
   Hooks.on('renderChatMessage', injectBreakdown);
 
+  // Keybindings must be registered during init (registerHooks is called from init)
+  registerKeybindings();
+
   console.log('GuardManagement | Hooks registered successfully');
 }
 
 /**
  * Register keybindings for Guard Management
+ * Called during init — onDown handlers lazily resolve window.GuardManagement
  */
-function registerKeybindings(guardManagement: any): void {
+function registerKeybindings(): void {
+  const getGM = () => (window as any).GuardManagement;
   // Register keybinding to toggle floating panel
   game?.keybindings?.register('guard-management', 'togglePanel', {
     name: 'Alternar Panel de Guardias',
@@ -372,7 +372,7 @@ function registerKeybindings(guardManagement: any): void {
       },
     ],
     onDown: () => {
-      guardManagement?.toggleFloatingPanel();
+      getGM()?.toggleFloatingPanel();
     },
     restricted: false,
   });
@@ -388,7 +388,7 @@ function registerKeybindings(guardManagement: any): void {
       },
     ],
     onDown: () => {
-      guardManagement?.showCreateOrganizationDialog();
+      getGM()?.showCreateOrganizationDialog();
     },
     restricted: false,
   });

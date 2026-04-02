@@ -12,7 +12,6 @@ export class PatrolManager {
   private patrols: Map<string, Patrol> = new Map();
   private onChange?: PatrolChangeCallback;
 
-
   /** Inicializa cargando desde settings (si existen). GuardOrganizationManager volverá a hidratar snapshots igualmente. */
   public async initialize(): Promise<void> {
     await this.loadFromSettings();
@@ -84,7 +83,10 @@ export class PatrolManager {
     return patrol;
   }
 
-  public async recalcDerived(patrolId: string, orgModifiers?: Partial<GuardStats>): Promise<Patrol | undefined> {
+  public async recalcDerived(
+    patrolId: string,
+    orgModifiers?: Partial<GuardStats>
+  ): Promise<Patrol | undefined> {
     const patrol = this.patrols.get(patrolId);
     if (!patrol) return undefined;
     const modifiers = orgModifiers || {};
@@ -170,7 +172,10 @@ export class PatrolManager {
     return deleted;
   }
 
-  public async updatePatrol(patrolId: string, updates: Partial<Patrol>): Promise<Patrol | undefined> {
+  public async updatePatrol(
+    patrolId: string,
+    updates: Partial<Patrol>
+  ): Promise<Patrol | undefined> {
     const patrol = this.patrols.get(patrolId);
     if (!patrol) return undefined;
     const now = new Date();
@@ -212,10 +217,10 @@ export class PatrolManager {
 
       // Guardar estructura completa (patrolEffects incluidos)
       const data = this.getAll();
-      
+
       // Save to world settings - automatically syncs to all clients
       await game?.settings?.set('guard-management', 'patrols', data);
-      
+
       console.log(`PatrolManager | Saved ${data.length} patrols to settings`);
     } catch (error) {
       console.error('PatrolManager | Error saving patrols:', error);
@@ -281,7 +286,7 @@ export class PatrolManager {
 
     if (config.roll.trait) {
       const stat = config.roll.trait as keyof GuardStats;
-      
+
       // 1. Patrol Base Trait
       const baseValue = baseStats[stat] || 0;
       if (baseValue !== 0) {
@@ -313,9 +318,9 @@ export class PatrolManager {
         // 3a. Organization Base
         const orgBase = organization.baseStats[stat] || 0;
         if (orgBase !== 0) {
-           formula += ` ${orgBase >= 0 ? '+' : '-'} ${Math.abs(orgBase)}[Org. Base]`;
-           orgNode.children.push({ label: 'Base', value: orgBase });
-           orgTotal += orgBase;
+          formula += ` ${orgBase >= 0 ? '+' : '-'} ${Math.abs(orgBase)}[Org. Base]`;
+          orgNode.children.push({ label: 'Base', value: orgBase });
+          orgTotal += orgBase;
         }
 
         // 3b. Organization Modifiers
@@ -336,10 +341,9 @@ export class PatrolManager {
         }
 
         if (orgTotal !== 0) {
-            orgNode.value = orgTotal;
-            breakdown.push(orgNode);
+          orgNode.value = orgTotal;
+          breakdown.push(orgNode);
         }
-
       } else {
         // Fallback: Organization Bonus (Derived - Base - Effects)
         // This handles cases where organization is not loaded or ID mismatch
@@ -356,10 +360,12 @@ export class PatrolManager {
 
     // Use BASE stats for the main trait value so modifiers are additive
     const traitsData = {
-      robustismo: { value: baseStats.robustismo, label: 'Robustismo' },
-      analitica: { value: baseStats.analitica, label: 'Analítica' },
-      subterfugio: { value: baseStats.subterfugio, label: 'Subterfugio' },
-      elocuencia: { value: baseStats.elocuencia, label: 'Elocuencia' },
+      agility: { value: baseStats.agility, label: 'Agilidad' },
+      strength: { value: baseStats.strength, label: 'Fuerza' },
+      finesse: { value: baseStats.finesse, label: 'Destreza' },
+      instinct: { value: baseStats.instinct, label: 'Instinto' },
+      presence: { value: baseStats.presence, label: 'Presencia' },
+      knowledge: { value: baseStats.knowledge, label: 'Conocimiento' },
     };
 
     const rollData = { traits: traitsData, bonuses: {} };
@@ -406,10 +412,10 @@ export class PatrolManager {
         },
         rolls: [complexRoll],
         flags: {
-            'guard-management': {
-                breakdown: breakdown
-            }
-        }
+          'guard-management': {
+            breakdown: breakdown,
+          },
+        },
       };
 
       await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
@@ -433,9 +439,9 @@ export class PatrolManager {
       rolls: [roll],
       flags: {
         'guard-management': {
-            breakdown: breakdown
-        }
-      }
+          breakdown: breakdown,
+        },
+      },
     };
 
     await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
