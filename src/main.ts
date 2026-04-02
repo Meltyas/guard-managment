@@ -16,6 +16,7 @@ import { SimpleResourceManager } from './managers/SimpleResourceManager';
 import { registerSettings } from './settings';
 import './styles/custom-info-dialog.css';
 import './styles/daggerheart-card.css';
+import './styles/entity-row.css';
 import './styles/gm-warehouse.css';
 import './styles/main.css';
 import './styles/officers.css';
