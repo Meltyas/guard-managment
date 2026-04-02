@@ -1,6 +1,6 @@
 import type { GuardOrganization } from '../../types/entities';
-import { NotificationService } from '../../utils/services/NotificationService.js';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
+import { NotificationService } from '../../utils/services/NotificationService.js';
 import { ResourceTemplate } from '../ResourceTemplate.js';
 
 export class ResourcesPanel {
@@ -9,80 +9,88 @@ export class ResourcesPanel {
   }
 
   static async getData(organization: GuardOrganization) {
-      const gm = (window as any).GuardManagement;
-      const resources = [];
-      
-      console.log('ResourcesPanel.getData | Organization has', organization.resources?.length || 0, 'resource IDs');
-      
-      if (organization.resources && organization.resources.length > 0) {
-          const allResources = gm.resourceManager?.getAllResources() || [];
-          console.log('ResourcesPanel.getData | ResourceManager has', allResources.length, 'total resources');
-          
-          for (const id of organization.resources) {
-              const r = allResources.find((res: any) => res.id === id);
-              if (r) {
-                  resources.push(r);
-                  console.log('ResourcesPanel.getData | Found resource:', r.name);
-              } else {
-                  console.warn('ResourcesPanel.getData | Resource ID not found:', id);
-              }
-          }
+    const gm = (window as any).GuardManagement;
+    const resources = [];
+
+    console.log(
+      'ResourcesPanel.getData | Organization has',
+      organization.resources?.length || 0,
+      'resource IDs'
+    );
+
+    if (organization.resources && organization.resources.length > 0) {
+      const allResources = gm.resourceManager?.getAllResources() || [];
+      console.log(
+        'ResourcesPanel.getData | ResourceManager has',
+        allResources.length,
+        'total resources'
+      );
+
+      for (const id of organization.resources) {
+        const r = allResources.find((res: any) => res.id === id);
+        if (r) {
+          resources.push(r);
+          console.log('ResourcesPanel.getData | Found resource:', r.name);
+        } else {
+          console.warn('ResourcesPanel.getData | Resource ID not found:', id);
+        }
       }
-      
-      console.log('ResourcesPanel.getData | Returning', resources.length, 'resources');
-      return {
-          organizationId: organization.id,
-          resources
-      };
+    }
+
+    console.log('ResourcesPanel.getData | Returning', resources.length, 'resources');
+    return {
+      organizationId: organization.id,
+      resources,
+    };
   }
 
   static async render(container: HTMLElement, organization: GuardOrganization) {
-      const data = await this.getData(organization);
-      const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-      
-      // Use jQuery html() to forcibly replace content
-      // This is more reliable than empty+append for string HTML
-      console.log('ResourcesPanel | Rendering with data:', data);
-      $(container).html(htmlContent);
-      console.log('ResourcesPanel | DOM updated');
+    const data = await this.getData(organization);
+    const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
 
-      // Set up expand/collapse toggles — click anywhere in summary except action buttons
-      container.querySelectorAll<HTMLElement>('.entity-row__summary').forEach(summary => {
-        summary.addEventListener('click', (e) => {
-          if ((e.target as HTMLElement).closest('.entity-row__actions')) return;
-          e.stopPropagation();
-          const row = summary.closest('.entity-row') as HTMLElement;
-          const detail = row.querySelector('.entity-row__detail') as HTMLElement;
-          const toggle = row.querySelector('.entity-row__toggle') as HTMLElement;
-          const isOpen = !detail.hidden;
-          detail.hidden = isOpen;
-          toggle?.setAttribute('aria-expanded', String(!isOpen));
-          row.classList.toggle('entity-row--open', !isOpen);
-        });
-      });
+    // Use jQuery html() to forcibly replace content
+    // This is more reliable than empty+append for string HTML
+    console.log('ResourcesPanel | Rendering with data:', data);
+    $(container).html(htmlContent);
+    console.log('ResourcesPanel | DOM updated');
 
-      // Search filter
-      const searchInput = container.querySelector<HTMLInputElement>('.entity-list-search__input');
-      searchInput?.addEventListener('input', () => {
-        const query = searchInput.value.trim().toLowerCase();
-        container.querySelectorAll<HTMLElement>('.entity-row').forEach(row => {
-          const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
-          row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
-        });
+    // Set up expand/collapse toggles — click anywhere in summary except action buttons
+    container.querySelectorAll<HTMLElement>('.entity-row__summary').forEach((summary) => {
+      summary.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.entity-row__actions')) return;
+        e.stopPropagation();
+        const row = summary.closest('.entity-row') as HTMLElement;
+        const detail = row.querySelector('.entity-row__detail') as HTMLElement;
+        const toggle = row.querySelector('.entity-row__toggle') as HTMLElement;
+        const isOpen = !detail.hidden;
+        detail.hidden = isOpen;
+        toggle?.setAttribute('aria-expanded', String(!isOpen));
+        row.classList.toggle('entity-row--open', !isOpen);
       });
+    });
+
+    // Search filter
+    const searchInput = container.querySelector<HTMLInputElement>('.entity-list-search__input');
+    searchInput?.addEventListener('input', () => {
+      const query = searchInput.value.trim().toLowerCase();
+      container.querySelectorAll<HTMLElement>('.entity-row').forEach((row) => {
+        const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
+        row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
+      });
+    });
   }
 
   /**
    * Handle removing a resource
    */
   public static async handleRemoveResource(
-    resourceId: string, 
-    resourceName: string, 
+    resourceId: string,
+    resourceName: string,
     organization: GuardOrganization,
     refreshCallback: () => Promise<void>
   ): Promise<void> {
     console.log('🗑️ Remove resource request:', resourceName, resourceId);
-    
+
     const html = `
           <div style="margin-bottom: 1rem;">
             <i class="fas fa-exclamation-triangle" style="color: #ff6b6b; margin-right: 0.5rem;"></i>
@@ -91,9 +99,9 @@ export class ResourcesPanel {
           <p>¿Deseas remover el recurso "<strong>${resourceName}</strong>" de esta organización?</p>
           <p><small>Esta acción se puede deshacer asignando el recurso nuevamente.</small></p>
         `;
-    
+
     const confirmed = await ConfirmService.confirm({ title: 'Confirmar Remoción', html });
-    
+
     if (!confirmed) {
       console.log('❌ Resource removal cancelled by user');
       return;
@@ -145,7 +153,7 @@ export class ResourcesPanel {
    * Handle editing a resource
    */
   public static async handleEditResource(
-    resourceId: string, 
+    resourceId: string,
     resourceName: string,
     refreshCallback: () => Promise<void>
   ): Promise<void> {
@@ -234,7 +242,7 @@ export class ResourcesPanel {
    * Assign a resource to the organization
    */
   public static async assignResourceToOrganization(
-    resourceData: any, 
+    resourceData: any,
     organization: GuardOrganization,
     refreshCallback: () => Promise<void>
   ): Promise<void> {
@@ -276,7 +284,7 @@ export class ResourcesPanel {
 
       console.log('✅ Resource assigned successfully');
       NotificationService.info(`Recurso "${resourceData.name}" asignado a la organización`);
-      
+
       await refreshCallback();
     } catch (error) {
       console.error('❌ Error assigning resource:', error);

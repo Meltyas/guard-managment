@@ -14,8 +14,8 @@
               <button type="button" class="entity-row__toggle" aria-expanded="false" aria-label="Expandir">
                 <img class="entity-row__thumb" src="{{#if this.image}}{{this.image}}{{else}}icons/environment/people/group.webp{{/if}}" alt="{{this.name}}" />
               </button>
-              <span class="entity-row__badge entity-row__badge--level-{{this.level}}">{{this.value}}</span>
               <span class="entity-row__name">{{this.name}}</span>
+                            <span class="entity-row__badge entity-row__badge--level-{{this.level}}">{{this.value}}</span>
               <div class="entity-row__actions">
                 <button type="button" class="entity-row__btn send-to-chat-btn" title="Enviar al chat"
                   data-reputation-id="{{this.id}}" data-reputation-name="{{this.name}}"

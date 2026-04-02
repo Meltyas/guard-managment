@@ -21,25 +21,31 @@ export function registerHooks(): void {
 
   // Intercept preCreate for Guard Management actors/items BEFORE Daggerheart processes them
   // By returning false from a preCreate hook, we prevent the default creation and do it ourselves
-  (Hooks as any).on('preCreateActor', async (document: any, _data: any, options: any, _userId: string) => {
-    if (document.type?.startsWith('guard-management.')) {
-      console.log(`GuardManagement | Intercepting actor creation: ${document.type}`);
-      // Mark as handled so we don't create it again
-      options._guardManagementHandled = true;
-      // Allow the creation to proceed without Daggerheart interference
-      return true;
+  (Hooks as any).on(
+    'preCreateActor',
+    async (document: any, _data: any, options: any, _userId: string) => {
+      if (document.type?.startsWith('guard-management.')) {
+        console.log(`GuardManagement | Intercepting actor creation: ${document.type}`);
+        // Mark as handled so we don't create it again
+        options._guardManagementHandled = true;
+        // Allow the creation to proceed without Daggerheart interference
+        return true;
+      }
     }
-  });
+  );
 
-  (Hooks as any).on('preCreateItem', async (document: any, _data: any, options: any, _userId: string) => {
-    if (document.type?.startsWith('guard-management.')) {
-      console.log(`GuardManagement | Intercepting item creation: ${document.type}`);
-      // Mark as handled
-      options._guardManagementHandled = true;
-      // Allow the creation to proceed without Daggerheart interference
-      return true;
+  (Hooks as any).on(
+    'preCreateItem',
+    async (document: any, _data: any, options: any, _userId: string) => {
+      if (document.type?.startsWith('guard-management.')) {
+        console.log(`GuardManagement | Intercepting item creation: ${document.type}`);
+        // Mark as handled
+        options._guardManagementHandled = true;
+        // Allow the creation to proceed without Daggerheart interference
+        return true;
+      }
     }
-  });
+  );
 
   // Wrap Daggerheart's Actor class to handle our custom types
   // This runs in setup to ensure it happens after Daggerheart initializes
@@ -102,15 +108,7 @@ export function registerHooks(): void {
     console.log('GuardManagement | Wrapped Daggerheart Document classes');
   });
 
-  // Register keybindings in 'init' (required by Foundry — must be before ready)
-  Hooks.once('init', () => {
-    console.log('GuardManagement | Registering keybindings in init hook');
-    // guardManagement is not available yet at init time, so we wrap the callbacks
-    // to do a late lookup at call time
-    registerKeybindings(null);
-  });
-
-  // Hook for when the game is ready - register macro and socket
+  // Hook for when the game is ready - register macro and keybindings
   Hooks.once('ready', () => {
     console.log('GuardManagement | Game ready, setting up Guard Management');
 
@@ -144,6 +142,11 @@ export function registerHooks(): void {
       console.log('GuardManagement | Socket listener registered for guard-management channel');
     } else {
       console.warn('GuardManagement | Socket unavailable - listener not registered');
+    }
+
+    // Register keybindings
+    if (guardManagement) {
+      registerKeybindings(guardManagement);
     }
 
     // Create chat command
@@ -357,10 +360,7 @@ export function registerHooks(): void {
 /**
  * Register keybindings for Guard Management
  */
-function registerKeybindings(_guardManagement: any): void {
-  // NOTE: guardManagement is not available at init time, so we do a late lookup in each callback
-  const getGM = () => (window as any).GuardManagement;
-
+function registerKeybindings(guardManagement: any): void {
   // Register keybinding to toggle floating panel
   game?.keybindings?.register('guard-management', 'togglePanel', {
     name: 'Alternar Panel de Guardias',
@@ -372,7 +372,7 @@ function registerKeybindings(_guardManagement: any): void {
       },
     ],
     onDown: () => {
-      getGM()?.toggleFloatingPanel();
+      guardManagement?.toggleFloatingPanel();
     },
     restricted: false,
   });
@@ -388,7 +388,7 @@ function registerKeybindings(_guardManagement: any): void {
       },
     ],
     onDown: () => {
-      getGM()?.showCreateOrganizationDialog();
+      guardManagement?.showCreateOrganizationDialog();
     },
     restricted: false,
   });

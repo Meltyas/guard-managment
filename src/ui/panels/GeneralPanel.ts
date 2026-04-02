@@ -152,7 +152,7 @@ export class GeneralPanel {
       statsDisplay,
       officerSkills,
     });
-    
+
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
 
@@ -211,7 +211,8 @@ export class GeneralPanel {
                 <li class="tag">Modificador de Guardia</li>
                 ${(modifier.system.statModifications || [])
                   .map(
-                    (m: any) => `<li class="tag">${m.statName}: ${m.value > 0 ? '+' : ''}${m.value}</li>`
+                    (m: any) =>
+                      `<li class="tag">${m.statName}: ${m.value > 0 ? '+' : ''}${m.value}</li>`
                   )
                   .join('')}
               </ul>

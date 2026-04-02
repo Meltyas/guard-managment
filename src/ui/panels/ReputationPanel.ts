@@ -47,14 +47,14 @@ export class ReputationPanel {
   static async render(container: HTMLElement, organization: GuardOrganization) {
     const data = await this.getData(organization);
     const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-    
+
     // Use jQuery html() to forcibly replace content
     console.log('ReputationPanel | Rendering with data:', data);
     $(container).html(htmlContent);
     console.log('ReputationPanel | DOM updated');
 
     // Set up expand/collapse toggles — click anywhere in summary except action buttons
-    container.querySelectorAll<HTMLElement>('.entity-row__summary').forEach(summary => {
+    container.querySelectorAll<HTMLElement>('.entity-row__summary').forEach((summary) => {
       summary.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('.entity-row__actions')) return;
         e.stopPropagation();
@@ -72,7 +72,7 @@ export class ReputationPanel {
     const searchInput = container.querySelector<HTMLInputElement>('.entity-list-search__input');
     searchInput?.addEventListener('input', () => {
       const query = searchInput.value.trim().toLowerCase();
-      container.querySelectorAll<HTMLElement>('.entity-row').forEach(row => {
+      container.querySelectorAll<HTMLElement>('.entity-row').forEach((row) => {
         const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
         row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
       });

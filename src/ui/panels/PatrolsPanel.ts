@@ -55,7 +55,9 @@ export class PatrolsPanel {
         ageClass,
         statsBreakdown,
         slots,
-        officerSkill: p.officer?.actorId ? (officerSkillByActorId.get(p.officer.actorId) ?? null) : null,
+        officerSkill: p.officer?.actorId
+          ? (officerSkillByActorId.get(p.officer.actorId) ?? null)
+          : null,
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
           ? {
@@ -77,7 +79,7 @@ export class PatrolsPanel {
   static async render(container: HTMLElement, mode: 'patrol' | 'auxiliary' = 'patrol') {
     const data = await this.getData(mode);
     const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-    
+
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
     this.activateListeners(container);
