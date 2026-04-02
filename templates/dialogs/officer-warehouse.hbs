@@ -1,241 +1,70 @@
 <div class='officer-warehouse-dialog'>
-  {{!-- OFFICERS SECTION --}}
-  <div class='warehouse-section'>
-    <div class='warehouse-header'>
-      <h2>
-        <i class='fas fa-user-shield'></i>
-        Oficiales
-      </h2>
-      {{#if isGM}}
-      <button type='button' class='add-officer-btn'>
-        <i class='fas fa-plus'></i>
-        Nuevo Oficial
-      </button>
-      {{/if}}
-    </div>
-
-    <div class='officers-list'>
-      {{#each officers}}
-        <div class='officer-card' data-officer-id='{{this.id}}' draggable='true'>
-          <div class='officer-card-top'>
-            <div class='officer-avatar'>
-              <img src='{{this.actorImg}}' alt='{{this.actorName}}' />
-            </div>
-            <div class='officer-info'>
-              <div class='officer-name'>{{this.actorName}}</div>
-              <div class='officer-title'>{{this.title}}</div>
-              {{#if ../isGM}}
-              <div class='officer-visibility'>
-                {{#if this.visibleToPlayers}}
-                <button type='button' class='visibility-badge visible toggle-visibility-btn' data-officer-id='{{this.id}}' title='Clic para ocultar a jugadores'><i class='fas fa-eye'></i> Visible</button>
-                {{else}}
-                <button type='button' class='visibility-badge hidden toggle-visibility-btn' data-officer-id='{{this.id}}' title='Clic para mostrar a jugadores'><i class='fas fa-eye-slash'></i> Oculto</button>
-                {{/if}}
-              </div>
-              {{/if}}
-            </div>
-            <div class='officer-actions'>
-              <button
-                type='button'
-                class='send-officer-chat-btn icon-btn'
-                title='Enviar al chat'
-                data-officer-id='{{this.id}}'
-              >
-                <i class='fas fa-comment'></i>
-              </button>
-              {{#if ../isGM}}
-              <button
-                type='button'
-                class='edit-officer-btn icon-btn'
-                title='Editar'
-                data-officer-id='{{this.id}}'
-              >
-                <i class='fas fa-edit'></i>
-              </button>
-              <button
-                type='button'
-                class='delete-officer-btn icon-btn icon-btn-danger'
-                title='Eliminar'
-                data-officer-id='{{this.id}}'
-              >
-                <i class='fas fa-trash'></i>
-              </button>
-              {{/if}}
-            </div>
-          </div>
-
-          {{#if this.skills.length}}
-          <div class='officer-skills-preview'>
-            <div class='preview-label'><i class='fas fa-bolt'></i> Habilidades</div>
-            {{#each this.skills}}
-            <div class='officer-skill-row'>
-              {{#if this.image}}
-              <img src='{{this.image}}' alt='{{this.name}}' class='skill-preview-img' />
-              {{else}}
-              <span class='skill-preview-icon'><i class='fas fa-bolt'></i></span>
-              {{/if}}
-              <span class='skill-preview-name'>{{this.name}}</span>
-              <span class='skill-preview-cost'><i class='fas fa-diamond'></i> {{this.hopeCost}}</span>
-            </div>
-            {{/each}}
-          </div>
-          {{/if}}
-
-          {{#if this.hasStats}}
-          <div class='officer-stats-preview'>
-            {{#each this.statsDisplay}}
-            <span class='officer-stat-badge {{this.cssClass}}'>
-              <span class='stat-key'>{{this.key}}:</span>
-              {{this.value}}
-            </span>
-            {{/each}}
-          </div>
-          {{/if}}
-
-          {{#if (or this.pros.length this.cons.length)}}
-          <div class='officer-traits-preview'>
-            {{#if this.pros.length}}
-            <div class='traits-preview-col'>
-              <div class='preview-label pros-label'><i class='fas fa-plus-circle'></i> Pros</div>
-              {{#each this.pros}}
-              <div class='trait-preview-item pro-item'>{{this.title}}</div>
-              {{/each}}
-            </div>
-            {{/if}}
-            {{#if this.cons.length}}
-            <div class='traits-preview-col'>
-              <div class='preview-label cons-label'><i class='fas fa-minus-circle'></i> Cons</div>
-              {{#each this.cons}}
-              <div class='trait-preview-item con-item'>{{this.title}}</div>
-              {{/each}}
-            </div>
-            {{/if}}
-          </div>
-          {{/if}}
-        </div>
-      {{else}}
-        <p class='empty-state'>No hay oficiales creados aun</p>
-      {{/each}}
-    </div>
+  <div class='warehouse-header'>
+    <h2>
+      <i class='fas fa-user-shield'></i>
+      Almacén de Oficiales
+    </h2>
+    {{#if isGM}}
+    <button type='button' class='add-officer-btn'>
+      <i class='fas fa-plus'></i>
+      Nuevo Oficial
+    </button>
+    {{/if}}
   </div>
 
-  {{!-- CIVILIANS SECTION --}}
-  <div class='warehouse-section'>
-    <div class='warehouse-header'>
-      <h2>
-        <i class='fas fa-hands-helping'></i>
-        Auxiliares
-      </h2>
-      {{#if isGM}}
-      <button type='button' class='add-civilian-btn'>
-        <i class='fas fa-plus'></i>
-        Nuevo Auxiliar
-      </button>
-      {{/if}}
-    </div>
-
-    <div class='civilians-list'>
-      {{#each civilians}}
-        <div class='civilian-card officer-card' data-civilian-id='{{this.id}}' draggable='true'>
-          <div class='officer-card-top'>
-            <div class='officer-avatar'>
-              <img src='{{this.actorImg}}' alt='{{this.actorName}}' />
-            </div>
-            <div class='officer-info'>
-              <div class='officer-name'>{{this.actorName}}</div>
-              <div class='officer-title'>{{this.title}}</div>
-              {{#if ../isGM}}
-              <div class='officer-visibility'>
-                {{#if this.visibleToPlayers}}
-                <button type='button' class='visibility-badge visible toggle-visibility-btn' data-civilian-id='{{this.id}}' title='Clic para ocultar a jugadores'><i class='fas fa-eye'></i> Visible</button>
-                {{else}}
-                <button type='button' class='visibility-badge hidden toggle-visibility-btn' data-civilian-id='{{this.id}}' title='Clic para mostrar a jugadores'><i class='fas fa-eye-slash'></i> Oculto</button>
-                {{/if}}
-              </div>
-              {{/if}}
-            </div>
-            <div class='officer-actions'>
-              <button
-                type='button'
-                class='send-civilian-chat-btn icon-btn'
-                title='Enviar al chat'
-                data-civilian-id='{{this.id}}'
-              >
-                <i class='fas fa-comment'></i>
-              </button>
-              {{#if ../isGM}}
-              <button
-                type='button'
-                class='edit-civilian-btn icon-btn'
-                title='Editar'
-                data-civilian-id='{{this.id}}'
-              >
-                <i class='fas fa-edit'></i>
-              </button>
-              <button
-                type='button'
-                class='delete-civilian-btn icon-btn icon-btn-danger'
-                title='Eliminar'
-                data-civilian-id='{{this.id}}'
-              >
-                <i class='fas fa-trash'></i>
-              </button>
-              {{/if}}
-            </div>
-          </div>
-
-          {{#if this.skills.length}}
-          <div class='officer-skills-preview'>
-            <div class='preview-label'><i class='fas fa-bolt'></i> Habilidades</div>
-            {{#each this.skills}}
-            <div class='officer-skill-row'>
-              {{#if this.image}}
-              <img src='{{this.image}}' alt='{{this.name}}' class='skill-preview-img' />
-              {{else}}
-              <span class='skill-preview-icon'><i class='fas fa-bolt'></i></span>
-              {{/if}}
-              <span class='skill-preview-name'>{{this.name}}</span>
-              <span class='skill-preview-cost'><i class='fas fa-diamond'></i> {{this.hopeCost}}</span>
-            </div>
-            {{/each}}
-          </div>
-          {{/if}}
-
-          {{#if this.hasStats}}
-          <div class='officer-stats-preview'>
-            {{#each this.statsDisplay}}
-            <span class='officer-stat-badge {{this.cssClass}}'>
-              <span class='stat-key'>{{this.key}}:</span>
-              {{this.value}}
+  <div class='officers-list'>
+    {{#each officers}}
+      <div class='officer-card' data-officer-id='{{this.id}}' draggable='true'>
+        <div class='officer-avatar'>
+          <img src='{{this.actorImg}}' alt='{{this.actorName}}' />
+        </div>
+        <div class='officer-info'>
+          <div class='officer-name'>{{this.actorName}}</div>
+          <div class='officer-title'>{{this.title}}</div>
+          <div class='officer-traits-summary'>
+            <span class='pros-count'>
+              <i class='fas fa-thumbs-up'></i>
+              {{this.pros.length}}
+              Pros
             </span>
-            {{/each}}
+            <span class='cons-count'>
+              <i class='fas fa-thumbs-down'></i>
+              {{this.cons.length}}
+              Cons
+            </span>
           </div>
-          {{/if}}
-
-          {{#if (or this.pros.length this.cons.length)}}
-          <div class='officer-traits-preview'>
-            {{#if this.pros.length}}
-            <div class='traits-preview-col'>
-              <div class='preview-label pros-label'><i class='fas fa-plus-circle'></i> Pros</div>
-              {{#each this.pros}}
-              <div class='trait-preview-item pro-item'>{{this.title}}</div>
-              {{/each}}
-            </div>
-            {{/if}}
-            {{#if this.cons.length}}
-            <div class='traits-preview-col'>
-              <div class='preview-label cons-label'><i class='fas fa-minus-circle'></i> Cons</div>
-              {{#each this.cons}}
-              <div class='trait-preview-item con-item'>{{this.title}}</div>
-              {{/each}}
-            </div>
-            {{/if}}
-          </div>
+        </div>
+        <div class='officer-actions'>
+          <button
+            type='button'
+            class='view-officer-btn'
+            title='Ver detalles'
+            data-officer-id='{{this.id}}'
+          >
+            <i class='fas fa-eye'></i>
+          </button>
+          {{#if ../isGM}}
+          <button
+            type='button'
+            class='edit-officer-btn'
+            title='Editar'
+            data-officer-id='{{this.id}}'
+          >
+            <i class='fas fa-edit'></i>
+          </button>
+          <button
+            type='button'
+            class='delete-officer-btn'
+            title='Eliminar'
+            data-officer-id='{{this.id}}'
+          >
+            <i class='fas fa-trash'></i>
+          </button>
           {{/if}}
         </div>
-      {{else}}
-        <p class='empty-state'>No hay auxiliares creados aun</p>
-      {{/each}}
-    </div>
+      </div>
+    {{else}}
+      <p class='empty-state'>No hay oficiales creados aún</p>
+    {{/each}}
   </div>
 </div>

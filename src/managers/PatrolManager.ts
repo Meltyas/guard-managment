@@ -9,20 +9,17 @@ export type PatrolChangeOp = 'create' | 'update' | 'delete';
 export type PatrolChangeCallback = (patrol: Patrol, op: PatrolChangeOp, ctx?: any) => void;
 
 export class PatrolManager {
-  protected patrols: Map<string, Patrol> = new Map();
+  private patrols: Map<string, Patrol> = new Map();
   private onChange?: PatrolChangeCallback;
-  protected settingsKey: string;
-  protected logPrefix: string;
+
 
   /** Inicializa cargando desde settings (si existen). GuardOrganizationManager volverá a hidratar snapshots igualmente. */
   public async initialize(): Promise<void> {
     await this.loadFromSettings();
   }
 
-  constructor(onChange?: PatrolChangeCallback, settingsKey: string = 'patrols') {
+  constructor(onChange?: PatrolChangeCallback) {
     this.onChange = onChange;
-    this.settingsKey = settingsKey;
-    this.logPrefix = settingsKey === 'patrols' ? 'PatrolManager' : 'AuxiliaryManager';
   }
 
   public async createPatrol(
@@ -74,7 +71,7 @@ export class PatrolManager {
     if (!patrol) return undefined;
 
     if (text.includes('[object Object]')) {
-      console.warn(`${this.logPrefix} | updateLastOrder received [object Object], ignoring update`);
+      console.warn('PatrolManager | updateLastOrder received [object Object], ignoring update');
       return patrol;
     }
 
@@ -87,10 +84,7 @@ export class PatrolManager {
     return patrol;
   }
 
-  public async recalcDerived(
-    patrolId: string,
-    orgModifiers?: Partial<GuardStats>
-  ): Promise<Patrol | undefined> {
+  public async recalcDerived(patrolId: string, orgModifiers?: Partial<GuardStats>): Promise<Patrol | undefined> {
     const patrol = this.patrols.get(patrolId);
     if (!patrol) return undefined;
     const modifiers = orgModifiers || {};
@@ -176,10 +170,7 @@ export class PatrolManager {
     return deleted;
   }
 
-  public async updatePatrol(
-    patrolId: string,
-    updates: Partial<Patrol>
-  ): Promise<Patrol | undefined> {
+  public async updatePatrol(patrolId: string, updates: Partial<Patrol>): Promise<Patrol | undefined> {
     const patrol = this.patrols.get(patrolId);
     if (!patrol) return undefined;
     const now = new Date();
@@ -208,30 +199,33 @@ export class PatrolManager {
   }
 
   /** Persiste lista completa de patrol snapshots a game settings */
-  protected async persistToSettings(): Promise<void> {
+  private async persistToSettings(): Promise<void> {
     try {
-      // Don't save if game is not ready yet (e.g. during init recalcDerived)
-      if (!game?.ready) return;
+      // Don't save if game is not ready yet
+      if (!game?.ready) {
+        console.warn('PatrolManager | Cannot save - game not ready yet');
+        return;
+      }
 
       // Players can also save patrols (settings will sync automatically)
       // No GM check needed - Foundry handles permissions
 
       // Guardar estructura completa (patrolEffects incluidos)
       const data = this.getAll();
-
+      
       // Save to world settings - automatically syncs to all clients
-      await game?.settings?.set('guard-management', this.settingsKey as any, data);
-
-      console.log(`${this.logPrefix} | Saved ${data.length} patrols to settings`);
+      await game?.settings?.set('guard-management', 'patrols', data);
+      
+      console.log(`PatrolManager | Saved ${data.length} patrols to settings`);
     } catch (error) {
-      console.error(`${this.logPrefix} | Error saving patrols:`, error);
+      console.error('PatrolManager | Error saving patrols:', error);
     }
   }
 
   /** Carga (si existen) los patrols guardados previamente */
   public async loadFromSettings(): Promise<void> {
     try {
-      const stored = game?.settings?.get('guard-management', this.settingsKey as any) as any[];
+      const stored = game?.settings?.get('guard-management', 'patrols') as any[];
       if (Array.isArray(stored)) {
         this.patrols.clear();
         for (const p of stored) {
@@ -242,17 +236,17 @@ export class PatrolManager {
           // SANITIZE: Check for corrupted lastOrder
           if (p.lastOrder && typeof p.lastOrder.text === 'string') {
             if (p.lastOrder.text.includes('[object ')) {
-              console.warn(`${this.logPrefix} | Sanitizing corrupted lastOrder for patrol ${p.id}`);
+              console.warn(`PatrolManager | Sanitizing corrupted lastOrder for patrol ${p.id}`);
               p.lastOrder = null;
             }
           }
 
           this.patrols.set(p.id, p);
         }
-        console.log(`${this.logPrefix} | Loaded patrols from settings`);
+        console.log('PatrolManager | Loaded patrols from settings');
       }
     } catch (e) {
-      console.warn(`${this.logPrefix} | loadFromSettings failed:`, e);
+      console.warn('PatrolManager | loadFromSettings failed:', e);
     }
   }
 
@@ -287,7 +281,7 @@ export class PatrolManager {
 
     if (config.roll.trait) {
       const stat = config.roll.trait as keyof GuardStats;
-
+      
       // 1. Patrol Base Trait
       const baseValue = baseStats[stat] || 0;
       if (baseValue !== 0) {
@@ -319,18 +313,18 @@ export class PatrolManager {
         // 3a. Organization Base
         const orgBase = organization.baseStats[stat] || 0;
         if (orgBase !== 0) {
-          formula += ` ${orgBase >= 0 ? '+' : '-'} ${Math.abs(orgBase)}[Org. Base]`;
-          orgNode.children.push({ label: 'Base', value: orgBase });
-          orgTotal += orgBase;
+           formula += ` ${orgBase >= 0 ? '+' : '-'} ${Math.abs(orgBase)}[Org. Base]`;
+           orgNode.children.push({ label: 'Base', value: orgBase });
+           orgTotal += orgBase;
         }
 
         // 3b. Organization Modifiers
-        if (gm?.modifierManager && organization.activeModifiers?.length) {
-          const allModifiers = gm.modifierManager.getAllModifiers();
+        if (gm?.documentManager && organization.activeModifiers?.length) {
+          const allModifiers = gm.documentManager.getGuardModifiers();
           for (const modId of organization.activeModifiers) {
             const mod = allModifiers.find((m: any) => m.id === modId);
-            if (mod && mod.statModifications) {
-              for (const change of mod.statModifications) {
+            if (mod && mod.system?.statModifications) {
+              for (const change of mod.system.statModifications) {
                 if (change.statName === stat && change.value !== 0) {
                   formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[Org. ${mod.name}]`;
                   orgNode.children.push({ label: mod.name, value: change.value });
@@ -342,9 +336,10 @@ export class PatrolManager {
         }
 
         if (orgTotal !== 0) {
-          orgNode.value = orgTotal;
-          breakdown.push(orgNode);
+            orgNode.value = orgTotal;
+            breakdown.push(orgNode);
         }
+
       } else {
         // Fallback: Organization Bonus (Derived - Base - Effects)
         // This handles cases where organization is not loaded or ID mismatch
@@ -390,7 +385,6 @@ export class PatrolManager {
     roll.advantageFaces = config.roll.dice.advantageFaces;
 
     if (config.extraFormula) {
-      breakdown.push({ label: 'Bono Situacional', value: config.extraFormula });
       const fullFormula = `${formula} + ${config.extraFormula}`;
       const complexRoll = new DualityRoll(fullFormula, rollData, options);
       complexRoll.advantageNumber = Number(config.roll.dice.advantageNumber);
@@ -412,10 +406,10 @@ export class PatrolManager {
         },
         rolls: [complexRoll],
         flags: {
-          'guard-management': {
-            breakdown: breakdown,
-          },
-        },
+            'guard-management': {
+                breakdown: breakdown
+            }
+        }
       };
 
       await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
@@ -439,9 +433,9 @@ export class PatrolManager {
       rolls: [roll],
       flags: {
         'guard-management': {
-          breakdown: breakdown,
-        },
-      },
+            breakdown: breakdown
+        }
+      }
     };
 
     await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });

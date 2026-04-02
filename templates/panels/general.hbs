@@ -55,53 +55,26 @@
   </div>
 
   {{#if officerSkills.length}}
-    <div class='info-section'>
-      <h3><i class='fas fa-bolt'></i> Habilidades Disponibles</h3>
-      <div class='officer-skills-list'>
-        {{#each officerSkills}}
-          <div class='skill-toggle-container'>
-            <div class='skill-toggle-header' data-action='toggle-skill'>
-              {{#if this.skillImage}}
-                <img src='{{this.skillImage}}' alt='{{this.skillName}}' class='skill-toggle-img' />
-              {{else}}
-                <i class='fas fa-bolt'></i>
-              {{/if}}
-              <span class='skill-toggle-name'>{{this.skillName}}</span>
-              <span class='skill-toggle-hope'>
-                <i class='fa-solid fa-diamond'></i>
-                {{this.skillHopeCost}}
-              </span>
-              <i class='fas fa-chevron-down skill-toggle-chevron'></i>
-            </div>
-            <div class='skill-toggle-body'>
-              {{#if this.skillDescription}}
-                <div class='skill-toggle-description'>{{{this.skillDescription}}}</div>
-              {{/if}}
-              <div class='skill-officer'>
-                {{#if this.officerImg}}
-                  <img
-                    src='{{this.officerImg}}'
-                    alt='{{this.officerName}}'
-                    class='officer-mini-avatar'
-                  />
-                {{/if}}
-                <span class='officer-info-text'>{{this.officerName}} — {{this.patrolName}}</span>
-              </div>
-              <button
-                type='button'
-                class='skill-to-chat-btn'
-                data-skill-name='{{this.skillName}}'
-                data-skill-image='{{this.skillImage}}'
-                data-skill-hope-cost='{{this.skillHopeCost}}'
-                data-officer-name='{{this.officerName}}'
-              >
-                <i class='fas fa-comment'></i>
-                Enviar al chat
-              </button>
-            </div>
-          </div>
-        {{/each}}
+  <div class='info-section'>
+    <h3><i class='fas fa-bolt'></i> Habilidades Disponibles</h3>
+    <div class='officer-skills-list'>
+      {{#each officerSkills}}
+      <div class='officer-skill-entry'>
+        <div class='skill-info'>
+          {{#if this.skillImage}}
+          <img src='{{this.skillImage}}' alt='{{this.skillName}}' class='skill-icon' />
+          {{/if}}
+          <span class='skill-name'>{{this.skillName}}</span>
+        </div>
+        <div class='skill-officer'>
+          {{#if this.officerImg}}
+          <img src='{{this.officerImg}}' alt='{{this.officerName}}' class='officer-mini-avatar' />
+          {{/if}}
+          <span class='officer-info-text'>{{this.officerName}} — {{this.patrolName}}</span>
+        </div>
       </div>
+      {{/each}}
     </div>
+  </div>
   {{/if}}
 </div>

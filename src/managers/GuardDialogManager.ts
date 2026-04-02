@@ -18,6 +18,7 @@ export class GuardDialogManager {
    * Initialize the dialog manager
    */
   public async initialize(): Promise<void> {
+    this.listenForRemoteOpen();
     console.log('GuardDialogManager | Initialized');
   }
 
@@ -57,6 +58,32 @@ export class GuardDialogManager {
   }
 
   /**
+   * Listen for the remote-open event dispatched by the socket handler.
+   * Handles both "already open" (focus/tab-switch) and "closed" (open then navigate) cases.
+   */
+  private listenForRemoteOpen(): void {
+    window.addEventListener('guard-show-org-dialog', async (event: Event) => {
+      const tab = (event as CustomEvent<{ tab: string }>).detail?.tab || 'general';
+
+      if (this.customInfoDialog?.isOpen()) {
+        // Dialog is already open
+        const timeSince = Date.now() - this.customInfoDialog.getLastInteractionTime();
+        if (timeSince < 10_000) {
+          // Player was recently active — show a banner so they can choose
+          this.customInfoDialog.showGmBanner(tab);
+        } else {
+          // Player is idle — navigate to the requested tab automatically
+          this.customInfoDialog.activateTab(tab);
+        }
+      } else {
+        // Dialog is closed — open it, then switch tab once the element is ready
+        await this.showManageOrganizationsDialog();
+        this.customInfoDialog?.activateTab(tab);
+      }
+    });
+  }
+
+  /**
    * Mostrar diálogo de información de la organización (Custom HTML Dialog)
    */
   private async showOrganizationInfoDialog(organization: GuardOrganization, pos?: { x?: number; y?: number; width?: number; height?: number }): Promise<void> {
@@ -69,8 +96,8 @@ export class GuardDialogManager {
       // Crear nuevo diálogo personalizado
       this.customInfoDialog = new CustomInfoDialog();
 
-      // Mostrar el diálogo con la organización
-      this.customInfoDialog.showOrganizationInfo(organization, {
+      // Mostrar el diálogo con la organización (awaited so element is ready on return)
+      await this.customInfoDialog.showOrganizationInfo(organization, {
         width: pos?.width ?? 600,
         height: pos?.height ?? 500,
         x: pos?.x,

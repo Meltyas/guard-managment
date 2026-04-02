@@ -1,31 +1,15 @@
 import type { GuardStats, PatrolEffectInstance } from '../../types/entities';
 import { classifyLastOrderAge } from '../../utils/patrol-helpers.js';
-import { GuardModal } from '../GuardModal.js';
-
-export type PanelUnitType = 'patrol' | 'auxiliary';
 
 export class PatrolsPanel {
   static get template() {
     return 'modules/guard-management/templates/panels/patrols.hbs';
   }
 
-  static async getData(unitType: PanelUnitType = 'patrol') {
+  static async getData() {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
-    const patrols = unitType === 'auxiliary'
-      ? (orgMgr ? orgMgr.listOrganizationAuxiliaries() : [])
-      : (orgMgr ? orgMgr.listOrganizationPatrols() : []);
-    const isGM = (globalThis as any).game?.user?.isGM ?? false;
-
-    // Build actorId → officer map for quick lookup (name + skills)
-    const officerByActorId = new Map<string, any>();
-    const officerManager = unitType === 'auxiliary' ? gm?.civilianManager : gm?.officerManager;
-    const allOfficers: any[] = officerManager?.list?.() || [];
-    for (const officer of allOfficers) {
-      if (officer.actorId) {
-        officerByActorId.set(officer.actorId, officer);
-      }
-    }
+    const patrols = orgMgr ? orgMgr.listOrganizationPatrols() : [];
 
     // Enrich patrols
     const enrichedPatrols = patrols.map((p: any) => {
@@ -33,17 +17,13 @@ export class PatrolsPanel {
       const ageClass = lastOrder
         ? classifyLastOrderAge({ issuedAt: lastOrder.issuedAt })
         : 'normal';
-      // Resolve officer record from officerManager to get name + skills
-      const officerRecord = p.officer?.actorId ? officerByActorId.get(p.officer.actorId) : null;
-
-      // Compute stat breakdown (including officer stats if assigned)
-      const bd = this.computePatrolStatBreakdown(p, officerRecord);
+      const bd = this.computePatrolStatBreakdown(p);
 
       // Format stats breakdown for template
       const statsBreakdown: Record<string, any> = {};
-      Object.keys(p.baseStats || {}).forEach((k) => {
-        const b = (bd as any)[k];
-        if (b) statsBreakdown[k] = b;
+      Object.entries(p.derivedStats || p.baseStats || {}).forEach(([k, v]) => {
+        const b = (bd as any)[k] || { base: 0, effects: 0, effectList: [], org: 0, total: v };
+        statsBreakdown[k] = { ...b, total: v as number };
       });
 
       // Prepare slots
@@ -57,55 +37,11 @@ export class PatrolsPanel {
         }
       }
 
-      // Build officer stats display for template
-      const officerStats = officerRecord?.stats || {};
-      const officerStatsEntries = Object.entries(officerStats).filter(
-        ([, v]) => (v as number) !== 0
-      );
-      const officerStatsDisplay = officerStatsEntries.map(([key, value]) => ({
-        key,
-        value: (value as number) > 0 ? `+${value}` : `${value}`,
-        cssClass:
-          (value as number) > 0 ? 'stat-positive' : (value as number) < 0 ? 'stat-negative' : '',
-      }));
-
-      // Format last order date
-      let lastOrderDate: string | null = null;
-      if (lastOrder?.issuedAt) {
-        const d = new Date(lastOrder.issuedAt);
-        lastOrderDate = d.toLocaleDateString('es-ES', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        });
-      }
-
       return {
         ...p,
         ageClass,
         statsBreakdown,
         slots,
-        isGM,
-        officerName: officerRecord?.name || p.officer?.name || null,
-        officerId: officerRecord?.id || null,
-        officerImgDisplay: officerRecord?.actorImg || p.officer?.img || null,
-        officerSkills: officerRecord?.skills?.length ? officerRecord.skills : [],
-        officerPros: officerRecord?.pros || [],
-        officerCons: officerRecord?.cons || [],
-        officerStatsDisplay,
-        hasOfficerStats: officerStatsDisplay.length > 0,
-        hasMembers: !!(p.officer?.actorId || (p.soldiers && p.soldiers.length > 0)),
-        extraSoldiers: Math.max(0, (p.soldiers?.length || 0) - (p.soldierSlots || 5)),
-        currentHope: p.currentHope ?? 0,
-        maxHope: p.maxHope ?? 0,
-        hopePips:
-          (p.maxHope ?? 0) > 0
-            ? Array.from({ length: p.maxHope ?? 0 }, (_, i) => ({
-                filled: i < (p.currentHope ?? 0),
-                index: i + 1,
-              }))
-            : [],
-        lastOrderDate,
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
           ? {
@@ -121,174 +57,56 @@ export class PatrolsPanel {
       };
     });
 
-    return { patrols: enrichedPatrols, isGM, unitType };
+    return { patrols: enrichedPatrols };
   }
 
-  static async render(container: HTMLElement, unitType: PanelUnitType = 'patrol') {
-    const data = await this.getData(unitType);
+  static async render(container: HTMLElement) {
+    const data = await this.getData();
     const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-
+    
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
-    // Store unitType on container for handler access
-    container.dataset.unitType = unitType;
-    this.activateListeners(container, unitType);
-
-    // Sync overlay toggle button states
-    const gm = (window as any).GuardManagement;
-    if (gm?.patrolOverlayManager) {
-      container.querySelectorAll<HTMLElement>('[data-action="toggle-overlay"]').forEach((btn) => {
-        const id = btn.dataset.patrolId;
-        if (id && gm.patrolOverlayManager.isActive(id, unitType)) {
-          btn.classList.add('overlay-active');
-        }
-      });
-    }
+    this.activateListeners(container);
   }
 
-  static activateListeners(container: HTMLElement, unitType: PanelUnitType = 'patrol') {
+  static activateListeners(container: HTMLElement) {
     const $html = $(container);
 
-    // Defensive: strip GM-only controls for non-GM users
-    const userIsGM = (globalThis as any).game?.user?.isGM ?? false;
-    if (!userIsGM) {
-      $html.find('[data-action="edit-officer"]').remove();
-      $html.find('[data-action="edit"]').remove();
-      $html.find('[data-action="delete"]').remove();
-      $html.find('[data-action="edit-last-order"]').remove();
-      $html.find('[data-action="create-patrol"]').remove();
-    }
-
-    // Shift-key tracking: show unassign buttons over avatars when Shift is held
-    const prevHandlers = (container as any)._guardShiftHandlers;
-    if (prevHandlers) {
-      document.removeEventListener('keydown', prevHandlers.down);
-      document.removeEventListener('keyup', prevHandlers.up);
-      window.removeEventListener('blur', prevHandlers.blur);
-    }
-    const patrolPanel =
-      (container.querySelector('[data-patrols-panel]') as HTMLElement | null) ?? container;
-    const handlerDown = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') patrolPanel.classList.add('shift-held');
-    };
-    const handlerUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') patrolPanel.classList.remove('shift-held');
-    };
-    const handlerBlur = () => patrolPanel.classList.remove('shift-held');
-    document.addEventListener('keydown', handlerDown);
-    document.addEventListener('keyup', handlerUp);
-    window.addEventListener('blur', handlerBlur);
-    (container as any)._guardShiftHandlers = {
-      down: handlerDown,
-      up: handlerUp,
-      blur: handlerBlur,
-    };
-
     // Drag & Drop
-    this.setupPatrolZonesDnD(container, () => this.refresh(container), unitType);
-    this.setupPatrolCardDnD(container, () => this.refresh(container), unitType);
+    this.setupPatrolZonesDnD(container, () => this.refresh(container));
+    this.setupPatrolCardDnD(container, () => this.refresh(container));
 
     // Actions
     $html.find('[data-action="create-patrol"]').on('click', (ev) => {
       ev.preventDefault();
-      this.handleCreatePatrol(() => this.refresh(container), unitType);
+      this.handleCreatePatrol(() => this.refresh(container));
     });
     $html.find('[data-action="edit"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleEditPatrol(id, () => this.refresh(container), unitType);
+      if (id) this.handleEditPatrol(id, () => this.refresh(container));
     });
     $html.find('[data-action="delete"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleDeletePatrol(id, () => this.refresh(container), unitType);
-    });
-    $html.find('[data-action="call-patrol"]').on('click', (ev) => {
-      ev.preventDefault();
-      const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleCallPatrol(id, unitType);
+      if (id) this.handleDeletePatrol(id, () => this.refresh(container));
     });
     $html.find('[data-action="to-chat"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleSendPatrolToChat(id, unitType);
-    });
-    // Overlay toggle
-    $html.find('[data-action="toggle-overlay"]').on('click', (ev) => {
-      ev.preventDefault();
-      const id = ev.currentTarget.dataset.patrolId;
-      if (id) {
-        const gm = (window as any).GuardManagement;
-        gm?.patrolOverlayManager?.toggleOverlay(id, unitType);
-        // Update button active state
-        const btn = ev.currentTarget as HTMLElement;
-        const isActive = gm?.patrolOverlayManager?.isActive(id, unitType);
-        btn.classList.toggle('overlay-active', isActive);
-      }
+      if (id) this.handleSendPatrolToChat(id);
     });
     $html.find('[data-action="edit-last-order"]').on('click', (ev) => {
       ev.preventDefault();
-      ev.stopPropagation();
-      const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleEditLastOrder(id, () => this.refresh(container), unitType);
-    });
-    // Toggle last-order body visibility
-    $html.find('.last-order-header').on('click', (ev) => {
-      const header = ev.currentTarget as HTMLElement;
-      const body = header.nextElementSibling as HTMLElement | null;
-      if (!body) return;
-      const isHidden = body.style.display === 'none' || body.style.display === '';
-      body.style.display = isHidden ? 'block' : 'none';
-      header.querySelector('.last-order-chevron')?.classList.toggle('open', isHidden);
+      // Handle click on the line or the icon
+      const target = ev.currentTarget;
+      const id = target.dataset.patrolId;
+      if (id) this.handleEditLastOrder(id, () => this.refresh(container));
     });
     $html.find('[data-action="open-sheet"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.actorId;
       if (id) this.handleOpenActorSheet(id);
-    });
-    $html.find('.skill-toggle-header').on('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const header = ev.currentTarget as HTMLElement;
-      const body = header.nextElementSibling as HTMLElement | null;
-      const chevron = header.querySelector('.skill-toggle-chevron');
-      if (body) {
-        const isOpen = body.style.display !== 'none';
-        body.style.display = isOpen ? 'none' : 'block';
-        if (chevron) chevron.classList.toggle('open', !isOpen);
-      }
-    });
-    $html.find('.skill-to-chat-btn').on('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const el = ev.currentTarget;
-      const skill = {
-        name: el.dataset.skillName || '',
-        image: el.dataset.skillImage || '',
-        hopeCost: parseInt(el.dataset.skillHopeCost || '0', 10),
-        officerName: el.dataset.officerName || '',
-        description: el.dataset.skillDescription || '',
-      };
-      this.handleSkillToChat(skill);
-    });
-    $html.find('[data-action="edit-officer"]').on('click', (ev) => {
-      ev.preventDefault();
-      const officerId = ev.currentTarget.dataset.officerId;
-      if (officerId) this.handleEditOfficer(officerId, () => this.refresh(container), unitType);
-    });
-    $html.find('[data-action="unassign-officer"]').on('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const patrolId = ev.currentTarget.dataset.patrolId;
-      if (patrolId) this.handleUnassignOfficer(patrolId, () => this.refresh(container), unitType);
-    });
-    $html.find('[data-action="unassign-soldier"]').on('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const patrolId = ev.currentTarget.dataset.patrolId;
-      const actorId = ev.currentTarget.dataset.actorId;
-      if (patrolId && actorId)
-        this.handleUnassignSoldier(patrolId, actorId, () => this.refresh(container), unitType);
     });
 
     // Stat interactions
@@ -303,9 +121,7 @@ export class PatrolsPanel {
       if (patrolId && statKey) {
         const gm = (window as any).GuardManagement;
         const orgMgr = gm?.guardOrganizationManager;
-        const pMgr = unitType === 'auxiliary'
-          ? orgMgr?.getAuxiliaryManager?.()
-          : orgMgr?.getPatrolManager?.();
+        const pMgr = orgMgr?.getPatrolManager();
         if (pMgr) {
           pMgr.rollStat(patrolId, statKey);
         }
@@ -326,7 +142,7 @@ export class PatrolsPanel {
       const target = ev.currentTarget;
       const patrolId = target.dataset.patrolId;
       const effectId = target.dataset.effectId;
-      if (patrolId && effectId) this.handleEffectClick(patrolId, effectId, unitType);
+      if (patrolId && effectId) this.handleEffectClick(patrolId, effectId);
     });
 
     $html.find('.effect-item').on('contextmenu', (ev) => {
@@ -335,95 +151,19 @@ export class PatrolsPanel {
       const patrolId = target.dataset.patrolId;
       const effectId = target.dataset.effectId;
       if (patrolId && effectId)
-        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container), unitType);
-    });
-    $html.find('[data-action="remove-effect"]').on('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const el = ev.currentTarget as HTMLElement;
-      const patrolId = el.dataset.patrolId;
-      const effectId = el.dataset.effectId;
-      if (patrolId && effectId)
-        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container), unitType);
-    });
-
-    // Hope pip counter
-    $html.find('[data-action="hope-pip"]').on('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const el = ev.currentTarget;
-      const patrolId = el.dataset.patrolId;
-      const index = parseInt(el.dataset.value || '0', 10);
-      if (patrolId && index) this.handleHopePip(patrolId, index, () => this.refresh(container), unitType);
-    });
-
-    // Officer traits: toggle section + send to chat
-    $html.find('.patrol-traits-header').on('click', (ev) => {
-      const header = ev.currentTarget as HTMLElement;
-      const body = header.nextElementSibling as HTMLElement | null;
-      if (!body) return;
-      const isHidden = body.style.display === 'none' || body.style.display === '';
-      body.style.display = isHidden ? 'block' : 'none';
-      header.querySelector('.patrol-traits-chevron')?.classList.toggle('open', isHidden);
-    });
-
-    // Officer section toggle (hidden by default)
-    $html.find('.officer-section-header').on('click', (ev) => {
-      const header = ev.currentTarget as HTMLElement;
-      const body = header.nextElementSibling as HTMLElement | null;
-      if (!body) return;
-      const isHidden = body.style.display === 'none' || body.style.display === '';
-      body.style.display = isHidden ? 'block' : 'none';
-      header.querySelector('.officer-section-chevron')?.classList.toggle('open', isHidden);
-    });
-    // Trait icon click → send to chat
-    $html.find('[data-action="trait-to-chat"]').on('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const traitItem = (ev.currentTarget as HTMLElement).closest('.patrol-trait-item') as HTMLElement | null;
-      if (!traitItem) return;
-      this.handleTraitToChat({
-        title: traitItem.dataset.traitTitle || '',
-        description: traitItem.dataset.traitDescription || '',
-        type: (traitItem.dataset.traitType as 'pro' | 'con') || 'pro',
-        officerName: traitItem.dataset.officerName || '',
-      });
-    });
-
-    // Trait title click → toggle description
-    $html.find('[data-action="toggle-trait-desc"]').on('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const traitItem = (ev.currentTarget as HTMLElement).closest('.patrol-trait-item') as HTMLElement | null;
-      if (!traitItem) return;
-      const descEl = traitItem.nextElementSibling as HTMLElement | null;
-      if (!descEl || !descEl.classList.contains('patrol-trait-desc')) return;
-      const isHidden = descEl.style.display === 'none' || descEl.style.display === '';
-      descEl.style.display = isHidden ? 'block' : 'none';
-      traitItem.classList.toggle('trait-expanded', isHidden);
+        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container));
     });
   }
 
   static async refresh(container: HTMLElement) {
-    const unitType = (container.dataset.unitType as PanelUnitType) || 'patrol';
-    await this.render(container, unitType);
+    await this.render(container);
   }
 
-  /**
-   * Get the right patrol/auxiliary manager based on unitType stored on container
-   */
-  private static getManagerForContainer(container: HTMLElement) {
-    const unitType = (container.dataset.unitType as PanelUnitType) || 'patrol';
-    const gm = (window as any).GuardManagement;
-    const orgMgr = gm?.guardOrganizationManager;
-    return unitType === 'auxiliary'
-      ? orgMgr?.getAuxiliaryManager?.()
-      : orgMgr?.getPatrolManager?.();
-  }
-
-  private static computePatrolStatBreakdown(patrol: any, officerRecord?: any) {
+  private static computePatrolStatBreakdown(patrol: any) {
     try {
-      // Get Organization Modifiers (item-level modifiers with name + value)
+      const derived = patrol.derivedStats || patrol.baseStats || {};
+
+      // Get Organization Modifiers
       const gm = (window as any).GuardManagement;
       const orgMgr = gm?.guardOrganizationManager;
       const activeModifiers = orgMgr?.getActiveModifiers() || [];
@@ -448,10 +188,6 @@ export class PatrolsPanel {
         }
       }
 
-      // Get full org contribution (org baseStats + modifiers) — always live, not stale
-      const orgStats: Record<string, number> =
-        (orgMgr?.calculateEffectiveOrgStats?.() as any) || {};
-
       const effectTotals: Record<string, number> = {};
       const effectDetails: Record<string, Array<{ name: string; img: string; value: number }>> = {};
 
@@ -469,9 +205,6 @@ export class PatrolsPanel {
         }
       }
 
-      // Officer stats contribution
-      const officerStats: Record<string, number> = officerRecord?.stats || {};
-
       const breakdown: Record<
         string,
         {
@@ -482,59 +215,29 @@ export class PatrolsPanel {
           orgBase: number;
           orgMods: number;
           orgModList: any[];
-          officer: number;
-          officerName: string;
-          officerImg: string;
           total: number;
-          totalClass: string;
         }
       > = {};
-
-      for (const key of Object.keys(patrol.baseStats || {})) {
+      for (const key of Object.keys(derived)) {
         const base = patrol.baseStats?.[key] ?? 0;
         const effects = effectTotals[key] || 0;
         const effectList = effectDetails[key] || [];
+        const total = derived[key] ?? 0; // preserve negatives
 
-        const orgContrib = orgStats[key] ?? 0; // full live org contribution (base + mods)
+        const orgTotal = total - base - effects;
         const orgMods = orgModTotals[key] || 0;
-        const orgBase = orgContrib - orgMods;
+        const orgBase = orgTotal - orgMods;
         const orgModList = orgModDetails[key] || [];
-
-        const officerContrib = officerStats[key] || 0;
-
-        const total = base + orgContrib + effects + officerContrib;
-
-        // Color class: green = only positive, red = only negative, yellow = mixed
-        const allModValues: number[] = [
-          ...orgModList.map((m: any) => m.value),
-          ...effectList.map((e: any) => e.value),
-        ];
-        if (orgBase !== 0) allModValues.push(orgBase);
-        if (officerContrib !== 0) allModValues.push(officerContrib);
-        const hasPos = allModValues.some((v) => v > 0);
-        const hasNeg = allModValues.some((v) => v < 0);
-        const totalClass =
-          hasPos && hasNeg
-            ? 'stat-mixed'
-            : hasPos
-              ? 'stat-positive'
-              : hasNeg
-                ? 'stat-negative'
-                : '';
 
         breakdown[key] = {
           base,
           effects,
           effectList,
-          org: orgContrib,
+          org: orgTotal,
           orgBase,
           orgMods,
           orgModList,
-          officer: officerContrib,
-          officerName: officerRecord?.actorName || officerRecord?.name || '',
-          officerImg: officerRecord?.actorImg || '',
           total,
-          totalClass,
         };
       }
       return breakdown;
@@ -543,24 +246,17 @@ export class PatrolsPanel {
     }
   }
 
-  /** Resolve the patrol/auxiliary manager lazily (safe for use inside event handlers) */
-  private static getPatrolMgr(unitType: PanelUnitType) {
+  /** Attach drag & drop to officer and soldier zones */
+  private static setupPatrolZonesDnD(container: HTMLElement, refreshCallback: () => void) {
     const gm: any = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
-    return unitType === 'auxiliary'
-      ? orgMgr?.getAuxiliaryManager?.()
-      : orgMgr?.getPatrolManager?.();
-  }
-
-  /** Attach drag & drop to officer and soldier zones */
-  private static setupPatrolZonesDnD(container: HTMLElement, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
+    const pMgr = orgMgr?.getPatrolManager?.();
+    if (!pMgr) return;
     const zones = Array.from(
       container.querySelectorAll(
-        '.patrol-card .officer-section-toggle[data-drop], .patrol-card .soldiers-zone[data-drop]'
+        '.patrol-card .officer-slot[data-drop], .patrol-card .soldiers-zone[data-drop]'
       )
     ) as HTMLElement[];
-
-    if (!zones.length) return;
 
     const isActorDrag = (ev: DragEvent) => {
       const types = Array.from(ev.dataTransfer?.types || []);
@@ -606,35 +302,6 @@ export class PatrolsPanel {
     const resolveActor = async (data: any): Promise<any | null> => {
       const g: any = (globalThis as any).game;
       if (!g) return null;
-
-      // Handle Officer drag from OfficerWarehouseDialog
-      if (data.type === 'Officer' && data.officerData?.actorId) {
-        const actorId = data.officerData.actorId;
-        const actor = g.actors?.get?.(actorId) ||
-          g.actors?.contents?.find?.((a: any) => a.id === actorId);
-        if (actor) return actor;
-        if (typeof (globalThis as any).fromUuid === 'function') {
-          try {
-            const doc = await (globalThis as any).fromUuid(actorId.startsWith('Actor.') ? actorId : `Actor.${actorId}`);
-            if (doc?.documentName === 'Actor') return doc;
-          } catch {}
-        }
-      }
-
-      // Handle Civilian drag from OfficerWarehouseDialog (auxiliaries)
-      if (data.type === 'Civilian' && data.civilianData?.actorId) {
-        const actorId = data.civilianData.actorId;
-        const actor = g.actors?.get?.(actorId) ||
-          g.actors?.contents?.find?.((a: any) => a.id === actorId);
-        if (actor) return actor;
-        if (typeof (globalThis as any).fromUuid === 'function') {
-          try {
-            const doc = await (globalThis as any).fromUuid(actorId.startsWith('Actor.') ? actorId : `Actor.${actorId}`);
-            if (doc?.documentName === 'Actor') return doc;
-          } catch {}
-        }
-      }
-
       const directId = data.id || data.actorId || data._id;
       if (directId) {
         const byId =
@@ -668,6 +335,8 @@ export class PatrolsPanel {
     };
 
     zones.forEach((zone) => {
+      if ((zone as any)._gmDnD) return;
+      (zone as any)._gmDnD = true;
       const mode: 'officer' | 'soldier' =
         (zone.dataset.drop as any) === 'officer' ? 'officer' : 'soldier';
       const card = zone.closest('.patrol-card') as HTMLElement | null;
@@ -682,7 +351,7 @@ export class PatrolsPanel {
       zone.addEventListener('dragover', (ev) => {
         if (!isActorDrag(ev)) return;
         ev.preventDefault();
-        if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+        ev.dataTransfer!.dropEffect = 'copy';
         zone.classList.add('dnd-hover');
         card?.classList.add('dnd-active');
       });
@@ -693,93 +362,25 @@ export class PatrolsPanel {
       zone.addEventListener('drop', async (ev) => {
         if (!isActorDrag(ev)) return;
         ev.preventDefault();
-        ev.stopPropagation();
         zone.classList.remove('dnd-hover');
         card?.classList.remove('dnd-active');
-
-        // Resolve manager lazily at drop time
-        const pMgr = this.getPatrolMgr(unitType);
-        if (!pMgr) {
-          console.warn('PatrolsPanel | drop: manager not available', { unitType });
-          return;
-        }
-
-        // Officer slots only accept drags from the Officer Warehouse
-        if (mode === 'officer') {
-          const strings = pullAllDataStrings(ev);
-          const isOfficerDrag = strings.some((raw) => {
-            const d = parseCandidate(raw);
-            return d?.type === 'Officer' || d?.type === 'Civilian';
-          });
-          if (!isOfficerDrag) {
-            const warehouseLabel = unitType === 'auxiliary' ? 'Personal (Auxiliares)' : 'Personal (Oficiales)';
-            return ui?.notifications?.warn?.(
-              `Solo se pueden asignar desde ${warehouseLabel}`
-            );
-          }
-        }
-
-        // Soldier slots reject drags from the Officer Warehouse (officers/civilians are leaders, not soldiers)
-        if (mode === 'soldier') {
-          const strings = pullAllDataStrings(ev);
-          const isWarehouseDrag = strings.some((raw) => {
-            const d = parseCandidate(raw);
-            return d?.type === 'Officer' || d?.type === 'Civilian';
-          });
-          if (isWarehouseDrag) {
-            const leaderLabel = unitType === 'auxiliary' ? 'un Líder Auxiliar' : 'un Oficial';
-            const slotLabel = unitType === 'auxiliary' ? 'Subalterno' : 'Soldado';
-            return ui?.notifications?.warn?.(
-              `No puedes asignar ${leaderLabel} como ${slotLabel}. Arrástralo al slot de líder.`
-            );
-          }
-        }
-
         const actor = await obtainActor(ev);
         if (!actor) {
-          const rawStrings = pullAllDataStrings(ev);
-          console.warn('PatrolsPanel | Actor no resuelto desde drag data', {
-            types: Array.from(ev.dataTransfer?.types || []),
-            rawData: rawStrings,
-            parsed: rawStrings.map(s => parseCandidate(s)),
-          });
+          console.warn('PatrolsPanel | Actor no resuelto desde drag data', ev.dataTransfer?.types);
           return ui?.notifications?.warn?.('Actor no encontrado');
         }
         try {
           const patrol = pMgr.getPatrol(pid);
           if (!patrol) return;
           if (mode === 'officer') {
-            if (patrol.officer && patrol.officer.actorId !== actor.id) {
-              const confirmed = await Dialog.confirm({
-                title: 'Reemplazar Oficial',
-                content: `<p>¿Reemplazar a <strong>${patrol.officer.name}</strong> con <strong>${actor.name}</strong>?</p>`,
-              });
-              if (!confirmed) return;
-            }
             pMgr.assignOfficer(pid, {
               actorId: actor.id,
               name: actor.name,
               img: actor.img,
               isLinked: actor.isOwner ?? true,
             });
-            ui?.notifications?.info?.(`${unitType === 'auxiliary' ? 'Auxiliar' : 'Oficial'} asignado: ${actor.name}`);
+            ui?.notifications?.info?.(`Oficial asignado: ${actor.name}`);
           } else {
-            const soldierLabel = unitType === 'auxiliary' ? 'Subalterno' : 'Soldado';
-            const maxSlots = patrol.soldierSlots || 5;
-            if (patrol.soldiers.length >= maxSlots) {
-              ui?.notifications?.warn?.(
-                `No hay espacio. La ${unitType === 'auxiliary' ? 'unidad auxiliar' : 'patrulla'} ya tiene ${patrol.soldiers.length}/${maxSlots} ${soldierLabel.toLowerCase()}s.`
-              );
-              return;
-            }
-            const isDuplicate = (patrol.soldiers as any[]).some((s: any) => s.actorId === actor.id);
-            if (isDuplicate) {
-              const confirmed = await Dialog.confirm({
-                title: `${soldierLabel} duplicado`,
-                content: `<p><strong>${actor.name}</strong> ya está en ${unitType === 'auxiliary' ? 'este auxiliar' : 'esta patrulla'}. ¿Añadir igualmente?</p>`,
-              });
-              if (!confirmed) return;
-            }
             pMgr.addSoldier(pid, {
               actorId: actor.id,
               name: actor.name,
@@ -787,7 +388,7 @@ export class PatrolsPanel {
               referenceType: 'linked',
               addedAt: Date.now(),
             });
-            ui?.notifications?.info?.(`${soldierLabel} añadido: ${actor.name}`);
+            ui?.notifications?.info?.(`Soldado añadido: ${actor.name}`);
           }
           refreshCallback();
         } catch (e) {
@@ -799,13 +400,18 @@ export class PatrolsPanel {
   }
 
   /** Attach drag & drop to patrol cards for effects */
-  private static setupPatrolCardDnD(container: HTMLElement, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
+  private static setupPatrolCardDnD(container: HTMLElement, refreshCallback: () => void) {
+    const gm: any = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    const pMgr = orgMgr?.getPatrolManager?.();
+    if (!pMgr) return;
+
     const cards = Array.from(container.querySelectorAll('.patrol-card')) as HTMLElement[];
-    if (!cards.length) return;
 
     const isEffectDrag = (ev: DragEvent) => {
       if (!ev.dataTransfer) return false;
       const types = Array.from(ev.dataTransfer.types);
+      // Check for our custom type or generic text
       return types.includes('text/plain');
     };
 
@@ -815,6 +421,10 @@ export class PatrolsPanel {
 
       card.addEventListener('dragenter', (ev) => {
         if (!isEffectDrag(ev)) return;
+        // Check if it's a patrol effect
+        // We can't check content here easily without reading data, which is only available on drop
+        // But we can check if we are dragging a patrol effect by checking a global flag or just allowing it
+        // For now, we'll allow it and validate on drop
         ev.preventDefault();
         card.classList.add('dnd-active-effect');
       });
@@ -840,54 +450,11 @@ export class PatrolsPanel {
 
         try {
           const data = JSON.parse(dataStr);
-
-          // Handle Officer/Civilian drops anywhere on card → assign as officer
-          if (data.type === 'Officer' || data.type === 'Civilian') {
-            const pMgr = this.getPatrolMgr(unitType);
-            if (!pMgr) return;
-
-            const g: any = (globalThis as any).game;
-            const actorId = data.type === 'Officer'
-              ? data.officerData?.actorId
-              : data.civilianData?.actorId;
-            if (!actorId) return;
-
-            const actor = g?.actors?.get?.(actorId) ||
-              g?.actors?.contents?.find?.((a: any) => a.id === actorId);
-            if (!actor) {
-              ui?.notifications?.warn?.('Actor no encontrado');
-              return;
-            }
-
-            const patrol = pMgr.getPatrol(pid);
-            if (!patrol) return;
-
-            if (patrol.officer && patrol.officer.actorId !== actor.id) {
-              const confirmed = await Dialog.confirm({
-                title: 'Reemplazar Oficial',
-                content: `<p>¿Reemplazar a <strong>${patrol.officer.name}</strong> con <strong>${actor.name}</strong>?</p>`,
-              });
-              if (!confirmed) return;
-            }
-            pMgr.assignOfficer(pid, {
-              actorId: actor.id,
-              name: actor.name,
-              img: actor.img,
-              isLinked: actor.isOwner ?? true,
-            });
-            ui?.notifications?.info?.(`${unitType === 'auxiliary' ? 'Auxiliar' : 'Oficial'} asignado: ${actor.name}`);
-            refreshCallback();
-            return;
-          }
-
           if (data.type !== 'patrol-effect' || !data.effectData) return;
-
-          // Resolve manager lazily at drop time
-          const pMgr = this.getPatrolMgr(unitType);
-          if (!pMgr) return;
 
           const effectData = data.effectData;
 
+          // Convert stat modifications to modifiers object
           const modifiers: Partial<GuardStats> = {};
           if (Array.isArray(effectData.statModifications)) {
             effectData.statModifications.forEach((mod: any) => {
@@ -922,41 +489,34 @@ export class PatrolsPanel {
     });
   }
 
-  public static async handleCreatePatrol(refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
+  public static async handleCreatePatrol(refreshCallback: () => void) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
     const org = orgMgr.getOrganization();
     if (!org) return;
-    const label = unitType === 'auxiliary' ? 'Auxiliar' : 'Patrulla';
-    const created = unitType === 'auxiliary'
-      ? await orgMgr.openCreateAuxiliaryDialog()
-      : await orgMgr.openCreatePatrolDialog();
+    const created = await orgMgr.openCreatePatrolDialog();
     if (created) {
-      ui?.notifications?.info(`${label} creada`);
+      ui?.notifications?.info('Patrulla creada');
       refreshCallback();
     }
   }
 
-  public static async handleEditPatrol(patrolId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
+  public static async handleEditPatrol(patrolId: string, refreshCallback: () => void) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const label = unitType === 'auxiliary' ? 'Auxiliar' : 'Patrulla';
-    const updated = unitType === 'auxiliary'
-      ? await orgMgr.openEditAuxiliaryDialog(patrolId)
-      : await orgMgr.openEditPatrolDialog(patrolId);
+    const updated = await orgMgr.openEditPatrolDialog(patrolId);
     if (updated) {
-      ui?.notifications?.info(`${label} actualizada`);
+      ui?.notifications?.info('Patrulla actualizada');
       refreshCallback();
     }
   }
 
-  public static async handleDeletePatrol(patrolId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
-    const label = unitType === 'auxiliary' ? 'Auxiliar' : 'Patrulla';
+  public static async handleDeletePatrol(patrolId: string, refreshCallback: () => void) {
     const confirm = await Dialog.confirm({
-      title: `Eliminar ${label}`,
-      content: `<p>¿Seguro que deseas eliminar esta ${label.toLowerCase()}?</p>`,
+      title: 'Eliminar Patrulla',
+      content: `<p>¿Seguro que deseas eliminar esta patrulla?</p>`,
     });
     if (!confirm) return;
     const gm = (window as any).GuardManagement;
@@ -964,37 +524,22 @@ export class PatrolsPanel {
     if (!orgMgr) return;
     const org = orgMgr.getOrganization();
     if (!org) return;
-    const pMgr = unitType === 'auxiliary'
-      ? orgMgr.getAuxiliaryManager()
-      : orgMgr.getPatrolManager();
-    if (unitType === 'auxiliary') {
-      orgMgr.removeAuxiliary(patrolId);
-    } else {
-      orgMgr.removePatrol(patrolId);
-    }
+    orgMgr.removePatrol(patrolId);
+    const pMgr = orgMgr.getPatrolManager();
     await pMgr.deletePatrol(patrolId);
-    ui?.notifications?.warn(`${label} eliminada`);
+    ui?.notifications?.warn('Patrulla eliminada');
     refreshCallback();
   }
 
-  public static async handleSendPatrolToChat(patrolId: string, unitType: PanelUnitType = 'patrol') {
+  public static async handleSendPatrolToChat(patrolId: string) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = unitType === 'auxiliary'
-      ? orgMgr.getAuxiliaryManager()
-      : orgMgr.getPatrolManager();
+    const pMgr = orgMgr.getPatrolManager();
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
 
-    // Look up officer record for stats
-    const officerManager = unitType === 'auxiliary' ? gm?.civilianManager : gm?.officerManager;
-    const allOfficers: any[] = officerManager?.list?.() || [];
-    const officerRecord = patrol.officer?.actorId
-      ? allOfficers.find((o: any) => o.actorId === patrol.officer.actorId)
-      : null;
-
-    const breakdown = this.computePatrolStatBreakdown(patrol, officerRecord);
+    const breakdown = this.computePatrolStatBreakdown(patrol);
 
     // Format stats for display
     const statsHtml = Object.entries(breakdown)
@@ -1085,88 +630,128 @@ export class PatrolsPanel {
 
     await (ChatMessage as any).create({
       content: content,
-      speaker: { scene: null, actor: null, token: null, alias: unitType === 'auxiliary' ? 'Informe de Auxiliar' : 'Informe de Patrulla' },
-      flags: { 'guard-management': { type: 'patrol-report' } },
+      speaker: (ChatMessage as any).getSpeaker({ alias: 'Informe de Patrulla' }),
     });
   }
 
-  public static async handleEditLastOrder(patrolId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
+  public static async handleEditLastOrder(patrolId: string, refreshCallback: () => void) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = unitType === 'auxiliary'
-      ? orgMgr.getAuxiliaryManager()
-      : orgMgr.getPatrolManager();
+    const pMgr = orgMgr.getPatrolManager();
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
 
     let current = patrol.lastOrder?.text || '';
     if (current.includes('[object Object]')) current = '';
 
-    // Strip HTML for textarea
-    const plainText = current.replace(/<[^>]*>/g, '');
+    // Escape for attribute value
+    const escapedCurrent = current.replace(/"/g, '&quot;');
 
-    const body = `
-      <div class="guard-modal-form">
-        <div class="guard-modal-row">
-          <label><i class="fas fa-scroll"></i> Orden</label>
-          <textarea id="patrol-order-text" rows="5">${plainText}</textarea>
-        </div>
-        <div class="guard-modal-row">
-          <label class="checkbox" style="flex-direction: row; gap: 8px; align-items: center;">
-            <input type="checkbox" id="patrol-notify-chat" checked>
-            Notificar al chat
-          </label>
-        </div>
-        <p style="font-size: 0.8em; color: #888; margin-top: 4px;">Actualiza la última orden de la patrulla.</p>
-      </div>
-    `;
+    const result = await (foundry as any).applications.api.DialogV2.wait({
+      window: { title: 'Editar Última Orden', resizable: true },
+      content: `
+        <form class='last-order-edit'>
+          <div class="form-group" style="display: flex; flex-direction: column;">
+            <label style="margin-bottom: 5px; font-weight: bold;">Orden</label>
+            <div style="width: 100%;">
+              <prose-mirror name="order" value="${escapedCurrent}">
+                ${current}
+              </prose-mirror>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="checkbox">
+              <input type="checkbox" name="notifyChat" checked>
+              Notificar al chat
+            </label>
+          </div>
+          <p class='hint'>Actualiza la última orden de la patrulla.</p>
+        </form>`,
+      buttons: [
+        {
+          action: 'save',
+          label: 'Guardar',
+          icon: 'fas fa-save',
+          default: true,
+          callback: async (_ev: any, btn: any, dlg: any) => {
+            const form = btn?.form || dlg?.window?.content?.querySelector('form.last-order-edit');
+            if (!form) return 'cancel';
 
-    GuardModal.open({
-      title: 'Editar Última Orden',
-      icon: 'fas fa-scroll',
-      body,
-      onSave: async (bodyEl) => {
-        const text = (bodyEl.querySelector('#patrol-order-text') as HTMLTextAreaElement)?.value?.trim() || '';
-        const notifyChat = (bodyEl.querySelector('#patrol-notify-chat') as HTMLInputElement)?.checked;
+            let text = '';
 
-        await pMgr.updateLastOrder(patrolId, text);
-        const updated = pMgr.getPatrol(patrolId);
-        if (updated) {
-          orgMgr.upsertPatrolSnapshot(updated);
+            // Strategy 1: InnerHTML of the contenteditable div (Most reliable for ProseMirror)
+            const editorContent = form.querySelector('.editor-content.ProseMirror');
+            if (editorContent) {
+              text = editorContent.innerHTML;
+            }
 
-          if (notifyChat && text) {
-            const officerImg = patrol.officer?.img
-              ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${patrol.officer.img}" /></div>`
-              : '';
+            // Strategy 2: Value of custom element
+            if (!text) {
+              const pmElement = form.querySelector('prose-mirror');
+              if (pmElement && 'value' in pmElement) {
+                const val = (pmElement as any).value;
+                if (typeof val === 'string' && !val.includes('[object Object]')) {
+                  text = val;
+                }
+              }
+            }
 
-            const chatContent = `
-              <div class="guard-resource-chat">
-                ${officerImg}
-                <div class="chat-header">Nueva Orden: ${patrol.name}</div>
-                <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-                  ${text}
-                </div>
-              </div>
-            `;
+            // Strategy 3: FormData
+            if (!text) {
+              const fd = new FormData(form);
+              const fdText = fd.get('order') as string;
+              if (fdText && !fdText.includes('[object Object]')) {
+                text = fdText;
+              }
+            }
 
-            await (ChatMessage as any).create({
-              content: chatContent,
-              speaker: {
-                scene: null,
-                actor: null,
-                token: null,
-                alias: unitType === 'auxiliary' ? 'Comandante Auxiliar' : 'Comandante de la Guardia',
-              },
-              flags: { 'guard-management': { type: 'last-order' } },
-            });
-          }
-        }
+            // Final check
+            if (text.includes('[object ')) {
+              text = '';
+            }
 
-        ui?.notifications?.info('Orden actualizada');
-        refreshCallback();
-      },
+            // Ensure we have a string
+            text = text || '';
+
+            await pMgr.updateLastOrder(patrolId, text.trim());
+            const updated = pMgr.getPatrol(patrolId);
+            if (updated) {
+              orgMgr.upsertPatrolSnapshot(updated);
+
+              // Handle chat notification
+              const notifyChat = form.querySelector('input[name="notifyChat"]')?.checked;
+              if (notifyChat && text.trim()) {
+                const officerImg = patrol.officer?.img
+                  ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${patrol.officer.img}" /></div>`
+                  : '';
+
+                const content = `
+                  <div class="guard-resource-chat">
+                    ${officerImg}
+                    <div class="chat-header">Nueva Orden: ${patrol.name}</div>
+                    <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                      ${text}
+                    </div>
+                  </div>
+                `;
+
+                await (ChatMessage as any).create({
+                  content: content,
+                  speaker: (ChatMessage as any).getSpeaker({ alias: 'Comandante de la Guardia' }),
+                });
+              }
+            }
+            return 'save';
+          },
+        },
+        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times', callback: () => 'cancel' },
+      ],
     });
+    if (result === 'save') {
+      ui?.notifications?.info('Orden actualizada');
+      refreshCallback();
+    }
   }
 
   public static async handleOpenActorSheet(actorId: string): Promise<void> {
@@ -1185,148 +770,49 @@ export class PatrolsPanel {
     }
   }
 
-  public static async handleSkillToChat(skill: {
-    name: string;
-    image?: string;
-    hopeCost: number;
-    officerName?: string;
-    description?: string;
-  }) {
-    const heartIcons =
-      skill.hopeCost > 0
-        ? Array(skill.hopeCost)
-            .fill('<i class="fas fa-diamond" style="color:#e84a4a;font-size:0.8rem;"></i>')
-            .join(' ')
-        : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
-
-    const descHtml = skill.description
-      ? `<div class="guard-chat-toggle" style="margin-top:6px;">
-           <div class="guard-chat-toggle-header" style="cursor:pointer;font-size:0.85em;color:#f3c267;"><i class="fas fa-caret-right"></i> Descripción</div>
-           <div class="guard-chat-toggle-body" style="display:none;margin-top:4px;padding:6px 8px;background:rgba(0,0,0,0.1);border-radius:4px;font-size:0.9em;">${skill.description}</div>
-         </div>`
-      : '';
-
-    const content = `
-      <div class="guard-resource-chat">
-        ${skill.image ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${skill.image}" style="max-width: 64px; border: none;" /></div>` : ''}
-        <div class="chat-header" style="font-weight: bold; font-size: 1.1em; margin-bottom: 4px;">${skill.name}</div>
-        ${skill.officerName ? `<div style="font-size: 0.85em; opacity: 0.75; margin-bottom: 6px;"><i class="fas fa-user"></i> ${skill.officerName}</div>` : ''}
-        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.9em;">
-          <span style="opacity: 0.8;">Coste de Hope:</span>
-          <span>${heartIcons}</span>
-        </div>
-        ${descHtml}
-      </div>
-    `;
-
-    await (ChatMessage as any).create({
-      content,
-      speaker: { scene: null, actor: null, token: null, alias: 'Habilidad de Oficial' },
-      flags: { 'guard-management': { type: 'officer-skill' } },
-    });
-  }
-
-  public static async handleEditOfficer(officerId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
-    const gm = (window as any).GuardManagement;
-    const officerManager = unitType === 'auxiliary' ? gm?.civilianManager : gm?.officerManager;
-    if (!officerManager) return;
-    const officer = officerManager.get(officerId);
-    if (!officer) return;
-
-    const { OfficerFormApplication } = await import('../../dialogs/OfficerFormApplication.js');
-    const personnelType = unitType === 'auxiliary' ? 'civilian' : 'officer';
-    const app = new OfficerFormApplication('edit', officer.organizationId || '', officer, personnelType);
-    const result = await app.show();
-    if (result) {
-      refreshCallback();
-    }
-  }
-
-  public static async handleUnassignOfficer(patrolId: string, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
-    const gm = (window as any).GuardManagement;
-    const pMgr = unitType === 'auxiliary'
-      ? gm?.guardOrganizationManager?.getAuxiliaryManager?.()
-      : gm?.guardOrganizationManager?.getPatrolManager?.();
-    if (!pMgr) return;
-    await pMgr.updatePatrol(patrolId, { officer: null });
-    refreshCallback();
-  }
-
-  public static async handleUnassignSoldier(
-    patrolId: string,
-    actorId: string,
-    refreshCallback: () => void,
-    unitType: PanelUnitType = 'patrol'
-  ) {
-    const gm = (window as any).GuardManagement;
-    const pMgr = unitType === 'auxiliary'
-      ? gm?.guardOrganizationManager?.getAuxiliaryManager?.()
-      : gm?.guardOrganizationManager?.getPatrolManager?.();
-    if (!pMgr) return;
-    const patrol = pMgr.getPatrol(patrolId);
-    if (!patrol) return;
-    // Remove first matching soldier
-    const idx = patrol.soldiers.findIndex((s: any) => s.actorId === actorId);
-    if (idx === -1) return;
-    const updatedSoldiers = [...patrol.soldiers.slice(0, idx), ...patrol.soldiers.slice(idx + 1)];
-    await pMgr.updatePatrol(patrolId, { soldiers: updatedSoldiers });
-    refreshCallback();
-  }
-
-  public static async handleEffectClick(patrolId: string, effectId: string, unitType: PanelUnitType = 'patrol') {
+  public static async handleEffectClick(patrolId: string, effectId: string) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = unitType === 'auxiliary'
-      ? orgMgr.getAuxiliaryManager()
-      : orgMgr.getPatrolManager();
+    const pMgr = orgMgr.getPatrolManager();
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
     const effect = patrol.patrolEffects.find((e: any) => e.id === effectId);
     if (!effect) return;
 
     // Construct chat message content
-    const descHtml = effect.description
-      ? `<div class="guard-chat-toggle" style="margin-top:6px;">
-           <div class="guard-chat-toggle-header" style="cursor:pointer;font-size:0.85em;color:#f3c267;"><i class="fas fa-caret-right"></i> Descripción</div>
-           <div class="guard-chat-toggle-body" style="display:none;margin-top:4px;padding:6px 8px;background:rgba(0,0,0,0.1);border-radius:4px;font-size:0.9em;">${effect.description}</div>
-         </div>`
-      : '';
-
     const content = `
       <div class="guard-resource-chat">
         <div class="resource-image" style="margin-bottom: 8px;">
             <img src="${effect.img || 'icons/svg/aura.svg'}" style="max-width: 64px; border: none;" />
         </div>
         <div class="chat-header" style="font-weight: bold; font-size: 1.2em; margin-bottom: 5px;">${effect.label}</div>
-        <div class="stat-modifiers" style="margin: 6px 0;">
+        <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
+          ${effect.description || 'Sin descripción'}
+        </div>
+        <div class="stat-modifiers">
             ${Object.entries(effect.modifiers || {})
               .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`)
               .join('')}
         </div>
-        ${descHtml}
       </div>
     `;
 
     await (ChatMessage as any).create({
       content: content,
-      speaker: { scene: null, actor: null, token: null, alias: 'Efecto de Patrulla' },
-      flags: { 'guard-management': { type: 'patrol-effect' } },
+      speaker: (ChatMessage as any).getSpeaker({ alias: 'Efecto de Patrulla' }),
     });
   }
 
   public static async handleRemoveEffect(
     patrolId: string,
     effectId: string,
-    refreshCallback: () => void,
-    unitType: PanelUnitType = 'patrol'
+    refreshCallback: () => void
   ) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = unitType === 'auxiliary'
-      ? orgMgr.getAuxiliaryManager()
-      : orgMgr.getPatrolManager();
+    const pMgr = orgMgr.getPatrolManager();
 
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
@@ -1343,273 +829,5 @@ export class PatrolsPanel {
     pMgr.removeEffect(patrolId, effectId);
     ui?.notifications?.info('Efecto eliminado');
     refreshCallback();
-  }
-
-  public static async handleHopePip(patrolId: string, index: number, refreshCallback: () => void, unitType: PanelUnitType = 'patrol') {
-    const gm = (window as any).GuardManagement;
-    const pMgr = unitType === 'auxiliary'
-      ? gm?.guardOrganizationManager?.getAuxiliaryManager?.()
-      : gm?.guardOrganizationManager?.getPatrolManager?.();
-    if (!pMgr) return;
-    const patrol = pMgr.getPatrol(patrolId);
-    if (!patrol) return;
-    const current = patrol.currentHope ?? 0;
-    const max = patrol.maxHope ?? 0;
-    // Click filled pip → decrease to index-1; click empty pip → fill up to index
-    const newHope = current >= index ? index - 1 : Math.min(index, max);
-    if (newHope === current) return;
-    await pMgr.updatePatrol(patrolId, { currentHope: newHope });
-    refreshCallback();
-  }
-
-  public static async handleTraitToChat(trait: {
-    title: string;
-    description: string;
-    type: 'pro' | 'con';
-    officerName: string;
-  }) {
-    const icon =
-      trait.type === 'pro'
-        ? '<i class="fas fa-plus-circle" style="color:#9acd32"></i>'
-        : '<i class="fas fa-minus-circle" style="color:#ff6b6b"></i>';
-    const descHtml = trait.description
-      ? `<div class="guard-chat-toggle" style="margin-top:6px;">
-           <div class="guard-chat-toggle-header" style="cursor:pointer;font-size:0.85em;color:#f3c267;"><i class="fas fa-caret-right"></i> Descripción</div>
-           <div class="guard-chat-toggle-body" style="display:none;margin-top:4px;padding:6px 8px;background:rgba(0,0,0,0.1);border-radius:4px;font-size:0.9em;">${trait.description}</div>
-         </div>`
-      : '';
-    const content = `
-      <div class="guard-resource-chat">
-        <div class="chat-header">${icon} ${trait.title}</div>
-        ${trait.officerName ? `<div style="font-size:0.85em;opacity:0.75;"><i class="fas fa-user"></i> ${trait.officerName}</div>` : ''}
-        ${descHtml}
-      </div>
-    `;
-    await (ChatMessage as any).create({
-      content,
-      speaker: { scene: null, actor: null, token: null, alias: 'Rasgo de Oficial' },
-      flags: { 'guard-management': { type: 'officer-trait' } },
-    });
-  }
-
-  /**
-   * Handle the "Call Patrol" button: enter pick-location mode,
-   * then place tokens of all members in circular formation.
-   */
-  public static async handleCallPatrol(patrolId: string, unitType: PanelUnitType = 'patrol'): Promise<void> {
-    const g: any = (globalThis as any).game;
-    const cv: any = (globalThis as any).canvas;
-
-    if (!cv?.scene) {
-      ui?.notifications?.warn?.('No hay escena activa. Abre una escena primero.');
-      return;
-    }
-
-    const pMgr = this.getPatrolMgr(unitType);
-    if (!pMgr) return;
-    const patrol = pMgr.getPatrol(patrolId);
-    if (!patrol) return;
-
-    // Collect all member actorIds
-    const members: Array<{ actorId: string; name: string; isOfficer: boolean }> = [];
-
-    if (patrol.officer?.actorId) {
-      members.push({
-        actorId: patrol.officer.actorId,
-        name: patrol.officer.name || 'Officer',
-        isOfficer: true,
-      });
-    }
-
-    for (const soldier of (patrol.soldiers || [])) {
-      if (soldier.actorId) {
-        members.push({
-          actorId: soldier.actorId,
-          name: soldier.name || 'Soldier',
-          isOfficer: false,
-        });
-      }
-    }
-
-    if (members.length === 0) {
-      const label = unitType === 'auxiliary' ? 'auxiliar' : 'patrulla';
-      ui?.notifications?.warn?.(`Esta ${label} no tiene miembros para colocar`);
-      return;
-    }
-
-    const label = unitType === 'auxiliary' ? 'auxiliar' : 'patrulla';
-    ui?.notifications?.info?.(`Haz clic en el canvas para colocar la ${label}. Clic derecho o Escape para cancelar.`);
-
-    try {
-      const position = await PatrolsPanel.pickCanvasLocation();
-      if (!position) {
-        ui?.notifications?.info?.('Colocación de tokens cancelada');
-        return;
-      }
-
-      const gridSize = cv.grid?.size || 100;
-      const tokenPositions = PatrolsPanel.calculateFormationPositions(
-        position.x,
-        position.y,
-        members,
-        gridSize
-      );
-
-      // Create token documents
-      const tokenDataArray: any[] = [];
-      const skipped: string[] = [];
-
-      for (const tp of tokenPositions) {
-        const actor = g.actors?.get?.(tp.actorId);
-        if (!actor) {
-          skipped.push(tp.name);
-          continue;
-        }
-
-        // Use getTokenDocument to resolve wildcard token images
-        const tokenDoc = await actor.getTokenDocument?.({ x: tp.x, y: tp.y });
-        if (tokenDoc) {
-          tokenDataArray.push(tokenDoc.toObject());
-        } else {
-          // Fallback for actors without getTokenDocument
-          const protoData = actor.prototypeToken?.toObject?.() || actor.prototypeToken || {};
-          tokenDataArray.push({
-            ...protoData,
-            name: protoData.name || actor.name,
-            actorId: actor.id,
-            x: tp.x,
-            y: tp.y,
-          });
-        }
-      }
-
-      if (tokenDataArray.length === 0) {
-        ui?.notifications?.error?.('No se encontraron actores para colocar');
-        return;
-      }
-
-      await cv.scene.createEmbeddedDocuments('Token', tokenDataArray);
-
-      if (skipped.length > 0) {
-        ui?.notifications?.warn?.(
-          `${tokenDataArray.length} tokens colocados. Actores no encontrados: ${skipped.join(', ')}`
-        );
-      } else {
-        ui?.notifications?.info?.(`${tokenDataArray.length} tokens colocados exitosamente`);
-      }
-    } catch (err) {
-      console.error('GuardManagement | Error placing patrol tokens:', err);
-      ui?.notifications?.error?.('Error al colocar tokens');
-    }
-  }
-
-  /**
-   * Enter crosshair pick mode on the canvas.
-   * Resolves with {x, y} when left-clicked, or null if cancelled (right-click / Escape).
-   */
-  private static pickCanvasLocation(): Promise<{ x: number; y: number } | null> {
-    return new Promise((resolve) => {
-      const cv: any = (globalThis as any).canvas;
-      if (!cv?.stage) {
-        resolve(null);
-        return;
-      }
-
-      const canvasElement = document.getElementById('board');
-      const originalCursor = canvasElement?.style.cursor || '';
-      if (canvasElement) canvasElement.style.cursor = 'crosshair';
-
-      let resolved = false;
-
-      const cleanup = () => {
-        if (resolved) return;
-        resolved = true;
-        if (canvasElement) canvasElement.style.cursor = originalCursor;
-        cv.stage.off('pointerdown', onPointerDown);
-        document.removeEventListener('keydown', onKeyDown);
-        document.removeEventListener('contextmenu', onContextMenu);
-      };
-
-      const onPointerDown = (event: any) => {
-        if (event.data?.button !== 0) return;
-
-        const point = event.data.getLocalPosition(cv.stage);
-
-        // Snap to grid center
-        const CONST_GRID = (globalThis as any).CONST;
-        const snapped = cv.grid?.getSnappedPoint?.(
-          { x: point.x, y: point.y },
-          { mode: CONST_GRID?.GRID_SNAPPING_MODES?.CENTER ?? 2 }
-        ) || cv.grid?.getSnappedPosition?.(point.x, point.y, 1)
-          || { x: point.x, y: point.y };
-
-        cleanup();
-        resolve(snapped);
-      };
-
-      const onKeyDown = (event: KeyboardEvent) => {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          cleanup();
-          resolve(null);
-        }
-      };
-
-      const onContextMenu = (event: MouseEvent) => {
-        event.preventDefault();
-        cleanup();
-        resolve(null);
-      };
-
-      cv.stage.on('pointerdown', onPointerDown);
-      document.addEventListener('keydown', onKeyDown);
-      document.addEventListener('contextmenu', onContextMenu, { once: true });
-    });
-  }
-
-  /**
-   * Calculate positions for a circular formation.
-   * Officer at center, soldiers distributed on a circle.
-   */
-  private static calculateFormationPositions(
-    centerX: number,
-    centerY: number,
-    members: Array<{ actorId: string; name: string; isOfficer: boolean }>,
-    gridSize: number
-  ): Array<{ actorId: string; name: string; x: number; y: number }> {
-    const result: Array<{ actorId: string; name: string; x: number; y: number }> = [];
-
-    const officer = members.find(m => m.isOfficer);
-    const soldiers = members.filter(m => !m.isOfficer);
-
-    // Officer at center
-    if (officer) {
-      result.push({
-        actorId: officer.actorId,
-        name: officer.name,
-        x: centerX,
-        y: centerY,
-      });
-    }
-
-    // Soldiers on a circle (tight formation)
-    if (soldiers.length > 0) {
-      const baseRadius = gridSize * 1.0;
-      const minArcLength = gridSize * 0.85;
-      const minRadiusForCount = (soldiers.length * minArcLength) / (2 * Math.PI);
-      const radius = Math.max(baseRadius, minRadiusForCount);
-
-      for (let i = 0; i < soldiers.length; i++) {
-        const angle = (2 * Math.PI * i) / soldiers.length - Math.PI / 2;
-        result.push({
-          actorId: soldiers[i].actorId,
-          name: soldiers[i].name,
-          x: centerX + radius * Math.cos(angle),
-          y: centerY + radius * Math.sin(angle),
-        });
-      }
-    }
-
-    return result;
   }
 }

@@ -3,7 +3,9 @@ import { REPUTATION_LABELS, ReputationLevel } from '../types/entities.js';
 import { ReputationTemplate } from '../ui/ReputationTemplate.js';
 import { ResourceTemplate } from '../ui/ResourceTemplate.js';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
+import { DOMEventSetup } from '../utils/DOMEventSetup.js';
 import { ResourceErrorHandler } from '../utils/ResourceErrorHandler.js';
+import { ResourceEventHandler, type ResourceEventContext } from '../utils/ResourceEventHandler.js';
 
 /**
  * GM Warehouse Dialog
@@ -48,7 +50,6 @@ export class GMWarehouseDialog implements FocusableDialog {
   private resourceUpdateHandler?: (event: Event) => void;
   private resourceDeleteHandler?: (event: Event) => void;
   private uiRefreshHandler?: (event: Event) => void;
-  private isLocalRefresh = false;
 
   // Storage for templates (in-memory for now)
   private resourceTemplates: any[] = [];
@@ -98,6 +99,15 @@ export class GMWarehouseDialog implements FocusableDialog {
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.error(
           'Guard Management module still loading. Please wait a moment and try again.'
+        );
+      }
+      return;
+    }
+
+    if (!gm.documentManager) {
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error(
+          'Document manager not available. Please reload the module.'
         );
       }
       return;
@@ -202,7 +212,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
     // Render using Handlebars template
-    const content = await foundry.applications.handlebars.renderTemplate(
+    const content = await renderTemplate(
       'modules/guard-management/templates/dialogs/gm-warehouse.hbs',
       {}
     );
@@ -212,7 +222,7 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Get resource templates from ResourceManager
+   * Get resource templates from DocumentBasedManager
    */
   private async getResourceTemplates(): Promise<any[]> {
     try {
@@ -227,14 +237,14 @@ export class GMWarehouseDialog implements FocusableDialog {
       this.resourceTemplates = gm.resourceManager.getAllResources() || [];
       return this.resourceTemplates;
     } catch (error) {
-      console.error('Error loading resource templates:', error);
+      console.error('Error loading resource templates from DocumentBasedManager:', error);
       this.resourceTemplates = [];
       return this.resourceTemplates;
     }
   }
 
   /**
-   * Get reputation templates from ReputationManager
+   * Get reputation templates from DocumentBasedManager
    */
   private async getReputationTemplates(): Promise<any[]> {
     try {
@@ -249,25 +259,25 @@ export class GMWarehouseDialog implements FocusableDialog {
       this.reputationTemplates = gm.reputationManager.getAllReputations() || [];
       return this.reputationTemplates;
     } catch (error) {
-      console.error('Error loading reputation templates:', error);
+      console.error('Error loading reputation templates from DocumentBasedManager:', error);
       this.reputationTemplates = [];
       return this.reputationTemplates;
     }
   }
 
   /**
-   * Get patrol effect templates from PatrolEffectManager
+   * Get patrol effect templates from DocumentBasedManager
    */
   private async getPatrolEffectTemplates(): Promise<any[]> {
     try {
       const gm = (window as any).GuardManagement;
 
-      if (!gm || !gm.isInitialized || !gm.patrolEffectManager) {
+      if (!gm || !gm.isInitialized || !gm.documentManager) {
         this.patrolEffectTemplates = [];
         return this.patrolEffectTemplates;
       }
 
-      this.patrolEffectTemplates = gm.patrolEffectManager.getAllEffects();
+      this.patrolEffectTemplates = await gm.documentManager.getPatrolEffects();
       return this.patrolEffectTemplates;
     } catch (error) {
       console.error('Error loading patrol effect templates:', error);
@@ -277,18 +287,18 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Get guard modifier templates from ModifierManager
+   * Get guard modifier templates from DocumentBasedManager
    */
   private async getGuardModifierTemplates(): Promise<any[]> {
     try {
       const gm = (window as any).GuardManagement;
 
-      if (!gm || !gm.isInitialized || !gm.modifierManager) {
+      if (!gm || !gm.isInitialized || !gm.documentManager) {
         this.guardModifierTemplates = [];
         return this.guardModifierTemplates;
       }
 
-      this.guardModifierTemplates = gm.modifierManager.getAllModifiers();
+      this.guardModifierTemplates = await gm.documentManager.getGuardModifiers();
       return this.guardModifierTemplates;
     } catch (error) {
       console.error('Error loading guard modifier templates:', error);
@@ -337,7 +347,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private async renderResourceTemplate(resource: any): Promise<string> {
     // Resource is already a plain object from resourceManager, no conversion needed
-    return foundry.applications.handlebars.renderTemplate(
+    return renderTemplate(
       'modules/guard-management/templates/partials/warehouse-resource-item.hbs',
       resource
     );
@@ -359,7 +369,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       levelLabel: REPUTATION_LABELS[level as ReputationLevel] || `Level ${level}`,
     };
 
-    return foundry.applications.handlebars.renderTemplate(
+    return renderTemplate(
       'modules/guard-management/templates/partials/warehouse-reputation-item.hbs',
       reputationData
     );
@@ -372,13 +382,13 @@ export class GMWarehouseDialog implements FocusableDialog {
     const effectData = {
       id: effect.id,
       name: effect.name,
-      description: effect.description || '',
-      type: effect.type || 'neutral',
-      image: effect.image || '',
-      statModifications: effect.statModifications || [],
+      description: effect.system?.description || '',
+      type: effect.system?.type || 'neutral',
+      image: effect.img || '',
+      statModifications: effect.system?.statModifications || [],
     };
 
-    return foundry.applications.handlebars.renderTemplate(
+    return renderTemplate(
       'modules/guard-management/templates/partials/warehouse-patrol-effect-item.hbs',
       effectData
     );
@@ -391,13 +401,13 @@ export class GMWarehouseDialog implements FocusableDialog {
     const modifierData = {
       id: modifier.id,
       name: modifier.name,
-      description: modifier.description || '',
-      type: modifier.type || 'neutral',
-      image: modifier.image || '',
-      statModifications: modifier.statModifications || [],
+      description: modifier.system?.description || '',
+      type: modifier.system?.type || 'neutral',
+      image: modifier.img || '',
+      statModifications: modifier.system?.statModifications || [],
     };
 
-    return foundry.applications.handlebars.renderTemplate(
+    return renderTemplate(
       'modules/guard-management/templates/partials/warehouse-guard-modifier-item.hbs',
       modifierData
     );
@@ -498,8 +508,12 @@ export class GMWarehouseDialog implements FocusableDialog {
     this.element.addEventListener('click', this.handleGlobalClick);
     document.addEventListener('click', this.handleGlobalClick);
 
-    // Setup window event listeners for external resource events (from other dialogs)
-    this.setupWindowResourceListeners();
+    // Setup resource event handlers using centralized approach
+    DOMEventSetup.setupOrRetry(
+      ['.add-resource-btn', '.edit-resource-btn', '.delete-resource-btn'],
+      () => this.setupResourceEventListeners(),
+      3
+    );
   }
 
   /**
@@ -523,24 +537,39 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Setup window event listeners for external resource events
-   * Button handlers are managed by addEventListeners/addTemplateEventListeners,
-   * so we only subscribe to window events from other dialogs here.
+   * Setup event listeners using centralized resource handler
    */
-  private setupWindowResourceListeners(): void {
-    // Window event listeners for external events (from other panels/dialogs)
-    // Skip refresh when the warehouse itself just triggered a refresh
+  private setupResourceEventListeners(): void {
+    const context: ResourceEventContext = {
+      organizationId: 'gm-warehouse-templates',
+      onResourceAdded: (resource) => {
+        console.log('Resource template added:', resource);
+        this.refreshResourcesTab();
+      },
+      onResourceEdited: (resource) => {
+        console.log('Resource template edited:', resource);
+        this.refreshResourcesTab();
+      },
+      onResourceRemoved: (resourceId) => {
+        console.log('Resource template removed:', resourceId);
+        this.refreshResourcesTab();
+      },
+      refreshUI: () => this.refreshResourcesTab(),
+    };
+
+    ResourceEventHandler.setup(context);
+
+    // Also setup window event listeners for external events
     this.resourceUpdateHandler = (_event: Event) => {
-      if (!this.isLocalRefresh) this.refreshResourcesTab();
+      this.refreshResourcesTab();
     };
 
     this.resourceDeleteHandler = (_event: Event) => {
-      if (!this.isLocalRefresh) this.refreshResourcesTab();
+      this.refreshResourcesTab();
     };
 
     // Listen for general UI refresh events
     this.uiRefreshHandler = (event: Event) => {
-      if (this.isLocalRefresh) return;
       const detail = (event as CustomEvent).detail;
 
       // Only refresh if it's related to resources
@@ -697,13 +726,21 @@ export class GMWarehouseDialog implements FocusableDialog {
         const { AddOrEditResourceDialog } = await import('./AddOrEditResourceDialog.js');
 
         const templateOrganizationId = 'gm-warehouse-templates';
-        // AddOrEditResourceDialog.create() already creates the resource via resourceManager
-        // so we only need to refresh the UI — no second createResource call
         const newResource = await AddOrEditResourceDialog.create(templateOrganizationId);
 
         if (newResource) {
+          const gm = (window as any).GuardManagement;
+          if (!gm?.resourceManager) {
+            throw new Error('ResourceManager not available');
+          }
+
+          const createdResource = await gm.resourceManager.createResource(newResource);
+          if (!createdResource) {
+            throw new Error('Failed to create resource via ResourceManager');
+          }
+
           await this.refreshResourcesTab();
-          return newResource;
+          return createdResource;
         }
 
         return null;
@@ -754,9 +791,9 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (newEffect) {
         const gm = (window as any).GuardManagement;
-        if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
+        if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
 
-        await gm.patrolEffectManager.createEffect(newEffect);
+        await gm.documentManager.createPatrolEffect(newEffect);
         await this.refreshPatrolEffectsTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -783,9 +820,9 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (newModifier) {
         const gm = (window as any).GuardManagement;
-        if (!gm?.modifierManager) throw new Error('ModifierManager not available');
+        if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
 
-        await gm.modifierManager.createModifier(newModifier);
+        await gm.documentManager.createGuardModifier(newModifier);
         await this.refreshGuardModifiersTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -936,7 +973,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     sendToChatButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = (button.closest('.dh-card') || button.closest('.template-item')) as HTMLElement;
+        const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
 
@@ -953,7 +990,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     editButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = (button.closest('.dh-card') || button.closest('.template-item')) as HTMLElement;
+        const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
@@ -976,7 +1013,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     duplicateButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = (button.closest('.dh-card') || button.closest('.template-item')) as HTMLElement;
+        const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
@@ -999,7 +1036,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     deleteButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = (button.closest('.dh-card') || button.closest('.template-item')) as HTMLElement;
+        const templateItem = button.closest('.template-item') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
@@ -1017,8 +1054,8 @@ export class GMWarehouseDialog implements FocusableDialog {
       };
     });
 
-    // Handle drag start for resource templates (now .dh-card with data-resource-id)
-    const resourceTemplates = this.element.querySelectorAll('.dh-card[data-resource-id][draggable="true"]');
+    // Handle drag start for resource templates
+    const resourceTemplates = this.element.querySelectorAll('.resource-template[draggable="true"]');
     resourceTemplates.forEach((template) => {
       (template as HTMLElement).ondragstart = (event) => {
         this.handleResourceDragStart(event as DragEvent);
@@ -1030,7 +1067,7 @@ export class GMWarehouseDialog implements FocusableDialog {
 
     // Handle drag start for reputation templates
     const reputationTemplates = this.element.querySelectorAll(
-      '.dh-card[data-reputation-id][draggable="true"]'
+      '.reputation-template[draggable="true"]'
     );
     console.log(`🔧 Setting up drag for ${reputationTemplates.length} reputation templates`);
     reputationTemplates.forEach((template) => {
@@ -1074,7 +1111,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private handleResourceDragStart(event: DragEvent): void {
     const target = event.target as HTMLElement;
-    const resourceTemplate = target.closest('.dh-card[data-resource-id]') as HTMLElement;
+    const resourceTemplate = target.closest('.resource-template') as HTMLElement;
 
     if (!resourceTemplate || !event.dataTransfer) return;
 
@@ -1115,7 +1152,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private handleResourceDragEnd(event: DragEvent): void {
     const target = event.target as HTMLElement;
-    const resourceTemplate = target.closest('.dh-card[data-resource-id]') as HTMLElement;
+    const resourceTemplate = target.closest('.resource-template') as HTMLElement;
 
     if (resourceTemplate) {
       // Restore visual state
@@ -1128,7 +1165,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private handleReputationDragStart(event: DragEvent): void {
     const target = event.target as HTMLElement;
-    const reputationTemplate = target.closest('.dh-card[data-reputation-id]') as HTMLElement;
+    const reputationTemplate = target.closest('.reputation-template') as HTMLElement;
 
     if (!reputationTemplate || !event.dataTransfer) return;
 
@@ -1144,9 +1181,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       return;
     }
 
-    const reputation = gm.reputationManager
-      .getAllReputations()
-      ?.find((r: any) => r.id === reputationId);
+    const reputation = gm.reputationManager.getAllReputations()?.find((r: any) => r.id === reputationId);
     if (!reputation) {
       console.error('Reputation not found for drag operation:', reputationId);
       return;
@@ -1190,7 +1225,7 @@ export class GMWarehouseDialog implements FocusableDialog {
    */
   private handleReputationDragEnd(event: DragEvent): void {
     const target = event.target as HTMLElement;
-    const reputationTemplate = target.closest('.dh-card[data-reputation-id]') as HTMLElement;
+    const reputationTemplate = target.closest('.reputation-template') as HTMLElement;
 
     if (reputationTemplate) {
       // Restore visual state
@@ -1221,18 +1256,18 @@ export class GMWarehouseDialog implements FocusableDialog {
     if (!effectId) return;
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.patrolEffectManager) return;
+    if (!gm?.documentManager) return;
 
-    const effect = gm.patrolEffectManager.getAllEffects().find((e: any) => e.id === effectId);
+    const effect = gm.documentManager.getPatrolEffects().find((e: any) => e.id === effectId);
     if (!effect) return;
 
     const effectData = {
       id: effect.id,
       name: effect.name,
-      description: effect.description || '',
-      type: effect.type || 'neutral',
-      image: effect.image || '',
-      statModifications: effect.statModifications || [],
+      description: effect.system?.description || '',
+      type: effect.system?.type || 'neutral',
+      image: effect.img || '',
+      statModifications: effect.system?.statModifications || [],
     };
 
     const dragData = {
@@ -1274,18 +1309,18 @@ export class GMWarehouseDialog implements FocusableDialog {
     if (!modifierId) return;
 
     const gm = (window as any).GuardManagement;
-    if (!gm?.modifierManager) return;
+    if (!gm?.documentManager) return;
 
-    const modifier = gm.modifierManager.getAllModifiers().find((m: any) => m.id === modifierId);
+    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
     if (!modifier) return;
 
     const modifierData = {
       id: modifier.id,
       name: modifier.name,
-      description: modifier.description || '',
-      type: modifier.type || 'neutral',
-      image: modifier.image || '',
-      statModifications: modifier.statModifications || [],
+      description: modifier.system?.description || '',
+      type: modifier.system?.type || 'neutral',
+      image: modifier.img || '',
+      statModifications: modifier.system?.statModifications || [],
     };
 
     const dragData = {
@@ -1368,9 +1403,9 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleEditPatrolEffectTemplate(effectId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
 
-      const effects = gm.patrolEffectManager.getAllEffects();
+      const effects = gm.documentManager.getPatrolEffects();
       const effect = effects.find((e: any) => e.id === effectId);
 
       if (!effect) throw new Error('Patrol effect not found');
@@ -1378,11 +1413,11 @@ export class GMWarehouseDialog implements FocusableDialog {
       const effectData = {
         id: effect.id,
         name: effect.name,
-        description: effect.description || '',
-        type: effect.type || 'neutral',
-        image: effect.image || '',
-        statModifications: effect.statModifications || [],
-        version: effect.version || 1,
+        description: effect.system?.description || '',
+        type: effect.system?.type || 'neutral',
+        image: effect.img || '',
+        statModifications: effect.system?.statModifications || [],
+        version: effect.system?.version || 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1391,7 +1426,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       const updatedEffect = await AddOrEditPatrolEffectDialog.edit(effectData as any);
 
       if (updatedEffect) {
-        await gm.patrolEffectManager.updateEffect(updatedEffect.id, updatedEffect);
+        await gm.documentManager.updatePatrolEffect(updatedEffect.id, updatedEffect);
         await this.refreshPatrolEffectsTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -1427,30 +1462,40 @@ export class GMWarehouseDialog implements FocusableDialog {
           throw new Error('Resource not found');
         }
 
+        const resourceData = resource; // Ya es un objeto plano
+
         // Import AddOrEditResourceDialog dynamically
         const { AddOrEditResourceDialog } = await import('./AddOrEditResourceDialog.js');
 
-        // Show edit dialog — AddOrEditResourceDialog.edit() already calls
-        // resourceManager.updateResource() internally, so we do NOT update again here
-        const updatedResource = await AddOrEditResourceDialog.edit(resource);
+        // Show edit dialog
+        const updatedResource = await AddOrEditResourceDialog.edit(resourceData);
 
         if (updatedResource) {
+          // Save the updated resource to the database
+          const updateSuccess = await gm.resourceManager.updateResource(
+            updatedResource.id,
+            updatedResource
+          );
+
+          if (!updateSuccess) {
+            throw new Error('Failed to save resource to database');
+          }
+
           // Refresh the warehouse dialog
           await this.refreshResourcesTab();
 
-          // Emit custom event to notify other dialogs (skip self-triggered refresh)
-          this.isLocalRefresh = true;
+          // Emit custom event to notify other dialogs
           window.dispatchEvent(
             new CustomEvent('guard-resource-updated', {
               detail: {
                 resourceId: updatedResource.id,
                 updatedResource: updatedResource,
-                oldName: resource.name,
+                oldName: resourceData.name,
                 newName: updatedResource.name,
               },
             })
           );
-          this.isLocalRefresh = false;
+
           return updatedResource;
         }
 
@@ -1534,9 +1579,9 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleEditGuardModifierTemplate(modifierId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.modifierManager) throw new Error('ModifierManager not available');
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
 
-      const modifiers = gm.modifierManager.getAllModifiers();
+      const modifiers = gm.documentManager.getGuardModifiers();
       const modifier = modifiers.find((m: any) => m.id === modifierId);
 
       if (!modifier) throw new Error('Guard modifier not found');
@@ -1544,11 +1589,11 @@ export class GMWarehouseDialog implements FocusableDialog {
       const modifierData = {
         id: modifier.id,
         name: modifier.name,
-        description: modifier.description || '',
-        type: modifier.type || 'neutral',
-        image: modifier.image || '',
-        statModifications: modifier.statModifications || [],
-        version: modifier.version || 1,
+        description: modifier.system?.description || '',
+        type: modifier.system?.type || 'neutral',
+        image: modifier.img || '',
+        statModifications: modifier.system?.statModifications || [],
+        version: modifier.system?.version || 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1557,7 +1602,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       const updatedModifier = await AddOrEditGuardModifierDialog.edit(modifierData as any);
 
       if (updatedModifier) {
-        await gm.modifierManager.updateModifier(updatedModifier.id, updatedModifier);
+        await gm.documentManager.updateGuardModifier(updatedModifier.id, updatedModifier);
         await this.refreshGuardModifiersTab();
 
         if ((globalThis as any).ui?.notifications) {
@@ -1657,17 +1702,17 @@ export class GMWarehouseDialog implements FocusableDialog {
       }
 
       // Check if resource is assigned to any organization before deleting
-      const organizations = gm.guardOrganizationManager?.getAllOrganizations() || [];
+      const organizations = gm.documentManager.getGuardOrganizations();
       const assignedOrganizations = organizations.filter((org: any) =>
-        org.resources?.includes(resourceId)
+        org.system?.resources?.includes(resourceId)
       );
 
       if (assignedOrganizations.length > 0) {
-        console.log(`Resource is assigned to ${assignedOrganizations.length} organizations`);
+        console.log(`🔍 Resource is assigned to ${assignedOrganizations.length} organizations`);
       }
 
-      // Use the ResourceManager to delete the resource and clean up references
-      const deleted = await gm.resourceManager.deleteResource(resourceId);
+      // Use the DocumentBasedManager method to delete the resource and clean up references
+      const deleted = await gm.documentManager.deleteGuardResource(resourceId);
 
       if (!deleted) {
         console.error('❌ Failed to delete resource');
@@ -1687,14 +1732,12 @@ export class GMWarehouseDialog implements FocusableDialog {
       // Refresh the warehouse dialog to remove the deleted resource
       this.refreshResourcesTab();
 
-      // Emit custom event to notify other dialogs (skip self-triggered refresh)
-      this.isLocalRefresh = true;
+      // Emit custom event to notify other dialogs
       window.dispatchEvent(
         new CustomEvent('guard-resource-deleted', {
           detail: { resourceId, resourceName },
         })
       );
-      this.isLocalRefresh = false;
     } catch (error) {
       console.error('❌ Error deleting resource:', error);
       if ((globalThis as any).ui?.notifications) {
@@ -1728,7 +1771,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       if (!confirmed) return;
 
       // Delete the reputation
-      const deleteSuccess = await gm.reputationManager.deleteReputation(reputationId);
+      const deleteSuccess = await gm.documentManager.deleteGuardReputation(reputationId);
       if (!deleteSuccess) {
         throw new Error('Failed to delete reputation from database');
       }
@@ -1756,9 +1799,9 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleDeletePatrolEffectTemplate(effectId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.patrolEffectManager) throw new Error('PatrolEffectManager not available');
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
 
-      const effects = gm.patrolEffectManager.getAllEffects();
+      const effects = gm.documentManager.getPatrolEffects();
       const effect = effects.find((e: any) => e.id === effectId);
       const effectName = effect?.name || 'Unknown Effect';
 
@@ -1770,7 +1813,7 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (!confirmed) return;
 
-      await gm.patrolEffectManager.deleteEffect(effectId);
+      await gm.documentManager.deletePatrolEffect(effectId);
       await this.refreshPatrolEffectsTab();
 
       if ((globalThis as any).ui?.notifications) {
@@ -1792,9 +1835,9 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleDeleteGuardModifierTemplate(modifierId: string): Promise<void> {
     try {
       const gm = (window as any).GuardManagement;
-      if (!gm?.modifierManager) throw new Error('ModifierManager not available');
+      if (!gm?.documentManager) throw new Error('DocumentBasedManager not available');
 
-      const modifiers = gm.modifierManager.getAllModifiers();
+      const modifiers = gm.documentManager.getGuardModifiers();
       const modifier = modifiers.find((m: any) => m.id === modifierId);
       const modifierName = modifier?.name || 'Unknown Modifier';
 
@@ -1806,7 +1849,7 @@ export class GMWarehouseDialog implements FocusableDialog {
 
       if (!confirmed) return;
 
-      await gm.modifierManager.deleteModifier(modifierId);
+      await gm.documentManager.deleteGuardModifier(modifierId);
       await this.refreshGuardModifiersTab();
 
       if ((globalThis as any).ui?.notifications) {

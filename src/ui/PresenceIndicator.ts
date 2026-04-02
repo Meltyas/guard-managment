@@ -277,10 +277,14 @@ export class PresenceIndicator {
     if (!this.container || !this.dialogElement) return;
     const dialogRect = this.dialogElement.getBoundingClientRect();
 
+    // Anchor the container's right edge to the dialog's left edge (avatars grow leftward)
     if (dialogRect.left >= 44) {
-      this.container.style.left = `${dialogRect.left - 40}px`;
+      this.container.style.right = `${window.innerWidth - dialogRect.left + 4}px`;
+      this.container.style.left = '';
     } else {
+      // Not enough room on the left — fall back to right side of dialog
       this.container.style.left = `${dialogRect.right + 4}px`;
+      this.container.style.right = '';
     }
 
     this.container.style.top = `${dialogRect.top}px`;

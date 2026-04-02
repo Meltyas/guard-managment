@@ -37,6 +37,7 @@ export class CustomInfoDialog implements FocusableDialog {
   private resourceEventHandler: ((event: Event) => void) | null = null;
   private uiRefreshHandler?: (event: Event) => void;
   private presenceIndicator: PresenceIndicator | null = null;
+  private lastInteractionTime = 0;
 
   constructor() {
     this.handleMouseDown = this.handleMouseDown.bind(this);
@@ -233,6 +234,7 @@ export class CustomInfoDialog implements FocusableDialog {
     const content = await foundry.applications.handlebars.renderTemplate(templatePath, {
       title: `Información: ${organization.name}`,
       initialTab: localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general',
+      isGM: !!(game as any)?.user?.isGM,
     });
 
     dialog.innerHTML = content;
@@ -501,6 +503,16 @@ export class CustomInfoDialog implements FocusableDialog {
         this.onEditCallback();
       }
     });
+
+    // Share button (GM only — visibility already set by template via isGM)
+    const shareBtn = this.element.querySelector('.custom-dialog-share-players') as HTMLElement | null;
+    if (shareBtn) {
+      shareBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.shareWithPlayers();
+      });
+    }
 
     minimizeBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1061,6 +1073,9 @@ export class CustomInfoDialog implements FocusableDialog {
   private handleMouseDown(e: MouseEvent): void {
     if (!this.element) return;
 
+    // Track user interaction
+    this.lastInteractionTime = Date.now();
+
     // Only drag from header, not from buttons
     const target = e.target as HTMLElement;
     if (target.closest('.custom-dialog-btn')) return;
@@ -1131,6 +1146,9 @@ export class CustomInfoDialog implements FocusableDialog {
    * Handle keyboard events
    */
   private handleKeyDown(e: KeyboardEvent): void {
+    // Track user interaction (any key = active)
+    this.lastInteractionTime = Date.now();
+
     if (e.key === 'Escape') {
       this.close();
     }
@@ -1182,6 +1200,10 @@ export class CustomInfoDialog implements FocusableDialog {
     if (isClickOnDialog && !this.isFocused) {
       // Clicked on this dialog, give it focus
       DialogFocusManager.getInstance().setFocus(this);
+    }
+
+    if (isClickOnDialog) {
+      this.lastInteractionTime = Date.now();
     }
   }
 
@@ -1397,6 +1419,102 @@ export class CustomInfoDialog implements FocusableDialog {
     await gm.guardOrganizationManager.updateOrganization({
       activeModifiers: updatedModifiers,
     });
+  }
+
+  /**
+   * Get the timestamp of the last user interaction
+   */
+  public getLastInteractionTime(): number {
+    return this.lastInteractionTime;
+  }
+
+  /**
+   * Activate a specific tab programmatically
+   */
+  public activateTab(tab: string): void {
+    if (!this.element) return;
+    const btn = this.element.querySelector(`.org-tab-btn[data-tab="${tab}"]`) as HTMLButtonElement | null;
+    if (btn) btn.click();
+  }
+
+  /**
+   * Show a dismissable banner asking the player to go to a specific tab
+   */
+  public showGmBanner(tab: string): void {
+    if (!this.element) return;
+
+    // Remove any existing banner first
+    this.element.querySelector('.guard-gm-banner')?.remove();
+
+    const tabLabels: Record<string, string> = {
+      general: 'General',
+      patrols: 'Patrullas',
+      auxiliaries: 'Auxiliares',
+      resources: 'Recursos',
+      reputation: 'Reputación',
+      crimes: 'Crímenes',
+      prisoners: 'Prisioneros',
+      gangs: 'Bandas',
+      buildings: 'Edificios',
+      poi: 'Gente de Interés',
+      finances: 'Finanzas',
+    };
+    const label = tabLabels[tab] ?? tab;
+
+    const banner = document.createElement('div');
+    banner.className = 'guard-gm-banner';
+    banner.innerHTML = `
+      <span class="guard-gm-banner-text">
+        <i class="fas fa-share-alt"></i>
+        El GM quiere que veas <strong>${label}</strong>
+      </span>
+      <div class="guard-gm-banner-actions">
+        <button class="guard-gm-banner-go"><i class="fas fa-arrow-right"></i> Ir</button>
+        <button class="guard-gm-banner-dismiss" title="Cerrar"><i class="fas fa-times"></i></button>
+      </div>`;
+
+    const dismiss = () => banner.remove();
+
+    banner.querySelector('.guard-gm-banner-go')?.addEventListener('click', () => {
+      banner.remove();
+      this.activateTab(tab);
+    });
+    banner.querySelector('.guard-gm-banner-dismiss')?.addEventListener('click', dismiss);
+
+    // Auto-dismiss when the player clicks any tab
+    this.element.querySelectorAll('.org-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', dismiss, { once: true });
+    });
+
+    const content = this.element.querySelector('.custom-dialog-content') as HTMLElement | null;
+    if (content) this.element.insertBefore(banner, content);
+  }
+
+  /**
+   * Flash the dialog to draw attention (player was recently active)
+   */
+  public flashAttention(): void {
+    if (!this.element) return;
+    this.element.classList.remove('guard-dialog-attention');
+    // Force reflow so re-adding the class triggers the animation again
+    void this.element.offsetWidth;
+    this.element.classList.add('guard-dialog-attention');
+    setTimeout(() => this.element?.classList.remove('guard-dialog-attention'), 1600);
+  }
+
+  /**
+   * Write to game.settings to trigger the onChange on all player clients
+   */
+  private shareWithPlayers(): void {
+    const layout = this.element?.querySelector('.org-tabs-layout') as HTMLElement | null;
+    const currentTab = layout?.getAttribute('data-current-tab') || 'general';
+
+    game?.settings?.set('guard-management', 'orgDialogRequest' as any, {
+      tab: currentTab,
+      timestamp: Date.now(),
+    });
+
+    ui?.notifications?.info('Mostrando interfaz a los jugadores...');
   }
 
   private initTabs(root: HTMLElement): void {

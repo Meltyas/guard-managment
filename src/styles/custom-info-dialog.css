@@ -1378,3 +1378,81 @@
 .officer-skill {
   padding: 0 4px;
 }
+
+/* Flash animation when a remote open arrives but the player is actively using the dialog */
+@keyframes guard-dialog-attention-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(243, 194, 103, 0.0); outline: 2px solid transparent; }
+  20%  { box-shadow: 0 0 0 6px rgba(243, 194, 103, 0.6); outline: 2px solid #f3c267; }
+  60%  { box-shadow: 0 0 0 12px rgba(243, 194, 103, 0.2); outline: 2px solid #f3c267; }
+  100% { box-shadow: 0 0 0 0 rgba(243, 194, 103, 0.0); outline: 2px solid transparent; }
+}
+
+.custom-info-dialog.guard-dialog-attention {
+  animation: guard-dialog-attention-pulse 1.6s ease-out forwards;
+}
+
+/* ── GM Share Banner ── */
+.guard-gm-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: linear-gradient(90deg, rgba(243, 194, 103, 0.18), rgba(243, 194, 103, 0.08));
+  border-bottom: 1px solid rgba(243, 194, 103, 0.35);
+  font-size: 0.82rem;
+  color: #f3e6c0;
+  flex-shrink: 0;
+  animation: guard-gm-banner-in 0.2s ease-out;
+}
+
+@keyframes guard-gm-banner-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.guard-gm-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.guard-gm-banner-text i {
+  color: #f3c267;
+  font-size: 0.75rem;
+}
+
+.guard-gm-banner-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.guard-gm-banner-go,
+.guard-gm-banner-dismiss {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid rgba(243, 194, 103, 0.4);
+  border-radius: 3px;
+  background: rgba(243, 194, 103, 0.12);
+  color: #f3e6c0;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.guard-gm-banner-go:hover {
+  background: rgba(243, 194, 103, 0.28);
+}
+
+.guard-gm-banner-dismiss {
+  padding: 2px 6px;
+  border-color: rgba(255,255,255,0.15);
+  background: transparent;
+}
+
+.guard-gm-banner-dismiss:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

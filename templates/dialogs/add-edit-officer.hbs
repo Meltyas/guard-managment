@@ -1,13 +1,10 @@
-<form class='officer-form guard-modal-form'>
+<form class='officer-form guard-dialog'>
   <div class='officer-content' data-dialog-id='{{dialogId}}'>
     <div class='officer-actor-section'>
       {{#if actorImg}}
-        <div class='officer-actor-preview' data-drop='actor'>
+        <div class='officer-actor-preview'>
           <img src='{{actorImg}}' alt='{{actorName}}' class='officer-actor-image' />
           <div class='officer-actor-name'>{{actorName}}</div>
-          <button type='button' class='officer-actor-clear-btn' title='Quitar actor asignado'>
-            <i class='fas fa-times'></i>
-          </button>
         </div>
       {{else}}
         <div class='officer-actor-dropzone' data-drop='actor'>
@@ -22,8 +19,8 @@
     <input type='hidden' name='actorImg' value='{{actorImg}}' />
     <input type='hidden' name='organizationId' value='{{organizationId}}' />
 
-    <div class='guard-modal-row'>
-      <label><i class='fas fa-id-badge'></i> Título del Oficial</label>
+    <div class='form-group'>
+      <label for='officer-title'>Título del Oficial</label>
       <input
         type='text'
         id='officer-title'
@@ -34,98 +31,39 @@
       />
     </div>
 
-    <div class='guard-modal-row' style='flex-direction:row;align-items:center;'>
-      <input
-        type='checkbox'
-        id='officer-visible'
-        name='visibleToPlayers'
-        {{#if visibleToPlayers}}checked{{/if}}
-      />
-      <label for='officer-visible' style='text-transform:none;cursor:pointer;'>Visible para jugadores</label>
-    </div>
-
-    <!-- Officer Stats Section -->
-    <div class='officer-stats-section'>
-      <h3>
-        <i class='fas fa-chart-bar'></i>
-        Estadísticas del Oficial
-        <span style='font-size: 0.8rem; font-weight: normal; opacity: 0.7;'>(Modifican patrulla)</span>
-      </h3>
-      <div class='officer-stats-grid'>
-        <div class='officer-stat-input'>
-          <label>Robustismo</label>
-          <input type='number' name='stat-robustismo'
-                 value='{{stats.robustismo}}'
-                 min='-99' max='99' />
-        </div>
-        <div class='officer-stat-input'>
-          <label>Analítica</label>
-          <input type='number' name='stat-analitica'
-                 value='{{stats.analitica}}'
-                 min='-99' max='99' />
-        </div>
-        <div class='officer-stat-input'>
-          <label>Subterfugio</label>
-          <input type='number' name='stat-subterfugio'
-                 value='{{stats.subterfugio}}'
-                 min='-99' max='99' />
-        </div>
-        <div class='officer-stat-input'>
-          <label>Elocuencia</label>
-          <input type='number' name='stat-elocuencia'
-                 value='{{stats.elocuencia}}'
-                 min='-99' max='99' />
-        </div>
-      </div>
-    </div>
-
-    <!-- Officer Skills Section (multiple) -->
-    <div class='officer-skills-section'>
+    <!-- Officer Skill Section -->
+    <div class='officer-skill-section'>
       <h3>
         <i class='fas fa-bolt'></i>
-        Habilidades de Patrulla
+        Habilidad de Patrulla
         <span style='font-size: 0.8rem; font-weight: normal; opacity: 0.7;'>(Opcional)</span>
       </h3>
-      <div class='skills-list' data-skills-list>
-        {{#each skills}}
-          <div class='skill-item' data-skill-id='{{this.id}}'>
-            <div class='skill-header'>
-              {{#if this.image}}
-                <img src='{{this.image}}' alt='{{this.name}}' class='skill-thumb' />
-              {{else}}
-                <span class='skill-thumb-placeholder'><i class='fas fa-bolt'></i></span>
-              {{/if}}
-              <strong>{{this.name}}</strong>
-              <span class='skill-hope-cost'>
-                <i class='fas fa-diamond'></i>
-                {{this.hopeCost}}
-              </span>
-              <button
-                type='button'
-                class='skill-edit-btn'
-                data-skill-id='{{this.id}}'
-                title='Editar habilidad'
-              >
-                <i class='fas fa-edit'></i>
-              </button>
-              <button
-                type='button'
-                class='skill-remove-btn'
-                data-skill-id='{{this.id}}'
-                title='Eliminar habilidad'
-              >
-                <i class='fas fa-times'></i>
-              </button>
-            </div>
-          </div>
-        {{else}}
-          <p class='empty-skills'>No hay habilidades agregadas</p>
-        {{/each}}
+      <div class='form-group'>
+        <label>Nombre</label>
+        <input
+          type='text'
+          name='skillName'
+          value='{{skill.name}}'
+          placeholder='Ej: Tácticas Avanzadas, Don de Mando...'
+        />
       </div>
-      <button type='button' class='add-skill-btn'>
-        <i class='fas fa-plus'></i>
-        Agregar Habilidad
-      </button>
+      <div class='form-group'>
+        <label>Imagen</label>
+        <div class='file-picker-wrapper'>
+          <input
+            type='text'
+            name='skillImage'
+            value='{{skill.image}}'
+            placeholder='icons/...'
+          />
+          <button type='button' class='skill-image-picker-btn file-picker-btn' title='Seleccionar imagen'>
+            <i class='fas fa-folder-open'></i>
+          </button>
+          {{#if skill.image}}
+          <img src='{{skill.image}}' alt='skill' class='skill-preview-img' />
+          {{/if}}
+        </div>
+      </div>
     </div>
 
     <div class='officer-traits-section'>
@@ -139,15 +77,6 @@
             <div class='trait-item' data-trait-id='{{this.id}}'>
               <div class='trait-header'>
                 <strong>{{this.title}}</strong>
-                <button
-                  type='button'
-                  class='trait-edit-btn'
-                  data-trait-id='{{this.id}}'
-                  data-trait-type='pro'
-                  title='Editar'
-                >
-                  <i class='fas fa-edit'></i>
-                </button>
                 <button
                   type='button'
                   class='trait-remove-btn'
@@ -179,15 +108,6 @@
             <div class='trait-item' data-trait-id='{{this.id}}'>
               <div class='trait-header'>
                 <strong>{{this.title}}</strong>
-                <button
-                  type='button'
-                  class='trait-edit-btn'
-                  data-trait-id='{{this.id}}'
-                  data-trait-type='con'
-                  title='Editar'
-                >
-                  <i class='fas fa-edit'></i>
-                </button>
                 <button
                   type='button'
                   class='trait-remove-btn'

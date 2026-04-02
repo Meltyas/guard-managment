@@ -2,14 +2,12 @@ import { AddOrEditPatrolDialog } from '../dialogs/AddOrEditPatrolDialog';
 import { GuardOrganizationDialog } from '../dialogs/GuardOrganizationDialog';
 import { GuardRollDialog } from '../dialogs/GuardRollDialog';
 import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats, Patrol } from '../types/entities';
-import { AuxiliaryManager } from './AuxiliaryManager';
 import { PatrolChangeOp, PatrolManager } from './PatrolManager';
 
 export class GuardOrganizationManager {
   private organization: GuardOrganization | null = null; // Solo una organización
   private dialog: GuardOrganizationDialog;
   private patrolManager: PatrolManager; // Integration
-  private auxiliaryManager: AuxiliaryManager; // Auxiliary units
 
   constructor() {
     this.dialog = new GuardOrganizationDialog();
@@ -43,35 +41,6 @@ export class GuardOrganizationManager {
         console.warn('GuardOrganizationManager | patrol onChange sync failed', e);
       }
     });
-    this.auxiliaryManager = new AuxiliaryManager((aux, op: PatrolChangeOp, ctx) => {
-      try {
-        if (!this.organization) return;
-        if (aux.organizationId !== this.organization.id) return;
-        const auxList = this.organization.auxiliaries || [];
-        if (op === 'delete') {
-          const idx = auxList.indexOf(aux.id);
-          if (idx >= 0) auxList.splice(idx, 1);
-          this.organization.auxiliaries = auxList;
-          this.organization.updatedAt = new Date();
-          this.organization.version += 1;
-          this.saveOrganization(this.organization);
-          return;
-        }
-        if (!auxList.includes(aux.id)) {
-          auxList.push(aux.id);
-          this.organization.auxiliaries = auxList;
-        }
-        if (ctx?.field === 'derivedStats') return;
-        if (op === 'create' || ctx?.field === 'patrolEffects' || ctx?.field === 'baseStats') {
-          this.auxiliaryManager.recalcDerived(aux.id, this.calculateEffectiveOrgStats());
-        }
-        this.organization.updatedAt = new Date();
-        this.organization.version += 1;
-        this.saveOrganization(this.organization);
-      } catch (e) {
-        console.warn('GuardOrganizationManager | auxiliary onChange sync failed', e);
-      }
-    });
   }
 
   public async initialize(): Promise<void> {
@@ -81,11 +50,6 @@ export class GuardOrganizationManager {
       await this.patrolManager.initialize();
     } catch (e) {
       console.warn('GuardOrganizationManager | patrolManager initialize failed', e);
-    }
-    try {
-      await this.auxiliaryManager.initialize();
-    } catch (e) {
-      console.warn('GuardOrganizationManager | auxiliaryManager initialize failed', e);
     }
     await this.loadOrganization();
 
@@ -132,7 +96,6 @@ export class GuardOrganizationManager {
       resources: [],
       reputation: [],
       patrols: [],
-      auxiliaries: [],
       // patrolSnapshots eliminado: datos de patrulla se guardan centralizados en PatrolManager / flags
     } as any;
 
@@ -409,6 +372,104 @@ export class GuardOrganizationManager {
     }
   }
 
+  /** Persist organization into a dedicated Actor so players (with permissions) can modify */
+  private async saveToActor(): Promise<void> {
+    try {
+      if (!this.organization) return;
+      if (!game?.actors) return;
+      // Buscar actor existente por flag
+      const candidates = game.actors.filter(
+        (a: any) => a?.flags?.['guard-management']?.orgStore === true
+      );
+      let actor: any = candidates[0];
+      if (!actor) {
+        // Crear actor si GM; si no, abortar silenciosamente
+        if (!(game as any).user?.isGM) return;
+        const fallbackType = (CONFIG as any).Actor?.type || 'character';
+        // Asegurar carpeta
+        let folder: any = null;
+        try {
+          const allFolders: any[] = (game as any).folders?.contents || [];
+          folder =
+            allFolders.find((f) => f.type === 'Actor' && f.name === 'Guard Management') || null;
+          if (!folder) {
+            folder = await (Folder as any).create({
+              name: 'Guard Management',
+              type: 'Actor',
+              parent: null,
+            });
+            console.log('GuardOrganizationManager | Created folder Guard Management');
+          }
+        } catch {
+          /* ignore */
+        }
+        actor = await (Actor as any).create({
+          name: 'Guard Organization Store',
+          type: fallbackType,
+          flags: { 'guard-management': { orgStore: true } },
+          ownership: { default: 3 }, // OWNER para que todos puedan editar (nivel 3)
+          folder: folder?.id || null,
+        });
+        console.log('GuardOrganizationManager | Created organization actor store');
+      }
+      // Ensure actor in folder if GM
+      if ((game as any).user?.isGM) {
+        try {
+          const allFolders: any[] = (game as any).folders?.contents || [];
+          const targetFolder =
+            allFolders.find((f) => f.type === 'Actor' && f.name === 'Guard Management') || null;
+          if (targetFolder && actor.folder?.id !== targetFolder.id) {
+            await actor.update({ folder: targetFolder.id });
+            console.log(
+              'GuardOrganizationManager | Moved organization actor to Guard Management folder'
+            );
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      const current = actor?.getFlag('guard-management', 'organization');
+      // Solo actualizar si versión nueva para evitar writes innecesarios
+      if (!current || current.version !== this.organization.version) {
+        await actor.setFlag('guard-management', 'organization', this.organization);
+        // Guardar una copia ligera también en notas (opcional) para fácil inspección
+        try {
+          const summary = `${this.organization.name} v${this.organization.version} | Patrols: ${this.organization.patrols?.length || 0}`;
+          // No sobreescribir bio largo existente
+          if (!actor.system?.details?.biography || actor.system.details.biography === '') {
+            await actor.update({ 'system.details.biography': { value: summary } });
+          }
+        } catch {
+          /* ignore */
+        }
+        console.log('GuardOrganizationManager | Saved organization to actor flags');
+      }
+    } catch (e) {
+      console.warn('GuardOrganizationManager | saveToActor failed:', e);
+    }
+  }
+
+  /** Load from actor if available; used mainly for players */
+  private async loadFromActor(): Promise<boolean> {
+    try {
+      if (!game?.actors) return false;
+      const matches = game.actors.filter(
+        (a: any) => a?.flags?.['guard-management']?.orgStore === true
+      );
+      const actor: any = matches[0];
+      if (!actor) return false;
+      const data = await actor.getFlag('guard-management', 'organization');
+      if (data) {
+        this.organization = data as any;
+        console.log('GuardOrganizationManager | Loaded organization from actor flags');
+        return true;
+      }
+    } catch (e) {
+      console.warn('GuardOrganizationManager | loadFromActor failed:', e);
+    }
+    return false;
+  }
+
   /**
    * Broadcast organization to all clients via socket
    */
@@ -474,13 +535,6 @@ export class GuardOrganizationManager {
     });
 
     console.log('GuardOrganizationManager | Requested organization sync from other clients');
-  }
-
-  /**
-   * Public alias for loadOrganization - called from settings onChange on all clients
-   */
-  public async loadFromSettings(): Promise<void> {
-    await this.loadOrganization();
   }
 
   /**
@@ -554,10 +608,6 @@ export class GuardOrganizationManager {
     return this.patrolManager;
   }
 
-  public getAuxiliaryManager(): AuxiliaryManager {
-    return this.auxiliaryManager;
-  }
-
   /** Upsert a patrol snapshot and ensure organization arrays updated & persisted */
   /** @deprecated snapshots eliminados */
   public upsertPatrolSnapshot(_patrol: Patrol): void {
@@ -565,15 +615,12 @@ export class GuardOrganizationManager {
   }
 
   // Helper: create patrol and attach to organization
-  public async createPatrolForOrganization(data: {
-    name: string;
-    baseStats: GuardStats;
-  }): Promise<Patrol | null> {
+  public createPatrolForOrganization(data: { name: string; baseStats: GuardStats }): Patrol | null {
     if (!this.organization) {
       console.warn('GuardOrganizationManager | No organization for patrol creation');
       return null;
     }
-    const patrol = await this.patrolManager.createPatrol({
+    const patrol = this.patrolManager.createPatrol({
       name: data.name,
       organizationId: this.organization.id,
       baseStats: data.baseStats,
@@ -628,90 +675,11 @@ export class GuardOrganizationManager {
     return true;
   }
 
-  // ── Auxiliary CRUD ──────────────────────────────────────────────────
-
-  public async createAuxiliaryForOrganization(data: {
-    name: string;
-    baseStats: GuardStats;
-  }): Promise<Patrol | null> {
-    if (!this.organization) {
-      console.warn('GuardOrganizationManager | No organization for auxiliary creation');
-      return null;
-    }
-    const aux = await this.auxiliaryManager.createPatrol({
-      name: data.name,
-      organizationId: this.organization.id,
-      baseStats: data.baseStats,
-    } as any);
-    const auxList = this.organization.auxiliaries || [];
-    if (!auxList.includes(aux.id)) auxList.push(aux.id);
-    this.organization.auxiliaries = auxList;
-    this.organization.updatedAt = new Date();
-    this.organization.version += 1;
-    this.saveOrganization(this.organization);
-    return aux;
-  }
-
-  public listOrganizationAuxiliaries(): Patrol[] {
-    if (!this.organization) return [];
-    const auxList = this.organization.auxiliaries || [];
-    const result: Patrol[] = [];
-    let changed = false;
-    for (const id of [...auxList]) {
-      const a = this.auxiliaryManager.getPatrol(id);
-      if (a) result.push(a);
-      else {
-        const idx = auxList.indexOf(id);
-        if (idx >= 0) {
-          auxList.splice(idx, 1);
-          changed = true;
-        }
-      }
-    }
-    if (changed) {
-      this.organization.auxiliaries = auxList;
-      this.organization.updatedAt = new Date();
-      this.organization.version += 1;
-      this.saveOrganization(this.organization, false);
-    }
-    return result;
-  }
-
-  public removeAuxiliary(auxId: string): boolean {
-    if (!this.organization) return false;
-    const auxList = this.organization.auxiliaries || [];
-    const idx = auxList.indexOf(auxId);
-    if (idx === -1) return false;
-    auxList.splice(idx, 1);
-    this.organization.auxiliaries = auxList;
-    this.organization.updatedAt = new Date();
-    this.organization.version += 1;
-    this.saveOrganization(this.organization);
-    return true;
-  }
-
-  public async openCreateAuxiliaryDialog(): Promise<Patrol | null> {
-    if (!this.organization) return null;
-    return AddOrEditPatrolDialog.create(this.organization.id, 'auxiliary');
-  }
-
-  public async openEditAuxiliaryDialog(auxId: string): Promise<Patrol | null> {
-    if (!this.organization) return null;
-    const aux = this.auxiliaryManager.getPatrol(auxId);
-    if (!aux) return null;
-    return AddOrEditPatrolDialog.edit(this.organization.id, aux, 'auxiliary');
-  }
-
-  // ── Recalc ──────────────────────────────────────────────────────────
-
   public recalcAllPatrols(orgModifiers?: Partial<GuardStats>) {
     if (!this.organization) return;
     const modifiers = orgModifiers || this.calculateEffectiveOrgStats();
     for (const pid of this.organization.patrols) {
       this.patrolManager.recalcDerived(pid, modifiers);
-    }
-    for (const aid of (this.organization.auxiliaries || [])) {
-      this.auxiliaryManager.recalcDerived(aid, modifiers);
     }
   }
 
@@ -733,9 +701,9 @@ export class GuardOrganizationManager {
   public getActiveModifiers(): any[] {
     if (!this.organization || !this.organization.activeModifiers?.length) return [];
     const gm = (window as any).GuardManagement;
-    if (!gm?.modifierManager) return [];
+    if (!gm?.documentManager) return [];
 
-    const allModifiers = gm.modifierManager.getAllModifiers();
+    const allModifiers = gm.documentManager.getGuardModifiers();
     return allModifiers.filter((m: any) => this.organization!.activeModifiers.includes(m.id));
   }
 
@@ -785,18 +753,18 @@ export class GuardOrganizationManager {
     };
 
     const gm = (window as any).GuardManagement;
-    if (gm?.modifierManager && this.organization.activeModifiers?.length) {
-      const allModifiers = gm.modifierManager.getAllModifiers();
+    if (gm?.documentManager && this.organization.activeModifiers?.length) {
+      const allModifiers = gm.documentManager.getGuardModifiers();
 
       for (const modId of this.organization.activeModifiers) {
         const modifier = allModifiers.find((m: any) => m.id === modId);
-        if (modifier && modifier.statModifications) {
-          for (const mod of modifier.statModifications) {
+        if (modifier && modifier.system?.statModifications) {
+          for (const mod of modifier.system.statModifications) {
             if (total[mod.statName] !== undefined) {
               total[mod.statName] += mod.value;
               modifiers[mod.statName].push({
                 name: modifier.name,
-                img: modifier.image || '',
+                img: modifier.img,
                 value: mod.value,
               });
             }
@@ -817,13 +785,13 @@ export class GuardOrganizationManager {
     const stats = { ...this.organization.baseStats };
     const gm = (window as any).GuardManagement;
 
-    if (gm?.modifierManager && this.organization.activeModifiers?.length) {
-      const modifiers = gm.modifierManager.getAllModifiers();
+    if (gm?.documentManager && this.organization.activeModifiers?.length) {
+      const modifiers = gm.documentManager.getGuardModifiers();
 
       for (const modId of this.organization.activeModifiers) {
         const modifier = modifiers.find((m: any) => m.id === modId);
-        if (modifier && modifier.statModifications) {
-          for (const mod of modifier.statModifications) {
+        if (modifier && modifier.system?.statModifications) {
+          for (const mod of modifier.system.statModifications) {
             if (stats[mod.statName] !== undefined) {
               stats[mod.statName] += mod.value;
             }
@@ -870,12 +838,12 @@ export class GuardOrganizationManager {
 
       // 2. Active Modifiers
       const gm = (window as any).GuardManagement;
-      if (gm?.modifierManager && this.organization!.activeModifiers?.length) {
-        const allModifiers = gm.modifierManager.getAllModifiers();
+      if (gm?.documentManager && this.organization!.activeModifiers?.length) {
+        const allModifiers = gm.documentManager.getGuardModifiers();
         for (const modId of this.organization!.activeModifiers) {
           const mod = allModifiers.find((m: any) => m.id === modId);
-          if (mod && mod.statModifications) {
-            for (const change of mod.statModifications) {
+          if (mod && mod.system?.statModifications) {
+            for (const change of mod.system.statModifications) {
               if (change.statName === stat && change.value !== 0) {
                 formula += ` ${change.value >= 0 ? '+' : '-'} ${Math.abs(change.value)}[${mod.name}]`;
               }

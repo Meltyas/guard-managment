@@ -4,21 +4,16 @@
  * Custom FormApplication for creating/editing officers with proper validation
  */
 
-import type { GuardStats } from '../types/entities';
-import type { Officer, OfficerSkill, OfficerTrait } from '../types/officer';
-import { GuardModal } from '../ui/GuardModal.js';
+import type { Officer, OfficerTrait } from '../types/officer';
 
 interface OfficerFormData {
   actorId: string;
   actorName: string;
   actorImg?: string;
   title: string;
-  stats: Partial<GuardStats>;
-  skills: OfficerSkill[];
   pros: OfficerTrait[];
   cons: OfficerTrait[];
   organizationId: string;
-  visibleToPlayers: boolean;
 }
 
 export class OfficerFormApplication extends FormApplication {
@@ -27,20 +22,17 @@ export class OfficerFormApplication extends FormApplication {
   private existingOfficer?: Officer;
   private currentData: Partial<OfficerFormData>;
   private resolvePromise?: (officer: Officer | null) => void;
-  private personnelType: 'officer' | 'civilian';
 
   constructor(
     mode: 'create' | 'edit',
     organizationId: string,
     existingOfficer?: Officer,
-    options?: any,
-    personnelType: 'officer' | 'civilian' = 'officer'
+    options?: any
   ) {
     super({}, options);
     this.mode = mode;
     this.organizationId = organizationId;
     this.existingOfficer = existingOfficer;
-    this.personnelType = personnelType;
 
     // Initialize current data
     this.currentData = {
@@ -48,12 +40,10 @@ export class OfficerFormApplication extends FormApplication {
       actorName: existingOfficer?.actorName || '',
       actorImg: existingOfficer?.actorImg || '',
       title: existingOfficer?.title || '',
-      stats: existingOfficer?.stats || {},
-      skills: existingOfficer?.skills ? [...existingOfficer.skills] : [],
+      skill: existingOfficer?.skill,
       pros: existingOfficer?.pros || [],
       cons: existingOfficer?.cons || [],
       organizationId: existingOfficer?.organizationId || organizationId,
-      visibleToPlayers: existingOfficer?.visibleToPlayers ?? false,
     };
   }
 
@@ -61,18 +51,17 @@ export class OfficerFormApplication extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ['guard-management', 'officer-form-app'],
       template: 'modules/guard-management/templates/dialogs/add-edit-officer.hbs',
-      width: 620,
+      width: 600,
       height: 'auto',
       resizable: true,
-      closeOnSubmit: false,
+      closeOnSubmit: false, // Don't close on submit - we'll handle it manually
       submitOnClose: false,
       submitOnChange: false,
     });
   }
 
   get title() {
-    const label = this.personnelType === 'civilian' ? 'Auxiliar' : 'Oficial';
-    return this.mode === 'create' ? `Crear ${label}` : `Editar ${label}`;
+    return this.mode === 'create' ? 'Crear Oficial' : 'Editar Oficial';
   }
 
   async getData() {
@@ -81,7 +70,7 @@ export class OfficerFormApplication extends FormApplication {
     return {
       ...data,
       mode: this.mode,
-      ...this.currentData,
+      ...this.currentData, // Spread officer data at root level
       organizationId: this.organizationId,
     };
   }
@@ -89,19 +78,15 @@ export class OfficerFormApplication extends FormApplication {
   activateListeners(html: JQuery) {
     super.activateListeners(html);
 
-    // Setup actor drop zone and clear button
+    // Setup actor drop zone
     this.setupActorDropZone(html);
-    this.setupActorClearButton(html);
 
-    // Setup officer skills (multiple)
-    this.setupSkillButtons(html);
-    this.setupSkillRemoveButtons(html);
-    this.setupSkillEditButtons(html);
+    // Setup officer skill file picker
+    this.setupSkillFilePicker(html);
 
     // Setup trait buttons
     this.setupTraitButtons(html);
     this.setupTraitRemoveButtons(html);
-    this.setupTraitEditButtons(html);
 
     // Cancel button
     html.find('.cancel-button').on('click', () => {
@@ -110,29 +95,24 @@ export class OfficerFormApplication extends FormApplication {
     });
   }
 
-  /** Sync title (and visibleToPlayers) from DOM into currentData before re-rendering */
-  private syncFormFields(): void {
-    const el =
-      this.element instanceof $ ? (this.element as JQuery)[0] : (this.element as HTMLElement);
-    if (!el) return;
-    const titleInput = el.querySelector('#officer-title') as HTMLInputElement | null;
-    if (titleInput) this.currentData.title = titleInput.value;
-    const visibleCheck = el.querySelector(
-      'input[name="visibleToPlayers"]'
-    ) as HTMLInputElement | null;
-    if (visibleCheck) this.currentData.visibleToPlayers = visibleCheck.checked;
-    // Sync stats
-    const stats: Partial<GuardStats> = {};
-    for (const key of ['robustismo', 'analitica', 'subterfugio', 'elocuencia']) {
-      const input = el.querySelector(`input[name="stat-${key}"]`) as HTMLInputElement | null;
-      if (input) stats[key] = parseInt(input.value || '0', 10) || 0;
-    }
-    this.currentData.stats = stats;
+  private setupSkillFilePicker(html: JQuery) {
+    const btn = html.find('.skill-image-picker-btn')[0] as HTMLElement;
+    if (!btn) return;
+    btn.onclick = () => {
+      const imageInput = html.find('input[name="skillImage"]')[0] as HTMLInputElement;
+      const picker = new FilePicker({
+        type: 'image',
+        current: imageInput?.value || '',
+        callback: (path: string) => {
+          if (imageInput) imageInput.value = path;
+        },
+      });
+      picker.browse();
+    };
   }
 
   private setupActorDropZone(html: JQuery) {
-    const dropZone =
-      html.find('.officer-actor-dropzone')[0] || html.find('.officer-actor-preview')[0];
+    const dropZone = html.find('.officer-actor-dropzone')[0];
     if (!dropZone) return;
 
     dropZone.addEventListener('dragover', (event: DragEvent) => {
@@ -158,207 +138,18 @@ export class OfficerFormApplication extends FormApplication {
         const actor = await fromUuid(data.uuid);
         if (!actor) return;
 
+        // Update current data
         this.currentData.actorId = actor.id;
         this.currentData.actorName = actor.name;
         this.currentData.actorImg = actor.img;
 
+        // Re-render to show updated actor
         this.render(false);
       } catch (error) {
         console.error('Error handling actor drop:', error);
       }
     });
   }
-
-  private setupActorClearButton(html: JQuery) {
-    html.find('.officer-actor-clear-btn').on('click', (event) => {
-      event.preventDefault();
-      this.currentData.actorId = '';
-      this.currentData.actorName = '';
-      this.currentData.actorImg = '';
-      this.syncFormFields();
-      this.render(false);
-    });
-  }
-
-  // ── Skills ──────────────────────────────────────────────────────────────────
-
-  private setupSkillButtons(html: JQuery) {
-    html.find('.add-skill-btn').on('click', async (event) => {
-      event.preventDefault();
-      await this.showAddSkillDialog();
-    });
-  }
-
-  private setupSkillRemoveButtons(html: JQuery) {
-    html.find('.skill-remove-btn').on('click', (event) => {
-      event.preventDefault();
-      const skillId = $(event.currentTarget).data('skill-id');
-      this.removeSkill(skillId);
-    });
-  }
-
-  private async showAddSkillDialog() {
-    const body = `
-      <div class="guard-modal-form">
-        <div class="guard-modal-row">
-          <label><i class="fas fa-tag"></i> Nombre <span style="color:#e84a4a">*</span></label>
-          <input type="text" id="skill-name" placeholder="Ej: Tácticas Avanzadas, Don de Mando..." />
-        </div>
-        <div class="guard-modal-row">
-          <label><i class="fas fa-image"></i> Imagen</label>
-          <div class="file-picker-wrapper">
-            <input type="text" id="skill-image" placeholder="icons/..." />
-            <button type="button" id="skill-image-picker-btn" class="file-picker-btn" title="Seleccionar imagen">
-              <i class="fas fa-folder-open"></i>
-            </button>
-          </div>
-        </div>
-        <div class="guard-modal-row">
-          <label><i class="fas fa-heart"></i> Coste de Hope (0–5)</label>
-          <input type="number" id="skill-hope-cost" value="0" min="0" max="5" style="width:80px;" />
-        </div>
-        <div class="guard-modal-row">
-          <label><i class="fas fa-align-left"></i> Descripción</label>
-          <textarea id="skill-description" rows="3" placeholder="Descripción de la habilidad..."></textarea>
-        </div>
-      </div>
-    `;
-
-    const result = await GuardModal.openAsync<OfficerSkill>({
-      title: 'Agregar Habilidad',
-      icon: 'fas fa-plus',
-      body,
-      saveLabel: 'Agregar',
-      onRender: (bodyEl) => {
-        const pickerBtn = bodyEl.querySelector('#skill-image-picker-btn');
-        if (pickerBtn) {
-          pickerBtn.addEventListener('click', () => {
-            const imageInput = bodyEl.querySelector('#skill-image') as HTMLInputElement;
-            const picker = new FilePicker({
-              type: 'image',
-              current: imageInput?.value || '',
-              callback: (path: string) => { if (imageInput) imageInput.value = path; },
-            });
-            picker.browse();
-          });
-        }
-      },
-      onSave: async (bodyEl) => {
-        const name = (bodyEl.querySelector('#skill-name') as HTMLInputElement)?.value?.trim();
-        if (!name) {
-          ui.notifications?.error('El nombre de la habilidad es obligatorio');
-          return false;
-        }
-        const image = (bodyEl.querySelector('#skill-image') as HTMLInputElement)?.value?.trim() || '';
-        const hopeCost = Math.min(5, Math.max(0, parseInt((bodyEl.querySelector('#skill-hope-cost') as HTMLInputElement)?.value || '0', 10) || 0));
-        const description = (bodyEl.querySelector('#skill-description') as HTMLTextAreaElement)?.value?.trim() || '';
-        return {
-          id: foundry.utils.randomID(),
-          name,
-          description: description || undefined,
-          image: image || undefined,
-          hopeCost,
-        };
-      },
-    });
-
-    if (result) {
-      this.currentData.skills = [...(this.currentData.skills || []), result];
-      this.syncFormFields();
-      this.render(false);
-    }
-  }
-
-  private removeSkill(skillId: string) {
-    this.currentData.skills = (this.currentData.skills || []).filter((s) => s.id !== skillId);
-    this.syncFormFields();
-    this.render(false);
-  }
-
-  private setupSkillEditButtons(html: JQuery) {
-    html.find('.skill-edit-btn').on('click', async (event) => {
-      event.preventDefault();
-      const skillId = $(event.currentTarget).data('skill-id');
-      const skill = (this.currentData.skills || []).find((s) => s.id === skillId);
-      if (skill) await this.showEditSkillDialog(skill);
-    });
-  }
-
-  private async showEditSkillDialog(skill: OfficerSkill) {
-    const plainDesc = (skill.description || '').replace(/<[^>]*>/g, '');
-    const body = `
-      <div class="guard-modal-form">
-        <div class="guard-modal-row">
-          <label><i class="fas fa-tag"></i> Nombre <span style="color:#e84a4a">*</span></label>
-          <input type="text" id="skill-name" value="${skill.name.replace(/"/g, '&quot;')}" />
-        </div>
-        <div class="guard-modal-row">
-          <label><i class="fas fa-image"></i> Imagen</label>
-          <div class="file-picker-wrapper">
-            <input type="text" id="skill-image" value="${(skill.image || '').replace(/"/g, '&quot;')}" placeholder="icons/..." />
-            <button type="button" id="skill-image-picker-btn" class="file-picker-btn" title="Seleccionar imagen">
-              <i class="fas fa-folder-open"></i>
-            </button>
-          </div>
-        </div>
-        <div class="guard-modal-row">
-          <label><i class="fas fa-heart"></i> Coste de Hope (0–5)</label>
-          <input type="number" id="skill-hope-cost" value="${skill.hopeCost}" min="0" max="5" style="width:80px;" />
-        </div>
-        <div class="guard-modal-row">
-          <label><i class="fas fa-align-left"></i> Descripción</label>
-          <textarea id="skill-description" rows="3">${plainDesc}</textarea>
-        </div>
-      </div>
-    `;
-
-    const result = await GuardModal.openAsync<OfficerSkill>({
-      title: 'Editar Habilidad',
-      icon: 'fas fa-edit',
-      body,
-      onRender: (bodyEl) => {
-        const pickerBtn = bodyEl.querySelector('#skill-image-picker-btn');
-        if (pickerBtn) {
-          pickerBtn.addEventListener('click', () => {
-            const imageInput = bodyEl.querySelector('#skill-image') as HTMLInputElement;
-            const picker = new FilePicker({
-              type: 'image',
-              current: imageInput?.value || '',
-              callback: (path: string) => { if (imageInput) imageInput.value = path; },
-            });
-            picker.browse();
-          });
-        }
-      },
-      onSave: async (bodyEl) => {
-        const name = (bodyEl.querySelector('#skill-name') as HTMLInputElement)?.value?.trim();
-        if (!name) {
-          ui.notifications?.error('El nombre de la habilidad es obligatorio');
-          return false;
-        }
-        const image = (bodyEl.querySelector('#skill-image') as HTMLInputElement)?.value?.trim() || '';
-        const hopeCost = Math.min(5, Math.max(0, parseInt((bodyEl.querySelector('#skill-hope-cost') as HTMLInputElement)?.value || '0', 10) || 0));
-        const description = (bodyEl.querySelector('#skill-description') as HTMLTextAreaElement)?.value?.trim() || '';
-        return {
-          ...skill,
-          name,
-          description: description || undefined,
-          image: image || undefined,
-          hopeCost,
-        };
-      },
-    });
-
-    if (result) {
-      this.currentData.skills = (this.currentData.skills || []).map((s) =>
-        s.id === skill.id ? result : s
-      );
-      this.syncFormFields();
-      this.render(false);
-    }
-  }
-
-  // ── Traits ──────────────────────────────────────────────────────────────────
 
   private setupTraitButtons(html: JQuery) {
     html.find('.add-trait-btn').on('click', async (event) => {
@@ -378,47 +169,58 @@ export class OfficerFormApplication extends FormApplication {
   }
 
   private async showAddTraitDialog(type: 'pro' | 'con') {
-    const body = `
-      <div class="guard-modal-form">
-        <div class="guard-modal-row">
-          <label><i class="fas fa-tag"></i> Título <span style="color:#e84a4a">*</span></label>
-          <input type="text" id="trait-title" />
-        </div>
-        <div class="guard-modal-row">
-          <label><i class="fas fa-align-left"></i> Descripción</label>
-          <textarea id="trait-description" rows="3"></textarea>
-        </div>
-      </div>
-    `;
+    const DialogV2Class = foundry.applications.api.DialogV2;
+    if (!DialogV2Class) return;
 
-    const result = await GuardModal.openAsync<OfficerTrait>({
-      title: type === 'pro' ? 'Agregar Pro' : 'Agregar Con',
-      icon: type === 'pro' ? 'fas fa-thumbs-up' : 'fas fa-thumbs-down',
-      body,
-      saveLabel: 'Agregar',
-      onSave: async (bodyEl) => {
-        const title = (bodyEl.querySelector('#trait-title') as HTMLInputElement)?.value?.trim();
-        if (!title) {
-          ui.notifications?.error('El título es obligatorio');
-          return false;
-        }
-        const description = (bodyEl.querySelector('#trait-description') as HTMLTextAreaElement)?.value?.trim() || '';
-        return {
-          id: foundry.utils.randomID(),
-          title,
-          description,
-          createdAt: new Date(),
-        };
-      },
+    const content = await renderTemplate(
+      'modules/guard-management/templates/dialogs/add-edit-trait.hbs',
+      { title: '', description: '' }
+    );
+
+    let editorContent = '';
+
+    const result = await DialogV2Class.wait({
+      window: { title: type === 'pro' ? 'Agregar Pro' : 'Agregar Con' },
+      content,
+      buttons: [
+        {
+          action: 'add',
+          icon: 'fas fa-plus',
+          label: 'Agregar',
+          callback: (event: any, button: any, dialog: any) => {
+            const titleInput = dialog.element?.querySelector('#trait-title') as HTMLInputElement;
+            const editor = dialog.element?.querySelector('.editor-content') as HTMLElement;
+
+            const title = titleInput?.value?.trim();
+            editorContent = editor?.innerHTML || '';
+
+            if (!title) {
+              ui.notifications?.error('El título es obligatorio');
+              return false;
+            }
+
+            return 'add';
+          },
+        },
+        { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
+      ],
     });
 
-    if (result) {
+    if (result === 'add') {
+      const titleInput = document.querySelector('#trait-title') as HTMLInputElement;
+
+      const newTrait: OfficerTrait = {
+        id: foundry.utils.randomID(),
+        title: titleInput?.value?.trim() || '',
+        description: editorContent,
+        createdAt: new Date(),
+      };
+
       if (type === 'pro') {
-        this.currentData.pros = [...(this.currentData.pros || []), result];
+        this.currentData.pros = [...(this.currentData.pros || []), newTrait];
       } else {
-        this.currentData.cons = [...(this.currentData.cons || []), result];
+        this.currentData.cons = [...(this.currentData.cons || []), newTrait];
       }
-      this.syncFormFields();
       this.render(false);
     }
   }
@@ -429,82 +231,26 @@ export class OfficerFormApplication extends FormApplication {
     } else {
       this.currentData.cons = (this.currentData.cons || []).filter((c) => c.id !== traitId);
     }
-    this.syncFormFields();
     this.render(false);
   }
 
-  private setupTraitEditButtons(html: JQuery) {
-    html.find('.trait-edit-btn').on('click', async (event) => {
-      event.preventDefault();
-      const traitId = $(event.currentTarget).data('trait-id');
-      const traitType = $(event.currentTarget).data('trait-type') as 'pro' | 'con';
-      const list = traitType === 'pro' ? this.currentData.pros : this.currentData.cons;
-      const trait = (list || []).find((t) => t.id === traitId);
-      if (trait) await this.showEditTraitDialog(traitType, trait);
-    });
-  }
-
-  private async showEditTraitDialog(type: 'pro' | 'con', trait: OfficerTrait) {
-    const plainDesc = (trait.description || '').replace(/<[^>]*>/g, '');
-    const body = `
-      <div class="guard-modal-form">
-        <div class="guard-modal-row">
-          <label><i class="fas fa-tag"></i> Título <span style="color:#e84a4a">*</span></label>
-          <input type="text" id="trait-title" value="${trait.title.replace(/"/g, '&quot;')}" />
-        </div>
-        <div class="guard-modal-row">
-          <label><i class="fas fa-align-left"></i> Descripción</label>
-          <textarea id="trait-description" rows="3">${plainDesc}</textarea>
-        </div>
-      </div>
-    `;
-
-    const result = await GuardModal.openAsync<OfficerTrait>({
-      title: type === 'pro' ? 'Editar Pro' : 'Editar Con',
-      icon: type === 'pro' ? 'fas fa-thumbs-up' : 'fas fa-thumbs-down',
-      body,
-      onSave: async (bodyEl) => {
-        const title = (bodyEl.querySelector('#trait-title') as HTMLInputElement)?.value?.trim();
-        if (!title) {
-          ui.notifications?.error('El título es obligatorio');
-          return false;
-        }
-        const description = (bodyEl.querySelector('#trait-description') as HTMLTextAreaElement)?.value?.trim() || '';
-        return { ...trait, title, description };
-      },
-    });
-
-    if (result) {
-      const update = (list: OfficerTrait[]) =>
-        list.map((t) => (t.id === trait.id ? result : t));
-
-      if (type === 'pro') {
-        this.currentData.pros = update(this.currentData.pros || []);
-      } else {
-        this.currentData.cons = update(this.currentData.cons || []);
-      }
-      this.syncFormFields();
-      this.render(false);
-    }
-  }
-
-  // ── Submit ──────────────────────────────────────────────────────────────────
-
   async _updateObject(_event: Event, formData: any) {
+    // Validate
+    if (!this.currentData.actorId?.trim()) {
+      ui.notifications?.error('Debes asignar un Actor al oficial');
+      return; // Don't close - just return
+    }
+
     if (!formData.title?.trim()) {
       ui.notifications?.error('El título es obligatorio');
-      return;
+      return; // Don't close - just return
     }
 
-    // Sync stats from form inputs
-    this.syncFormFields();
-
+    // Get OfficerManager
     const gm = (window as any).GuardManagement;
-    const manager = this.personnelType === 'civilian' ? gm?.civilianManager : gm?.officerManager;
-    const label = this.personnelType === 'civilian' ? 'Auxiliar' : 'Oficial';
-    if (!manager) {
-      console.error(`${label}Manager not available`);
-      ui.notifications?.error(`Sistema de ${label.toLowerCase()}es no disponible`);
+    if (!gm?.officerManager) {
+      console.error('OfficerManager not available');
+      ui.notifications?.error('Sistema de oficiales no disponible');
       return;
     }
 
@@ -512,18 +258,15 @@ export class OfficerFormApplication extends FormApplication {
       let officer: Officer;
 
       if (this.mode === 'create') {
-        officer = await manager.create({
+        const skillName = formData.skillName?.trim();
+        const skillImage = formData.skillImage?.trim();
+
+        officer = await gm.officerManager.create({
           actorId: this.currentData.actorId!,
           actorName: this.currentData.actorName!,
           actorImg: this.currentData.actorImg,
           title: formData.title.trim(),
-          stats: this.currentData.stats || {},
-          skills: (this.currentData.skills || []).map((s) => ({
-            name: s.name,
-            description: s.description,
-            image: s.image,
-            hopeCost: s.hopeCost,
-          })),
+          skill: skillName ? { name: skillName, image: skillImage || undefined } : undefined,
           pros: (this.currentData.pros || []).map((p: OfficerTrait) => ({
             title: p.title,
             description: p.description,
@@ -533,41 +276,43 @@ export class OfficerFormApplication extends FormApplication {
             description: c.description,
           })),
           organizationId: this.currentData.organizationId!,
-          visibleToPlayers: formData.visibleToPlayers ?? false,
         });
 
-        ui.notifications?.info(`${label} "${this.currentData.actorName}" creado`);
+        ui.notifications?.info(`Oficial "${this.currentData.actorName}" creado`);
       } else {
-        const updated = manager.update(this.existingOfficer!.id, {
-          actorId: this.currentData.actorId || '',
-          actorName: this.currentData.actorName || '',
-          actorImg: this.currentData.actorImg || undefined,
+        const skillName = formData.skillName?.trim();
+        const skillImage = formData.skillImage?.trim();
+
+        const updated = gm.officerManager.update(this.existingOfficer!.id, {
           title: formData.title.trim(),
-          stats: this.currentData.stats || {},
-          skills: this.currentData.skills || [],
+          skill: skillName ? { name: skillName, image: skillImage || undefined } : undefined,
           pros: this.currentData.pros,
           cons: this.currentData.cons,
           organizationId: this.currentData.organizationId,
-          visibleToPlayers: formData.visibleToPlayers ?? false,
         });
 
         if (!updated) {
-          ui.notifications?.error(`No se pudo actualizar el ${label.toLowerCase()}`);
+          ui.notifications?.error('No se pudo actualizar el oficial');
           return;
         }
 
         officer = updated;
-        ui.notifications?.info(`${label} "${this.currentData.actorName}" actualizado`);
+        ui.notifications?.info(`Oficial "${this.currentData.actorName}" actualizado`);
       }
 
+      // Success - resolve and close
       this.resolvePromise?.(officer);
       this.close();
     } catch (error) {
-      console.error('Error al guardar:', error);
-      ui.notifications?.error(`Error al guardar el ${this.personnelType === 'civilian' ? 'auxiliar' : 'oficial'}`);
+      console.error('Error al guardar oficial:', error);
+      ui.notifications?.error('Error al guardar el oficial');
+      // Don't close on error
     }
   }
 
+  /**
+   * Show the form and return a promise
+   */
   async show(): Promise<Officer | null> {
     return new Promise((resolve) => {
       this.resolvePromise = resolve;
@@ -576,6 +321,7 @@ export class OfficerFormApplication extends FormApplication {
   }
 
   async close(options?: any) {
+    // If closing without resolving, resolve with null
     if (this.resolvePromise) {
       this.resolvePromise(null);
       this.resolvePromise = undefined;

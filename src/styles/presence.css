@@ -4,14 +4,13 @@
   position: fixed;
   z-index: 51;
   pointer-events: none;
-  width: 40px;
 }
 
 .gm-presence-row {
   position: absolute;
-  left: 0;
+  right: 0;
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   gap: 2px;
   pointer-events: auto;
   align-items: center;

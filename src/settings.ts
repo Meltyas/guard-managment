@@ -16,7 +16,7 @@ export function registerSettings(): void {
     onChange: async (_value) => {
       console.log('Settings onChange | GuardOrganization changed, reloading and refreshing UI...');
       const gm = (window as any).GuardManagement;
-
+      
       // CRITICAL: Load all data SEQUENTIALLY with await to ensure it's ready
       if (gm?.guardOrganizationManager) {
         await gm.guardOrganizationManager.loadFromSettings?.();
@@ -26,7 +26,7 @@ export function registerSettings(): void {
         console.log('📦 Reloading resources due to organization change...');
         await gm.resourceManager.loadFromSettings?.();
       }
-
+      
       if (gm?.reputationManager) {
         console.log('🏆 Reloading reputations due to organization change...');
         await gm.reputationManager.loadFromSettings?.();
@@ -42,7 +42,6 @@ export function registerSettings(): void {
       }
       // Refresh FloatingGuardPanel on all clients
       gm?.floatingPanel?.refreshPanel?.();
-      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 
@@ -84,7 +83,6 @@ export function registerSettings(): void {
         }
       }
       gm?.floatingPanel?.refreshPanel?.();
-      gm?.patrolOverlayManager?.refreshAll?.();
     },
   });
 
@@ -127,10 +125,9 @@ export function registerSettings(): void {
         console.log('ℹ️ CustomInfoDialog not open, skipping refresh');
       }
       gm?.floatingPanel?.refreshPanel?.();
-      gm?.patrolOverlayManager?.refreshAll?.();
-      // Refresh open GMWarehouseDialog resources tab (skip if warehouse itself triggered the save)
+      // Refresh open GMWarehouseDialog resources tab
       const gmWarehouseR = (window as any).GuardManagement?.GMWarehouseDialog;
-      if (gmWarehouseR?.instance?.isOpen?.() && !gmWarehouseR.instance.isLocalRefresh) {
+      if (gmWarehouseR?.instance?.isOpen?.()) {
         gmWarehouseR.instance.refreshResourcesTab?.();
       }
     },
@@ -165,73 +162,12 @@ export function registerSettings(): void {
         console.log('ℹ️ CustomInfoDialog not open, skipping refresh');
       }
       gm?.floatingPanel?.refreshPanel?.();
-      gm?.patrolOverlayManager?.refreshAll?.();
       // Refresh open GMWarehouseDialog reputation tab
       const gmWarehouseRep = (window as any).GuardManagement?.GMWarehouseDialog;
       if (gmWarehouseRep?.instance?.isOpen?.()) {
         gmWarehouseRep.instance.refreshReputationTab?.();
       }
     },
-  });
-
-  // Guard Modifiers data storage
-  game?.settings?.register('guard-management', 'modifiers', {
-    name: 'Guard Modifiers Data',
-    hint: 'Stored guard modifier information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      const gm = (window as any).GuardManagement;
-      if (gm?.modifierManager) {
-        gm.modifierManager.loadFromSettings?.();
-      }
-      // Refresh GMWarehouseDialog modifiers tab
-      const gmWarehouse = (window as any).GuardManagement?.GMWarehouseDialog;
-      if (gmWarehouse?.instance?.isOpen?.()) {
-        gmWarehouse.instance.refreshGuardModifiersTab?.();
-      }
-      // Refresh organization stats that depend on modifiers
-      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
-        gm.guardDialogManager.customInfoDialog.refreshContent?.();
-      }
-      gm?.floatingPanel?.refreshPanel?.();
-      gm?.patrolOverlayManager?.refreshAll?.();
-    },
-  });
-
-  // Patrol Effects data storage
-  game?.settings?.register('guard-management', 'patrolEffects', {
-    name: 'Patrol Effects Data',
-    hint: 'Stored patrol effect template information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      const gm = (window as any).GuardManagement;
-      if (gm?.patrolEffectManager) {
-        gm.patrolEffectManager.loadFromSettings?.();
-      }
-      // Refresh GMWarehouseDialog patrol effects tab
-      const gmWarehouse = (window as any).GuardManagement?.GMWarehouseDialog;
-      if (gmWarehouse?.instance?.isOpen?.()) {
-        gmWarehouse.instance.refreshPatrolEffectsTab?.();
-      }
-      gm?.floatingPanel?.refreshPanel?.();
-      gm?.patrolOverlayManager?.refreshAll?.();
-    },
-  });
-
-  // Migration version tracking
-  game?.settings?.register('guard-management', 'migrationVersion', {
-    name: 'Migration Version',
-    hint: 'Tracks data migration state',
-    scope: 'world',
-    config: false,
-    type: Number,
-    default: 0,
   });
 
   // Officers data storage
@@ -249,289 +185,11 @@ export function registerSettings(): void {
         gm.officerManager.loadFromSettings?.();
       }
 
-      // Refresh open personnel warehouse dialog
+      // Refresh open officer warehouse dialog
       const warehouse = (window as any).GuardManagement?.OfficerWarehouseDialog;
       if (warehouse?.instance?.isOpen?.()) {
         warehouse.instance.refresh();
       }
-      gm?.patrolOverlayManager?.refreshAll?.();
-    },
-  });
-
-  // Civilians data storage
-  game?.settings?.register('guard-management', 'civilians', {
-    name: 'Civilians Data',
-    hint: 'Stored civilian information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      const gm = (window as any).GuardManagement;
-      if (gm?.civilianManager) {
-        gm.civilianManager.loadFromSettings?.();
-      }
-
-      // Refresh open personnel warehouse dialog
-      const warehouse = (window as any).GuardManagement?.OfficerWarehouseDialog;
-      if (warehouse?.instance?.isOpen?.()) {
-        warehouse.instance.refresh();
-      }
-      gm?.patrolOverlayManager?.refreshAll?.();
-    },
-  });
-
-  // Auxiliaries data storage (auxiliary patrol-like units led by civilians)
-  game?.settings?.register('guard-management', 'auxiliaries', {
-    name: 'Auxiliaries Data',
-    hint: 'Stored auxiliary unit information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      console.log('Settings onChange | Auxiliaries changed, reloading and refreshing UI...');
-      const gm = (window as any).GuardManagement;
-      if (gm?.guardOrganizationManager) {
-        const auxMgr = gm.guardOrganizationManager.getAuxiliaryManager?.();
-        if (auxMgr) {
-          auxMgr.loadFromSettings?.();
-        }
-      }
-
-      // Refresh open CustomInfoDialog if exists
-      if (gm?.guardDialogManager?.customInfoDialog) {
-        const dialog = gm.guardDialogManager.customInfoDialog;
-        if (dialog.isOpen?.()) {
-          console.log('Settings onChange | Refreshing open CustomInfoDialog for auxiliaries');
-          dialog.refreshAuxiliariesPanel?.();
-        }
-      }
-      gm?.floatingPanel?.refreshPanel?.();
-      gm?.patrolOverlayManager?.refreshAll?.();
-    },
-  });
-
-  // Prisoners data storage
-  game?.settings?.register('guard-management', 'prisoners', {
-    name: 'Prisoners Data',
-    hint: 'Stored prisoner information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      console.log('Settings onChange | Prisoners changed, reloading and refreshing UI...');
-      const gm = (window as any).GuardManagement;
-      if (gm?.prisonerManager) {
-        gm.prisonerManager.loadFromSettings?.();
-      }
-      if (gm?.guardDialogManager?.customInfoDialog) {
-        const dialog = gm.guardDialogManager.customInfoDialog;
-        if (dialog.isOpen?.()) {
-          console.log('Settings onChange | Refreshing open CustomInfoDialog for prisoners');
-          dialog.refreshPrisonersPanel?.();
-        }
-      }
-      gm?.floatingPanel?.refreshPanel?.();
-    },
-  });
-
-  // Prison configuration
-  game?.settings?.register('guard-management', 'prisonConfig', {
-    name: 'Prison Configuration',
-    hint: 'Prison cell count and configuration',
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: { cellCount: 4, cellCapacity: 1 },
-    onChange: (_value) => {
-      const gm = (window as any).GuardManagement;
-      if (gm?.prisonerManager) {
-        gm.prisonerManager.loadConfigFromSettings?.();
-      }
-      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
-        gm.guardDialogManager.customInfoDialog.refreshPrisonersPanel?.();
-      }
-    },
-  });
-
-  // Buildings data storage
-  game?.settings?.register('guard-management', 'buildings', {
-    name: 'Buildings Data',
-    hint: 'Stored building information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      console.log('Settings onChange | Buildings changed, reloading and refreshing UI...');
-      const gm = (window as any).GuardManagement;
-      if (gm?.buildingManager) {
-        gm.buildingManager.loadFromSettings?.();
-      }
-      if (gm?.guardDialogManager?.customInfoDialog) {
-        const dialog = gm.guardDialogManager.customInfoDialog;
-        if (dialog.isOpen?.()) {
-          dialog.refreshBuildingsPanel?.();
-        }
-      }
-      gm?.floatingPanel?.refreshPanel?.();
-    },
-  });
-
-  // Gangs data storage
-  game?.settings?.register('guard-management', 'gangs', {
-    name: 'Gangs Data',
-    hint: 'Stored gang information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      console.log('Settings onChange | Gangs changed, reloading and refreshing UI...');
-      const gm = (window as any).GuardManagement;
-      if (gm?.gangManager) {
-        gm.gangManager.loadFromSettings?.();
-      }
-      if (gm?.guardDialogManager?.customInfoDialog) {
-        const dialog = gm.guardDialogManager.customInfoDialog;
-        if (dialog.isOpen?.()) {
-          console.log('Settings onChange | Refreshing open CustomInfoDialog for gangs');
-          dialog.refreshGangsPanel?.();
-        }
-      }
-      gm?.floatingPanel?.refreshPanel?.();
-    },
-  });
-
-  // People of Interest data storage
-  game?.settings?.register('guard-management', 'poi', {
-    name: 'People of Interest Data',
-    hint: 'Stored people of interest information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      console.log('Settings onChange | POI changed, reloading and refreshing UI...');
-      const gm = (window as any).GuardManagement;
-      if (gm?.poiManager) {
-        gm.poiManager.loadFromSettings?.();
-      }
-      if (gm?.guardDialogManager?.customInfoDialog) {
-        const dialog = gm.guardDialogManager.customInfoDialog;
-        if (dialog.isOpen?.()) {
-          console.log('Settings onChange | Refreshing open CustomInfoDialog for POI');
-          dialog.refreshPoiPanel?.();
-        }
-      }
-      gm?.floatingPanel?.refreshPanel?.();
-    },
-  });
-
-  // Crimes catalog data storage
-  game?.settings?.register('guard-management', 'crimes', {
-    name: 'Crimes Data',
-    hint: 'Stored crime catalog information',
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-    onChange: (_value) => {
-      console.log('Settings onChange | Crimes changed, reloading and refreshing UI...');
-      const gm = (window as any).GuardManagement;
-      if (gm?.crimeManager) {
-        gm.crimeManager.loadFromSettings?.();
-      }
-      if (gm?.guardDialogManager?.customInfoDialog) {
-        const dialog = gm.guardDialogManager.customInfoDialog;
-        if (dialog.isOpen?.()) {
-          dialog.refreshCrimesPanel?.();
-        }
-      }
-    },
-  });
-
-  // Sentence configuration per offense type
-  game?.settings?.register('guard-management', 'sentenceConfig', {
-    name: 'Sentence Configuration',
-    hint: 'Sentence turns and fines per offense type',
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: {},
-    onChange: (_value) => {
-      console.log('Settings onChange | SentenceConfig changed, reloading...');
-      const gm = (window as any).GuardManagement;
-      if (gm?.sentenceConfigManager) {
-        gm.sentenceConfigManager.loadFromSettings?.();
-      }
-      if (gm?.guardDialogManager?.customInfoDialog) {
-        const dialog = gm.guardDialogManager.customInfoDialog;
-        if (dialog.isOpen?.()) {
-          dialog.refreshCrimesPanel?.();
-        }
-      }
-    },
-  });
-
-  // Phase/Turn tracking data
-  game?.settings?.register('guard-management', 'phaseData', {
-    name: 'Phase Data',
-    hint: 'Day/night phase and turn tracking',
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: { currentPhase: 'day', currentTurn: 1, history: [] },
-    onChange: (_value) => {
-      console.log('Settings onChange | PhaseData changed, reloading...');
-      const gm = (window as any).GuardManagement;
-      if (!gm?.phaseManager) return;
-
-      // Capture previous turn before reloading
-      const previousTurn = gm.phaseManager.getCurrentTurn();
-      gm.phaseManager.loadFromSettings?.();
-      const newTurn = gm.phaseManager.getCurrentTurn();
-      const newPhase = gm.phaseManager.getCurrentPhase();
-
-      // If isAnimating, the local client already triggered the animation — skip
-      // Otherwise this is a remote client: dispatch event to trigger animation + sound
-      if (gm?.dayNightDecoration && !gm.dayNightDecoration.isAnimating) {
-        if (previousTurn !== newTurn) {
-          window.dispatchEvent(
-            new CustomEvent('guard-phase-advanced', {
-              detail: { phase: newPhase, turn: newTurn, previousTurn },
-            })
-          );
-        } else {
-          gm.dayNightDecoration.updateFromPhaseManager?.();
-        }
-      }
-    },
-  });
-
-  // Finances data storage
-  game?.settings?.register('guard-management', 'finances', {
-    name: 'Finances Data',
-    hint: 'Stored finance/budget information',
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: { totalBudget: 0, budgetEntries: [], expenses: [], showIllegalSection: false, history: [] },
-    onChange: (_value) => {
-      console.log('Settings onChange | Finances changed, reloading and refreshing UI...');
-      const gm = (window as any).GuardManagement;
-      if (gm?.financeManager) {
-        gm.financeManager.loadFromSettings?.();
-      }
-      if (gm?.guardDialogManager?.customInfoDialog) {
-        const dialog = gm.guardDialogManager.customInfoDialog;
-        if (dialog.isOpen?.()) {
-          dialog.refreshFinancesPanel?.();
-        }
-      }
-      gm?.floatingPanel?.refreshPanel?.();
     },
   });
 
@@ -549,6 +207,23 @@ export function registerSettings(): void {
       conflictResolution: 'auto',
     },
   });
+
+  // GM-to-player signal: open the org info dialog at a specific tab
+  game?.settings?.register('guard-management', 'orgDialogRequest', {
+    name: 'Org Dialog Request',
+    hint: 'GM-to-player signal to open the org info dialog at a given tab',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: null,
+    onChange: (value: any) => {
+      // Only non-GM clients react; GM already has the dialog open
+      if (!value) return;
+      if ((game as any)?.user?.isGM) return;
+      const tab: string = value.tab || 'general';
+      window.dispatchEvent(new CustomEvent('guard-show-org-dialog', { detail: { tab } }));
+    },
+  } as any);
 
   // Debug mode
   game?.settings?.register('guard-management', 'debugMode', {

@@ -1,10 +1,13 @@
-<form class="guard-modal-form">
+<form class="reputation-form guard-dialog">
   <input type="hidden" name="organizationId" value="{{organizationId}}" />
 
-  <div class="guard-modal-row">
-    <label><i class="fas fa-tag"></i> Nombre</label>
+  <div class="form-group">
+    <label for="reputation-name">
+      <i class="fas fa-tag"></i> Nombre
+    </label>
     <input
       type="text"
+      id="reputation-name"
       name="name"
       value="{{name}}"
       placeholder="Ej: Guía de los Vientos"
@@ -12,22 +15,33 @@
     />
   </div>
 
-  <div class="guard-modal-row">
-    <label><i class="fas fa-heart"></i> Nivel de Reputación</label>
-    <select name="level" required>
+  <div class="form-group">
+    <label for="reputation-level">
+      <i class="fas fa-heart"></i> Nivel de Reputación
+    </label>
+    <select id="reputation-level" name="level" required>
       {{#each reputationLevels}}
         <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
       {{/each}}
     </select>
   </div>
 
-  <div class="guard-modal-row">
-    <label><i class="fas fa-align-left"></i> Descripción</label>
-    <textarea name="description" placeholder="Descripción opcional...">{{description}}</textarea>
+  <div class="form-group">
+    <label for="reputation-description">
+      <i class="fas fa-align-left"></i> Descripción
+    </label>
+    <textarea
+      id="reputation-description"
+      name="description"
+      rows="4"
+      placeholder="Describe esta relación de reputación..."
+    >{{description}}</textarea>
   </div>
 
-  <div class="guard-modal-row">
-    <label><i class="fas fa-image"></i> Imagen</label>
+  <div class="form-group">
+    <label for="reputation-image">
+      <i class="fas fa-image"></i> Imagen
+    </label>
     <div class="file-picker-wrapper">
       <input
         type="text"

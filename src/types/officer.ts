@@ -3,17 +3,14 @@
  * System for managing patrol officers with actor assignment, title, and pros/cons
  */
 
-import { BaseEntity, GuardStats } from './entities';
+import { BaseEntity } from './entities';
 
 /**
- * Patrol skill with hope cost – multiple per officer
+ * Optional skill shown in patrol and general panel
  */
 export interface OfficerSkill {
-  id: string;
   name: string;
-  description?: string; // Rich text
   image?: string;
-  hopeCost: number; // 0-5
 }
 
 /**
@@ -28,11 +25,8 @@ export interface Officer extends BaseEntity {
   // Custom title for the officer
   title: string;
 
-  // Officer stats (same keys as guard stats)
-  stats?: Partial<GuardStats>;
-
-  // Skills shown in patrol card and general panel
-  skills: OfficerSkill[];
+  // Optional single skill shown in patrol card and general panel
+  skill?: OfficerSkill;
 
   // Pros (positive characteristics)
   pros: OfficerTrait[];
@@ -41,10 +35,7 @@ export interface Officer extends BaseEntity {
   cons: OfficerTrait[];
 
   // Optional metadata
-  organizationId?: string;
-
-  // Visibility: if true, players can see this officer in the warehouse
-  visibleToPlayers?: boolean;
+  organizationId?: string; // If officer is tied to organization
 }
 
 /**
@@ -65,14 +56,8 @@ export interface OfficerFormData {
   actorName: string;
   actorImg?: string;
   title: string;
-  skills: Omit<OfficerSkill, 'id'>[];
+  skill?: OfficerSkill;
   pros: Omit<OfficerTrait, 'id' | 'createdAt'>[];
   cons: Omit<OfficerTrait, 'id' | 'createdAt'>[];
   organizationId?: string;
 }
-
-/**
- * Civilian entity - same structure as Officer for now
- * Represents non-military personnel (merchants, craftsmen, informants, etc.)
- */
-export type Civilian = Officer;

@@ -47,7 +47,7 @@ export class ReputationPanel {
   static async render(container: HTMLElement, organization: GuardOrganization) {
     const data = await this.getData(organization);
     const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-
+    
     // Use jQuery html() to forcibly replace content
     console.log('ReputationPanel | Rendering with data:', data);
     $(container).html(htmlContent);

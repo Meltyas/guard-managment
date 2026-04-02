@@ -67,21 +67,22 @@ export class GeneralPanel {
     const processedModifiers = activeModifiers
       .map((mod: any) => {
         const netValue =
-          mod.statModifications?.reduce((acc: number, curr: any) => acc + curr.value, 0) || 0;
+          mod.system?.statModifications?.reduce((acc: number, curr: any) => acc + curr.value, 0) ||
+          0;
         let borderClass = 'neutral-border';
         if (netValue > 0) borderClass = 'positive-border';
         else if (netValue < 0) borderClass = 'negative-border';
 
         // Generate tooltip
         let tooltip = `<strong>${mod.name}</strong><br/>`;
-        if (mod.description) {
-          tooltip += `<div style="margin-bottom:5px; font-size:0.9em; font-style:italic;">${mod.description}</div>`;
+        if (mod.system.description) {
+          tooltip += `<div style="margin-bottom:5px; font-size:0.9em; font-style:italic;">${mod.system.description}</div>`;
         }
 
-        if (mod.statModifications && mod.statModifications.length > 0) {
+        if (mod.system.statModifications && mod.system.statModifications.length > 0) {
           tooltip +=
             '<div class="tooltip-modifiers" style="margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">';
-          for (const m of mod.statModifications) {
+          for (const m of mod.system.statModifications) {
             const val = m.value;
             const valStr = val >= 0 ? `+${val}` : `${val}`;
             let color = '#ffffff'; // Neutral
@@ -96,10 +97,13 @@ export class GeneralPanel {
 
         tooltip += '<hr>Left Click: Send to Chat<br/>Right Click: Remove';
 
+        // Create a plain object with all necessary properties explicitly
+        // This handles cases where 'mod' is a Foundry Document (where id/name/img are getters)
         return {
-          id: mod.id,
+          id: mod.id || mod._id,
           name: mod.name,
-          img: mod.image || 'icons/svg/item-bag.svg',
+          img: mod.img || mod.texture?.src || 'icons/svg/item-bag.svg',
+          system: mod.system,
           netValue,
           borderClass,
           tooltip,
@@ -112,42 +116,33 @@ export class GeneralPanel {
         return typeA - typeB;
       });
 
-    // Collect ALL officer skills from every officer in the organization
+    // Collect officer skills from patrols
     const officerSkills: Array<{
       skillName: string;
       skillImage?: string;
-      skillHopeCost: number;
       officerName: string;
       officerImg?: string;
       patrolName: string;
     }> = [];
 
     const allOfficers: any[] = gm?.officerManager?.list?.() || [];
+    const officerByActorId = new Map<string, any>(
+      allOfficers.filter((o: any) => o.skill?.name).map((o: any) => [o.actorId, o])
+    );
 
-    // Build actorId → patrol name map for officers assigned to patrols
-    const patrolNameByActorId = new Map<string, string>();
     const patrols = gm?.guardOrganizationManager?.listOrganizationPatrols?.() || [];
     for (const patrol of patrols) {
       if (patrol.officer?.actorId) {
-        patrolNameByActorId.set(patrol.officer.actorId, patrol.name);
-      }
-    }
-
-    for (const off of allOfficers) {
-      if (!off.skills?.length) continue;
-      const patrolName = off.actorId
-        ? patrolNameByActorId.get(off.actorId) || 'Sin patrulla'
-        : 'Sin patrulla';
-      for (const skill of off.skills) {
-        officerSkills.push({
-          skillName: skill.name,
-          skillDescription: skill.description || '',
-          skillImage: skill.image,
-          skillHopeCost: skill.hopeCost ?? 0,
-          officerName: off.actorName || off.name || 'Oficial',
-          officerImg: off.actorImg,
-          patrolName,
-        });
+        const off = officerByActorId.get(patrol.officer.actorId);
+        if (off?.skill?.name) {
+          officerSkills.push({
+            skillName: off.skill.name,
+            skillImage: off.skill.image,
+            officerName: off.actorName || patrol.officer.name,
+            officerImg: off.actorImg || patrol.officer.img,
+            patrolName: patrol.name,
+          });
+        }
       }
     }
 
@@ -157,7 +152,7 @@ export class GeneralPanel {
       statsDisplay,
       officerSkills,
     });
-
+    
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
 
@@ -190,43 +185,16 @@ export class GeneralPanel {
         gm.guardOrganizationManager.rollStat(statKey);
       }
     });
-
-    // Skill toggle (collapsible — Última Orden style)
-    $html.off('click', '.skill-toggle-header').on('click', '.skill-toggle-header', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const header = ev.currentTarget as HTMLElement;
-      const body = header.nextElementSibling as HTMLElement | null;
-      const chevron = header.querySelector('.skill-toggle-chevron');
-      if (body) {
-        const isOpen = body.style.display !== 'none';
-        body.style.display = isOpen ? 'none' : 'block';
-        if (chevron) chevron.classList.toggle('open', !isOpen);
-      }
-    });
-
-    // Skill to chat button listener
-    $html.off('click', '.skill-to-chat-btn').on('click', '.skill-to-chat-btn', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const el = ev.currentTarget;
-      this.handleSkillToChat({
-        name: el.dataset.skillName || '',
-        image: el.dataset.skillImage || '',
-        hopeCost: parseInt(el.dataset.skillHopeCost || '0', 10),
-        officerName: el.dataset.officerName || '',
-      });
-    });
   }
 
   static async handleModifierClick(modifierId: string) {
     const gm = (window as any).GuardManagement;
-    if (!gm?.modifierManager) {
-      console.warn('Guard Management | ModifierManager not found');
+    if (!gm?.documentManager) {
+      console.warn('Guard Management | DocumentManager not found');
       return;
     }
 
-    const modifier = gm.modifierManager.getModifier(modifierId);
+    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
     if (!modifier) {
       console.warn('Guard Management | Modifier not found:', modifierId);
       return;
@@ -236,14 +204,14 @@ export class GeneralPanel {
     const content = `
       <div class="guard-resource-chat">
         <div class="resource-image" style="margin-bottom: 8px;">
-            <img src="${modifier.image || ''}" style="max-width: 64px; border: none;" />
+            <img src="${modifier.img}" style="max-width: 64px; border: none;" />
         </div>
         <div class="chat-header" style="font-weight: bold; font-size: 1.2em; margin-bottom: 5px;">${modifier.name}</div>
         <div class="resource-description" style="text-align: left; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
-          ${modifier.description || 'Sin descripción'}
+          ${modifier.system.description || 'Sin descripción'}
         </div>
         <div class="stat-modifiers">
-            ${(modifier.statModifications || [])
+            ${(modifier.system.statModifications || [])
               .map(
                 (m: any) =>
                   `<div><strong>${m.statName}:</strong> ${m.value > 0 ? '+' : ''}${m.value}</div>`
@@ -255,19 +223,18 @@ export class GeneralPanel {
 
     await (ChatMessage as any).create({
       content,
-      speaker: { scene: null, actor: null, token: null, alias: 'Modificador de Guardia' },
-      flags: { 'guard-management': { type: 'modifier' } },
+      speaker: (ChatMessage as any).getSpeaker({ alias: 'Modificador de Guardia' }),
     });
   }
 
   static async handleRemoveModifier(modifierId: string, onRefresh?: () => void) {
     const gm = (window as any).GuardManagement;
-    if (!gm?.guardOrganizationManager || !gm?.modifierManager) {
+    if (!gm?.guardOrganizationManager || !gm?.documentManager) {
       console.warn('Guard Management | Managers not found');
       return;
     }
 
-    const modifier = gm.modifierManager.getModifier(modifierId);
+    const modifier = gm.documentManager.getGuardModifiers().find((m: any) => m.id === modifierId);
     const modifierName = modifier?.name || 'Modificador';
 
     const confirm = await Dialog.confirm({
@@ -279,37 +246,5 @@ export class GeneralPanel {
 
     await gm.guardOrganizationManager.removeModifier(modifierId);
     if (onRefresh) onRefresh();
-  }
-
-  static async handleSkillToChat(skill: {
-    name: string;
-    image?: string;
-    hopeCost: number;
-    officerName?: string;
-  }) {
-    const heartIcons =
-      skill.hopeCost > 0
-        ? Array(skill.hopeCost)
-            .fill('<i class="fas fa-diamond" style="color:#e84a4a;font-size:0.8rem;"></i>')
-            .join(' ')
-        : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
-
-    const content = `
-      <div class="guard-resource-chat">
-        ${skill.image ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${skill.image}" style="max-width: 64px; border: none;" /></div>` : ''}
-        <div class="chat-header" style="font-weight: bold; font-size: 1.1em; margin-bottom: 4px;">${skill.name}</div>
-        ${skill.officerName ? `<div style="font-size: 0.85em; opacity: 0.75; margin-bottom: 6px;"><i class="fas fa-user"></i> ${skill.officerName}</div>` : ''}
-        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.9em;">
-          <span style="opacity: 0.8;">Coste de Hope:</span>
-          <span>${heartIcons}</span>
-        </div>
-      </div>
-    `;
-
-    await (ChatMessage as any).create({
-      content,
-      speaker: { scene: null, actor: null, token: null, alias: 'Habilidad de Oficial' },
-      flags: { 'guard-management': { type: 'officer-skill' } },
-    });
   }
 }
