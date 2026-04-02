@@ -53,15 +53,17 @@ export class ReputationPanel {
     $(container).html(htmlContent);
     console.log('ReputationPanel | DOM updated');
 
-    // Set up expand/collapse toggles
-    container.querySelectorAll<HTMLButtonElement>('.entity-row__toggle').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // Set up expand/collapse toggles — click anywhere in summary except action buttons
+    container.querySelectorAll<HTMLElement>('.entity-row__summary').forEach(summary => {
+      summary.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.entity-row__actions')) return;
         e.stopPropagation();
-        const row = btn.closest('.entity-row') as HTMLElement;
+        const row = summary.closest('.entity-row') as HTMLElement;
         const detail = row.querySelector('.entity-row__detail') as HTMLElement;
+        const toggle = row.querySelector('.entity-row__toggle') as HTMLElement;
         const isOpen = !detail.hidden;
         detail.hidden = isOpen;
-        btn.setAttribute('aria-expanded', String(!isOpen));
+        toggle?.setAttribute('aria-expanded', String(!isOpen));
         row.classList.toggle('entity-row--open', !isOpen);
       });
     });
