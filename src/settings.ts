@@ -16,7 +16,7 @@ export function registerSettings(): void {
     onChange: async (_value) => {
       console.log('Settings onChange | GuardOrganization changed, reloading and refreshing UI...');
       const gm = (window as any).GuardManagement;
-      
+
       // CRITICAL: Load all data SEQUENTIALLY with await to ensure it's ready
       if (gm?.guardOrganizationManager) {
         await gm.guardOrganizationManager.loadFromSettings?.();
@@ -26,7 +26,7 @@ export function registerSettings(): void {
         console.log('📦 Reloading resources due to organization change...');
         await gm.resourceManager.loadFromSettings?.();
       }
-      
+
       if (gm?.reputationManager) {
         console.log('🏆 Reloading reputations due to organization change...');
         await gm.reputationManager.loadFromSettings?.();
@@ -208,23 +208,6 @@ export function registerSettings(): void {
     },
   });
 
-  // GM-to-player signal: open the org info dialog at a specific tab
-  game?.settings?.register('guard-management', 'orgDialogRequest', {
-    name: 'Org Dialog Request',
-    hint: 'GM-to-player signal to open the org info dialog at a given tab',
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: null,
-    onChange: (value: any) => {
-      // Only non-GM clients react; GM already has the dialog open
-      if (!value) return;
-      if ((game as any)?.user?.isGM) return;
-      const tab: string = value.tab || 'general';
-      window.dispatchEvent(new CustomEvent('guard-show-org-dialog', { detail: { tab } }));
-    },
-  } as any);
-
   // Debug mode
   game?.settings?.register('guard-management', 'debugMode', {
     name: 'Debug Mode',
@@ -273,6 +256,126 @@ export function registerSettings(): void {
     config: true,
     type: Boolean,
     default: true,
+  });
+
+  // Crimes catalog
+  game?.settings?.register('guard-management', 'crimes', {
+    name: 'Crimes Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.crimeManager) gm.crimeManager.loadFromSettings?.();
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshCrimesPanel?.();
+      }
+    },
+  });
+
+  // Sentence configuration
+  game?.settings?.register('guard-management', 'sentenceConfig', {
+    name: 'Sentence Config Data',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.sentenceConfigManager) gm.sentenceConfigManager.loadFromSettings?.();
+    },
+  });
+
+  // Gangs catalog
+  game?.settings?.register('guard-management', 'gangs', {
+    name: 'Gangs Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.gangManager) gm.gangManager.loadFromSettings?.();
+    },
+  });
+
+  // People of Interest
+  game?.settings?.register('guard-management', 'poi', {
+    name: 'POI Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.poiManager) gm.poiManager.loadFromSettings?.();
+    },
+  });
+
+  // Prisoners
+  game?.settings?.register('guard-management', 'prisoners', {
+    name: 'Prisoners Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.prisonerManager) gm.prisonerManager.loadFromSettings?.();
+    },
+  });
+
+  // Prison config
+  game?.settings?.register('guard-management', 'prisonConfig', {
+    name: 'Prison Config Data',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: { cellCount: 4, cellCapacity: 1 },
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.prisonerManager) gm.prisonerManager.loadConfigFromSettings?.();
+    },
+  });
+
+  // Buildings
+  game?.settings?.register('guard-management', 'buildings', {
+    name: 'Buildings Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.buildingManager) gm.buildingManager.loadFromSettings?.();
+    },
+  });
+
+  // Finances
+  game?.settings?.register('guard-management', 'finances', {
+    name: 'Finances Data',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: { totalBudget: 0, income: [], expenses: [], history: [] },
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.financeManager) gm.financeManager.loadFromSettings?.();
+    },
+  });
+
+  // Phase / turn data
+  game?.settings?.register('guard-management', 'phaseData', {
+    name: 'Phase Data',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: { currentPhase: 'day', currentTurn: 1, history: [] },
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.phaseManager) gm.phaseManager.loadFromSettings?.();
+    },
   });
 
   console.log('GuardManagement | Settings registered successfully');

@@ -29,6 +29,24 @@ declare global {
     'guard-management.reputations': any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     'guard-management.officers': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.crimes': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.sentenceConfig': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.gangs': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.poi': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.prisoners': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.prisonConfig': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.phaseData': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.buildings': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.finances': any;
     // Configuration settings
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     'guard-management.syncOptions': any;
@@ -64,4 +82,3 @@ declare global {
 }
 
 export {};
-

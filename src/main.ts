@@ -8,18 +8,36 @@ import { OfficerWarehouseDialog } from './dialogs/OfficerWarehouseDialog';
 import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
 
+import { BuildingManager } from './managers/BuildingManager';
+import { CrimeManager } from './managers/CrimeManager';
+import { FinanceManager } from './managers/FinanceManager';
+import { GangManager } from './managers/GangManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
+import { PhaseManager } from './managers/PhaseManager';
+import { PoiManager } from './managers/PoiManager';
+import { PrisonerManager } from './managers/PrisonerManager';
+import { SentenceConfigManager } from './managers/SentenceConfigManager';
 import { SimpleReputationManager } from './managers/SimpleReputationManager';
 import { SimpleResourceManager } from './managers/SimpleResourceManager';
 import { registerSettings } from './settings';
+import './styles/buildings.css';
+import './styles/crimes.css';
 import './styles/custom-info-dialog.css';
 import './styles/daggerheart-card.css';
+import './styles/daggerheart-chat.css';
 import './styles/entity-row.css';
+import './styles/finances.css';
+import './styles/gangs.css';
 import './styles/gm-warehouse.css';
 import './styles/main.css';
 import './styles/officers.css';
+import './styles/poi.css';
+import './styles/presence.css';
+import './styles/prisoners.css';
+import './styles/resource-dialog.css';
+import { DayNightDecoration } from './ui/DayNightDecoration';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 import { GuardManagementHelpers } from './utils/console-helpers';
 import { TooltipGenerator } from './utils/TooltipGenerator';
@@ -94,6 +112,15 @@ class GuardManagementModule {
   public officerManager: OfficerManager;
   public resourceManager: SimpleResourceManager;
   public reputationManager: SimpleReputationManager;
+  public crimeManager: CrimeManager;
+  public sentenceConfigManager: SentenceConfigManager;
+  public gangManager: GangManager;
+  public poiManager: PoiManager;
+  public prisonerManager: PrisonerManager;
+  public phaseManager: PhaseManager;
+  public buildingManager: BuildingManager;
+  public financeManager: FinanceManager;
+  public dayNightDecoration: DayNightDecoration;
   public floatingPanel: FloatingGuardPanel;
   public isInitialized: boolean = false;
 
@@ -103,6 +130,15 @@ class GuardManagementModule {
     this.officerManager = new OfficerManager();
     this.resourceManager = new SimpleResourceManager();
     this.reputationManager = new SimpleReputationManager();
+    this.crimeManager = new CrimeManager();
+    this.sentenceConfigManager = new SentenceConfigManager();
+    this.gangManager = new GangManager();
+    this.poiManager = new PoiManager();
+    this.prisonerManager = new PrisonerManager();
+    this.phaseManager = new PhaseManager();
+    this.buildingManager = new BuildingManager();
+    this.financeManager = new FinanceManager();
+    this.dayNightDecoration = new DayNightDecoration();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
   }
 
@@ -125,6 +161,14 @@ class GuardManagementModule {
     await this.officerManager.initialize(); // Load officers from settings
     await this.resourceManager.initialize(); // Load resources from settings
     await this.reputationManager.initialize(); // Load reputations from settings
+    await this.phaseManager.initialize(); // Load phase/turn data from settings
+    await this.crimeManager.initialize(); // Load crimes catalog from settings
+    await this.sentenceConfigManager.initialize(); // Load sentence config from settings
+    await this.gangManager.initialize(); // Load gangs from settings
+    await this.poiManager.initialize(); // Load POIs from settings
+    await this.prisonerManager.initialize(); // Load prisoners from settings
+    await this.buildingManager.initialize(); // Load buildings from settings
+    await this.financeManager.initialize(); // Load finances from settings
 
     // Initialize floating panel (but don't show it yet)
     this.floatingPanel.initialize();
