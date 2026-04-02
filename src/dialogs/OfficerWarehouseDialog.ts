@@ -5,8 +5,8 @@
  */
 
 import type { Officer } from '../types/officer';
-import { AddOrEditOfficerDialog } from './AddOrEditOfficerDialog.js';
 import { ImportExportService } from '../utils/ImportExportService.js';
+import { AddOrEditOfficerDialog } from './AddOrEditOfficerDialog.js';
 
 export class OfficerWarehouseDialog {
   private static instance: OfficerWarehouseDialog | null = null;

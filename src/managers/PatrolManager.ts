@@ -398,7 +398,11 @@ export class PatrolManager {
       knowledge: { value: baseStats.knowledge, label: 'Conocimiento' },
     };
 
-    const rollData = { traits: traitsData, bonuses: {}, rules: { dualityRoll: { defaultHopeDice: 12, defaultFearDice: 12 } } };
+    const rollData = {
+      traits: traitsData,
+      bonuses: {},
+      rules: { dualityRoll: { defaultHopeDice: 12, defaultFearDice: 12 } },
+    };
 
     const options = {
       roll: {

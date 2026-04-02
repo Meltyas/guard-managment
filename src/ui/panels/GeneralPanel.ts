@@ -232,14 +232,16 @@ export class GeneralPanel {
     });
 
     // Stat click listener
-    $html.off('click', '.stat-chip.clickable-stat').on('click', '.stat-chip.clickable-stat', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const statKey = ev.currentTarget.dataset.stat;
-      if (statKey) {
-        gm.guardOrganizationManager.rollStat(statKey);
-      }
-    });
+    $html
+      .off('click', '.stat-chip.clickable-stat')
+      .on('click', '.stat-chip.clickable-stat', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const statKey = ev.currentTarget.dataset.stat;
+        if (statKey) {
+          gm.guardOrganizationManager.rollStat(statKey);
+        }
+      });
   }
 
   static async handleModifierClick(modifierId: string) {
