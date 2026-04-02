@@ -6,6 +6,46 @@
  * !important reverses layer priority so our rules always win.
  */
 
+/* ── Search bar ──────────────────────────────────────────────────────────── */
+.entity-list-search {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 4px 0 6px !important;
+  padding: 3px 8px !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(201, 164, 74, 0.25) !important;
+  border-radius: 4px !important;
+}
+
+.entity-list-search__icon {
+  color: rgba(201, 164, 74, 0.6) !important;
+  font-size: 11px !important;
+  flex-shrink: 0 !important;
+}
+
+.entity-list-search__input {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #efe6d8 !important;
+  font-size: 12px !important;
+  flex: 1 !important;
+  padding: 2px 0 !important;
+  min-width: 0 !important;
+  height: auto !important;
+}
+
+.entity-list-search__input::placeholder {
+  color: rgba(239, 230, 216, 0.35) !important;
+}
+
+.entity-row--hidden {
+  display: none !important;
+}
+
+/* ── List ────────────────────────────────────────────────────────────────── */
 .entity-list {
   display: flex !important;
   flex-direction: column !important;
@@ -23,10 +63,16 @@
   border-top: 1px solid rgba(201, 164, 74, 0.18) !important;
 }
 
-.entity-row:nth-child(odd)  { background: rgba(24, 22, 46, 0.7) !important; }
-.entity-row:nth-child(even) { background: rgba(8,  6,  22, 0.85) !important; }
+.entity-row:nth-child(odd) {
+  background: rgba(24, 22, 46, 0.7) !important;
+}
+.entity-row:nth-child(even) {
+  background: rgba(8, 6, 22, 0.85) !important;
+}
 
-.entity-row:hover { background: rgba(201, 164, 74, 0.1) !important; }
+.entity-row:hover {
+  background: rgba(201, 164, 74, 0.1) !important;
+}
 
 .entity-row--open {
   background: rgba(201, 164, 74, 0.08) !important;
@@ -39,7 +85,7 @@
   flex-direction: row !important;
   align-items: center !important;
   gap: 6px !important;
-  padding: 3px 6px !important;
+  padding: 0 !important;
   min-height: 28px !important;
   cursor: pointer !important;
   overflow: hidden !important;
@@ -141,13 +187,41 @@
   flex-shrink: 0 !important;
 }
 
-.entity-row__badge--level-1 { background: rgba(139,0,0,0.5)   !important; color: #ff6b6b !important; border-color: rgba(255,107,107,0.5) !important; }
-.entity-row__badge--level-2 { background: rgba(180,50,20,0.5)  !important; color: #ff8a65 !important; border-color: rgba(255,138,101,0.5) !important; }
-.entity-row__badge--level-3 { background: rgba(150,90,20,0.5)  !important; color: #ffb74d !important; border-color: rgba(255,183,77,0.5)  !important; }
-.entity-row__badge--level-4 { background: rgba(80,80,80,0.4)   !important; color: #bdbdbd !important; border-color: rgba(189,189,189,0.4) !important; }
-.entity-row__badge--level-5 { background: rgba(30,100,50,0.5)  !important; color: #81c784 !important; border-color: rgba(129,199,132,0.5) !important; }
-.entity-row__badge--level-6 { background: rgba(20,80,60,0.5)   !important; color: #4db6ac !important; border-color: rgba(77,182,172,0.5)  !important; }
-.entity-row__badge--level-7 { background: rgba(20,50,100,0.5)  !important; color: #64b5f6 !important; border-color: rgba(100,181,246,0.5) !important; }
+.entity-row__badge--level-1 {
+  background: rgba(139, 0, 0, 0.5) !important;
+  color: #ff6b6b !important;
+  border-color: rgba(255, 107, 107, 0.5) !important;
+}
+.entity-row__badge--level-2 {
+  background: rgba(180, 50, 20, 0.5) !important;
+  color: #ff8a65 !important;
+  border-color: rgba(255, 138, 101, 0.5) !important;
+}
+.entity-row__badge--level-3 {
+  background: rgba(150, 90, 20, 0.5) !important;
+  color: #ffb74d !important;
+  border-color: rgba(255, 183, 77, 0.5) !important;
+}
+.entity-row__badge--level-4 {
+  background: rgba(80, 80, 80, 0.4) !important;
+  color: #bdbdbd !important;
+  border-color: rgba(189, 189, 189, 0.4) !important;
+}
+.entity-row__badge--level-5 {
+  background: rgba(30, 100, 50, 0.5) !important;
+  color: #81c784 !important;
+  border-color: rgba(129, 199, 132, 0.5) !important;
+}
+.entity-row__badge--level-6 {
+  background: rgba(20, 80, 60, 0.5) !important;
+  color: #4db6ac !important;
+  border-color: rgba(77, 182, 172, 0.5) !important;
+}
+.entity-row__badge--level-7 {
+  background: rgba(20, 50, 100, 0.5) !important;
+  color: #64b5f6 !important;
+  border-color: rgba(100, 181, 246, 0.5) !important;
+}
 
 /* ── Action buttons ──────────────────────────────────────────────────────── */
 .entity-row__actions {
@@ -258,13 +332,41 @@
   align-self: flex-start !important;
 }
 
-.entity-row__detail-badge--level-1 { background: rgba(139,0,0,0.5)   !important; color: #ff6b6b !important; border-color: #ff6b6b !important; }
-.entity-row__detail-badge--level-2 { background: rgba(180,50,20,0.5)  !important; color: #ff8a65 !important; border-color: #ff8a65 !important; }
-.entity-row__detail-badge--level-3 { background: rgba(150,90,20,0.5)  !important; color: #ffb74d !important; border-color: #ffb74d !important; }
-.entity-row__detail-badge--level-4 { background: rgba(80,80,80,0.5)   !important; color: #bdbdbd !important; border-color: #bdbdbd !important; }
-.entity-row__detail-badge--level-5 { background: rgba(30,100,50,0.5)  !important; color: #81c784 !important; border-color: #81c784 !important; }
-.entity-row__detail-badge--level-6 { background: rgba(20,80,60,0.5)   !important; color: #4db6ac !important; border-color: #4db6ac !important; }
-.entity-row__detail-badge--level-7 { background: rgba(20,50,100,0.5)  !important; color: #64b5f6 !important; border-color: #64b5f6 !important; }
+.entity-row__detail-badge--level-1 {
+  background: rgba(139, 0, 0, 0.5) !important;
+  color: #ff6b6b !important;
+  border-color: #ff6b6b !important;
+}
+.entity-row__detail-badge--level-2 {
+  background: rgba(180, 50, 20, 0.5) !important;
+  color: #ff8a65 !important;
+  border-color: #ff8a65 !important;
+}
+.entity-row__detail-badge--level-3 {
+  background: rgba(150, 90, 20, 0.5) !important;
+  color: #ffb74d !important;
+  border-color: #ffb74d !important;
+}
+.entity-row__detail-badge--level-4 {
+  background: rgba(80, 80, 80, 0.5) !important;
+  color: #bdbdbd !important;
+  border-color: #bdbdbd !important;
+}
+.entity-row__detail-badge--level-5 {
+  background: rgba(30, 100, 50, 0.5) !important;
+  color: #81c784 !important;
+  border-color: #81c784 !important;
+}
+.entity-row__detail-badge--level-6 {
+  background: rgba(20, 80, 60, 0.5) !important;
+  color: #4db6ac !important;
+  border-color: #4db6ac !important;
+}
+.entity-row__detail-badge--level-7 {
+  background: rgba(20, 50, 100, 0.5) !important;
+  color: #64b5f6 !important;
+  border-color: #64b5f6 !important;
+}
 
 .entity-row__detail-meta {
   color: rgba(239, 230, 216, 0.65) !important;

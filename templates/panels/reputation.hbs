@@ -1,6 +1,10 @@
 <div class="organization-info">
   <div class="info-section reputation-section">
     <h3><i class="fas fa-handshake"></i> Reputación</h3>
+    <div class="entity-list-search">
+      <i class="fas fa-search entity-list-search__icon"></i>
+      <input type="text" class="entity-list-search__input" placeholder="Buscar facción..." />
+    </div>
     <div class="entity-list" data-organization-id="{{organizationId}}">
       {{#if reputation.length}}
         {{#each reputation}}

@@ -67,6 +67,16 @@ export class ReputationPanel {
         row.classList.toggle('entity-row--open', !isOpen);
       });
     });
+
+    // Search filter
+    const searchInput = container.querySelector<HTMLInputElement>('.entity-list-search__input');
+    searchInput?.addEventListener('input', () => {
+      const query = searchInput.value.trim().toLowerCase();
+      container.querySelectorAll<HTMLElement>('.entity-row').forEach(row => {
+        const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
+        row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
+      });
+    });
   }
 
   /**
