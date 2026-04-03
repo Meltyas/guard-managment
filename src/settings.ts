@@ -177,9 +177,52 @@ export function registerSettings(): void {
     config: false,
     type: Array,
     default: [],
-    onChange: (_value) => {
+    onChange: (value) => {
       const gm = (window as any).GuardManagement;
       if (gm?.patrolEffectManager) gm.patrolEffectManager.loadFromSettings?.();
+
+      // Sync patrol instances that reference updated templates
+      if (Array.isArray(value)) {
+        const templateMap = new Map(value.map((t: any) => [t.id, t]));
+        const patrolMgr = gm?.guardOrganizationManager?.getPatrolManager?.();
+        if (patrolMgr) {
+          const patrols = patrolMgr.getAll?.() ?? [];
+          let dirty = false;
+          for (const patrol of patrols) {
+            if (!Array.isArray(patrol.patrolEffects)) continue;
+            for (const inst of patrol.patrolEffects) {
+              if (!inst.templateId) continue;
+              const tmpl = templateMap.get(inst.templateId);
+              if (!tmpl) continue;
+              // Rebuild modifiers from template statModifications
+              const modifiers: Record<string, number> = {};
+              if (Array.isArray(tmpl.statModifications)) {
+                for (const sm of tmpl.statModifications) {
+                  if (sm.statName && typeof sm.value === 'number') {
+                    modifiers[sm.statName] = sm.value;
+                  }
+                }
+              }
+              inst.label = tmpl.name;
+              inst.img = tmpl.image || inst.img;
+              inst.description = tmpl.description ?? inst.description;
+              inst.modifiers = modifiers;
+              dirty = true;
+            }
+          }
+          if (dirty) patrolMgr.persistToSettings?.();
+        }
+      }
+
+      // Refresh open GMWarehouseDialog patrol effects tab
+      const gmWareEff = (window as any).GuardManagement?.GMWarehouseDialog;
+      if (gmWareEff?.instance?.isOpen?.()) {
+        gmWareEff.instance.refreshPatrolEffectsTab?.();
+      }
+      // Refresh CustomInfoDialog patrols panel (effects are shown there)
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshPatrolsPanel?.();
+      }
     },
   });
 
@@ -193,6 +236,15 @@ export function registerSettings(): void {
     onChange: (_value) => {
       const gm = (window as any).GuardManagement;
       if (gm?.modifierManager) gm.modifierManager.loadFromSettings?.();
+      // Refresh open GMWarehouseDialog modifiers tab
+      const gmWareMod = (window as any).GuardManagement?.GMWarehouseDialog;
+      if (gmWareMod?.instance?.isOpen?.()) {
+        gmWareMod.instance.refreshGuardModifiersTab?.();
+      }
+      // Refresh CustomInfoDialog if open (modifiers affect org stats)
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshContent?.();
+      }
     },
   });
 

@@ -1,5 +1,6 @@
 import type { GuardStats, PatrolEffectInstance } from '../../types/entities';
 import { classifyLastOrderAge } from '../../utils/patrol-helpers.js';
+import { AddOrEditPatrolDialog, UnitType } from '../../dialogs/AddOrEditPatrolDialog.js';
 
 export class PatrolsPanel {
   static get template() {
@@ -87,11 +88,13 @@ export class PatrolsPanel {
 
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
+    container.dataset.panelMode = mode;
     this.activateListeners(container);
   }
 
   static activateListeners(container: HTMLElement) {
     const $html = $(container);
+    const unitMode = (container.dataset.panelMode as UnitType) || 'patrol';
 
     // Drag & Drop
     this.setupPatrolZonesDnD(container, () => this.refresh(container));
@@ -100,12 +103,12 @@ export class PatrolsPanel {
     // Actions
     $html.find('[data-action="create-patrol"]').on('click', (ev) => {
       ev.preventDefault();
-      this.handleCreatePatrol(() => this.refresh(container));
+      this.handleCreatePatrol(() => this.refresh(container), unitMode);
     });
     $html.find('[data-action="edit"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleEditPatrol(id, () => this.refresh(container));
+      if (id) this.handleEditPatrol(id, () => this.refresh(container), unitMode);
     });
     $html.find('[data-action="delete"]').on('click', (ev) => {
       ev.preventDefault();
@@ -626,6 +629,7 @@ export class PatrolsPanel {
 
           const effectInstance: PatrolEffectInstance = {
             id: (globalThis as any).foundry.utils.randomID(),
+            templateId: effectData.id,
             sourceType: 'manual',
             label: effectData.name,
             img: effectData.image,
@@ -649,26 +653,32 @@ export class PatrolsPanel {
     });
   }
 
-  public static async handleCreatePatrol(refreshCallback: () => void) {
+  public static async handleCreatePatrol(refreshCallback: () => void, unitType: UnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
     const org = orgMgr.getOrganization();
     if (!org) return;
-    const created = await orgMgr.openCreatePatrolDialog();
+    const created = await AddOrEditPatrolDialog.create(org.id, unitType);
     if (created) {
-      ui?.notifications?.info('Patrulla creada');
+      ui?.notifications?.info(unitType === 'auxiliary' ? 'Auxiliar creado' : 'Patrulla creada');
       refreshCallback();
     }
   }
 
-  public static async handleEditPatrol(patrolId: string, refreshCallback: () => void) {
+  public static async handleEditPatrol(patrolId: string, refreshCallback: () => void, unitType: UnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const updated = await orgMgr.openEditPatrolDialog(patrolId);
+    const patrol = unitType === 'auxiliary'
+      ? orgMgr.getAuxiliaryManager?.()?.getPatrol?.(patrolId)
+      : orgMgr.getPatrolManager().getPatrol(patrolId);
+    if (!patrol) return;
+    const org = orgMgr.getOrganization();
+    if (!org) return;
+    const updated = await AddOrEditPatrolDialog.edit(org.id, patrol, unitType);
     if (updated) {
-      ui?.notifications?.info('Patrulla actualizada');
+      ui?.notifications?.info(unitType === 'auxiliary' ? 'Auxiliar actualizado' : 'Patrulla actualizada');
       refreshCallback();
     }
   }

@@ -1,8 +1,13 @@
 <div class='custom-dialog-header'>
-  <h2 class='custom-dialog-title-text'>GM Warehouse - Template Storage</h2>
-  <button class='custom-dialog-close' type='button' aria-label='Close'>
-    <i class='fas fa-times'></i>
-  </button>
+  <div class='custom-dialog-title'>
+    <i class='fas fa-warehouse'></i>
+    <span>GM Warehouse</span>
+  </div>
+  <div class='custom-dialog-controls'>
+    <button class='custom-dialog-btn custom-dialog-close' type='button' aria-label='Cerrar'>
+      <i class='fas fa-times'></i>
+    </button>
+  </div>
 </div>
 <div class='custom-dialog-body'>
   <div class='gm-warehouse-container'>
@@ -10,26 +15,26 @@
       <nav class='tabs' data-group='warehouse-tabs'>
         <a class='item tab active' data-tab='resources'>
           <i class='fas fa-boxes'></i>
-          Resources
+          <span>Recursos</span>
         </a>
         <a class='item tab' data-tab='reputation'>
           <i class='fas fa-handshake'></i>
-          Reputation
+          <span>Reputación</span>
         </a>
         <a class='item tab' data-tab='patrol-effects'>
           <i class='fas fa-magic'></i>
-          Patrol Effects
+          <span>Efectos</span>
         </a>
         <a class='item tab' data-tab='guard-modifiers'>
           <i class='fas fa-shield-alt'></i>
-          Guard Modifiers
+          <span>Modificadores</span>
         </a>
       </nav>
     </div>
     <div class='warehouse-content'>
       <section class='tab-content active' data-tab='resources'>
         <div class='content-header'>
-          <h3>Resources Templates</h3>
+          <h3>Plantillas de Recursos</h3>
           <div class='content-header-actions'>
             <button type='button' class='add-resource-btn'>
               <i class='fas fa-plus'></i>
@@ -57,13 +62,17 @@
             </button>
           </div>
         </div>
+        <div class='entity-list-search'>
+          <i class='fas fa-search entity-list-search__icon'></i>
+          <input type='text' class='warehouse-search-input entity-list-search__input' placeholder='Buscar recurso...' />
+        </div>
         <div class='templates-list resources-list'>
           <p class='loading-state'>Loading resources...</p>
         </div>
       </section>
       <section class='tab-content' data-tab='reputation'>
         <div class='content-header'>
-          <h3>Reputation Templates</h3>
+          <h3>Plantillas de Reputación</h3>
           <div class='content-header-actions'>
             <button type='button' class='add-reputation-btn'>
               <i class='fas fa-plus'></i>
@@ -91,13 +100,17 @@
             </button>
           </div>
         </div>
+        <div class='entity-list-search'>
+          <i class='fas fa-search entity-list-search__icon'></i>
+          <input type='text' class='warehouse-search-input entity-list-search__input' placeholder='Buscar reputación...' />
+        </div>
         <div class='templates-list reputation-list'>
           <p class='empty-state'>Loading reputation templates...</p>
         </div>
       </section>
       <section class='tab-content' data-tab='patrol-effects'>
         <div class='content-header'>
-          <h3>Patrol Effects Templates</h3>
+          <h3>Plantillas de Efectos de Patrulla</h3>
           <div class='content-header-actions'>
             <button type='button' class='add-patrol-effect-btn'>
               <i class='fas fa-plus'></i>
@@ -125,13 +138,17 @@
             </button>
           </div>
         </div>
+        <div class='entity-list-search'>
+          <i class='fas fa-search entity-list-search__icon'></i>
+          <input type='text' class='warehouse-search-input entity-list-search__input' placeholder='Buscar efecto...' />
+        </div>
         <div class='templates-list patrol-effects-list'>
-          <p class='empty-state'>No patrol effect templates created yet</p>
+          <p class='empty-state'>No hay efectos de patrulla creados aún</p>
         </div>
       </section>
       <section class='tab-content' data-tab='guard-modifiers'>
         <div class='content-header'>
-          <h3>Guard Modifiers Templates</h3>
+          <h3>Plantillas de Modificadores de Guardia</h3>
           <div class='content-header-actions'>
             <button type='button' class='add-guard-modifier-btn'>
               <i class='fas fa-plus'></i>
@@ -159,8 +176,12 @@
             </button>
           </div>
         </div>
+        <div class='entity-list-search'>
+          <i class='fas fa-search entity-list-search__icon'></i>
+          <input type='text' class='warehouse-search-input entity-list-search__input' placeholder='Buscar modificador...' />
+        </div>
         <div class='templates-list guard-modifiers-list'>
-          <p class='empty-state'>No guard modifier templates created yet</p>
+          <p class='empty-state'>No hay modificadores creados aún</p>
         </div>
       </section>
     </div>

@@ -165,7 +165,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     y?: number;
   }): Promise<HTMLElement> {
     const dialog = document.createElement('div');
-    dialog.className = 'gm-warehouse-dialog custom-dialog';
+    dialog.className = 'gm-warehouse-dialog custom-info-dialog';
 
     // Load saved position if available
     const savedPosition = localStorage.getItem('guard-management-warehouse-position');
@@ -985,12 +985,37 @@ export class GMWarehouseDialog implements FocusableDialog {
   private addTemplateEventListeners(): void {
     if (!this.element) return;
 
+    // Expand/collapse toggle for entity rows
+    this.element.querySelectorAll<HTMLElement>('.entity-row__summary').forEach((summary) => {
+      summary.onclick = (e) => {
+        if ((e.target as HTMLElement).closest('.entity-row__actions')) return;
+        e.stopPropagation();
+        const row = summary.closest('.entity-row') as HTMLElement;
+        const toggle = row.querySelector('.entity-row__toggle') as HTMLElement;
+        const isOpen = row.classList.contains('entity-row--open');
+        row.classList.toggle('entity-row--open', !isOpen);
+        toggle?.setAttribute('aria-expanded', String(!isOpen));
+      };
+    });
+
+    // Search filter per list
+    this.element.querySelectorAll<HTMLInputElement>('.warehouse-search-input').forEach((input) => {
+      input.oninput = () => {
+        const query = input.value.trim().toLowerCase();
+        const list = input.closest('.tab-content')?.querySelector('.templates-list');
+        list?.querySelectorAll<HTMLElement>('.entity-row').forEach((row) => {
+          const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
+          row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
+        });
+      };
+    });
+
     // Handle send to chat template buttons
     const sendToChatButtons = this.element.querySelectorAll('.send-to-chat-template-btn');
     sendToChatButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = button.closest('.template-item') as HTMLElement;
+        const templateItem = button.closest('.entity-row') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
 
@@ -1007,7 +1032,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     editButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = button.closest('.template-item') as HTMLElement;
+        const templateItem = button.closest('.entity-row') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
@@ -1030,20 +1055,14 @@ export class GMWarehouseDialog implements FocusableDialog {
     duplicateButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = button.closest('.template-item') as HTMLElement;
+        const templateItem = button.closest('.entity-row') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
-        const effectId = templateItem?.dataset.effectId;
-        const modifierId = templateItem?.dataset.modifierId;
 
         if (resourceId) {
           this.handleDuplicateTemplate(resourceId);
         } else if (reputationId) {
           this.handleDuplicateReputationTemplate(reputationId);
-        } else if (effectId) {
-          // TODO: Implement duplicate for patrol effect
-        } else if (modifierId) {
-          // TODO: Implement duplicate for guard modifier
         }
       };
     });
@@ -1053,7 +1072,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     deleteButtons.forEach((button) => {
       (button as HTMLElement).onclick = (event) => {
         event.preventDefault();
-        const templateItem = button.closest('.template-item') as HTMLElement;
+        const templateItem = button.closest('.entity-row') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
         const effectId = templateItem?.dataset.effectId;
@@ -1071,9 +1090,8 @@ export class GMWarehouseDialog implements FocusableDialog {
       };
     });
 
-    // Handle drag start for resource templates
-    const resourceTemplates = this.element.querySelectorAll('.resource-template[draggable="true"]');
-    resourceTemplates.forEach((template) => {
+    // Drag: resource templates
+    this.element.querySelectorAll('.resource-template[draggable="true"]').forEach((template) => {
       (template as HTMLElement).ondragstart = (event) => {
         this.handleResourceDragStart(event as DragEvent);
       };
@@ -1082,12 +1100,8 @@ export class GMWarehouseDialog implements FocusableDialog {
       };
     });
 
-    // Handle drag start for reputation templates
-    const reputationTemplates = this.element.querySelectorAll(
-      '.reputation-template[draggable="true"]'
-    );
-    console.log(`🔧 Setting up drag for ${reputationTemplates.length} reputation templates`);
-    reputationTemplates.forEach((template) => {
+    // Drag: reputation templates
+    this.element.querySelectorAll('.reputation-template[draggable="true"]').forEach((template) => {
       (template as HTMLElement).ondragstart = (event) => {
         this.handleReputationDragStart(event as DragEvent);
       };
@@ -1096,11 +1110,8 @@ export class GMWarehouseDialog implements FocusableDialog {
       };
     });
 
-    // Handle drag start for patrol effect templates
-    const effectTemplates = this.element.querySelectorAll(
-      '.patrol-effect-template[draggable="true"]'
-    );
-    effectTemplates.forEach((template) => {
+    // Drag: patrol effect templates
+    this.element.querySelectorAll('.patrol-effect-template[draggable="true"]').forEach((template) => {
       (template as HTMLElement).ondragstart = (event) => {
         this.handlePatrolEffectDragStart(event as DragEvent);
       };
@@ -1109,11 +1120,8 @@ export class GMWarehouseDialog implements FocusableDialog {
       };
     });
 
-    // Handle drag start for guard modifier templates
-    const modifierTemplates = this.element.querySelectorAll(
-      '.guard-modifier-template[draggable="true"]'
-    );
-    modifierTemplates.forEach((template) => {
+    // Drag: guard modifier templates
+    this.element.querySelectorAll('.guard-modifier-template[draggable="true"]').forEach((template) => {
       (template as HTMLElement).ondragstart = (event) => {
         this.handleGuardModifierDragStart(event as DragEvent);
       };

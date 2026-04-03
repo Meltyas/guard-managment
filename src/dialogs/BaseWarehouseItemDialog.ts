@@ -110,48 +110,33 @@ export abstract class BaseWarehouseItemDialog<T extends BaseWarehouseItem>
    */
   protected createElement(content: string): void {
     const dialogHtml = `
-      <div class="warehouse-item-dialog" style="
+      <div class="warehouse-item-dialog custom-info-dialog" style="
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         width: ${this.config.width || 600}px;
-        height: ${this.config.height || 'auto'};
-        background: #f0f0e0;
-        border: 3px solid #8b4513;
-        border-radius: 10px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        z-index: ${++BaseWarehouseItemDialog.zIndexCounter};
-        font-family: 'Palatino Linotype', serif;
         max-height: 90vh;
-        overflow-y: auto;
+        z-index: ${++BaseWarehouseItemDialog.zIndexCounter};
         ${this.config.resizable !== false ? 'resize: both;' : ''}
       ">
-        <div class="dialog-header" style="
-          background: linear-gradient(to bottom, #d4af37, #b8860b);
-          color: #2c1810;
-          padding: 12px 20px;
-          border-radius: 7px 7px 0 0;
-          cursor: move;
-          font-weight: bold;
-          font-size: 16px;
-          border-bottom: 2px solid #8b4513;
-        ">
-          ${this.config.title}
-          <button class="close-btn" style="
-            float: right;
-            background: none;
-            border: none;
-            color: #2c1810;
-            font-size: 18px;
-            cursor: pointer;
-            font-weight: bold;
-          ">×</button>
+        <div class="custom-dialog-header" style="cursor: move;">
+          <div class="custom-dialog-title">
+            <i class="fas fa-box-open"></i>
+            <span>${this.config.title}</span>
+          </div>
+          <div class="custom-dialog-controls">
+            <button class="custom-dialog-btn custom-dialog-close close-btn" type="button" aria-label="Cerrar">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
-        <div class="dialog-content" style="
-          padding: 20px;
-          color: #2c1810;
-        ">
+        <div class="warehouse-item-dialog-content">
+          ${content}
+        </div>
+      </div>
+    `;
+        <div class="warehouse-item-dialog-content">
           ${content}
         </div>
       </div>
@@ -176,7 +161,7 @@ export abstract class BaseWarehouseItemDialog<T extends BaseWarehouseItem>
     }
 
     // Dialog header for dragging
-    const header = this.element.querySelector('.dialog-header');
+    const header = this.element.querySelector('.custom-dialog-header');
     if (header) {
       header.addEventListener('mousedown', this.handleMouseDown as EventListener);
     }

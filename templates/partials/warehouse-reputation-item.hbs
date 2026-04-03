@@ -1,40 +1,35 @@
-<div class="dh-card dh-card--reputation{{#unless image}} dh-card--no-image{{/unless}}" data-reputation-id="{{id}}" draggable="true" title="Arrastra esta reputación a una organización para asignarla">
-  <div class="dh-card-inner">
-    <div class="dh-card-header">
-      {{#if image}}
-      <div class="dh-card-header-image">
-        <img alt="{{name}}" src="{{image}}" />
-      </div>
-      <img class="dh-card-divider" src="modules/guard-management/assets/card/card-type-middle-deco.png" />
-      {{/if}}
-      <div class="dh-card-type">reputación</div>
-      <div class="dh-card-quantity-badge dh-card-quantity-badge--level-{{level}}">{{levelLabel}}</div>
-    </div>
-    <div class="dh-card-body">
-      <div class="dh-card-title-block">
-        <div class="dh-card-title-wrapper">
-          <h1 class="dh-card-title">{{name}}</h1>
-        </div>
-        {{#if description}}
-        <div class="dh-card-subtitle">
-          <p>{{description}}</p>
-        </div>
-        {{/if}}
-      </div>
+<div class="entity-row reputation-template" data-reputation-id="{{id}}" draggable="true" title="Arrastra esta reputación a una organización para asignarla">
+  <div class="entity-row__summary">
+    <button type="button" class="entity-row__toggle" aria-expanded="false" aria-label="Expandir">
+      <img class="entity-row__thumb" src="{{#if image}}{{image}}{{else}}icons/svg/cowled.svg{{/if}}" alt="{{name}}" />
+    </button>
+    <span class="entity-row__badge entity-row__badge--level-{{level}}">{{levelLabel}}</span>
+    <span class="entity-row__name">{{name}}</span>
+    <div class="entity-row__actions">
+      <button type="button" class="entity-row__btn send-to-chat-template-btn" title="Enviar al chat" data-reputation-id="{{id}}">
+        <i class="fas fa-comment"></i>
+      </button>
+      <button type="button" class="entity-row__btn edit-template-btn" title="Editar">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button type="button" class="entity-row__btn duplicate-template-btn" title="Duplicar">
+        <i class="fas fa-copy"></i>
+      </button>
+      <button type="button" class="entity-row__btn entity-row__btn--danger delete-template-btn" title="Eliminar">
+        <i class="fas fa-trash"></i>
+      </button>
     </div>
   </div>
-  <div class="dh-card-actions dh-card-actions--list">
-    <button type="button" class="dh-card-action-btn send-to-chat-template-btn" title="Enviar al chat" data-reputation-id="{{id}}">
-      <i class="fas fa-comment"></i>
-    </button>
-    <button type="button" class="dh-card-action-btn edit-template-btn" title="Editar template">
-      <i class="fas fa-edit"></i>
-    </button>
-    <button type="button" class="dh-card-action-btn duplicate-template-btn" title="Duplicar template">
-      <i class="fas fa-copy"></i>
-    </button>
-    <button type="button" class="dh-card-action-btn dh-card-action-btn--danger delete-template-btn" title="Eliminar template">
-      <i class="fas fa-trash"></i>
-    </button>
+  <div class="entity-row__detail" hidden>
+    <div class="entity-row__detail-image">
+      <img class="entity-row__detail-img" src="{{#if image}}{{image}}{{else}}icons/svg/cowled.svg{{/if}}" alt="{{name}}" />
+    </div>
+    <div class="entity-row__detail-body">
+      <div class="entity-row__detail-title">{{name}}</div>
+      <span class="entity-row__detail-badge entity-row__detail-badge--level-{{level}}">{{levelLabel}}</span>
+      {{#if description}}
+        <p class="entity-row__detail-desc">{{description}}</p>
+      {{/if}}
+    </div>
   </div>
 </div>

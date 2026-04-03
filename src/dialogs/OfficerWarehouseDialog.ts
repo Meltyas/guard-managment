@@ -78,7 +78,7 @@ export class OfficerWarehouseDialog {
    */
   private async createElement(): Promise<HTMLElement> {
     const dialog = document.createElement('div');
-    dialog.className = 'dialog window-app officer-warehouse-window';
+    dialog.className = 'officer-warehouse-window custom-info-dialog';
     dialog.style.cssText = `
       position: fixed;
       top: 50%;
@@ -87,12 +87,6 @@ export class OfficerWarehouseDialog {
       width: 800px;
       max-height: 80vh;
       z-index: 100;
-      background: #2b2b2b;
-      border: 2px solid #555;
-      border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
-      display: flex;
-      flex-direction: column;
     `;
 
     // Get officers from OfficerManager
@@ -106,13 +100,18 @@ export class OfficerWarehouseDialog {
     );
 
     dialog.innerHTML = `
-      <header class="window-header" style="cursor: move; background: #1a1a1a; padding: 0.5rem 1rem; border-bottom: 2px solid #555; display: flex; justify-content: space-between; align-items: center;">
-        <h4 class="window-title" style="margin: 0; color: #fff; font-size: 1.2rem;">Almacén de Oficiales</h4>
-        <a class="header-button close" title="Close" style="cursor: pointer; color: #fff; font-size: 1.2rem;">
-          <i class="fas fa-times"></i>
-        </a>
+      <header class="custom-dialog-header">
+        <div class="custom-dialog-title">
+          <i class="fas fa-user-shield"></i>
+          <span>Almacén de Oficiales</span>
+        </div>
+        <div class="custom-dialog-controls">
+          <button type="button" class="custom-dialog-btn custom-dialog-close header-button close" title="Cerrar" aria-label="Cerrar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
       </header>
-      <div class="window-content" style="overflow-y: auto; padding: 1rem; background: #2b2b2b;">
+      <div class="window-content officer-warehouse-body">
         ${content}
       </div>
     `;

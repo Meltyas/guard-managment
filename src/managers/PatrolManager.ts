@@ -236,7 +236,7 @@ export class PatrolManager {
   }
 
   /** Persiste lista completa de patrol snapshots a game settings */
-  private async persistToSettings(): Promise<void> {
+  public async persistToSettings(): Promise<void> {
     try {
       // Don't save if game is not ready yet
       if (!game?.ready) {

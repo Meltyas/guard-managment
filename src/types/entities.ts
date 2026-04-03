@@ -166,6 +166,7 @@ export interface PatrolSoldier {
 
 export interface PatrolEffectInstance {
   id: string; // internal id or reference id
+  templateId?: string; // id of the warehouse PatrolEffect template this was created from
   sourceType: 'temp' | 'organization' | 'manual';
   label: string;
   img?: string;

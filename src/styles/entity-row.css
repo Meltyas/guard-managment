@@ -387,3 +387,22 @@
   margin: 0;
   line-height: 1.4;
 }
+
+/* ── Effect/Modifier type badges ─────────────────────────────────────────── */
+.custom-info-dialog .entity-row__badge--type-positive {
+  background: rgba(30, 100, 50, 0.5);
+  color: #81c784;
+  border-color: rgba(129, 199, 132, 0.5);
+}
+
+.custom-info-dialog .entity-row__badge--type-negative {
+  background: rgba(139, 0, 0, 0.5);
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.5);
+}
+
+.custom-info-dialog .entity-row__badge--type-neutral {
+  background: rgba(80, 80, 80, 0.4);
+  color: #bdbdbd;
+  border-color: rgba(189, 189, 189, 0.4);
+}

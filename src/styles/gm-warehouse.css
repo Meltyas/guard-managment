@@ -5,6 +5,88 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
 }
 
+/* ── Entity-row overrides for warehouse context ───────────────────────────
+   The entity-row CSS uses [hidden] to collapse detail panels, but Foundry
+   CSS can override it. Use class-based show/hide with !important here.
+ ─────────────────────────────────────────────────────────────────────────── */
+
+/* Hide detail by default — beats any specificity conflict */
+.gm-warehouse-dialog .entity-row__detail {
+  display: none !important;
+}
+
+/* Show when row is open */
+.gm-warehouse-dialog .entity-row--open .entity-row__detail {
+  display: flex !important;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 8px;
+  border-top: 1px solid rgba(201, 164, 74, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Always-visible action buttons (management context) */
+.gm-warehouse-dialog .entity-row__actions {
+  opacity: 1 !important;
+}
+
+/* Type badge colors — forced specificity to beat any global overrides */
+.gm-warehouse-dialog .entity-row__badge--type-positive {
+  background: rgba(30, 100, 50, 0.5) !important;
+  color: #81c784 !important;
+  border-color: rgba(129, 199, 132, 0.5) !important;
+}
+.gm-warehouse-dialog .entity-row__badge--type-negative {
+  background: rgba(139, 0, 0, 0.5) !important;
+  color: #ff6b6b !important;
+  border-color: rgba(255, 107, 107, 0.5) !important;
+}
+.gm-warehouse-dialog .entity-row__badge--type-neutral {
+  background: rgba(80, 80, 80, 0.4) !important;
+  color: #bdbdbd !important;
+  border-color: rgba(189, 189, 189, 0.4) !important;
+}
+
+/* Warehouse Item Dialog (BaseWarehouseItemDialog) */
+.warehouse-item-dialog {
+  font-family: 'Signika', sans-serif;
+  color: #efe6d8;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.warehouse-item-dialog-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  color: #efe6d8;
+}
+
+.warehouse-item-dialog-content input,
+.warehouse-item-dialog-content select,
+.warehouse-item-dialog-content textarea {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(243, 194, 103, 0.4);
+  border-radius: 4px;
+  color: #efe6d8;
+  padding: 6px 10px;
+}
+
+.warehouse-item-dialog-content input:focus,
+.warehouse-item-dialog-content select:focus,
+.warehouse-item-dialog-content textarea:focus {
+  border-color: #f3c267;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(243, 194, 103, 0.2);
+}
+
+.warehouse-item-dialog-content label {
+  color: rgba(239, 230, 216, 0.8);
+  font-size: 0.9rem;
+}
+
 .gm-warehouse-dialog .window-title {
   background: #18162e; /* Daggerheart header background */
   color: #f3c267; /* Daggerheart gold color */
@@ -12,13 +94,21 @@
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+.gm-warehouse-dialog .custom-dialog-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
 .gm-warehouse-container {
   padding: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
-  font-family: 'Signika', sans-serif; /* Daggerheart font */
-  color: #efe6d8; /* Daggerheart text color */
+  font-family: 'Signika', sans-serif;
+  color: #efe6d8;
 }
 
 .warehouse-tabs {
@@ -36,22 +126,25 @@
 
 .warehouse-tabs .tab {
   flex: 1;
-  padding: 12px 16px;
-  background: rgba(24, 22, 46, 0.7); /* Daggerheart background */
-  color: #efe6d8; /* Daggerheart text color */
+  padding: 10px 12px;
+  background: rgba(24, 22, 46, 0.7);
+  color: #efe6d8;
   text-decoration: none;
   border: none;
-  border-right: 1px solid rgba(243, 194, 103, 0.3); /* Daggerheart gold with transparency */
+  border-right: 1px solid rgba(243, 194, 103, 0.3);
   transition: all 0.3s ease;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: 0.9rem;
+  gap: 7px;
+  font-size: 0.78rem;
   font-weight: 500;
-  text-transform: uppercase; /* Daggerheart style */
-  font-family: 'Cinzel', serif; /* Daggerheart header font */
+  text-transform: uppercase;
+  font-family: 'Cinzel', serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .warehouse-tabs .tab:last-child {
@@ -59,9 +152,8 @@
 }
 
 .warehouse-tabs .tab:hover {
-  background: linear-gradient(135deg, #555, #666);
-  color: #fff;
-  transform: translateY(-1px);
+  background: rgba(243, 194, 103, 0.15);
+  color: #f3c267;
 }
 
 .warehouse-tabs .tab.active {
@@ -78,7 +170,7 @@
   flex: 1;
   padding: 20px;
   overflow-y: auto;
-  background: linear-gradient(135deg, rgba(25, 25, 25, 0.95), rgba(40, 40, 40, 0.95));
+  background: rgba(24, 22, 46, 0.6);
   container-type: inline-size;
   container-name: warehouse-container;
 }
@@ -110,7 +202,7 @@
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid rgba(243, 194, 103, 0.4);
 }
 
 /* Action buttons group in section headers */
@@ -121,10 +213,11 @@
 }
 
 .content-header h3 {
-  color: #ecf0f1;
+  color: #f3c267;
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
+  font-family: 'Cinzel', serif;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -132,81 +225,69 @@
 
 .content-header h3::before {
   content: '';
-  width: 4px;
-  height: 20px;
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  width: 3px;
+  height: 18px;
+  background: #f3c267;
   border-radius: 2px;
 }
 
-/* Default (add) button — green */
+/* Warehouse action buttons — Daggerheart gold style */
 .content-header button,
 .content-header-actions button {
-  padding: 8px 14px;
-  border: none;
+  padding: 6px 12px;
+  border: 1px solid rgba(243, 194, 103, 0.5);
   border-radius: 4px;
-  color: white;
-  font-size: 0.85rem;
+  color: #efe6d8;
+  font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, #27ae60, #229f56);
+  background: rgba(243, 194, 103, 0.12);
 }
 
 .content-header button:hover,
 .content-header-actions button:hover {
-  transform: translateY(-1px);
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
 }
 
 .content-header button i,
 .content-header-actions button i {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
-/* Export button — blue */
+/* Export button */
 .content-header-actions .warehouse-export-btn {
-  background: linear-gradient(135deg, #2980b9, #1a6a99);
+  background: rgba(243, 194, 103, 0.08);
 }
 
 .content-header-actions .warehouse-export-btn:hover {
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.35);
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
 }
 
-/* Import button — amber */
+/* Import button */
 .content-header-actions .warehouse-import-btn {
-  background: linear-gradient(135deg, #d4860a, #b8720a);
+  background: rgba(243, 194, 103, 0.08);
 }
 
 .content-header-actions .warehouse-import-btn:hover {
-  background: linear-gradient(135deg, #f39c12, #d4860a);
-  box-shadow: 0 4px 8px rgba(243, 156, 18, 0.35);
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
 }
 
 .templates-list {
-  min-height: 300px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px dashed #555;
-  border-radius: 6px;
-  padding: 20px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  align-items: start;
-}
-
-@container warehouse-container (max-width: 900px) {
-  .templates-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@container warehouse-container (max-width: 600px) {
-  .templates-list {
-    grid-template-columns: 1fr;
-  }
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0;
 }
 
 .templates-list .empty-state {
@@ -248,8 +329,8 @@
 
 /* Dialog button styles */
 .gm-warehouse-dialog .dialog-buttons {
-  background: linear-gradient(135deg, #2c3e50, #34495e);
-  border-top: 1px solid #555;
+  background: #18162e;
+  border-top: 1px solid rgba(243, 194, 103, 0.4);
   padding: 12px 20px;
   display: flex;
   justify-content: flex-end;
@@ -257,10 +338,10 @@
 
 .gm-warehouse-dialog .dialog-buttons button {
   padding: 8px 16px;
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  border: none;
+  background: rgba(243, 194, 103, 0.12);
+  border: 1px solid rgba(243, 194, 103, 0.5);
   border-radius: 4px;
-  color: white;
+  color: #efe6d8;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -270,9 +351,9 @@
 }
 
 .gm-warehouse-dialog .dialog-buttons button:hover {
-  background: linear-gradient(135deg, #f39c12, #e67e22);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
 }
 
 /* Responsive adjustments */
@@ -299,21 +380,21 @@
 .template-item {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-  border: 1px solid #555;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(243, 194, 103, 0.25);
   border-radius: 6px;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   height: auto;
   min-height: 120px;
 }
 
 .template-item:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
-  border-color: #777;
+  background: rgba(243, 194, 103, 0.06);
+  border-color: rgba(243, 194, 103, 0.6);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Template image */
@@ -323,11 +404,11 @@
   height: 48px;
   border-radius: 6px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #666;
+  border: 1px solid rgba(243, 194, 103, 0.35);
 }
 
 .template-image img {
@@ -346,18 +427,19 @@
 
 .template-name {
   font-weight: bold;
-  color: #ecf0f1;
-  font-size: 1rem;
+  color: #f3c267;
+  font-size: 0.95rem;
+  font-family: 'Cinzel', serif;
 }
 
 .template-description {
-  color: #bdc3c7;
+  color: rgba(239, 230, 216, 0.7);
   font-size: 0.85rem;
   font-style: italic;
 }
 
 .template-quantity {
-  color: #95a5a6;
+  color: rgba(239, 230, 216, 0.5);
   font-size: 0.8rem;
 }
 
@@ -367,49 +449,97 @@
 }
 
 .template-actions button {
-  padding: 6px 8px;
+  padding: 5px 8px;
   background: transparent;
-  border: 1px solid #666;
+  border: 1px solid rgba(243, 194, 103, 0.25);
   border-radius: 4px;
-  color: #bdc3c7;
+  color: rgba(239, 230, 216, 0.7);
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.8rem;
 }
 
 .template-actions button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #999;
-  color: #ecf0f1;
+  background: rgba(243, 194, 103, 0.1);
+  border-color: rgba(243, 194, 103, 0.6);
+  color: #f3c267;
 }
 
 .send-to-chat-template-btn:hover {
-  border-color: #2ecc71;
-  color: #2ecc71;
+  border-color: rgba(76, 175, 80, 0.8);
+  color: #4caf50;
 }
 
 .edit-template-btn:hover {
-  border-color: #3498db;
-  color: #3498db;
+  border-color: rgba(243, 194, 103, 0.8);
+  color: #f3c267;
 }
 
 .duplicate-template-btn:hover {
-  border-color: #f39c12;
-  color: #f39c12;
+  border-color: rgba(243, 194, 103, 0.6);
+  color: #f3c267;
 }
 
 .delete-template-btn:hover {
-  border-color: #e74c3c;
+  border-color: rgba(231, 76, 60, 0.8);
   color: #e74c3c;
 }
 
 /* Empty state enhancement */
 .empty-state {
   text-align: center;
-  color: #7f8c8d;
+  color: rgba(239, 230, 216, 0.4);
   font-style: italic;
   padding: 2rem;
   background: rgba(0, 0, 0, 0.2);
-  border: 1px dashed #555;
+  border: 1px dashed rgba(243, 194, 103, 0.2);
   border-radius: 6px;
+}
+
+/* Drag visual feedback for warehouse entity rows */
+.gm-warehouse-dialog .entity-row[draggable='true'] {
+  cursor: grab;
+}
+
+.gm-warehouse-dialog .entity-row[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.gm-warehouse-dialog .entity-row.dragging {
+  opacity: 0.5;
+}
+
+/* Search bar in warehouse */
+.gm-warehouse-dialog .entity-list-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(201, 164, 74, 0.25);
+  border-radius: 4px 4px 0 0;
+}
+
+.gm-warehouse-dialog .entity-list-search__icon {
+  color: rgba(201, 164, 74, 0.6);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.gm-warehouse-dialog .entity-list-search__input {
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  color: #efe6d8;
+  font-size: 12px;
+  flex: 1;
+  padding: 2px 0;
+  min-width: 0;
+  height: auto;
+}
+
+.gm-warehouse-dialog .entity-list-search__input::placeholder {
+  color: rgba(239, 230, 216, 0.35);
 }
