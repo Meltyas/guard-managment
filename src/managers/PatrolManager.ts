@@ -17,14 +17,16 @@ export type PatrolChangeCallback = (patrol: Patrol, op: PatrolChangeOp, ctx?: an
 export class PatrolManager {
   private patrols: Map<string, Patrol> = new Map();
   private onChange?: PatrolChangeCallback;
+  protected settingsKey: string;
 
   /** Inicializa cargando desde settings (si existen). GuardOrganizationManager volverá a hidratar snapshots igualmente. */
   public async initialize(): Promise<void> {
     await this.loadFromSettings();
   }
 
-  constructor(onChange?: PatrolChangeCallback) {
+  constructor(onChange?: PatrolChangeCallback, settingsKey: string = 'patrols') {
     this.onChange = onChange;
+    this.settingsKey = settingsKey;
   }
 
   public async createPatrol(
@@ -178,6 +180,24 @@ export class PatrolManager {
     return patrol;
   }
 
+  /** Update a patrol effect by id */
+  public async updateEffect(
+    patrolId: string,
+    effectId: string,
+    updates: Partial<PatrolEffectInstance>
+  ) {
+    const patrol = this.patrols.get(patrolId);
+    if (!patrol) return undefined;
+    const idx = patrol.patrolEffects.findIndex((e) => e.id === effectId);
+    if (idx === -1) return undefined;
+    patrol.patrolEffects[idx] = { ...patrol.patrolEffects[idx], ...updates };
+    patrol.version += 1;
+    patrol.updatedAt = new Date();
+    this.onChange?.(patrol, 'update', { field: 'patrolEffects', op: 'update', effectId });
+    await this.persistToSettings();
+    return patrol;
+  }
+
   /** Remove a patrol effect by id */
   public async removeEffect(patrolId: string, effectId: string) {
     const patrol = this.patrols.get(patrolId);
@@ -230,6 +250,24 @@ export class PatrolManager {
     return merged;
   }
 
+  /** Recovers 1 hope for every patrol/auxiliary that has maxHope > 0, called on phase advance */
+  public async recoverHopeOnPhaseAdvance(): Promise<void> {
+    let changed = false;
+    for (const [, patrol] of this.patrols) {
+      const maxHope = patrol.maxHope ?? 0;
+      if (maxHope <= 0) continue;
+      const currentHope = patrol.currentHope ?? 0;
+      if (currentHope < maxHope) {
+        patrol.currentHope = currentHope + 1;
+        patrol.version += 1;
+        patrol.updatedAt = new Date();
+        this.onChange?.(patrol, 'update', { field: 'currentHope' });
+        changed = true;
+      }
+    }
+    if (changed) await this.persistToSettings();
+  }
+
   /** Obtiene todos los patrols actuales */
   public getAll(): Patrol[] {
     return Array.from(this.patrols.values());
@@ -251,9 +289,9 @@ export class PatrolManager {
       const data = this.getAll();
 
       // Save to world settings - automatically syncs to all clients
-      await game?.settings?.set('guard-management', 'patrols', data);
+      await game?.settings?.set('guard-management', this.settingsKey as any, data);
 
-      console.log(`PatrolManager | Saved ${data.length} patrols to settings`);
+      console.log(`PatrolManager | Saved ${data.length} records to settings (key: ${this.settingsKey})`);
     } catch (error) {
       console.error('PatrolManager | Error saving patrols:', error);
     }
@@ -262,7 +300,7 @@ export class PatrolManager {
   /** Carga (si existen) los patrols guardados previamente */
   public async loadFromSettings(): Promise<void> {
     try {
-      const stored = game?.settings?.get('guard-management', 'patrols') as any[];
+      const stored = game?.settings?.get('guard-management', this.settingsKey as any) as any[];
       if (Array.isArray(stored)) {
         this.patrols.clear();
         for (const p of stored) {
@@ -313,14 +351,12 @@ export class PatrolManager {
     const spell = (patrol.patrolSpells || []).find((s: PatrolSpellAbility) => s.id === spellId);
     if (!spell) return;
 
-    // Pre-populate the dialog with the spell modifier as extra formula
-    const extraFormula = spell.modifier !== 0 ? `${spell.modifier}[${spell.name}]` : '';
+    // Use the patrol's spellcasting stat as the trait for the roll
+    const spellcastingStat = (patrol as any).spellcasting?.stat || '';
 
-    const config: any = await GuardRollDialog.create(patrol, [], '', extraFormula);
+    const config: any = await GuardRollDialog.create(patrol, [], spellcastingStat, '');
     if (config) {
-      // Attach spell metadata so performRoll can label the chat message
       config._spellName = spell.name;
-      config._spellModifier = spell.modifier;
       await this.performRoll(patrol, config);
     }
   }
@@ -455,6 +491,7 @@ export class PatrolManager {
       };
 
       await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
+      await this._tryGainHopeFromRoll(complexRoll, patrol);
       return;
     }
 
@@ -477,5 +514,35 @@ export class PatrolManager {
     };
 
     await (ChatMessage as any).create(messageData, { rollMode: config.selectedRollMode });
+    await this._tryGainHopeFromRoll(roll, patrol);
+  }
+
+  /** Called after a duality roll: if the roll was with hope and the patrol has maxHope > 0, recover 1 hope and notify chat */
+  private async _tryGainHopeFromRoll(roll: any, patrol: Patrol): Promise<void> {
+    if (!roll.withHope) return;
+    const maxHope = patrol.maxHope ?? 0;
+    if (maxHope <= 0) return;
+    const currentHope = patrol.currentHope ?? 0;
+    if (currentHope >= maxHope) return;
+
+    const newHope = currentHope + 1;
+    await this.updatePatrol(patrol.id, { currentHope: newHope });
+
+    // Build pip display: filled ● empty ○
+    const pips = Array.from({ length: maxHope }, (_, i) => (i < newHope ? '●' : '○')).join(' ');
+
+    const content = `
+      <div class="dh-card dh-card--no-image">
+        <div class="dh-card-body">
+          <p><strong>${patrol.name}</strong> recupera 1 esperanza con su tirada.</p>
+          <p>Esperanza: ${pips} (${newHope}/${maxHope})</p>
+        </div>
+      </div>`;
+
+    await (ChatMessage as any).create({
+      content,
+      speaker: { alias: patrol.name },
+    });
   }
 }
+

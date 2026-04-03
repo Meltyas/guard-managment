@@ -2,12 +2,14 @@ import { AddOrEditPatrolDialog } from '../dialogs/AddOrEditPatrolDialog';
 import { GuardOrganizationDialog } from '../dialogs/GuardOrganizationDialog';
 import { GuardRollDialog } from '../dialogs/GuardRollDialog';
 import { DEFAULT_GUARD_STATS, GuardOrganization, GuardStats, Patrol } from '../types/entities';
+import { AuxiliaryManager } from './AuxiliaryManager';
 import { PatrolChangeOp, PatrolManager } from './PatrolManager';
 
 export class GuardOrganizationManager {
   private organization: GuardOrganization | null = null; // Solo una organización
   private dialog: GuardOrganizationDialog;
   private patrolManager: PatrolManager; // Integration
+  private auxiliaryManager: AuxiliaryManager; // Integration for auxiliary units
 
   constructor() {
     this.dialog = new GuardOrganizationDialog();
@@ -41,6 +43,38 @@ export class GuardOrganizationManager {
         console.warn('GuardOrganizationManager | patrol onChange sync failed', e);
       }
     });
+
+    this.auxiliaryManager = new AuxiliaryManager((aux, op: PatrolChangeOp, ctx) => {
+      try {
+        if (!this.organization) return;
+        if (aux.organizationId !== this.organization.id) return;
+        // Ensure auxiliaries array exists (backwards compat)
+        if (!Array.isArray((this.organization as any).auxiliaries)) {
+          (this.organization as any).auxiliaries = [];
+        }
+        const auxiliaries = (this.organization as any).auxiliaries as string[];
+        if (op === 'delete') {
+          const idx = auxiliaries.indexOf(aux.id);
+          if (idx >= 0) auxiliaries.splice(idx, 1);
+          this.organization.updatedAt = new Date();
+          this.organization.version += 1;
+          this.saveOrganization(this.organization);
+          return;
+        }
+        if (!auxiliaries.includes(aux.id)) {
+          auxiliaries.push(aux.id);
+        }
+        if (ctx?.field === 'derivedStats') return;
+        if (op === 'create' || ctx?.field === 'patrolEffects' || ctx?.field === 'baseStats') {
+          this.auxiliaryManager.recalcDerived(aux.id, this.calculateEffectiveOrgStats());
+        }
+        this.organization.updatedAt = new Date();
+        this.organization.version += 1;
+        this.saveOrganization(this.organization);
+      } catch (e) {
+        console.warn('GuardOrganizationManager | auxiliary onChange sync failed', e);
+      }
+    });
   }
 
   public async initialize(): Promise<void> {
@@ -50,6 +84,11 @@ export class GuardOrganizationManager {
       await this.patrolManager.initialize();
     } catch (e) {
       console.warn('GuardOrganizationManager | patrolManager initialize failed', e);
+    }
+    try {
+      await this.auxiliaryManager.initialize();
+    } catch (e) {
+      console.warn('GuardOrganizationManager | auxiliaryManager initialize failed', e);
     }
     await this.loadOrganization();
 
@@ -495,6 +534,10 @@ export class GuardOrganizationManager {
 
       if (this.organization) {
         console.log(`GuardOrganizationManager | Loaded organization: ${this.organization.name}`);
+        // Ensure auxiliaries array exists (backwards compat for orgs created before auxiliary support)
+        if (!Array.isArray((this.organization as any).auxiliaries)) {
+          (this.organization as any).auxiliaries = [];
+        }
         // Fallback: si hay IDs de patrullas pero PatrolManager aún no tiene objetos, esperar un momento
         if (this.organization.patrols?.length) {
           const anyPatrol = this.organization.patrols.some(
@@ -548,6 +591,10 @@ export class GuardOrganizationManager {
 
   public getPatrolManager(): PatrolManager {
     return this.patrolManager;
+  }
+
+  public getAuxiliaryManager(): AuxiliaryManager {
+    return this.auxiliaryManager;
   }
 
   /** Upsert a patrol snapshot and ensure organization arrays updated & persisted */
@@ -625,7 +672,7 @@ export class GuardOrganizationManager {
     let changed = false;
 
     for (const id of auxiliaryIds) {
-      const unit = this.patrolManager.getPatrol(id);
+      const unit = this.auxiliaryManager.getPatrol(id);
       if (unit) {
         result.push(unit);
       } else {
@@ -653,6 +700,19 @@ export class GuardOrganizationManager {
     if (idx === -1) return false;
     this.organization.patrols.splice(idx, 1);
     // Sin snapshots; nada que eliminar adicional
+    this.organization.updatedAt = new Date();
+    this.organization.version += 1;
+    this.saveOrganization(this.organization);
+    return true;
+  }
+
+  public removeAuxiliary(auxiliaryId: string): boolean {
+    if (!this.organization) return false;
+    const auxiliaries = (this.organization as any).auxiliaries as string[] | undefined;
+    if (!Array.isArray(auxiliaries)) return false;
+    const idx = auxiliaries.indexOf(auxiliaryId);
+    if (idx === -1) return false;
+    auxiliaries.splice(idx, 1);
     this.organization.updatedAt = new Date();
     this.organization.version += 1;
     this.saveOrganization(this.organization);

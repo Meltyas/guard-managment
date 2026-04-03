@@ -126,7 +126,10 @@ export class GeneralPanel {
           tooltip += '</div>';
         }
 
-        tooltip += '<hr>Click: Send to Chat<br/>Shift+Click: Remove';
+        tooltip += `<hr>Click: Enviar al chat<br/>Ctrl+Click: Establecer expiración<br/>Shift+Click: Eliminar`;
+        if (mod.expiresAtTurn) {
+          tooltip = `<i class='fas fa-hourglass-end' style='color:#f3c267'></i> <strong>Expira en fase ${mod.expiresAtTurn}</strong><br/>${tooltip}`;
+        }
 
         return {
           id: mod.id,
@@ -137,6 +140,7 @@ export class GeneralPanel {
           netValue,
           borderClass,
           tooltip,
+          expiresAtTurn: mod.expiresAtTurn ?? null,
         };
       })
       .sort((a: any, b: any) => {
@@ -219,7 +223,9 @@ export class GeneralPanel {
       ev.preventDefault();
       ev.stopPropagation();
       const id = ev.currentTarget.dataset.id;
-      if (_shiftHeld) {
+      if ((ev.originalEvent as MouseEvent)?.ctrlKey) {
+        if (id) this.handleSetModifierExpiry(id, onRefresh);
+      } else if (_shiftHeld) {
         if (id) this.handleRemoveModifier(id, onRefresh);
       } else {
         if (id) this.handleModifierClick(id);
@@ -286,6 +292,53 @@ export class GeneralPanel {
     await (ChatMessage as any).create({
       content,
       speaker: (ChatMessage as any).getSpeaker({ alias: 'Modificador de Guardia' }),
+    });
+  }
+
+  static async handleSetModifierExpiry(modifierId: string, onRefresh?: () => void) {
+    const gm = (window as any).GuardManagement;
+    if (!gm?.modifierManager) return;
+    const modifier = gm.modifierManager.getModifier(modifierId);
+    if (!modifier) return;
+
+    const { GuardModal } = await import('../GuardModal');
+    const currentTurn = gm?.phaseManager?.getCurrentTurn?.() ?? 1;
+    const currentExpiry = modifier.expiresAtTurn ?? '';
+
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row" style="align-items:center;">
+          <label><i class="fas fa-clock"></i> Fase actual</label>
+          <strong>${currentTurn}</strong>
+        </div>
+        <div class="guard-modal-row" style="align-items:center;">
+          <label><i class="fas fa-hourglass-end"></i> Expira en fase</label>
+          <input type="number" id="gm-expiry-turn" min="1" value="${currentExpiry}"
+            placeholder="Sin expiración" style="width:80px;text-align:center;" />
+        </div>
+        <p style="font-size:12px;color:#aaa;margin:4px 0 0;">
+          Deja vacío para quitar la expiración. <strong>${modifier.name}</strong>
+        </p>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: 'Expiración del Modificador',
+      icon: 'fas fa-hourglass-end',
+      body,
+      saveLabel: 'Guardar',
+      onSave: async (bodyEl) => {
+        const input = bodyEl.querySelector('#gm-expiry-turn') as HTMLInputElement;
+        const val = input?.value?.trim();
+        const expiresAtTurn = val ? parseInt(val) : undefined;
+        await gm.modifierManager.updateModifier(modifierId, { expiresAtTurn });
+        ui.notifications?.info(
+          expiresAtTurn
+            ? `Modificador expirará en la fase ${expiresAtTurn}`
+            : 'Expiración eliminada del modificador'
+        );
+        if (onRefresh) onRefresh();
+      },
     });
   }
 

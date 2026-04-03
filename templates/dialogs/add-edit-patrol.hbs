@@ -34,14 +34,53 @@
         {{/each}}
     </div>
 
-    <h4 style="color:#9b77cf;font-family:'Cinzel',serif;margin:0.75rem 0 0;"><i class="fas fa-magic" style="font-size:0.85em;"></i> Habilidades de Lanzamiento (máx. 6)</h4>
-    <div class="patrol-spells-edit">
-        {{#each spellSlots}}
-        <div class="patrol-spell-row">
-            <input type="text" name="spell_name_{{this.index}}" value="{{this.name}}" placeholder="Nombre del hechizo..." maxlength="40" class="spell-name-input" />
-            <input type="number" name="spell_modifier_{{this.index}}" value="{{this.modifier}}" min="-99" max="99" style="width:60px;text-align:center;" placeholder="±0" />
+    <h4 style="color:#9b77cf;font-family:'Cinzel',serif;margin:0.75rem 0 0;"><i class="fas fa-magic" style="font-size:0.85em;"></i> Lanzamiento de Hechizos</h4>
+    <div class="spellcasting-config">
+        <div class="guard-modal-split">
+            <div class="guard-modal-row">
+                <label><i class="fas fa-book-open"></i> Tipo</label>
+                <select name="spellcasting_type" class="spellcasting-type-select">
+                    <option value="none" {{#unless spellcasting}}selected{{/unless}}>Sin magia</option>
+                    <option value="arcane" {{#if (eq spellcasting.type "arcane")}}selected{{/if}}>Arcano</option>
+                    <option value="divine" {{#if (eq spellcasting.type "divine")}}selected{{/if}}>Divino</option>
+                </select>
+            </div>
+            <div class="guard-modal-row spellcasting-stat-row" {{#unless spellcasting}}style="opacity:0.4;pointer-events:none;"{{/unless}}>
+                <label><i class="fas fa-dice-d20"></i> Característica</label>
+                <select name="spellcasting_stat" class="spellcasting-stat-select">
+                    {{#each statOptions}}
+                    <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                    {{/each}}
+                </select>
+            </div>
         </div>
-        {{/each}}
+        <div class="spellcasting-identity-rows" {{#unless spellcasting}}style="opacity:0.4;pointer-events:none;"{{/unless}}>
+            <div class="guard-modal-row">
+                <label><i class="fas fa-signature"></i> Nombre</label>
+                <input type="text" name="spellcasting_name" value="{{spellcasting.name}}" placeholder="Ej. Magia Celestial..." maxlength="60" />
+            </div>
+            <div class="guard-modal-row">
+                <label><i class="fas fa-scroll"></i> Descripción</label>
+                <textarea name="spellcasting_description" rows="2" maxlength="200" placeholder="Breve descripción del origen o naturaleza mágica...">{{spellcasting.description}}</textarea>
+            </div>
+        </div>
+        <div class="patrol-spells-edit spellcasting-spells-list" {{#unless spellcasting}}style="opacity:0.4;pointer-events:none;"{{/unless}}>
+            <p class="guard-modal-hint" style="margin:0.25rem 0;">Hechizos conocidos (máx. 6)</p>
+            {{#each spellSlots}}
+            <div class="patrol-spell-row">
+                <span class="spell-index">{{this.displayIndex}}.</span>
+                <div class="spell-row-fields">
+                    <div class="spell-row-top">
+                        <input type="text" name="spell_name_{{this.index}}" value="{{this.name}}" placeholder="Nombre del hechizo..." maxlength="40" class="spell-name-input" />
+                        <label class="spell-hope-label"><i class="fas fa-diamond" style="color:#4ae89a;"></i>
+                            <input type="number" name="spell_hope_{{this.index}}" value="{{this.hopeCost}}" min="0" max="6" style="width:42px;text-align:center;" placeholder="0" />
+                        </label>
+                    </div>
+                    <textarea name="spell_desc_{{this.index}}" rows="1" maxlength="150" placeholder="Descripción breve...">{{this.description}}</textarea>
+                </div>
+            </div>
+            {{/each}}
+        </div>
     </div>
 
     <input type="hidden" name="organizationId" value="{{organizationId}}" />

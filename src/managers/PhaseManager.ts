@@ -97,6 +97,16 @@ export class PhaseManager {
 
     await this._saveToSettingsAsync();
 
+    // Recover 1 hope for all patrols/auxiliaries when advancing a phase
+    if (targetTurn > previousTurn) {
+      const gm = (window as any).GuardManagement;
+      const orgMgr = gm?.guardOrganizationManager;
+      const patrolMgr = orgMgr?.getPatrolManager?.();
+      if (patrolMgr) await patrolMgr.recoverHopeOnPhaseAdvance();
+      const auxMgr = orgMgr?.getAuxiliaryManager?.();
+      if (auxMgr) await auxMgr.recoverHopeOnPhaseAdvance();
+    }
+
     return { ...this.data };
   }
 }

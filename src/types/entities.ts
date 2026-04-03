@@ -54,6 +54,7 @@ export interface GuardModifier extends BaseEntity {
   image?: string;
   statModifications: StatModification[];
   organizationId: string; // Reference to GuardOrganization
+  expiresAtTurn?: number; // Turn number at which this modifier expires
 }
 
 export interface StatModification {
@@ -124,6 +125,7 @@ export interface Patrol extends BaseEntity {
 
   // Spellcasting abilities (up to 6)
   patrolSpells?: PatrolSpellAbility[];
+  spellcasting?: PatrolSpellcasting; // type + stat config (undefined = no spellcasting)
 
   // Last order issued to patrol
   lastOrder: PatrolLastOrder | null;
@@ -173,6 +175,7 @@ export interface PatrolEffectInstance {
   description?: string;
   modifiers: Partial<GuardStats>;
   expiresAt?: number; // epoch ms
+  expiresAtTurn?: number; // Turn number at which this effect expires
 }
 
 export interface PatrolLastOrder {
@@ -180,10 +183,20 @@ export interface PatrolLastOrder {
   issuedAt: number; // epoch ms
 }
 
+export type SpellcastingType = 'divine' | 'arcane';
+
+export interface PatrolSpellcasting {
+  type: SpellcastingType; // 'divine' | 'arcane'
+  stat: keyof GuardStats; // which stat is used for the roll
+  name?: string; // e.g. "Magia de la Corona"
+  description?: string; // short flavour text
+}
+
 export interface PatrolSpellAbility {
   id: string;
   name: string; // e.g. "Lanza Llamas"
-  modifier: number; // flat bonus added to the dHope + dFear roll
+  description?: string; // what the spell does
+  hopeCost?: number; // hope points consumed on cast
 }
 
 export type PatrolStatus = 'idle' | 'deployed' | 'recalled';

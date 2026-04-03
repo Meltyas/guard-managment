@@ -4,6 +4,8 @@ import {
   GuardStats,
   Patrol,
   PatrolSpellAbility,
+  PatrolSpellcasting,
+  SpellcastingType,
 } from '../types/entities';
 import { GuardModal } from '../ui/GuardModal.js';
 
@@ -15,6 +17,7 @@ interface PatrolDialogData {
   soldierSlots: number;
   maxHope: number;
   patrolSpells: PatrolSpellAbility[];
+  spellcasting: PatrolSpellcasting | undefined;
 }
 
 export type UnitType = 'patrol' | 'auxiliary';
@@ -39,23 +42,56 @@ export class AddOrEditPatrolDialog {
         icon: 'fas fa-shield-alt',
         body: content,
         saveLabel: mode === 'create' ? 'Crear' : 'Guardar',
+        onRender: (bodyEl) => {
+          const typeSelect = bodyEl.querySelector('.spellcasting-type-select') as HTMLSelectElement;
+          const dependentEls = bodyEl.querySelectorAll<HTMLElement>(
+            '.spellcasting-stat-row, .spellcasting-identity-rows, .spellcasting-spells-list'
+          );
+
+          const applyVisibility = () => {
+            const enabled = typeSelect.value !== 'none';
+            dependentEls.forEach((el) => {
+              el.style.opacity = enabled ? '1' : '0.4';
+              el.style.pointerEvents = enabled ? '' : 'none';
+            });
+          };
+
+          typeSelect?.addEventListener('change', applyVisibility);
+          applyVisibility();
+        },
         onSave: async (bodyEl) => {
           const form = bodyEl.querySelector('form.guard-modal-form') as HTMLFormElement;
           if (!form) return false;
           const fd = new FormData(form);
-          // Parse spell abilities (up to 6 slots)
+
+          // Parse spellcasting config
+          const spellcastingType = fd.get('spellcasting_type') as string;
+          const spellcasting: PatrolSpellcasting | undefined =
+            spellcastingType !== 'none'
+              ? {
+                  type: spellcastingType as SpellcastingType,
+                  stat: (fd.get('spellcasting_stat') as keyof GuardStats) || 'knowledge',
+                  name: ((fd.get('spellcasting_name') as string) || '').trim() || undefined,
+                  description:
+                    ((fd.get('spellcasting_description') as string) || '').trim() || undefined,
+                }
+              : undefined;
+
+          // Parse spell names (up to 6 slots)
           const patrolSpells: PatrolSpellAbility[] = [];
           for (let i = 0; i < 6; i++) {
             const spellName = ((fd.get(`spell_name_${i}`) as string) || '').trim();
             if (spellName) {
-              const mod = parseInt(fd.get(`spell_modifier_${i}`) as string);
+              const desc = ((fd.get(`spell_desc_${i}`) as string) || '').trim();
+              const hopeCostRaw = parseInt(fd.get(`spell_hope_${i}`) as string);
               patrolSpells.push({
                 id:
                   existing?.patrolSpells?.[i]?.id ||
                   (globalThis as any).foundry?.utils?.randomID?.() ||
                   crypto.randomUUID(),
                 name: spellName,
-                modifier: Number.isNaN(mod) ? 0 : mod,
+                description: desc || undefined,
+                hopeCost: Number.isNaN(hopeCostRaw) || hopeCostRaw <= 0 ? undefined : hopeCostRaw,
               });
             }
           }
@@ -66,6 +102,7 @@ export class AddOrEditPatrolDialog {
             soldierSlots: parseInt(fd.get('soldierSlots') as string) || 5,
             maxHope: Math.min(6, Math.max(0, parseInt(fd.get('maxHope') as string) || 0)),
             patrolSpells,
+            spellcasting,
             baseStats: {
               agility: (() => {
                 const v = parseInt(fd.get('stat_agility') as string);
@@ -115,6 +152,7 @@ export class AddOrEditPatrolDialog {
               maxHope: data.maxHope,
               currentHope: 0,
               patrolSpells: data.patrolSpells,
+              spellcasting: data.spellcasting,
             } as any);
             orgMgr.upsertPatrolSnapshot(patrolMgr.getPatrol(created.id)!);
             return created;
@@ -126,6 +164,7 @@ export class AddOrEditPatrolDialog {
               soldierSlots: data.soldierSlots,
               maxHope: data.maxHope,
               patrolSpells: data.patrolSpells,
+              spellcasting: data.spellcasting,
             });
             const updated = patrolMgr.getPatrol(existing.id) || null;
             if (updated) {
@@ -158,6 +197,7 @@ export class AddOrEditPatrolDialog {
       soldierSlots: existing?.soldierSlots || 5,
       maxHope: existing?.maxHope ?? 0,
       patrolSpells: existing?.patrolSpells || [],
+      spellcasting: existing?.spellcasting,
       baseStats: existing?.baseStats || {
         agility: 0,
         strength: 0,
@@ -186,8 +226,23 @@ export class AddOrEditPatrolDialog {
     // Build 6 spell slots (pre-filled from existing data)
     const spellSlots = Array.from({ length: 6 }, (_, i) => ({
       index: i,
+      displayIndex: i + 1,
       name: data.patrolSpells[i]?.name || '',
-      modifier: data.patrolSpells[i]?.modifier ?? 0,
+      description: data.patrolSpells[i]?.description || '',
+      hopeCost: data.patrolSpells[i]?.hopeCost ?? '',
+    }));
+
+    const STAT_OPTIONS = [
+      { key: 'agility', label: 'Agilidad' },
+      { key: 'strength', label: 'Fuerza' },
+      { key: 'finesse', label: 'Destreza' },
+      { key: 'instinct', label: 'Instinto' },
+      { key: 'presence', label: 'Presencia' },
+      { key: 'knowledge', label: 'Conocimiento' },
+    ];
+    const statOptions = STAT_OPTIONS.map((s) => ({
+      ...s,
+      selected: s.key === (data.spellcasting?.stat ?? 'knowledge'),
     }));
 
     const templatePath = 'modules/guard-management/templates/dialogs/add-edit-patrol.hbs';
@@ -196,6 +251,7 @@ export class AddOrEditPatrolDialog {
       stats,
       slotOptions,
       spellSlots,
+      statOptions,
       isCreate: mode === 'create',
       minStat: GUARD_STAT_MIN,
       maxStat: GUARD_STAT_MAX,

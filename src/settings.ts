@@ -86,6 +86,36 @@ export function registerSettings(): void {
     },
   });
 
+  // Auxiliaries data storage
+  game?.settings?.register('guard-management', 'auxiliaries', {
+    name: 'Auxiliaries Data',
+    hint: 'Stored auxiliary units information',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      console.log('Settings onChange | Auxiliaries changed, reloading and refreshing UI...');
+      const gm = (window as any).GuardManagement;
+      if (gm?.guardOrganizationManager) {
+        const auxMgr = gm.guardOrganizationManager.getAuxiliaryManager?.();
+        if (auxMgr) {
+          auxMgr.loadFromSettings?.();
+        }
+      }
+
+      // Refresh open CustomInfoDialog if exists
+      if (gm?.guardDialogManager?.customInfoDialog) {
+        const dialog = gm.guardDialogManager.customInfoDialog;
+        if (dialog.isOpen?.()) {
+          console.log('Settings onChange | Refreshing open CustomInfoDialog for auxiliaries');
+          dialog.refreshAuxiliariesPanel?.();
+        }
+      }
+      gm?.floatingPanel?.refreshPanel?.();
+    },
+  });
+
   // Guard data storage (legacy - for patrols)
   game?.settings?.register('guard-management', 'guardData', {
     name: 'Guard Data',

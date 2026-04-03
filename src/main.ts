@@ -42,6 +42,7 @@ import './styles/prisoners.css';
 import './styles/resource-dialog.css';
 import { DayNightDecoration } from './ui/DayNightDecoration';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
+import { PatrolOverlayManager } from './ui/PatrolOverlayManager';
 import { GuardManagementHelpers } from './utils/console-helpers';
 import { TooltipGenerator } from './utils/TooltipGenerator';
 
@@ -125,6 +126,7 @@ class GuardManagementModule {
   public financeManager: FinanceManager;
   public modifierManager: SimpleModifierManager;
   public patrolEffectManager: SimplePatrolEffectManager;
+  public patrolOverlayManager: PatrolOverlayManager;
   public dayNightDecoration: DayNightDecoration;
   public floatingPanel: FloatingGuardPanel;
   public isInitialized: boolean = false;
@@ -145,6 +147,7 @@ class GuardManagementModule {
     this.financeManager = new FinanceManager();
     this.modifierManager = new SimpleModifierManager();
     this.patrolEffectManager = new SimplePatrolEffectManager();
+    this.patrolOverlayManager = new PatrolOverlayManager();
     this.dayNightDecoration = new DayNightDecoration();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
   }

@@ -1228,6 +1228,27 @@
   display: block;
 }
 
+/* Expiry phase badge shown on modifiers and patrol effects */
+.modifier-expiry-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: rgba(30, 20, 5, 0.85);
+  color: #f3c267;
+  font-size: 9px;
+  line-height: 1;
+  padding: 1px 3px;
+  border-top-left-radius: 3px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+.modifier-expiry-badge i {
+  font-size: 8px;
+}
+
 /* Shift-held: red removal mode for org modifiers */
 .shift-held .modifiers-grid .modifier-compact {
   cursor: crosshair !important;

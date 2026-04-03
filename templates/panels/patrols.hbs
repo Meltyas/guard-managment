@@ -1,8 +1,8 @@
 <div class="patrols-panel" data-patrols-panel>
     <div class="panel-header">
-        <h3><i class="fas fa-users"></i> Patrullas</h3>
+        <h3><i class="fas fa-users"></i> {{#if isAuxiliary}}Auxiliares{{else}}Patrullas{{/if}}</h3>
         <button type="button" class="btn create-patrol" data-action="create-patrol">
-            <i class="fas fa-plus"></i> Nueva Patrulla
+            <i class="fas fa-plus"></i> {{#if isAuxiliary}}Nuevo Auxiliar{{else}}Nueva Patrulla{{/if}}
         </button>
     </div>
     <div class="patrols-dynamic" data-patrols-container>
@@ -38,6 +38,18 @@
                                     <span style="font-size: 0.75rem; opacity: 0.85;">{{this.officerSkill.name}}</span>
                                 </div>
                                 {{/if}}
+                                {{#if this.hopePips.length}}
+                                <div class="patrol-hope-section" style="flex-direction: row; align-items: center; gap: 4px; margin-top: 3px; justify-content: flex-start;">
+                                    <div class="hope-pips">
+                                        {{#each this.hopePips}}
+                                        <span class="hope-pip {{#if this.filled}}filled{{/if}}" data-action="hope-pip" data-value="{{this.index}}" data-tooltip="Hope {{this.index}}/{{../hopePips.length}}">
+                                            {{#if this.filled}}<i class="fa-solid fa-diamond"></i>{{else}}<i class="fa-regular fa-circle"></i>{{/if}}
+                                        </span>
+                                        {{/each}}
+                                    </div>
+                                    <span class="hope-label">HOPE</span>
+                                </div>
+                                {{/if}}
                             </div>
                             <div class="stats-mini">
                                 {{#each this.statsBreakdown as |stat key|}}
@@ -52,23 +64,9 @@
                             </div>
                         </div>
 
-                        <!-- Spellcasting abilities row (just below stats) -->
-                        {{#if this.patrolSpells.length}}
-                        <div class="patrol-spells-row">
-                            {{#each this.patrolSpells}}
-                            <span class="patrol-spell-tag clickable-spell"
-                                  data-spell-id="{{this.id}}"
-                                  data-tooltip="Tirada de lanzamiento: dEsperanza + dMiedo {{this.modifierStr}}">
-                                <i class="fas fa-magic"></i>
-                                {{this.name}}<em class="spell-mod">{{this.modifierStr}}</em>
-                            </span>
-                            {{/each}}
-                        </div>
-                        {{/if}}
-
                         <!-- Bottom row: soldiers (left) + effects (right) -->
                         <div class="patrol-bottom-row">
-                            <div class="soldiers-zone" data-drop="soldier" data-tooltip="Arrastra Actores aquí para añadir Soldados">
+                            <div class="soldiers-zone" data-drop="soldier" data-tooltip="{{#if isAuxiliary}}Arrastra Actores aquí para añadir Personas{{else}}Arrastra Actores aquí para añadir Soldados{{/if}}">
                                 {{#each this.slots}}
                                     {{#if (eq this.type "soldier")}}
                                     <div class="clickable-actor soldier-wrapper" data-action="open-sheet" data-actor-id="{{this.data.actorId}}" style="display: inline-block; cursor: pointer;">
@@ -88,11 +86,16 @@
                                     {{#each this.patrolEffects}}
                                     <div class="effect-item" data-patrol-id="{{../id}}" data-effect-id="{{this.id}}" data-tooltip="{{guardTooltip this}}">
                                         <img src="{{#if this.img}}{{this.img}}{{else}}icons/svg/aura.svg{{/if}}" alt="{{this.label}}" />
+                                        {{#if this.expiresAtTurn}}
+                                        <span class="modifier-expiry-badge" title="Expira en fase {{this.expiresAtTurn}}">
+                                            <i class="fas fa-hourglass-end"></i>{{this.expiresAtTurn}}
+                                        </span>
+                                        {{/if}}
                                     </div>
                                     {{/each}}
                                 </div>
                                 {{else}}
-                                <span class="effects-empty">Efectos de Patrulla</span>
+                                <span class="effects-empty">{{#if @root.isAuxiliary}}Efectos de Auxiliar{{else}}Efectos de Patrulla{{/if}}</span>
                                 {{/if}}
                             </div>
                         </div>
@@ -113,15 +116,51 @@
                             {{#if this.lastOrder}}<span class="age-indicator {{this.ageClass}}"></span>{{/if}}
                         </div>
 
+                        <!-- Spellcasting: always-visible toggle row + expandable detail panel -->
+                        {{#if this.spellcastingInfo}}
+                        <div class="spellcasting-toggle-row" data-action="toggle-spellcasting">
+                            <button type="button" class="stat-chip stat-chip--mini clickable-stat spell-chip" data-stat="{{this.spellcastingInfo.stat}}" data-tooltip="{{this.spellcastingInfo.tooltip}}">
+                                <div class="stat-chip__img" style="background-image: url('{{this.spellcastingInfo.image}}');"></div>
+                                <div class="stat-chip__nums">
+                                    <span class="stat-chip__base">{{this.spellcastingInfo.statBase}}</span>
+                                    <span class="stat-chip__total">({{this.spellcastingInfo.statTotal}})</span>
+                                </div>
+                            </button>
+                            <span class="spellcasting-toggle-name">{{#if this.spellcastingInfo.name}}{{this.spellcastingInfo.name}}{{else}}{{this.spellcastingInfo.typeLabel}}{{/if}}</span>
+                            <i class="fas fa-chevron-down spell-toggle-arrow"></i>
+                        </div>
+                        <div class="patrol-spellcasting-panel" hidden>
+                            <span class="spellcasting-stat-label"><i class="fas fa-dice-d20"></i> {{this.spellcastingInfo.statLabel}}</span>
+                            {{#if this.spellcastingInfo.description}}<p class="spellcasting-description">{{this.spellcastingInfo.description}}</p>{{/if}}
+                            {{#if this.patrolSpells.length}}
+                            <div class="patrol-spells-list">
+                                {{#each this.patrolSpells}}
+                                <div class="patrol-spell-card clickable-spell" data-spell-id="{{this.id}}" data-tooltip="{{../spellcastingInfo.spellTooltip}}">
+                                    <div class="spell-card-header">
+                                        <i class="fas fa-magic"></i>
+                                        <span class="spell-card-name">{{this.name}}</span>
+                                        {{#if this.hopeCost}}<span class="spell-hope-cost" data-tooltip="Coste en Hope"><i class="fas fa-diamond"></i> {{this.hopeCost}}</span>{{/if}}
+                                    </div>
+                                    {{#if this.description}}<p class="spell-card-desc">{{this.description}}</p>{{/if}}
+                                </div>
+                                {{/each}}
+                            </div>
+                            {{/if}}
+                        </div>
+                        {{/if}}
+
                         <!-- Actions -->
                         <div class="actions">
+                            <button type="button" class="toggle-overlay-patrol" data-action="toggle-overlay" data-patrol-id="{{this.id}}" data-tooltip="Abrir resumen flotante">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
                             <button type="button" class="to-chat-patrol" data-action="to-chat" data-patrol-id="{{this.id}}" data-tooltip="Enviar al chat">
                                 <i class="fas fa-comment-alt"></i>
                             </button>
-                            <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}" data-tooltip="Editar Patrulla">
+                            <button type="button" class="edit-patrol" data-action="edit" data-patrol-id="{{this.id}}" data-tooltip="{{#if @root.isAuxiliary}}Editar Auxiliar{{else}}Editar Patrulla{{/if}}">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button type="button" class="delete-patrol" data-action="delete" data-patrol-id="{{this.id}}" data-tooltip="Eliminar Patrulla">
+                            <button type="button" class="delete-patrol" data-action="delete" data-patrol-id="{{this.id}}" data-tooltip="{{#if @root.isAuxiliary}}Eliminar Auxiliar{{else}}Eliminar Patrulla{{/if}}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -131,7 +170,7 @@
                 {{/each}}
             </div>
         {{else}}
-            <p class="empty-state">No hay patrullas. Crea la primera.</p>
+            <p class="empty-state">{{#if isAuxiliary}}No hay auxiliares. Crea el primero.{{else}}No hay patrullas. Crea la primera.{{/if}}</p>
         {{/if}}
     </div>
 </div>

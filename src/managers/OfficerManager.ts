@@ -94,6 +94,7 @@ export class OfficerManager {
           createdAt: c.createdAt.toISOString(),
         })),
         organizationId: officer.organizationId,
+        isCivil: officer.isCivil ?? false,
         version: officer.version,
         createdAt: officer.createdAt?.toISOString() ?? new Date().toISOString(),
         updatedAt: officer.updatedAt?.toISOString() ?? new Date().toISOString(),
@@ -143,6 +144,7 @@ export class OfficerManager {
         createdAt: now,
       })),
       organizationId: data.organizationId,
+      isCivil: (data as any).isCivil ?? false,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -187,6 +189,7 @@ export class OfficerManager {
       pros?: OfficerTrait[];
       cons?: OfficerTrait[];
       organizationId?: string;
+      isCivil?: boolean;
     }
   ): Officer | undefined {
     const officer = this.officers.get(id);
@@ -197,6 +200,7 @@ export class OfficerManager {
     if (updates.pros !== undefined) officer.pros = updates.pros;
     if (updates.cons !== undefined) officer.cons = updates.cons;
     if (updates.organizationId !== undefined) officer.organizationId = updates.organizationId;
+    if (updates.isCivil !== undefined) officer.isCivil = updates.isCivil;
 
     officer.version += 1;
     officer.updatedAt = new Date();

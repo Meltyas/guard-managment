@@ -59,11 +59,62 @@ export class PatrolsPanel {
         officerSkill: p.officer?.actorId
           ? (officerSkillByActorId.get(p.officer.actorId) ?? null)
           : null,
-        // Enrich spellcasting abilities with formatted modifier string
-        patrolSpells: (p.patrolSpells || []).map((s: any) => ({
-          ...s,
-          modifierStr: s.modifier > 0 ? `+${s.modifier}` : s.modifier < 0 ? `${s.modifier}` : '±0',
-        })),
+        // Enrich spellcasting display info
+        patrolSpells: p.patrolSpells || [],
+        spellcastingInfo: (() => {
+          const sc = (p as any).spellcasting;
+          if (!sc) return null;
+
+          const STAT_LABELS: Record<string, string> = {
+            agility: 'Agilidad',
+            strength: 'Fuerza',
+            finesse: 'Destreza',
+            instinct: 'Instinto',
+            presence: 'Presencia',
+            knowledge: 'Conocimiento',
+          };
+          const STAT_SHORT: Record<string, string> = {
+            agility: 'AGL',
+            strength: 'FUE',
+            finesse: 'DES',
+            instinct: 'INS',
+            presence: 'PRE',
+            knowledge: 'CON',
+          };
+          const SPELL_IMAGES: Record<string, string> = {
+            arcane: 'modules/guard-management/assets/stats/arcane-spellcasting.webp',
+            divine: 'modules/guard-management/assets/stats/divine-spellcasting.webp',
+          };
+          const statLabel = STAT_LABELS[sc.stat] ?? sc.stat;
+          const statShort = STAT_SHORT[sc.stat] ?? sc.stat.slice(0, 3).toUpperCase();
+          const typeLabel = sc.type === 'arcane' ? 'Arcano' : 'Divino';
+          const image = SPELL_IMAGES[sc.type] ?? '';
+          const tooltip = `Lanzamiento ${typeLabel} · basado en ${statLabel}`;
+          const spellTooltip = `Tirada de lanzamiento: dEsperanza + dMiedo + ${statLabel}`;
+          const statBreak = statsBreakdown[sc.stat] || { base: 0, total: 0 };
+          return {
+            type: sc.type,
+            typeLabel,
+            statLabel,
+            statShort,
+            stat: sc.stat,
+            image,
+            tooltip,
+            spellTooltip,
+            name: sc.name || '',
+            description: sc.description || '',
+            statBase: statBreak.base,
+            statTotal: statBreak.total,
+          };
+        })(),
+        // Hope pips
+        hopePips: (() => {
+          const max = p.maxHope ?? 0;
+          if (max <= 0) return [];
+          const cur = p.currentHope ?? 0;
+          return Array.from({ length: max }, (_, i) => ({ index: i + 1, filled: i < cur }));
+        })(),
+
         // Ensure lastOrder text is safe
         lastOrder: lastOrder
           ? {
@@ -84,7 +135,11 @@ export class PatrolsPanel {
 
   static async render(container: HTMLElement, mode: 'patrol' | 'auxiliary' = 'patrol') {
     const data = await this.getData(mode);
-    const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
+    const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, {
+      ...data,
+      mode,
+      isAuxiliary: mode === 'auxiliary',
+    });
 
     // Use jQuery html() to forcibly replace content
     $(container).html(htmlContent);
@@ -97,8 +152,8 @@ export class PatrolsPanel {
     const unitMode = (container.dataset.panelMode as UnitType) || 'patrol';
 
     // Drag & Drop
-    this.setupPatrolZonesDnD(container, () => this.refresh(container));
-    this.setupPatrolCardDnD(container, () => this.refresh(container));
+    this.setupPatrolZonesDnD(container, () => this.refresh(container), unitMode);
+    this.setupPatrolCardDnD(container, () => this.refresh(container), unitMode);
 
     // Actions
     $html.find('[data-action="create-patrol"]').on('click', (ev) => {
@@ -113,19 +168,19 @@ export class PatrolsPanel {
     $html.find('[data-action="delete"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleDeletePatrol(id, () => this.refresh(container));
+      if (id) this.handleDeletePatrol(id, () => this.refresh(container), unitMode);
     });
     $html.find('[data-action="to-chat"]').on('click', (ev) => {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
-      if (id) this.handleSendPatrolToChat(id);
+      if (id) this.handleSendPatrolToChat(id, unitMode);
     });
     $html.find('[data-action="edit-last-order"]').on('click', (ev) => {
       ev.preventDefault();
       // Handle click on the line or the icon
       const target = ev.currentTarget;
       const id = target.dataset.patrolId;
-      if (id) this.handleEditLastOrder(id, () => this.refresh(container));
+      if (id) this.handleEditLastOrder(id, () => this.refresh(container), unitMode);
     });
     // Shift+click on officer/soldier unassigns them; normal click opens sheet
     let _shiftHeld = false;
@@ -167,7 +222,7 @@ export class PatrolsPanel {
         const isOfficer = !!ev.currentTarget.closest('.officer-slot');
         const gm = (window as any).GuardManagement;
         const orgMgr = gm?.guardOrganizationManager;
-        const pMgr = orgMgr?.getPatrolManager?.();
+        const pMgr = this.resolveUnitManager(orgMgr, (container.dataset.panelMode as UnitType) || 'patrol');
         if (!pMgr) return;
 
         const patrol = pMgr.getPatrol(patrolId);
@@ -176,9 +231,10 @@ export class PatrolsPanel {
           : (patrol?.soldiers?.find((s: any) => s.actorId === actorId)?.name ?? 'Soldado');
 
         const role = isOfficer ? 'oficial' : 'soldado';
+        const unitLabel = (container.dataset.panelMode as UnitType) === 'auxiliary' ? 'auxiliar' : 'patrulla';
         const confirmed = await foundry.applications.api.DialogV2.confirm({
           window: { title: 'Desasignar personaje' },
-          content: `<p>¿Desasignar a <strong>${name}</strong> como ${role} de esta patrulla?</p>`,
+          content: `<p>¿Desasignar a <strong>${name}</strong> como ${role} de este ${unitLabel}?</p>`,
           yes: { label: 'Desasignar', icon: 'fas fa-user-minus' },
           no: { label: 'Cancelar', icon: 'fas fa-times' },
           rejectClose: false,
@@ -198,6 +254,46 @@ export class PatrolsPanel {
       }
     });
 
+    // Hope pips in card
+    $html.find('[data-action="hope-pip"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const target = ev.currentTarget;
+      const card = target.closest('.patrol-card') as HTMLElement;
+      const patrolId = card?.dataset.patrolId;
+      const index = parseInt(target.dataset.value || '0', 10);
+      if (patrolId && index) {
+        const mode = (container.dataset.panelMode as PanelUnitType) || 'patrol';
+        PatrolsPanel.handleHopePip(patrolId, index, () => this.refresh(container), mode);
+      }
+    });
+
+    // Overlay toggle
+    $html.find('[data-action="toggle-overlay"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const patrolId = ev.currentTarget.dataset.patrolId;
+      if (!patrolId) return;
+      const mode = (container.dataset.panelMode as PanelUnitType) || 'patrol';
+      const gm = (window as any).GuardManagement;
+      gm?.patrolOverlayManager?.toggleOverlay?.(patrolId, mode);
+    });
+
+    // Spellcasting panel toggle
+    $html.find('[data-action="toggle-spellcasting"]').on('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      // Let clickable-stat inside the row still fire its own handler
+      if ((ev.target as HTMLElement).closest('.clickable-stat')) return;
+      const card = ev.currentTarget.closest('.patrol-card') as HTMLElement;
+      const panel = card?.querySelector('.patrol-spellcasting-panel') as HTMLElement;
+      const arrow = card?.querySelector('.spell-toggle-arrow') as HTMLElement;
+      if (!panel) return;
+      const opening = panel.hidden;
+      panel.hidden = !opening;
+      if (arrow) arrow.classList.toggle('spell-toggle-arrow--open', opening);
+    });
+
     // Stat interactions
     $html.find('.stat-chip.clickable-stat').on('click', (ev) => {
       ev.preventDefault();
@@ -210,7 +306,7 @@ export class PatrolsPanel {
       if (patrolId && statKey) {
         const gm = (window as any).GuardManagement;
         const orgMgr = gm?.guardOrganizationManager;
-        const pMgr = orgMgr?.getPatrolManager();
+        const pMgr = this.resolveUnitManager(orgMgr, (container.dataset.panelMode as UnitType) || 'patrol');
         if (pMgr) {
           pMgr.rollStat(patrolId, statKey);
         }
@@ -229,7 +325,7 @@ export class PatrolsPanel {
       if (patrolId && spellId) {
         const gm = (window as any).GuardManagement;
         const orgMgr = gm?.guardOrganizationManager;
-        const pMgr = orgMgr?.getPatrolManager();
+        const pMgr = this.resolveUnitManager(orgMgr, (container.dataset.panelMode as UnitType) || 'patrol');
         if (pMgr) {
           pMgr.rollSpell(patrolId, spellId);
         }
@@ -251,10 +347,12 @@ export class PatrolsPanel {
       const patrolId = target.dataset.patrolId;
       const effectId = target.dataset.effectId;
       if (!patrolId || !effectId) return;
-      if (_shiftHeld) {
-        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container));
+      if ((ev.originalEvent as MouseEvent)?.ctrlKey) {
+        this.handleSetEffectExpiry(patrolId, effectId, () => this.refresh(container), unitMode);
+      } else if (_shiftHeld) {
+        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container), unitMode);
       } else {
-        this.handleEffectClick(patrolId, effectId);
+        this.handleEffectClick(patrolId, effectId, unitMode);
       }
     });
 
@@ -264,12 +362,13 @@ export class PatrolsPanel {
       const patrolId = target.dataset.patrolId;
       const effectId = target.dataset.effectId;
       if (patrolId && effectId)
-        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container));
+        this.handleRemoveEffect(patrolId, effectId, () => this.refresh(container), unitMode);
     });
   }
 
   static async refresh(container: HTMLElement) {
-    await this.render(container);
+    const mode = (container.dataset.panelMode as 'patrol' | 'auxiliary') || 'patrol';
+    await this.render(container, mode);
   }
 
   private static computePatrolStatBreakdown(patrol: any) {
@@ -371,10 +470,10 @@ export class PatrolsPanel {
   }
 
   /** Attach drag & drop to officer and soldier zones */
-  private static setupPatrolZonesDnD(container: HTMLElement, refreshCallback: () => void) {
+  private static setupPatrolZonesDnD(container: HTMLElement, refreshCallback: () => void, mode: 'patrol' | 'auxiliary' = 'patrol') {
     const gm: any = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
-    const pMgr = orgMgr?.getPatrolManager?.();
+    const pMgr = this.resolveUnitManager(orgMgr, mode);
     if (!pMgr) return;
     const zones = Array.from(
       container.querySelectorAll(
@@ -468,19 +567,39 @@ export class PatrolsPanel {
     zones.forEach((zone) => {
       if ((zone as any)._gmDnD) return;
       (zone as any)._gmDnD = true;
-      const mode: 'officer' | 'soldier' =
+      const dropMode: 'officer' | 'soldier' =
         (zone.dataset.drop as any) === 'officer' ? 'officer' : 'soldier';
+
+      // Checks if this drag is incompatible with the current zone + panel mode.
+      // Uses MIME types (readable during dragenter/dragover) for early visual blocking.
+      const isBlockedForZone = (ev: DragEvent): boolean => {
+        const types = Array.from(ev.dataTransfer?.types || []);
+        if (dropMode === 'soldier') {
+          // Soldier/Persona zone: no officers of any kind
+          return types.includes('application/x-guard-officer') || types.includes('application/x-guard-civil-officer');
+        }
+        if (dropMode === 'officer') {
+          // Patrol officer slot: block civil officers
+          if (mode === 'patrol') return types.includes('application/x-guard-civil-officer');
+          // Auxiliary officer slot: block regular officers
+          if (mode === 'auxiliary') return types.includes('application/x-guard-officer');
+        }
+        return false;
+      };
+
       const card = zone.closest('.patrol-card') as HTMLElement | null;
       const pid = card?.dataset.patrolId || '';
       if (!pid) return;
       zone.addEventListener('dragenter', (ev) => {
         if (!isActorDrag(ev)) return;
+        if (isBlockedForZone(ev)) return;
         ev.preventDefault();
         zone.classList.add('dnd-hover');
         card?.classList.add('dnd-active');
       });
       zone.addEventListener('dragover', (ev) => {
         if (!isActorDrag(ev)) return;
+        if (isBlockedForZone(ev)) return;
         ev.preventDefault();
         ev.dataTransfer!.dropEffect = 'copy';
         zone.classList.add('dnd-hover');
@@ -497,35 +616,44 @@ export class PatrolsPanel {
         card?.classList.remove('dnd-active');
 
         // Officer slot: only accept Officer drags from the personnel panel
-        if (mode === 'officer') {
-          let isOfficerDrag = false;
+        if (dropMode === 'officer') {
+          let officerFound = false;
           for (const raw of pullAllDataStrings(ev)) {
             const data = parseCandidate(raw);
             if (data?.type === 'Officer') {
-              isOfficerDrag = true;
+              officerFound = true;
               break;
             }
           }
-          if (!isOfficerDrag) {
+          if (!officerFound) {
             ui?.notifications?.warn?.('Solo puedes asignar Oficiales desde el panel de personal');
             return;
           }
         }
 
         // For the officer drop, resolve by officer data directly (skip resolveActor)
-        if (mode === 'officer') {
+        if (dropMode === 'officer') {
           for (const raw of pullAllDataStrings(ev)) {
             const data = parseCandidate(raw);
             if (data?.type === 'Officer' && data.officerData) {
               const officer = data.officerData;
+              // Cross-mode validation
+              if (mode === 'patrol' && officer.isCivil) {
+                ui?.notifications?.warn?.('Los Civiles solo pueden asignarse a Auxiliares');
+                return;
+              }
+              if (mode === 'auxiliary' && !officer.isCivil) {
+                ui?.notifications?.warn?.('Los Oficiales solo pueden asignarse a Patrullas');
+                return;
+              }
               try {
                 await pMgr.assignOfficer(pid, {
                   actorId: officer.actorId,
-                  name: officer.name,
-                  img: officer.img,
+                  name: officer.actorName ?? officer.name,
+                  img: officer.actorImg ?? officer.img,
                   isLinked: true,
                 });
-                ui?.notifications?.info?.(`Oficial asignado: ${officer.name}`);
+                ui?.notifications?.info?.(`Oficial asignado: ${officer.actorName ?? officer.name}`);
                 refreshCallback();
               } catch (e) {
                 console.warn('PatrolsPanel | officer drop error', e);
@@ -535,6 +663,16 @@ export class PatrolsPanel {
             }
           }
           return;
+        }
+
+        // Soldier/Persona zone: block any officer drag that slipped through
+        for (const raw of pullAllDataStrings(ev)) {
+          const data = parseCandidate(raw);
+          if (data?.type === 'Officer') {
+            const unitLabel = mode === 'auxiliary' ? 'persona' : 'soldado';
+            ui?.notifications?.warn?.(`No puedes asignar un Oficial o Civil como ${unitLabel}`);
+            return;
+          }
         }
 
         const actor = await obtainActor(ev);
@@ -552,7 +690,8 @@ export class PatrolsPanel {
             referenceType: 'linked',
             addedAt: Date.now(),
           });
-          ui?.notifications?.info?.(`Soldado añadido: ${actor.name}`);
+          const unitLabel = mode === 'auxiliary' ? 'Persona' : 'Soldado';
+          ui?.notifications?.info?.(`${unitLabel} añadido: ${actor.name}`);
           refreshCallback();
         } catch (e) {
           console.warn('PatrolsPanel | drop error', e);
@@ -563,10 +702,10 @@ export class PatrolsPanel {
   }
 
   /** Attach drag & drop to patrol cards for effects */
-  private static setupPatrolCardDnD(container: HTMLElement, refreshCallback: () => void) {
+  private static setupPatrolCardDnD(container: HTMLElement, refreshCallback: () => void, mode: 'patrol' | 'auxiliary' = 'patrol') {
     const gm: any = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
-    const pMgr = orgMgr?.getPatrolManager?.();
+    const pMgr = this.resolveUnitManager(orgMgr, mode);
     if (!pMgr) return;
 
     const cards = Array.from(container.querySelectorAll('.patrol-card')) as HTMLElement[];
@@ -683,10 +822,11 @@ export class PatrolsPanel {
     }
   }
 
-  public static async handleDeletePatrol(patrolId: string, refreshCallback: () => void) {
+  public static async handleDeletePatrol(patrolId: string, refreshCallback: () => void, unitType: UnitType = 'patrol') {
+    const isAux = unitType === 'auxiliary';
     const confirm = await Dialog.confirm({
-      title: 'Eliminar Patrulla',
-      content: `<p>¿Seguro que deseas eliminar esta patrulla?</p>`,
+      title: isAux ? 'Eliminar Auxiliar' : 'Eliminar Patrulla',
+      content: `<p>¿Seguro que deseas eliminar este ${isAux ? 'auxiliar' : 'patrulla'}?</p>`,
     });
     if (!confirm) return;
     const gm = (window as any).GuardManagement;
@@ -694,18 +834,26 @@ export class PatrolsPanel {
     if (!orgMgr) return;
     const org = orgMgr.getOrganization();
     if (!org) return;
-    orgMgr.removePatrol(patrolId);
-    const pMgr = orgMgr.getPatrolManager();
-    await pMgr.deletePatrol(patrolId);
-    ui?.notifications?.warn('Patrulla eliminada');
+    if (isAux) {
+      orgMgr.removeAuxiliary(patrolId);
+      const auxMgr = orgMgr.getAuxiliaryManager();
+      await auxMgr.deletePatrol(patrolId);
+      ui?.notifications?.warn('Auxiliar eliminado');
+    } else {
+      orgMgr.removePatrol(patrolId);
+      const pMgr = orgMgr.getPatrolManager();
+      await pMgr.deletePatrol(patrolId);
+      ui?.notifications?.warn('Patrulla eliminada');
+    }
     refreshCallback();
   }
 
-  public static async handleSendPatrolToChat(patrolId: string) {
+  public static async handleSendPatrolToChat(patrolId: string, unitType: UnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = this.resolveUnitManager(orgMgr, unitType);
+    if (!pMgr) return;
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
 
@@ -790,11 +938,12 @@ export class PatrolsPanel {
     });
   }
 
-  public static async handleEditLastOrder(patrolId: string, refreshCallback: () => void) {
+  public static async handleEditLastOrder(patrolId: string, refreshCallback: () => void, unitType: UnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = this.resolveUnitManager(orgMgr, unitType);
+    if (!pMgr) return;
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
 
@@ -932,11 +1081,12 @@ export class PatrolsPanel {
     }
   }
 
-  public static async handleEffectClick(patrolId: string, effectId: string) {
+  public static async handleEffectClick(patrolId: string, effectId: string, unitType: UnitType = 'patrol') {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = this.resolveUnitManager(orgMgr, unitType);
+    if (!pMgr) return;
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
     const effect = patrol.patrolEffects.find((e: any) => e.id === effectId);
@@ -971,15 +1121,74 @@ export class PatrolsPanel {
     });
   }
 
-  public static async handleRemoveEffect(
+  public static async handleSetEffectExpiry(
     patrolId: string,
     effectId: string,
-    refreshCallback: () => void
+    refreshCallback?: () => void,
+    unitType: UnitType = 'patrol'
   ) {
     const gm = (window as any).GuardManagement;
     const orgMgr = gm?.guardOrganizationManager;
     if (!orgMgr) return;
-    const pMgr = orgMgr.getPatrolManager();
+    const pMgr = this.resolveUnitManager(orgMgr, unitType);
+    if (!pMgr) return;
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+    const effect = patrol.patrolEffects.find((e: any) => e.id === effectId);
+    if (!effect) return;
+
+    const { GuardModal } = await import('../GuardModal');
+    const currentTurn = gm?.phaseManager?.getCurrentTurn?.() ?? 1;
+    const currentExpiry = effect.expiresAtTurn ?? '';
+
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row" style="align-items:center;">
+          <label><i class="fas fa-clock"></i> Fase actual</label>
+          <strong>${currentTurn}</strong>
+        </div>
+        <div class="guard-modal-row" style="align-items:center;">
+          <label><i class="fas fa-hourglass-end"></i> Expira en fase</label>
+          <input type="number" id="gm-expiry-turn" min="1" value="${currentExpiry}"
+            placeholder="Sin expiración" style="width:80px;text-align:center;" />
+        </div>
+        <p style="font-size:12px;color:#aaa;margin:4px 0 0;">
+          Deja vacío para quitar la expiración. <strong>${effect.label}</strong>
+        </p>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: 'Expiración del Efecto',
+      icon: 'fas fa-hourglass-end',
+      body,
+      saveLabel: 'Guardar',
+      onSave: async (bodyEl) => {
+        const input = bodyEl.querySelector('#gm-expiry-turn') as HTMLInputElement;
+        const val = input?.value?.trim();
+        const expiresAtTurn = val ? parseInt(val) : undefined;
+        await pMgr.updateEffect(patrolId, effectId, { expiresAtTurn });
+        ui.notifications?.info(
+          expiresAtTurn
+            ? `Efecto expirará en la fase ${expiresAtTurn}`
+            : 'Expiración eliminada del efecto'
+        );
+        if (refreshCallback) refreshCallback();
+      },
+    });
+  }
+
+  public static async handleRemoveEffect(
+    patrolId: string,
+    effectId: string,
+    refreshCallback: () => void,
+    unitType: UnitType = 'patrol'
+  ) {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const pMgr = this.resolveUnitManager(orgMgr, unitType);
+    if (!pMgr) return;
 
     const patrol = pMgr.getPatrol(patrolId);
     if (!patrol) return;
@@ -999,5 +1208,33 @@ export class PatrolsPanel {
     pMgr.removeEffect(patrolId, effectId);
     ui?.notifications?.info('Efecto eliminado');
     refreshCallback();
+  }
+
+  public static async handleHopePip(
+    patrolId: string,
+    index: number,
+    refreshCallback: () => void,
+    unitType: PanelUnitType = 'patrol'
+  ): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    const orgMgr = gm?.guardOrganizationManager;
+    if (!orgMgr) return;
+    const pMgr =
+      unitType === 'auxiliary'
+        ? orgMgr.getAuxiliaryManager?.()
+        : orgMgr.getPatrolManager?.();
+    if (!pMgr) return;
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+    const currentHope = patrol.currentHope ?? 0;
+    // Toggle: clicking the last filled pip decrements; otherwise set to clicked index
+    const newHope = currentHope === index ? index - 1 : index;
+    await pMgr.updatePatrol(patrolId, { currentHope: newHope });
+    refreshCallback();
+  }
+
+  private static resolveUnitManager(orgMgr: any, mode: 'patrol' | 'auxiliary'): any {
+    if (mode === 'auxiliary') return orgMgr?.getAuxiliaryManager?.();
+    return orgMgr?.getPatrolManager?.();
   }
 }

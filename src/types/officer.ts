@@ -36,6 +36,7 @@ export interface Officer extends BaseEntity {
 
   // Optional metadata
   organizationId?: string; // If officer is tied to organization
+  isCivil?: boolean; // If true, shown in 'Civiles' tab instead of 'Oficiales'
 }
 
 /**
@@ -60,4 +61,5 @@ export interface OfficerFormData {
   pros: Omit<OfficerTrait, 'id' | 'createdAt'>[];
   cons: Omit<OfficerTrait, 'id' | 'createdAt'>[];
   organizationId?: string;
+  isCivil?: boolean;
 }

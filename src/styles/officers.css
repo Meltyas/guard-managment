@@ -317,6 +317,47 @@
 
 /* ==================== Officer Warehouse Dialog ==================== */
 
+.officer-wh-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(243, 194, 103, 0.2);
+  padding: 0 1rem;
+  flex-shrink: 0;
+}
+
+.officer-wh-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(239, 230, 216, 0.55);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.officer-wh-tab-btn:hover {
+  color: #efe6d8;
+}
+
+.officer-wh-tab-btn.active {
+  color: #f3c267;
+  border-bottom-color: #f3c267;
+}
+
+.officer-wh-panel {
+  display: none;
+}
+
+.officer-wh-panel.active {
+  display: block;
+}
+
 .officer-warehouse-body {
   overflow-y: auto;
   padding: 1rem;

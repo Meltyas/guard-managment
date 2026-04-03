@@ -260,21 +260,105 @@ export class DayNightDecoration {
         bodyEl.querySelectorAll('.phase-btn').forEach((btn) => {
           btn.addEventListener('click', async () => {
             const action = (btn as HTMLElement).dataset.action;
+            let targetTurn: number | null = null;
             if (action === 'advance') {
               await gm.phaseManager.advanceTurn();
+              targetTurn = currentTurn + 1;
             } else if (action === 'back') {
               await gm.phaseManager.goBackTurn();
+              targetTurn = currentTurn > 1 ? currentTurn - 1 : null;
             } else if (action === 'goto') {
-              const targetTurn = parseInt(input?.value) || currentTurn;
-              if (targetTurn !== currentTurn) {
-                await gm.phaseManager.goToTurn(targetTurn);
+              const t = parseInt(input?.value) || currentTurn;
+              if (t !== currentTurn) {
+                await gm.phaseManager.goToTurn(t);
+                targetTurn = t;
               }
             }
             const modal = btn.closest('.guard-modal');
             if (modal) modal.remove();
+            if (targetTurn !== null) {
+              await DayNightDecoration.showExpiryWarnings(targetTurn);
+            }
           });
         });
       },
+    });
+  }
+
+  /**
+   * Check for modifiers and patrol effects expiring at the given turn and show a summary modal.
+   */
+  static async showExpiryWarnings(turn: number): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    if (!gm) return;
+
+    const expiringModifiers: Array<{ name: string }> = [];
+    const expiringEffects: Array<{ label: string; patrolName: string }> = [];
+
+    // Check guard modifiers
+    const allModifiers = gm.modifierManager?.getAllModifiers?.() ?? [];
+    for (const mod of allModifiers) {
+      if (mod.expiresAtTurn === turn) {
+        expiringModifiers.push({ name: mod.name });
+      }
+    }
+
+    // Check patrol effects across all patrols and auxiliaries
+    const orgMgr = gm.guardOrganizationManager;
+    if (orgMgr) {
+      const pMgr = orgMgr.getPatrolManager?.();
+      const allPatrols = pMgr?.getAllPatrols?.() ?? [];
+      for (const patrol of allPatrols) {
+        for (const eff of patrol.patrolEffects ?? []) {
+          if (eff.expiresAtTurn === turn) {
+            expiringEffects.push({ label: eff.label, patrolName: patrol.name });
+          }
+        }
+      }
+      const auxMgr = orgMgr.getAuxiliaryManager?.();
+      const allAux = auxMgr?.getAllAuxiliaries?.() ?? [];
+      for (const aux of allAux) {
+        for (const eff of aux.patrolEffects ?? []) {
+          if (eff.expiresAtTurn === turn) {
+            expiringEffects.push({ label: eff.label, patrolName: aux.name });
+          }
+        }
+      }
+    }
+
+    if (expiringModifiers.length === 0 && expiringEffects.length === 0) return;
+
+    const modRows = expiringModifiers
+      .map(
+        (m) => `<li><i class="fas fa-sliders-h" style="color:#f3c267;"></i> <strong>${m.name}</strong> <span style="color:#aaa;">(Modificador de Guardia)</span></li>`
+      )
+      .join('');
+    const effRows = expiringEffects
+      .map(
+        (e) => `<li><i class="fas fa-magic" style="color:#f37067;"></i> <strong>${e.label}</strong> <span style="color:#aaa;">(${e.patrolName})</span></li>`
+      )
+      .join('');
+
+    const body = `
+      <div class="guard-modal-form">
+        <p style="margin:0 0 8px;"><i class="fas fa-exclamation-triangle" style="color:#f3c267;"></i>
+          Los siguientes efectos/modificadores <strong>expiran en la fase ${turn}</strong>:
+        </p>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;">
+          ${modRows}${effRows}
+        </ul>
+        <p style="font-size:12px;color:#aaa;margin-top:8px;">
+          Revísalos y elimínalos si corresponde (Shift+Click sobre el elemento).
+        </p>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: `Resumen de Fase ${turn} — Expiraciones`,
+      icon: 'fas fa-hourglass-end',
+      body,
+      saveLabel: 'Entendido',
+      onSave: async () => {},
     });
   }
 }

@@ -1,7 +1,8 @@
 // @ts-nocheck
 /**
  * OfficerWarehouseDialog
- * Dialog for managing all created officers
+ * Dialog for managing all created officers, split into Oficiales / Civiles tabs.
+ * Both tabs show the same officer-card list, filtered by officer.isCivil.
  */
 
 import type { Officer } from '../types/officer';
@@ -13,6 +14,7 @@ export class OfficerWarehouseDialog {
   private element: HTMLElement | null = null;
   private isDragging = false;
   private dragOffset = { x: 0, y: 0 };
+  private activeTab: 'officers' | 'civiles' = 'officers';
 
   /**
    * Static method to show the singleton instance
@@ -89,21 +91,22 @@ export class OfficerWarehouseDialog {
       z-index: 100;
     `;
 
-    // Get officers from OfficerManager
-    const officers = this.getOfficers();
     const isGM = (game as any)?.user?.isGM || false;
 
-    // Render using Handlebars template
-    const content = await renderTemplate(
+    const oficialesContent = await renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-      { officers, isGM }
+      { officers: this.getOfficers(false), isGM, isCivilTab: false }
+    );
+    const civilesContent = await renderTemplate(
+      'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
+      { officers: this.getOfficers(true), isGM, isCivilTab: true }
     );
 
     dialog.innerHTML = `
       <header class="custom-dialog-header">
         <div class="custom-dialog-title">
-          <i class="fas fa-user-shield"></i>
-          <span>Almacén de Oficiales</span>
+          <i class="fas fa-users"></i>
+          <span>Personal</span>
         </div>
         <div class="custom-dialog-controls">
           <button type="button" class="custom-dialog-btn custom-dialog-close header-button close" title="Cerrar" aria-label="Cerrar">
@@ -111,8 +114,21 @@ export class OfficerWarehouseDialog {
           </button>
         </div>
       </header>
+      <nav class="officer-wh-tabs">
+        <button class="officer-wh-tab-btn active" data-tab="officers">
+          <i class="fas fa-user-shield"></i> Oficiales
+        </button>
+        <button class="officer-wh-tab-btn" data-tab="civiles">
+          <i class="fas fa-user-friends"></i> Civiles
+        </button>
+      </nav>
       <div class="window-content officer-warehouse-body">
-        ${content}
+        <div class="officer-wh-panel active" data-tab-panel="officers">
+          ${oficialesContent}
+        </div>
+        <div class="officer-wh-panel" data-tab-panel="civiles">
+          ${civilesContent}
+        </div>
       </div>
     `;
 
@@ -120,15 +136,12 @@ export class OfficerWarehouseDialog {
   }
 
   /**
-   * Get officers from OfficerManager
+   * Get officers filtered by isCivil flag
    */
-  private getOfficers(): Officer[] {
+  private getOfficers(civil: boolean): Officer[] {
     const gm = (window as any).GuardManagement;
-    if (!gm?.officerManager) {
-      return [];
-    }
-
-    return gm.officerManager.list();
+    if (!gm?.officerManager) return [];
+    return gm.officerManager.list().filter((o: Officer) => !!o.isCivil === civil);
   }
 
   /**
@@ -141,46 +154,64 @@ export class OfficerWarehouseDialog {
     const closeButton = this.element.querySelector('.header-button.close');
     closeButton?.addEventListener('click', () => this.close());
 
-    // Drag functionality
-    const header = this.element.querySelector('.window-header');
+    // Drag functionality — attach to the header
+    const header = this.element.querySelector('.custom-dialog-header');
     if (header) {
       header.addEventListener('mousedown', this.handleMouseDown);
     }
 
-    // Add officer button
-    const addButton = this.element.querySelector('.add-officer-btn');
-    addButton?.addEventListener('click', () => this.handleAddOfficer());
+    // Tab switching
+    this.element.querySelectorAll('.officer-wh-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tab = (btn as HTMLElement).dataset.tab as 'officers' | 'civiles';
+        if (!tab || tab === this.activeTab) return;
+        this.activeTab = tab;
+        this.element!.querySelectorAll('.officer-wh-tab-btn').forEach((b) =>
+          b.classList.toggle('active', b === btn)
+        );
+        this.element!.querySelectorAll('.officer-wh-panel').forEach((p) =>
+          p.classList.toggle('active', (p as HTMLElement).dataset.tabPanel === tab)
+        );
+      });
+    });
+
+    // Add officer buttons (data-civil distinguishes which tab)
+    this.element.querySelectorAll('.add-officer-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const isCivil = (btn as HTMLElement).dataset.civil === 'true';
+        this.handleAddOfficer(isCivil);
+      });
+    });
 
     // View officer buttons
-    const viewButtons = this.element.querySelectorAll('.view-officer-btn');
-    viewButtons.forEach((button) => {
-      button.addEventListener('click', (event) => {
+    this.element.querySelectorAll('.view-officer-btn').forEach((button) => {
+      button.addEventListener('click', () => {
         const officerId = (button as HTMLElement).dataset.officerId;
-        if (officerId) {
-          this.handleViewOfficer(officerId);
-        }
+        if (officerId) this.handleViewOfficer(officerId);
       });
     });
 
     // Edit officer buttons
-    const editButtons = this.element.querySelectorAll('.edit-officer-btn');
-    editButtons.forEach((button) => {
-      button.addEventListener('click', (event) => {
+    this.element.querySelectorAll('.edit-officer-btn').forEach((button) => {
+      button.addEventListener('click', () => {
         const officerId = (button as HTMLElement).dataset.officerId;
-        if (officerId) {
-          this.handleEditOfficer(officerId);
-        }
+        if (officerId) this.handleEditOfficer(officerId);
       });
     });
 
     // Delete officer buttons
-    const deleteButtons = this.element.querySelectorAll('.delete-officer-btn');
-    deleteButtons.forEach((button) => {
-      button.addEventListener('click', (event) => {
+    this.element.querySelectorAll('.delete-officer-btn').forEach((button) => {
+      button.addEventListener('click', () => {
         const officerId = (button as HTMLElement).dataset.officerId;
-        if (officerId) {
-          this.handleDeleteOfficer(officerId);
-        }
+        if (officerId) this.handleDeleteOfficer(officerId);
+      });
+    });
+
+    // Toggle civil button
+    this.element.querySelectorAll('.toggle-civil-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        const officerId = (button as HTMLElement).dataset.officerId;
+        if (officerId) this.handleToggleCivil(officerId);
       });
     });
 
@@ -230,6 +261,11 @@ export class OfficerWarehouseDialog {
         };
 
         (event as DragEvent).dataTransfer?.setData('text/plain', JSON.stringify(dragData));
+        // Custom type allows drop-zones to detect officer kind during dragenter/dragover
+        const officerTypeKey = officer.isCivil
+          ? 'application/x-guard-civil-officer'
+          : 'application/x-guard-officer';
+        (event as DragEvent).dataTransfer?.setData(officerTypeKey, '1');
         (event as DragEvent).dataTransfer!.effectAllowed = 'copy';
 
         // Visual feedback
@@ -245,15 +281,21 @@ export class OfficerWarehouseDialog {
   /**
    * Handle adding a new officer
    */
-  private async handleAddOfficer(): Promise<void> {
+  private async handleAddOfficer(isCivil = false): Promise<void> {
     try {
       const newOfficer = await AddOrEditOfficerDialog.create();
 
       if (newOfficer) {
+        // Mark as civil if created from the Civiles tab
+        if (isCivil) {
+          const gm = (window as any).GuardManagement;
+          gm?.officerManager?.update(newOfficer.id, { isCivil: true });
+        }
+
         await this.refresh();
 
         if (ui?.notifications) {
-          ui.notifications.info(`Oficial "${newOfficer.name}" creado exitosamente`);
+          ui.notifications.info(`"${newOfficer.name}" creado exitosamente`);
         }
       }
     } catch (error) {
@@ -278,10 +320,6 @@ export class OfficerWarehouseDialog {
       return;
     }
 
-    // Show officer details in a dialog
-    const DialogV2Class = foundry.applications.api.DialogV2;
-    if (!DialogV2Class) return;
-
     const content = `
       <div class="officer-details">
         <div class="officer-header">
@@ -289,6 +327,7 @@ export class OfficerWarehouseDialog {
           <div>
             <h2>${officer.actorName}</h2>
             <h3>${officer.title}</h3>
+            ${officer.isCivil ? '<span style="font-size:0.8em;opacity:0.7"><i class="fas fa-user-friends"></i> Civil</span>' : ''}
           </div>
         </div>
         <div class="officer-traits">
@@ -330,9 +369,9 @@ export class OfficerWarehouseDialog {
       </div>
     `;
 
-    await DialogV2Class.wait({
+    await foundry.applications.api.DialogV2.wait({
       window: {
-        title: `Oficial: ${officer.actorName}`,
+        title: `${officer.isCivil ? 'Civil' : 'Oficial'}: ${officer.actorName}`,
         resizable: true,
       },
       content,
@@ -394,42 +433,33 @@ export class OfficerWarehouseDialog {
       return;
     }
 
-    // Confirmation dialog
-    const DialogV2Class = foundry.applications.api.DialogV2;
-    if (!DialogV2Class) return;
-
-    const result = await DialogV2Class.wait({
-      window: {
-        title: 'Confirmar eliminación',
-      },
-      content: `<p>¿Estás seguro de que quieres eliminar al oficial "${officer.actorName}"?</p>`,
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: 'Confirmar eliminación' },
+      content: `<p>¿Estás seguro de que quieres eliminar a "${officer.actorName}"?</p>`,
       buttons: [
-        {
-          action: 'delete',
-          icon: 'fas fa-trash',
-          label: 'Eliminar',
-        },
-        {
-          action: 'cancel',
-          icon: 'fas fa-times',
-          label: 'Cancelar',
-        },
+        { action: 'delete', icon: 'fas fa-trash', label: 'Eliminar' },
+        { action: 'cancel', icon: 'fas fa-times', label: 'Cancelar' },
       ],
       rejectClose: false,
       modal: true,
     });
 
     if (result === 'delete') {
-      const deleted = gm.officerManager.delete(officerId);
-
-      if (deleted) {
-        await this.refresh();
-
-        if (ui?.notifications) {
-          ui.notifications.info(`Oficial "${officer.actorName}" eliminado`);
-        }
-      }
+      gm.officerManager.delete(officerId);
+      await this.refresh();
+      ui?.notifications?.info(`"${officer.actorName}" eliminado`);
     }
+  }
+
+  /** Move officer between Oficiales ↔ Civiles tabs */
+  private async handleToggleCivil(officerId: string): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    const officer = gm?.officerManager?.get(officerId);
+    if (!officer) return;
+    gm.officerManager.update(officerId, { isCivil: !officer.isCivil });
+    await this.refresh();
+    const label = !officer.isCivil ? 'Civiles' : 'Oficiales';
+    ui?.notifications?.info(`"${officer.actorName}" movido a ${label}`);
   }
 
   /**
@@ -437,20 +467,19 @@ export class OfficerWarehouseDialog {
    */
   private async refresh(): Promise<void> {
     if (!this.element) return;
-
-    const officers = this.getOfficers();
     const isGM = (game as any)?.user?.isGM || false;
-    const content = await renderTemplate(
-      'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-      { officers, isGM }
-    );
 
-    const contentArea = this.element.querySelector('.window-content');
-    if (contentArea) {
-      contentArea.innerHTML = content;
-      this.addEventListeners();
-      this.setupDragAndDrop();
+    for (const civil of [false, true] as const) {
+      const panelKey = civil ? 'civiles' : 'officers';
+      const panel = this.element.querySelector(`[data-tab-panel="${panelKey}"]`);
+      if (!panel) continue;
+      panel.innerHTML = await renderTemplate(
+        'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
+        { officers: this.getOfficers(civil), isGM, isCivilTab: civil }
+      );
     }
+    this.addEventListeners();
+    this.setupDragAndDrop();
   }
 
   /**
