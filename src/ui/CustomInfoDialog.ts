@@ -33,6 +33,7 @@ export class CustomInfoDialog implements FocusableDialog {
   // Tab state keys
   private static readonly TAB_LS_KEY = 'guard-management.infoDialog.selectedTab';
   private static readonly POS_LS_KEY = 'guard-management.orgDialog.pos';
+  static readonly OPEN_LS_KEY = 'guard-management.infoDialog.open';
   private tabsInitialized = false;
   private resourceEventHandler: ((event: Event) => void) | null = null;
   private uiRefreshHandler?: (event: Event) => void;
@@ -183,6 +184,9 @@ export class CustomInfoDialog implements FocusableDialog {
 
     // Add to document
     document.body.appendChild(this.element);
+
+    // Persist that this dialog is open so it can be restored after F5
+    localStorage.setItem(CustomInfoDialog.OPEN_LS_KEY, 'true');
 
     // Register with focus manager
     DialogFocusManager.getInstance().registerDialog(this);
@@ -429,6 +433,9 @@ export class CustomInfoDialog implements FocusableDialog {
       this.removeEventListeners();
       this.element.remove();
       this.element = null;
+
+      // Clear open-state so it is not restored after F5
+      localStorage.removeItem(CustomInfoDialog.OPEN_LS_KEY);
 
       if (this.onCloseCallback) {
         this.onCloseCallback();

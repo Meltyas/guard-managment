@@ -219,6 +219,7 @@ class GuardManagementModule {
       setTimeout(() => {
         this.floatingPanel.show(); // Ensure panel is visible
         this.floatingPanel.updateOrganizationList();
+        this.patrolOverlayManager.restoreActiveOverlays();
       }, 1000);
     });
   }
@@ -526,5 +527,18 @@ Hooks.once('ready', async () => {
 
     // Update the organization list in the floating panel
     guardManagementModule.floatingPanel.updateOrganizationList();
+  }
+
+  // Restore dialogs that were open before the last F5 / page reload
+  const infoDialogWasOpen =
+    localStorage.getItem('guard-management.infoDialog.open') === 'true';
+  const warehouseWasOpen =
+    localStorage.getItem('guard-management-warehouse-open') === 'true';
+
+  if (infoDialogWasOpen) {
+    guardManagementModule?.guardDialogManager?.showManageOrganizationsDialog();
+  }
+  if (warehouseWasOpen && (game as any)?.user?.isGM) {
+    GMWarehouseDialog.show();
   }
 });

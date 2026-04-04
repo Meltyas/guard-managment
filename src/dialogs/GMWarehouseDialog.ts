@@ -111,6 +111,9 @@ export class GMWarehouseDialog implements FocusableDialog {
     // Add to document
     document.body.appendChild(this.element);
 
+    // Persist that this dialog is open so it can be restored after F5
+    localStorage.setItem('guard-management-warehouse-open', 'true');
+
     // Register with focus manager
     DialogFocusManager.getInstance().registerDialog(this);
 
@@ -140,6 +143,9 @@ export class GMWarehouseDialog implements FocusableDialog {
       this.removeEventListeners();
       this.element.remove();
       this.element = null;
+
+      // Clear open-state so it is not restored after F5
+      localStorage.removeItem('guard-management-warehouse-open');
     }
   }
 
