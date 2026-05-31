@@ -47,6 +47,7 @@ import { DayNightDecoration } from './ui/DayNightDecoration';
 import { FloatingGuardPanel } from './ui/FloatingGuardPanel';
 import { PatrolOverlayManager } from './ui/PatrolOverlayManager';
 import { GuardManagementHelpers } from './utils/console-helpers';
+import { LogDeletion } from './utils/LogDeletion';
 import { TooltipGenerator } from './utils/TooltipGenerator';
 
 // Global module reference
@@ -198,6 +199,9 @@ class GuardManagementModule {
 
     // Set up event listeners for panel updates
     this.setupEventListeners();
+
+    // Global shift-held toggle for unified log deletion UX
+    LogDeletion.installShiftHeldToggle();
 
     this.isInitialized = true;
   }

@@ -5,6 +5,7 @@
 import type { GuardOrganization } from '../types/entities';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { ModalStack } from '../utils/modal-stack.js';
+import { LogDeletion } from '../utils/LogDeletion.js';
 // Import CSS for drag & drop styling
 import '../styles/custom-info-dialog.css';
 import { NotificationService } from '../utils/services/NotificationService.js';
@@ -805,6 +806,15 @@ export class CustomInfoDialog implements FocusableDialog {
     this.resourceEventHandler = (event: Event) => {
       const target = event.target as HTMLElement;
 
+      // ── Unified log deletion: shift+click on any log line ──────────────
+      const logLine = LogDeletion.isShiftDelete(event);
+      if (logLine) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.handleLogLineShiftDelete(logLine);
+        return;
+      }
+
       // Handle send to chat button
       const sendToChatBtn = target.closest('.send-to-chat-btn') as HTMLElement;
       if (sendToChatBtn) {
@@ -853,6 +863,36 @@ export class CustomInfoDialog implements FocusableDialog {
         if (resourceId) {
           console.log('✏️ Edit button clicked for:', resourceName, resourceId);
           this.handleEditResource(resourceId, resourceName || 'Recurso');
+        }
+        return;
+      }
+
+      // Handle order resource button
+      const orderBtn = target.closest('.order-resource-btn') as HTMLElement;
+      if (orderBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const resourceId = orderBtn.getAttribute('data-resource-id');
+        const resourceName = orderBtn.getAttribute('data-resource-name');
+
+        if (resourceId) {
+          console.log('📦 Order button clicked for:', resourceName, resourceId);
+          this.handleOrderResource(resourceId);
+        }
+        return;
+      }
+
+      const orderDeleteBtn = target.closest('.resource-order-delete-btn') as HTMLElement;
+      if (orderDeleteBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const resourceId = orderDeleteBtn.getAttribute('data-resource-id');
+        const orderId = orderDeleteBtn.getAttribute('data-order-id');
+
+        if (resourceId && orderId) {
+          this.handleDeleteResourceOrder(resourceId, orderId);
         }
         return;
       }
@@ -1056,6 +1096,39 @@ export class CustomInfoDialog implements FocusableDialog {
    */
   private async handleEditResource(resourceId: string, resourceName: string): Promise<void> {
     await ResourcesPanel.handleEditResource(resourceId, resourceName, () => this.refreshContent());
+  }
+
+  /**
+   * Handle placing an order for a resource
+   */
+  private async handleOrderResource(resourceId: string): Promise<void> {
+    await ResourcesPanel.handleOrderResource(resourceId, () => this.refreshContent());
+  }
+
+  /**
+   * Handle deleting a log entry from a resource
+   */
+  private async handleDeleteResourceLogEntry(resourceId: string, entryId: string): Promise<void> {
+    await ResourcesPanel.handleDeleteLogEntry(resourceId, entryId, () => this.refreshContent());
+  }
+
+  /**
+   * Unified shift+click deletion for any log line (resource, reputation,
+   * phase-report) rendered inside this dialog.
+   */
+  private async handleLogLineShiftDelete(line: HTMLElement): Promise<void> {
+    const kind = line.dataset.logKind;
+    const deleted = await LogDeletion.deleteLine(line);
+    if (!deleted) return;
+    if (kind === 'phase-report') {
+      this.refreshPhasesPanel();
+    } else {
+      await this.refreshContent();
+    }
+  }
+
+  private async handleDeleteResourceOrder(resourceId: string, orderId: string): Promise<void> {
+    await ResourcesPanel.handleDeleteOrder(resourceId, orderId, () => this.refreshContent());
   }
 
   /**

@@ -157,23 +157,6 @@ export class ReputationPanel {
       });
     });
 
-    // ── Delete changelog entry (GM only) ─────────────────────────────────
-    container.querySelectorAll<HTMLElement>('.rep-log-delete-btn').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const reputationId = btn.dataset.reputationId;
-        const entryId = btn.dataset.entryId;
-        if (!reputationId || !entryId) return;
-        const gm = (window as any).GuardManagement;
-        if (!gm?.reputationManager) return;
-        await gm.reputationManager.deleteReputationLogEntry(reputationId, entryId);
-        const allOrgs = gm.guardOrganizationManager?.getAllOrganizations?.() ?? [];
-        const rep = gm.reputationManager.getReputation(reputationId);
-        const org = allOrgs.find((o: any) => o.id === rep?.organizationId);
-        if (org) await ReputationPanel.render(container, org);
-      });
-    });
-
     // ── Send favor / relation to chat ─────────────────────────────────────
     container.querySelectorAll<HTMLElement>('.rep-sub-chat-btn').forEach((btn) => {
       btn.addEventListener('click', async (e) => {

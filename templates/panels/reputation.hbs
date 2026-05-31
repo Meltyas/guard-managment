@@ -127,18 +127,10 @@
                         </button>
                         <div class="rep-changelog-list" hidden>
                           {{#each this.changelogEntries}}
-                            <div class="rep-log-entry" data-entry-id="{{this.id}}">
+                            <div class="rep-log-entry" data-entry-id="{{this.id}}"{{#if ../../../isGM}} data-log-kind="reputation" data-reputation-id="{{../id}}" title="Shift+clic para borrar esta entrada"{{/if}}>
                               <div class="rep-log-entry__header">
                                 <span class="rep-log-entry__date">{{this.dateLabel}}</span>
                                 <span class="rep-log-entry__user">{{this.userName}}</span>
-                                {{#if ../../../isGM}}
-                                  <button type="button" class="rep-log-delete-btn"
-                                    data-reputation-id="{{../id}}"
-                                    data-entry-id="{{this.id}}"
-                                    title="Borrar entrada">
-                                    <i class="fas fa-times"></i>
-                                  </button>
-                                {{/if}}
                               </div>
                               {{#each this.changes}}
                                 <div class="rep-log-entry__change">

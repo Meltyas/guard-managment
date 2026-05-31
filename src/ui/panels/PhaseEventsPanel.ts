@@ -87,6 +87,7 @@ export class PhaseEventsPanel {
 
     const reports = (mgr.getAllReports() as PhaseReport[]).map((r, idx) => {
       const mapEntry = (en: any) => ({
+        id: en.id,
         text: en.text,
         icon: en.icon || EVENT_CATEGORY_ICONS[en.category as EventCategory] || EVENT_CATEGORY_ICONS.otro,
         category: en.category,

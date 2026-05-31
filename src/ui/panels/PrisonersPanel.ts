@@ -167,6 +167,41 @@ export class PrisonersPanel {
       await this.handleAction(el.dataset.prisonerId!, el.dataset.prisonerName!, 'death_row');
     });
 
+    // Delete individual prisoner record
+    $html.off('click', '.record-delete-btn').on('click', '.record-delete-btn', async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const el = ev.currentTarget as HTMLElement;
+      const prisonerId = el.dataset.prisonerId!;
+      const prisonerName = el.dataset.prisonerName || 'este prisionero';
+      const confirmed = await (foundry.applications.api as any).DialogV2.confirm({
+        window: { title: 'Eliminar ficha' },
+        content: `<p>¿Eliminar la ficha de <strong>${prisonerName}</strong> permanentemente?</p>`,
+        yes: { label: 'Eliminar', icon: 'fas fa-trash' },
+        no: { label: 'Cancelar' },
+      });
+      if (!confirmed) return;
+      const gm = (window as any).GuardManagement;
+      await gm?.prisonerManager?.removePrisoner(prisonerId);
+      await PrisonersPanel.render(container);
+    });
+
+    // Clear all prisoner records
+    $html.off('click', '.prisoner-clear-records-btn').on('click', '.prisoner-clear-records-btn', async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const confirmed = await (foundry.applications.api as any).DialogV2.confirm({
+        window: { title: 'Limpiar registro' },
+        content: `<p>¿Eliminar <strong>todos</strong> los registros de prisioneros? Esta acción no se puede deshacer.</p>`,
+        yes: { label: 'Eliminar todo', icon: 'fas fa-trash-alt' },
+        no: { label: 'Cancelar' },
+      });
+      if (!confirmed) return;
+      const gm = (window as any).GuardManagement;
+      await gm?.prisonerManager?.clearAllRecords();
+      await PrisonersPanel.render(container);
+    });
+
     // Return to cell button (in records section)
     $html.off('click', '.record-return-btn').on('click', '.record-return-btn', async (ev) => {
       ev.preventDefault();

@@ -359,9 +359,29 @@
   margin-top: 2px;
 }
 
-.report-entry.gm {
+.report-entry.gm,
+.report-entry.report-entry--gm {
   border-left-color: #9b59b6;
   background: rgba(155, 89, 182, 0.08);
+}
+
+/* Shift-held: highlight report entries as deletable (GM) */
+.shift-held .report-entry[data-log-kind] {
+  cursor: pointer;
+}
+.shift-held .report-entry[data-log-kind]:hover {
+  background: rgba(231, 76, 60, 0.15);
+  outline: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.gm-badge {
+  font-size: 0.75em;
+  background: #9b59b6;
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 4px;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .report-empty {

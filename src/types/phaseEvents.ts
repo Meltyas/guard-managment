@@ -63,6 +63,7 @@ export interface PhaseEvent {
 
 /** A single line inside a phase report */
 export interface PhaseReportEntry {
+  id: string;
   text: string;
   category: EventCategory | 'sistema';
   icon?: string;

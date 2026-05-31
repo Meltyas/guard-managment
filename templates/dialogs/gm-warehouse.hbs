@@ -29,6 +29,10 @@
           <i class='fas fa-shield-alt'></i>
           <span>Modificadores</span>
         </a>
+        <a class='item tab' data-tab='gangs'>
+          <i class='fas fa-users'></i>
+          <span>Bandas</span>
+        </a>
       </nav>
     </div>
     <div class='warehouse-content'>
@@ -182,6 +186,24 @@
         </div>
         <div class='templates-list guard-modifiers-list'>
           <p class='empty-state'>No hay modificadores creados aún</p>
+        </div>
+      </section>
+      <section class='tab-content' data-tab='gangs'>
+        <div class='content-header'>
+          <h3>Bandas</h3>
+          <div class='content-header-actions'>
+            <button type='button' class='add-gang-btn'>
+              <i class='fas fa-plus'></i>
+              Añadir
+            </button>
+          </div>
+        </div>
+        <div class='entity-list-search'>
+          <i class='fas fa-search entity-list-search__icon'></i>
+          <input type='text' class='warehouse-search-input entity-list-search__input' placeholder='Buscar banda...' />
+        </div>
+        <div class='templates-list gangs-list'>
+          <p class='empty-state'>No hay bandas registradas aún</p>
         </div>
       </section>
     </div>

@@ -1,7 +1,43 @@
-import type { GuardOrganization } from '../../types/entities';
+import type { GuardOrganization, ResourceLogEntry } from '../../types/entities';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { ResourceTemplate } from '../ResourceTemplate.js';
+
+// ── Log helpers ──────────────────────────────────────────────────────────────
+
+const LOG_ACTION_LABELS: Record<string, string> = {
+  order_placed:    'Encargo registrado',
+  order_arrived:   'Encargo llegado',
+  quantity_added:  'Stock añadido',
+  quantity_removed:'Stock retirado',
+  quantity_set:    'Stock ajustado',
+  resource_created:'Recurso creado',
+};
+
+function _formatTimeAgo(timestamp: number): string {
+  const diffMs = Date.now() - timestamp;
+  const diffMins = Math.floor(diffMs / 60_000);
+  if (diffMins < 1) return 'ahora mismo';
+  if (diffMins < 60) return `hace ${diffMins} min`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `hace ${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `hace ${diffDays}d`;
+}
+
+function _enrichLogEntry(e: ResourceLogEntry) {
+  return {
+    ...e,
+    label: LOG_ACTION_LABELS[e.action] ?? e.action,
+    timeAgo: _formatTimeAgo(e.timestamp),
+    dateLabel: new Date(e.timestamp).toLocaleString('es-ES', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    }),
+    isPositive: e.action === 'order_arrived' || e.action === 'quantity_added' || e.action === 'resource_created',
+    isNegative: e.action === 'quantity_removed',
+    isPending:  e.action === 'order_placed',
+  };
+}
 
 export class ResourcesPanel {
   static get template() {
@@ -29,7 +65,14 @@ export class ResourcesPanel {
       for (const id of organization.resources) {
         const r = allResources.find((res: any) => res.id === id);
         if (r) {
-          resources.push(r);
+          // Enrich with pending/arrived order summaries for the template
+          const pendingOrders = (r.orders ?? []).filter((o: any) => o.status === 'pending');
+          const arrivedOrders = (r.orders ?? []).filter((o: any) => o.status === 'arrived');
+          // Log — newest first, enriched with labels and time formatting
+          const logEntries = [...(r.log ?? [])]
+            .sort((a: any, b: any) => b.timestamp - a.timestamp)
+            .map(_enrichLogEntry);
+          resources.push({ ...r, pendingOrders, arrivedOrders, logEntries });
           console.log('ResourcesPanel.getData | Found resource:', r.name);
         } else {
           console.warn('ResourcesPanel.getData | Resource ID not found:', id);
@@ -76,6 +119,19 @@ export class ResourcesPanel {
       container.querySelectorAll<HTMLElement>('.entity-row').forEach((row) => {
         const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
         row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
+      });
+    });
+
+    // Log section toggle (collapse/expand inside each row detail)
+    container.querySelectorAll<HTMLElement>('.resource-log-toggle').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const section = btn.closest('.resource-log-section') as HTMLElement;
+        const list = section?.querySelector('.resource-log-list') as HTMLElement;
+        const chevron = btn.querySelector('.resource-log-chevron') as HTMLElement;
+        if (!list) return;
+        list.hidden = !list.hidden;
+        chevron?.classList.toggle('resource-log-chevron--open', !list.hidden);
       });
     });
   }
@@ -290,6 +346,85 @@ export class ResourcesPanel {
       console.error('❌ Error assigning resource:', error);
       NotificationService.error('Error al asignar el recurso');
       throw error;
+    }
+  }
+
+  /**
+   * Handle placing an order for a resource (GM only).
+   * Opens OrderResourceDialog, then calls resourceManager.createOrder().
+   */
+  public static async handleOrderResource(
+    resourceId: string,
+    refreshCallback: () => Promise<void>
+  ): Promise<void> {
+    console.log('📦 Order resource request:', resourceId);
+
+    const gm = (window as any).GuardManagement;
+    if (!gm?.resourceManager) {
+      NotificationService.error('No se pudo acceder al gestor de recursos');
+      return;
+    }
+
+    const resource = gm.resourceManager.getResource(resourceId);
+    if (!resource) {
+      NotificationService.error('Recurso no encontrado');
+      return;
+    }
+
+    try {
+      const currentTurn: number = gm.phaseManager?.getCurrentTurn?.() ?? 1;
+
+      const { OrderResourceDialog } = await import('../../dialogs/OrderResourceDialog.js');
+      const order = await OrderResourceDialog.open(resource, currentTurn);
+
+      if (!order) {
+        console.log('❌ Order cancelled by GM');
+        return;
+      }
+
+      await gm.resourceManager.createOrder(resourceId, order, gm.financeManager);
+
+      const msg =
+        order.phasesUntilArrival === 0
+          ? `Encargo recibido: +${order.quantity} ${resource.name}`
+          : `Encargo registrado. Llegará en el turno ${order.arrivalTurn}.`;
+      NotificationService.info(msg);
+
+      await refreshCallback();
+    } catch (error) {
+      console.error('❌ Error ordering resource:', error);
+      NotificationService.error('Error al realizar el encargo');
+    }
+  }
+
+  /**
+   * Delete a log entry from a resource (GM only).
+   */
+  public static async handleDeleteLogEntry(
+    resourceId: string,
+    entryId: string,
+    refreshCallback: () => Promise<void>
+  ): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    if (!gm?.resourceManager) return;
+
+    const deleted = await gm.resourceManager.deleteLogEntry(resourceId, entryId);
+    if (deleted) {
+      await refreshCallback();
+    }
+  }
+
+  public static async handleDeleteOrder(
+    resourceId: string,
+    orderId: string,
+    refreshCallback: () => Promise<void>
+  ): Promise<void> {
+    const gm = (window as any).GuardManagement;
+    if (!gm?.resourceManager) return;
+
+    const deleted = await gm.resourceManager.deleteOrder(resourceId, orderId);
+    if (deleted) {
+      await refreshCallback();
     }
   }
 }

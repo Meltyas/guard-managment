@@ -70,6 +70,7 @@ export class MCPBridgeIntegration {
       // ── Patrols (operate on the currently active organization) ─────────
       'guard-management.patrols.list': gmOnly(async () => org.listOrganizationPatrols()),
       'guard-management.patrols.create': gmMutation('guard-management.patrols', async (data) => org.createPatrolForOrganization(data)),
+      'guard-management.patrols.update': gmMutation('guard-management.patrols', async ({ patrolId, ...updates }) => org.getPatrolManager().updatePatrol(patrolId, updates)),
       'guard-management.patrols.delete': gmMutation('guard-management.patrols', async ({ patrolId }) => org.removePatrol(patrolId)),
 
       // ── Officers ───────────────────────────────────────────────────────

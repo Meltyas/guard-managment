@@ -1,0 +1,50 @@
+<div class="entity-row gang-template" data-gang-id="{{id}}">
+  <div class="entity-row__summary">
+    <button type="button" class="entity-row__toggle" aria-expanded="false" aria-label="Expandir">
+      <img class="entity-row__thumb" src="{{#if img}}{{img}}{{else}}icons/svg/cowled.svg{{/if}}" alt="{{name}}" />
+    </button>
+    <span class="entity-row__badge entity-row__badge--gang-{{status}}">{{statusLabel}}</span>
+    <span class="entity-row__name">{{name}}</span>
+    <div class="entity-row__actions">
+      <button type="button" class="entity-row__btn send-to-chat-template-btn" title="Enviar al chat" data-gang-id="{{id}}">
+        <i class="fas fa-comment"></i>
+      </button>
+      <button type="button" class="entity-row__btn edit-gang-template-btn" title="Editar" data-gang-id="{{id}}">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button type="button" class="entity-row__btn entity-row__btn--danger delete-gang-template-btn" title="Eliminar" data-gang-id="{{id}}">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="entity-row__detail" hidden>
+    <div class="entity-row__detail-image">
+      <img class="entity-row__detail-img" src="{{#if img}}{{img}}{{else}}icons/svg/cowled.svg{{/if}}" alt="{{name}}" />
+    </div>
+    <div class="entity-row__detail-body">
+      <div class="entity-row__detail-title">{{name}}</div>
+      <span class="entity-row__badge entity-row__badge--gang-{{status}}">{{statusLabel}}</span>
+
+      {{#if leaders.length}}
+        <p class="rep-detail-meta"><i class="fas fa-crown"></i> <strong>Líder(es):</strong>
+          {{#each leaders}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}
+        </p>
+      {{/if}}
+      {{#if subleaders.length}}
+        <p class="rep-detail-meta"><i class="fas fa-star"></i> <strong>Sublíderes:</strong>
+          {{#each subleaders}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}
+        </p>
+      {{/if}}
+      {{#if members.length}}
+        <p class="rep-detail-meta"><i class="fas fa-users"></i> <strong>Miembros:</strong>
+          {{#each members}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}
+        </p>
+      {{/if}}
+
+      {{#if notes}}
+        <p class="entity-row__detail-desc">{{{notes}}}</p>
+      {{/if}}
+    </div>
+  </div>
+</div>

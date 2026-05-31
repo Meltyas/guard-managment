@@ -555,3 +555,317 @@
   color: #e84a4a;
   border-color: rgba(232, 74, 74, 0.2);
 }
+
+/* ── Order Resource Dialog ──────────────────────────────────────────────── */
+
+/* Resource name header inside dialog */
+.order-resource-header {
+  margin-bottom: 4px;
+}
+.order-resource-name {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #f3c267;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.order-resource-name i {
+  opacity: 0.8;
+}
+
+/* Comprar / Craftear toggle group */
+.guard-modal-toggle-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.guard-modal-toggle-option {
+  flex: 1;
+  cursor: pointer;
+}
+.guard-modal-toggle-option input[type='radio'] {
+  display: none;
+}
+.guard-modal-toggle-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(243, 194, 103, 0.3);
+  background: rgba(24, 22, 46, 0.5);
+  color: #b0a890;
+  font-size: 0.9em;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.guard-modal-toggle-option input[type='radio']:checked + span {
+  border-color: #f3c267;
+  background: rgba(243, 194, 103, 0.15);
+  color: #f3c267;
+  font-weight: 600;
+}
+.guard-modal-toggle-option:hover span {
+  border-color: rgba(243, 194, 103, 0.6);
+  color: #efe6d8;
+}
+
+/* Visibility checkbox row */
+.order-resource-visibility .guard-modal-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #efe6d8;
+  font-size: 0.95em;
+}
+.order-resource-visibility input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: #f3c267;
+  cursor: pointer;
+}
+
+/* ── Resource orders list (panel) ───────────────────────────────────────── */
+
+/* Badge in collapsed row showing pending count */
+.resource-order-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(243, 194, 103, 0.15);
+  border: 1px solid rgba(243, 194, 103, 0.4);
+  color: #f3c267;
+  border-radius: 10px;
+  font-size: 0.72em;
+  padding: 1px 7px;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+/* Orders list block inside expanded detail */
+.resource-orders {
+  margin-top: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(243, 194, 103, 0.2);
+}
+.resource-orders__header {
+  background: rgba(243, 194, 103, 0.08);
+  color: #f3c267;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.resource-order-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.88em;
+  color: #efe6d8;
+}
+.resource-order-item:first-of-type {
+  border-top: none;
+}
+.resource-order-delete-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+.resource-order-delete-btn:hover {
+  color: #e05555;
+  background: rgba(224, 85, 85, 0.12);
+}
+
+/* Comprar / craftear badge */
+.order-type-badge {
+  border-radius: 4px;
+  font-size: 0.78em;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  letter-spacing: 0.4px;
+}
+.order-type-badge--comprar {
+  background: rgba(100, 200, 120, 0.15);
+  color: #6acb82;
+  border: 1px solid rgba(100, 200, 120, 0.3);
+}
+.order-type-badge--craftear {
+  background: rgba(100, 150, 240, 0.15);
+  color: #7aacf0;
+  border: 1px solid rgba(100, 150, 240, 0.3);
+}
+
+.order-qty {
+  font-weight: 600;
+  color: #f3c267;
+  min-width: 60px;
+}
+.order-arrival {
+  color: #b0a890;
+  font-size: 0.9em;
+}
+.order-arrival--hidden {
+  color: #7a7268;
+  font-style: italic;
+}
+
+/* ── Resource Activity Log ──────────────────────────────────────────────── */
+
+.resource-log-section {
+  margin-top: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Collapsible toggle button */
+.resource-log-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  color: #b0a890;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+.resource-log-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #efe6d8;
+}
+.resource-log-toggle i:first-child {
+  opacity: 0.6;
+  width: 14px;
+  text-align: center;
+}
+.resource-log-count {
+  color: #7a7268;
+  font-weight: 400;
+}
+.resource-log-chevron {
+  margin-left: auto;
+  transition: transform 0.2s;
+  opacity: 0.5;
+}
+.resource-log-chevron--open {
+  transform: rotate(180deg);
+}
+
+/* Log entries list */
+.resource-log-list {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.resource-log-entry {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.84em;
+}
+.resource-log-entry:last-child {
+  border-bottom: none;
+}
+
+/* Color accent by type */
+.resource-log-entry--positive {
+  border-left: 2px solid rgba(100, 200, 120, 0.5);
+}
+.resource-log-entry--negative {
+  border-left: 2px solid rgba(232, 74, 74, 0.4);
+}
+.resource-log-entry--pending {
+  border-left: 2px solid rgba(243, 194, 103, 0.4);
+}
+
+/* Entry header row */
+.resource-log-entry__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.resource-log-entry__label {
+  font-weight: 600;
+  color: #efe6d8;
+  flex: 1;
+}
+.resource-log-entry__time {
+  font-size: 0.85em;
+  color: #7a7268;
+  white-space: nowrap;
+}
+
+/* Shift-held: highlight log entries as deletable */
+.shift-held .resource-log-entry {
+  cursor: pointer;
+}
+.shift-held .resource-log-entry:hover {
+  background: rgba(231, 76, 60, 0.15);
+  outline: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+/* Details text */
+.resource-log-entry__details {
+  color: #b0a890;
+  font-size: 0.92em;
+  margin-bottom: 2px;
+}
+
+/* Quantity before → after */
+.resource-log-entry__qty-change {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.88em;
+  color: #7a7268;
+}
+.resource-log-qty-before {
+  color: #888;
+}
+.resource-log-qty-after {
+  color: #efe6d8;
+  font-weight: 600;
+}
+.resource-log-arrow {
+  font-size: 0.75em;
+  opacity: 0.5;
+}
+.resource-log-by {
+  margin-left: auto;
+  color: #5a5248;
+  font-style: italic;
+}
+
+/* Entry meta */
+.resource-log-entry__by {
+  color: #5a5248;
+  font-size: 0.85em;
+  font-style: italic;
+}
+.resource-log-entry__turn {
+  color: #5a5248;
+  font-size: 0.82em;
+}

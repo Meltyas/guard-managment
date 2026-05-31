@@ -115,7 +115,9 @@
                 <div class='report-group players'>
                   <div class='report-group-header'><i class='fas fa-users'></i> Visible para jugadores</div>
                   {{#each playerEntries}}
-                    <div class='report-entry' data-category='{{category}}' data-search='{{searchText}}'>
+                    <div class='report-entry' data-category='{{category}}' data-search='{{searchText}}'
+                      data-log-kind='phase-report' data-turn='{{../turn}}' data-entry-id='{{id}}' data-scope='player'
+                      title='Shift+clic para borrar esta entrada'>
                       <i class='{{icon}}'></i>
                       <span>{{text}}</span>
                     </div>
@@ -126,7 +128,9 @@
                 <div class='report-group gm'>
                   <div class='report-group-header'><i class='fas fa-user-secret'></i> Solo DM</div>
                   {{#each gmEntries}}
-                    <div class='report-entry gm' data-category='{{category}}' data-search='{{searchText}}'>
+                    <div class='report-entry gm' data-category='{{category}}' data-search='{{searchText}}'
+                      data-log-kind='phase-report' data-turn='{{../turn}}' data-entry-id='{{id}}' data-scope='gm'
+                      title='Shift+clic para borrar esta entrada'>
                       <i class='{{icon}}'></i>
                       <span>{{text}}</span>
                     </div>

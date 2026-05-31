@@ -104,7 +104,12 @@
     {{!-- Prisoner Records (fichas) below the grid --}}
     {{#if records.length}}
       <div class="prisoner-records-section">
-        <h4><i class="fas fa-folder-open"></i> Fichas de Prisioneros</h4>
+        <div class="prisoner-records-header">
+          <h4><i class="fas fa-folder-open"></i> Fichas de Prisioneros</h4>
+          <button type="button" class="prisoner-clear-records-btn" title="Eliminar todos los registros">
+            <i class="fas fa-trash-alt"></i> Limpiar registro
+          </button>
+        </div>
 
         {{!-- Search and Filter Bar --}}
         <div class="prisoner-records-toolbar">
@@ -148,6 +153,10 @@
                 <span class="record-status record-status-{{this.status}}">{{this.statusLabel}}</span>
               </div>
               <div class="record-actions">
+                <button type="button" class="record-delete-btn" title="Eliminar ficha"
+                  data-prisoner-id="{{this.id}}" data-prisoner-name="{{this.name}}">
+                  <i class="fas fa-trash"></i>
+                </button>
                 <button type="button" class="record-chat-btn" title="Enviar al chat"
                   data-prisoner-id="{{this.id}}">
                   <i class="fas fa-comment-dots"></i>

@@ -65,6 +65,7 @@ export class GMWarehouseDialog implements FocusableDialog {
   private reputationTemplates: any[] = [];
   private patrolEffectTemplates: any[] = [];
   private guardModifierTemplates: any[] = [];
+  private gangTemplates: any[] = [];
 
   constructor() {
     // Check GM permissions
@@ -331,6 +332,8 @@ export class GMWarehouseDialog implements FocusableDialog {
     await this.refreshPatrolEffectsTab();
     // Load guard modifiers tab content
     await this.refreshGuardModifiersTab();
+    // Load gangs tab content
+    await this.refreshGangsTab();
 
     // Restore last tab
     const lastTab = localStorage.getItem('guard-management-warehouse-tab');
@@ -494,6 +497,7 @@ export class GMWarehouseDialog implements FocusableDialog {
         else if (classList.includes('add-reputation-btn')) templateType = 'reputation';
         else if (classList.includes('add-patrol-effect-btn')) templateType = 'patrol-effect';
         else if (classList.includes('add-guard-modifier-btn')) templateType = 'guard-modifier';
+        else if (classList.includes('add-gang-btn')) templateType = 'gang';
 
         if (templateType === 'resource') {
           await this.handleAddResource();
@@ -503,6 +507,8 @@ export class GMWarehouseDialog implements FocusableDialog {
           await this.handleAddPatrolEffect();
         } else if (templateType === 'guard-modifier') {
           await this.handleAddGuardModifier();
+        } else if (templateType === 'gang') {
+          await this.handleAddGang();
         } else if (templateType) {
           console.log(`Adding new ${templateType} template - functionality to be implemented`);
           if ((globalThis as any).ui?.notifications) {
@@ -1016,6 +1022,302 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
+   * Get gang templates from GangManager
+   */
+  private async getGangTemplates(): Promise<any[]> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm || !gm.isInitialized || !gm.gangManager) {
+        this.gangTemplates = [];
+        return this.gangTemplates;
+      }
+      this.gangTemplates = gm.gangManager.getAllGangs() || [];
+      return this.gangTemplates;
+    } catch (error) {
+      console.error('Error loading gang templates:', error);
+      this.gangTemplates = [];
+      return this.gangTemplates;
+    }
+  }
+
+  /**
+   * Render individual gang template
+   */
+  private async renderGangTemplate(gang: any): Promise<string> {
+    const { GANG_STATUS_LABELS } = await import('../types/gangs.js');
+    const gangData = {
+      id: gang.id,
+      name: gang.name,
+      img: gang.img || '',
+      notes: gang.notes || '',
+      status: gang.status || 'unknown',
+      statusLabel: GANG_STATUS_LABELS[gang.status as keyof typeof GANG_STATUS_LABELS] || gang.status,
+      leaders: gang.leaders || [],
+      subleaders: gang.subleaders || [],
+      members: gang.members || [],
+    };
+    return foundry.applications.handlebars.renderTemplate(
+      'modules/guard-management/templates/partials/warehouse-gang-item.hbs',
+      gangData
+    );
+  }
+
+  /**
+   * Refresh the gangs tab content
+   */
+  public async refreshGangsTab(): Promise<void> {
+    if (!this.element) return;
+
+    const gangsList = this.element.querySelector('.gangs-list');
+    if (!gangsList) return;
+
+    const gangs = await this.getGangTemplates();
+    gangsList.innerHTML = '';
+
+    if (gangs.length > 0) {
+      for (const gang of gangs) {
+        const html = await this.renderGangTemplate(gang);
+        gangsList.insertAdjacentHTML('beforeend', html);
+      }
+    } else {
+      const empty = document.createElement('p');
+      empty.className = 'empty-state';
+      empty.textContent = 'No hay bandas registradas aún';
+      gangsList.appendChild(empty);
+    }
+
+    this.addTemplateEventListeners();
+  }
+
+  /**
+   * Handle adding a new gang
+   */
+  private async handleAddGang(): Promise<void> {
+    const { GuardModal } = await import('../ui/GuardModal.js');
+    let selectedImage = '';
+
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="gang-name"><i class="fas fa-users"></i> Nombre de la banda</label>
+          <input type="text" id="gang-name" placeholder="Ej: Los Cuervos, Hermandad de la Sombra..." />
+        </div>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" id="gang-img" placeholder="Ruta de imagen..." style="flex: 1;" />
+            <button type="button" id="gang-img-picker" class="gangs-btn" style="white-space: nowrap;">
+              <i class="fas fa-file-image"></i> Buscar
+            </button>
+          </div>
+          <div id="gang-img-preview" style="margin-top: 6px; text-align: center;"></div>
+        </div>
+        <div class="guard-modal-row">
+          <label for="gang-notes"><i class="fas fa-sticky-note"></i> Notas</label>
+          <textarea id="gang-notes" rows="4" placeholder="Notas sobre la banda..."></textarea>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: 'Registrar Nueva Banda',
+      icon: 'fas fa-users',
+      body,
+      saveLabel: 'Registrar',
+      onRender: (bodyEl) => {
+        const imgInput = bodyEl.querySelector('#gang-img') as HTMLInputElement;
+        const imgPreview = bodyEl.querySelector('#gang-img-preview') as HTMLElement;
+        const imgPicker = bodyEl.querySelector('#gang-img-picker');
+
+        imgPicker?.addEventListener('click', () => {
+          new (globalThis as any).FilePicker({
+            type: 'image',
+            current: imgInput?.value || '',
+            callback: (path: string) => {
+              if (imgInput) imgInput.value = path;
+              selectedImage = path;
+              if (imgPreview) {
+                imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
+              }
+            },
+          }).render(true);
+        });
+
+        imgInput?.addEventListener('change', () => {
+          selectedImage = imgInput.value;
+          if (imgPreview && imgInput.value) {
+            imgPreview.innerHTML = `<img src="${imgInput.value}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
+          }
+        });
+
+        (bodyEl.querySelector('#gang-name') as HTMLInputElement)?.focus();
+      },
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#gang-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          (globalThis as any).ui?.notifications?.warn('El nombre de la banda es obligatorio.');
+          return false;
+        }
+        const notes = (bodyEl.querySelector('#gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+        const gm = (window as any).GuardManagement;
+        if (!gm?.gangManager) return false;
+        await gm.gangManager.addGang({ name, img: selectedImage || undefined, notes });
+        await this.refreshGangsTab();
+      },
+    });
+  }
+
+  /**
+   * Handle editing a gang
+   */
+  private async handleEditGang(gangId: string): Promise<void> {
+    const { GuardModal } = await import('../ui/GuardModal.js');
+    const gm = (window as any).GuardManagement;
+    if (!gm?.gangManager) return;
+    const gang = gm.gangManager.getGang(gangId);
+    if (!gang) return;
+
+    let selectedImage = gang.img || '';
+    const plainNotes = (gang.notes || '').replace(/<[^>]*>/g, '');
+
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="gang-name"><i class="fas fa-users"></i> Nombre de la banda</label>
+          <input type="text" id="gang-name" value="${gang.name.replace(/"/g, '&quot;')}" />
+        </div>
+        <div class="guard-modal-row">
+          <label><i class="fas fa-image"></i> Imagen</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="text" id="gang-img" value="${gang.img || ''}" style="flex: 1;" />
+            <button type="button" id="gang-img-picker" class="gangs-btn" style="white-space: nowrap;">
+              <i class="fas fa-file-image"></i> Buscar
+            </button>
+          </div>
+          <div id="gang-img-preview" style="margin-top: 6px; text-align: center;">
+            ${gang.img ? `<img src="${gang.img}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />` : ''}
+          </div>
+        </div>
+        <div class="guard-modal-row">
+          <label for="gang-notes"><i class="fas fa-sticky-note"></i> Notas</label>
+          <textarea id="gang-notes" rows="4">${plainNotes}</textarea>
+        </div>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: `Editar Banda: ${gang.name}`,
+      icon: 'fas fa-edit',
+      body,
+      onRender: (bodyEl) => {
+        const imgInput = bodyEl.querySelector('#gang-img') as HTMLInputElement;
+        const imgPreview = bodyEl.querySelector('#gang-img-preview') as HTMLElement;
+        const imgPicker = bodyEl.querySelector('#gang-img-picker');
+
+        imgPicker?.addEventListener('click', () => {
+          new (globalThis as any).FilePicker({
+            type: 'image',
+            current: imgInput?.value || '',
+            callback: (path: string) => {
+              if (imgInput) imgInput.value = path;
+              selectedImage = path;
+              if (imgPreview) {
+                imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
+              }
+            },
+          }).render(true);
+        });
+
+        imgInput?.addEventListener('change', () => { selectedImage = imgInput.value; });
+      },
+      onSave: async (bodyEl) => {
+        const name = (bodyEl.querySelector('#gang-name') as HTMLInputElement)?.value?.trim();
+        if (!name) {
+          (globalThis as any).ui?.notifications?.warn('El nombre de la banda es obligatorio.');
+          return false;
+        }
+        const notes = (bodyEl.querySelector('#gang-notes') as HTMLTextAreaElement)?.value?.trim() || '';
+        const updates: any = { notes };
+        if (name !== gang.name) updates.name = name;
+        if (selectedImage !== (gang.img || '')) updates.img = selectedImage || undefined;
+        await gm.gangManager.updateGang(gangId, updates);
+        await this.refreshGangsTab();
+      },
+    });
+  }
+
+  /**
+   * Handle deleting a gang
+   */
+  private async handleDeleteGang(gangId: string): Promise<void> {
+    const { GuardModal } = await import('../ui/GuardModal.js');
+    const gm = (window as any).GuardManagement;
+    if (!gm?.gangManager) return;
+    const gang = gm.gangManager.getGang(gangId);
+    if (!gang) return;
+
+    const body = `
+      <div class="guard-modal-form" style="text-align: center;">
+        <p><i class="fas fa-exclamation-triangle" style="color: #e84a4a; font-size: 1.5em;"></i></p>
+        <p>¿Eliminar la banda <strong>"${gang.name}"</strong>?</p>
+        <p style="font-size: 0.85em; color: #ccc;">Esta acción no se puede deshacer.</p>
+      </div>
+    `;
+
+    GuardModal.open({
+      title: 'Eliminar Banda',
+      icon: 'fas fa-trash',
+      body,
+      saveLabel: 'Eliminar',
+      onSave: async () => {
+        await gm.gangManager.deleteGang(gangId);
+        await this.refreshGangsTab();
+      },
+    });
+  }
+
+  /**
+   * Handle sending gang to chat
+   */
+  private async handleSendGangToChat(gangId: string): Promise<void> {
+    const { GANG_STATUS_LABELS } = await import('../types/gangs.js');
+    const gm = (window as any).GuardManagement;
+    const gang = gm?.gangManager?.getGang(gangId);
+    if (!gang) return;
+
+    const imgHtml = gang.img
+      ? `<img src="${gang.img}" width="50" height="50" style="float:left;margin-right:8px;border-radius:4px;" />`
+      : '';
+
+    const statusLabel = GANG_STATUS_LABELS[gang.status as keyof typeof GANG_STATUS_LABELS] || gang.status;
+
+    const membersList = (arr: any[], role: string) => {
+      if (!arr || arr.length === 0) return '';
+      const names = arr.map((m: any) => m.name).join(', ');
+      return `<p><strong>${role}:</strong> ${names}</p>`;
+    };
+
+    const membersHtml =
+      membersList(gang.leaders, 'Líder(es)') +
+      membersList(gang.subleaders, 'Sublíderes') +
+      membersList(gang.members, 'Miembros');
+
+    const content = `
+      <div style="border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px;background:rgba(0,0,0,0.1);">
+        ${imgHtml}
+        <h3 style="margin:0 0 4px 0;">${gang.name}</h3>
+        <p><strong>Estado:</strong> ${statusLabel}</p>
+        ${membersHtml}
+      </div>
+    `;
+
+    await (ChatMessage as any).create({ content, speaker: { alias: 'Registro de Bandas' } });
+    if ((globalThis as any).ui?.notifications) {
+      (globalThis as any).ui.notifications.info(`Ficha de "${gang.name}" enviada al chat`);
+    }
+  }
+
+  /**
    * Add event listeners specifically for template items
    */
   private addTemplateEventListeners(): void {
@@ -1060,11 +1362,14 @@ export class GMWarehouseDialog implements FocusableDialog {
         const templateItem = button.closest('.entity-row') as HTMLElement;
         const resourceId = templateItem?.dataset.resourceId;
         const reputationId = templateItem?.dataset.reputationId;
+        const gangId = (button as HTMLElement).dataset.gangId;
 
         if (resourceId) {
           this.handleSendTemplateToChat(resourceId);
         } else if (reputationId) {
           this.handleSendReputationTemplateToChat(reputationId);
+        } else if (gangId) {
+          this.handleSendGangToChat(gangId);
         }
       };
     });
@@ -1180,6 +1485,24 @@ export class GMWarehouseDialog implements FocusableDialog {
         } else if (modifierId) {
           this.handleDeleteGuardModifierTemplate(modifierId);
         }
+      };
+    });
+
+    // Handle gang edit buttons (dedicated class)
+    this.element.querySelectorAll('.edit-gang-template-btn').forEach((button) => {
+      (button as HTMLElement).onclick = (event) => {
+        event.preventDefault();
+        const gangId = (button as HTMLElement).dataset.gangId;
+        if (gangId) this.handleEditGang(gangId);
+      };
+    });
+
+    // Handle gang delete buttons (dedicated class)
+    this.element.querySelectorAll('.delete-gang-template-btn').forEach((button) => {
+      (button as HTMLElement).onclick = (event) => {
+        event.preventDefault();
+        const gangId = (button as HTMLElement).dataset.gangId;
+        if (gangId) this.handleDeleteGang(gangId);
       };
     });
 

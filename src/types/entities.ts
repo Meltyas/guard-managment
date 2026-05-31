@@ -65,11 +65,50 @@ export interface StatModification {
 export type EffectType = 'positive' | 'negative' | 'neutral';
 
 // Resources (Organizational Level)
+
+export type ResourceOrderType = 'comprar' | 'craftear';
+export type ResourceOrderStatus = 'pending' | 'arrived';
+
+export interface ResourceOrder {
+  id: string;
+  type: ResourceOrderType;
+  quantity: number;
+  totalCost: number;
+  phasesUntilArrival: number;
+  arrivalTurn: number;
+  orderedTurn: number;
+  showArrivalToPlayers: boolean;
+  status: ResourceOrderStatus;
+  createdAt: number;
+}
+
+export type ResourceLogAction =
+  | 'order_placed'
+  | 'order_arrived'
+  | 'order_cancelled'
+  | 'quantity_added'
+  | 'quantity_removed'
+  | 'quantity_set'
+  | 'resource_created';
+
+export interface ResourceLogEntry {
+  id: string;
+  action: ResourceLogAction;
+  timestamp: number;
+  performedBy: string;
+  details?: string;
+  quantityBefore?: number;
+  quantityAfter?: number;
+  turn?: number;
+}
+
 export interface Resource extends BaseEntity {
   description: string;
   quantity: number;
   image?: string;
   organizationId: string; // Reference to GuardOrganization
+  orders?: ResourceOrder[];
+  log?: ResourceLogEntry[];
 }
 
 // Reputation (Organizational Level)

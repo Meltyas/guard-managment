@@ -15,8 +15,19 @@
                 <img class="entity-row__thumb" src="{{#if this.image}}{{this.image}}{{else}}icons/commodities/metal/ingot-stack-silver.webp{{/if}}" alt="{{this.name}}" />
               </button>
               <span class="entity-row__qty">×{{this.quantity}}</span>
-              <span class="entity-row__name">{{this.name}}</span>
+              <span class="entity-row__name">
+                {{this.name}}
+                {{#if this.pendingOrders.length}}
+                  <span class="resource-order-badge" title="{{this.pendingOrders.length}} encargo(s) en proceso">
+                    <i class="fas fa-hourglass-half"></i> {{this.pendingOrders.length}}
+                  </span>
+                {{/if}}
+              </span>
               <div class="entity-row__actions">
+                <button type="button" class="entity-row__btn order-resource-btn" title="Encargar recursos"
+                  data-resource-id="{{this.id}}" data-resource-name="{{this.name}}">
+                  <i class="fas fa-box-open"></i>
+                </button>
                 <button type="button" class="entity-row__btn send-to-chat-btn" title="Enviar al chat"
                   data-resource-id="{{this.id}}" data-resource-name="{{this.name}}"
                   data-organization-id="{{../organizationId}}">
@@ -39,10 +50,78 @@
               </div>
               <div class="entity-row__detail-body">
                 <div class="entity-row__detail-title">{{this.name}}</div>
-                <div class="entity-row__detail-badge">{{this.quantity}} unidades</div>
+                <div class="entity-row__detail-badge">{{this.quantity}} unidades disponibles</div>
                 {{#if this.description}}
                   <p class="entity-row__detail-desc">{{this.description}}</p>
                 {{/if}}
+
+                {{!-- ── Pedidos en proceso ──────────────────────────────── --}}
+                {{#if this.pendingOrders.length}}
+                  <div class="resource-orders resource-orders--pending">
+                    <div class="resource-orders__header">
+                      <i class="fas fa-hourglass-half"></i> En proceso
+                    </div>
+                    {{#each this.pendingOrders}}
+                      <div class="resource-order-item">
+                        <span class="order-type-badge order-type-badge--{{this.type}}">{{this.type}}</span>
+                        <span class="order-qty">+{{this.quantity}} uds.</span>
+                        {{#if this.showArrivalToPlayers}}
+                          <span class="order-arrival">llega turno {{this.arrivalTurn}}</span>
+                        {{else}}
+                          <span class="order-arrival order-arrival--hidden">
+                            <i class="fas fa-eye-slash"></i> llega turno {{this.arrivalTurn}} (oculto)
+                          </span>
+                        {{/if}}
+                        <button type="button" class="resource-order-delete-btn"
+                          data-resource-id="{{../id}}" data-order-id="{{this.id}}"
+                          title="Cancelar encargo"><i class="fas fa-times"></i></button>
+                      </div>
+                    {{/each}}
+                  </div>
+                {{/if}}
+
+                {{!-- ── Registro de actividad ──────────────────────────── --}}
+                {{#if this.logEntries.length}}
+                  <div class="resource-log-section">
+                    <button type="button" class="resource-log-toggle">
+                      <i class="fas fa-history"></i>
+                      Registro
+                      <span class="resource-log-count">({{this.logEntries.length}})</span>
+                      <i class="fas fa-chevron-down resource-log-chevron"></i>
+                    </button>
+                    <div class="resource-log-list" hidden>
+                      {{#each this.logEntries}}
+                        <div class="resource-log-entry {{#if this.isPositive}}resource-log-entry--positive{{/if}}{{#if this.isNegative}}resource-log-entry--negative{{/if}}{{#if this.isPending}}resource-log-entry--pending{{/if}}"
+                          data-log-kind="resource"
+                          data-resource-id="{{../../id}}"
+                          data-entry-id="{{this.id}}"
+                          title="Shift+clic para borrar esta entrada">
+                          <div class="resource-log-entry__header">
+                            <span class="resource-log-entry__label">{{this.label}}</span>
+                            <span class="resource-log-entry__time" title="{{this.dateLabel}}">{{this.timeAgo}}</span>
+                          </div>
+                          {{#if this.details}}
+                            <div class="resource-log-entry__details">{{this.details}}</div>
+                          {{/if}}
+                          {{#if this.quantityBefore}}
+                            <div class="resource-log-entry__qty-change">
+                              <span class="resource-log-qty-before">{{this.quantityBefore}}</span>
+                              <i class="fas fa-arrow-right resource-log-arrow"></i>
+                              <span class="resource-log-qty-after">{{this.quantityAfter}}</span>
+                              <span class="resource-log-by">— {{this.performedBy}}</span>
+                            </div>
+                          {{else}}
+                            <div class="resource-log-entry__by">— {{this.performedBy}}</div>
+                          {{/if}}
+                          {{#if this.turn}}
+                            <div class="resource-log-entry__turn">Turno {{this.turn}}</div>
+                          {{/if}}
+                        </div>
+                      {{/each}}
+                    </div>
+                  </div>
+                {{/if}}
+
               </div>
             </div>
           </div>

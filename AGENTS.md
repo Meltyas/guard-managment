@@ -46,6 +46,13 @@ All data lives in `src/managers/`. Each manager:
 - `financeManager` — FinanceManager
 - `phaseManager` — PhaseManager
 
+**When adding a new manager:**
+1. Create `src/managers/MyManager.ts`
+2. Add as public property on `GuardManagementModule` in `src/main.ts`
+3. Initialize in `initialize()`
+4. Register its settings key in `settings.ts` with `scope: 'world'`
+5. **Expose via MCP** (see MCP section below — this is mandatory)
+
 ### MCP Integration (MANDATORY)
 
 Every new manager or feature MUST be exposed via MCP. See `docs/MCP.md`.
@@ -54,6 +61,11 @@ Every new manager or feature MUST be exposed via MCP. See `docs/MCP.md`.
 1. `src/mcp/MCPBridgeIntegration.ts` — register `CONFIG.queries` handlers
 2. `C:\Users\merty\OneDrive\Documents\projects\foundry-vtt-mcp\packages\mcp-server\src\tools\guard-management.ts` — tool definitions + handlers
 3. `C:\Users\merty\OneDrive\Documents\projects\foundry-vtt-mcp\packages\mcp-server\src\backend.ts` — switch cases
+
+**Full CRUD coverage is MANDATORY:**
+- Every entity exposed via MCP MUST ship with, at minimum, a **create**, an **update**, a **delete**, and a **list/get** tool.
+- Never expose an entity with only a partial set (e.g. only `list` or only `create`). If the manager has CRUD methods, the MCP layer MUST mirror all of them.
+- When you add a new manager, wire all four operations in the same change — do not defer create/update/delete to "later".
 
 **Handler rules:**
 - Return data directly (no `{ success, data }` wrapper)
@@ -77,10 +89,164 @@ cd C:\Users\merty\OneDrive\Documents\projects\foundry-vtt-mcp\packages\mcp-serve
 ## Code Conventions
 
 - TypeScript strict mode
-- No `any` unless interfacing with Foundry's untyped API
+- No `any` unless interfacing with Foundry's untyped API (`(game as any)`, `(CONFIG as any)`)
 - Manager reads are sync, writes are async
 - Settings key format: `guard-management.<domain>.<key>`
 - All user-facing strings in Spanish
+
+## Foundry API Notes
+
+- `game.settings.get/set` for persistence
+- `Hooks.on/once` for lifecycle
+- `(game as any).user.isGM` for GM checks
+- Socket via `game.socket.emit/on('module.guard-management', ...)`
+- Use `foundry.applications.handlebars.loadTemplates(...)` — NOT the deprecated global `loadTemplates(...)`
+- Use `foundry.applications.handlebars.renderTemplate(...)` — NOT the deprecated global `renderTemplate(...)`
+
+## Settings-Based Persistence (MANDATORY — NO EXCEPTIONS)
+
+> **⚠️ CRITICAL RULE: ALL data MUST be stored in `game.settings`. NEVER use Foundry Actor documents, Item documents, `CONFIG.Actor.dataModels`, `CONFIG.Item.dataModels`, actor flags, or any other Foundry Document-based storage. Violating this rule causes crashes with Daggerheart (getRollData, isInventoryItem, updateActorsRangeDependentEffects) and orphaned document errors when the module is disabled.**
+
+**ALL data persistence MUST use `game.settings` with `scope: 'world'` for automatic synchronization.**
+
+### Correct Pattern for ALL Managers:
+
+```typescript
+export class MyEntityManager {
+  private entities: Map<string, MyEntity> = new Map();
+
+  public async loadFromSettings(): Promise<void> {
+    const data = game?.settings?.get('guard-management', 'myEntities') as MyEntity[];
+    if (Array.isArray(data)) {
+      this.entities.clear();
+      for (const item of data) this.entities.set(item.id, item);
+    }
+  }
+
+  private async _saveToSettingsAsync(): Promise<void> {
+    await game?.settings?.set('guard-management', 'myEntities', Array.from(this.entities.values()));
+  }
+
+  public async createEntity(data: any): Promise<MyEntity> {
+    const entity = { id: foundry.utils.randomID(), ...data };
+    this.entities.set(entity.id, entity);
+    await this._saveToSettingsAsync();
+    return entity;
+  }
+
+  public async updateEntity(id: string, updates: any): Promise<MyEntity> {
+    const entity = this.entities.get(id);
+    if (!entity) return null;
+    const updated = { ...entity, ...updates };
+    this.entities.set(id, updated);
+    await this._saveToSettingsAsync();
+    return updated;
+  }
+
+  public async deleteEntity(id: string): Promise<boolean> {
+    const deleted = this.entities.delete(id);
+    if (deleted) await this._saveToSettingsAsync();
+    return deleted;
+  }
+}
+```
+
+### Prohibited Patterns:
+
+❌ **NO Foundry Actor/Item documents for data storage** — causes Daggerheart crashes
+❌ **NO `CONFIG.Actor.dataModels` or `CONFIG.Item.dataModels`**
+❌ **NO DocumentBasedManager or TypeDataModel subclasses**
+❌ **NO version optimization** — Always save
+❌ **NO .catch()** wrapping — Use await directly
+❌ **NO queueSave()** debouncing — Save immediately
+❌ **NO actor flags** — Settings only
+❌ **NO sockets** — Foundry handles sync with `scope: 'world'`
+❌ **NO private managers** — All managers must be accessible from `window.GuardManagement`
+
+## Key Implementation Notes
+
+### Z-Index Rules
+
+> **⚠️ CRITICAL: All module dialogs MUST stay below Foundry's FilePicker z-index.**
+
+| Component | z-index | Source |
+|---|---|---|
+| Custom dialogs (base) | `51` | `main.css` |
+| Custom dialogs (focused) | `80` | `main.css` |
+| GuardModal (base) | `80` | `GuardModal.ts` |
+| BaseWarehouseItemDialog | `80` | `BaseWarehouseItemDialog.ts` |
+| OfficerWarehouseDialog | `100` | `OfficerWarehouseDialog.ts` |
+
+**NEVER set z-index above 100** for any dialog or modal.
+
+## Log Pattern (Activity Log)
+
+Every entity that has meaningful state changes MUST maintain an activity log visible to the GM.
+
+### Rules
+- Each entity stores a `log?: EntityLogEntry[]` array on its data model.
+- Log entries are **never auto-deleted** — only the GM can remove them individually via a delete button in the UI.
+- The log is displayed inside the expanded detail of the entity row, as a **collapsible section** (collapsed by default).
+- Log entries are shown **newest first** (sort by `timestamp` descending before rendering).
+
+### Log Entry interface (adapt per entity):
+```typescript
+export interface EntityLogEntry {
+  id: string;                  // foundry.utils.randomID()
+  action: EntityLogAction;     // string union of action types
+  timestamp: number;           // Date.now()
+  performedBy: string;         // game.user.name
+  details?: string;            // human-readable description in Spanish
+  quantityBefore?: number;     // for numeric changes
+  quantityAfter?: number;
+  turn?: number;               // current guard phase turn if relevant
+}
+```
+
+### Manager responsibilities
+- `_buildLogEntry(action, details?, before?, after?, turn?)` — private helper that sets `id`, `timestamp`, `performedBy`.
+- `updateEntity(id, updates, skipLog = false)` — if `skipLog=false` and a quantity-like field changed, auto-append a log entry. If `skipLog=true`, the caller has already built the entries and passed them in `updates.log`.
+- `deleteLogEntry(entityId, entryId)` — removes a single entry, saves. Called by the GM via the UI.
+
+### Template pattern (follow `resources.hbs` log section):
+```handlebars
+{{#if this.logEntries.length}}
+  <div class="resource-log-section">
+    <button type="button" class="resource-log-toggle">
+      <i class="fas fa-history"></i> Registro
+      <span class="resource-log-count">({{this.logEntries.length}})</span>
+      <i class="fas fa-chevron-down resource-log-chevron"></i>
+    </button>
+    <div class="resource-log-list" hidden>
+      {{#each this.logEntries}}
+        <div class="resource-log-entry ...">
+          <div class="resource-log-entry__header">
+            <span class="resource-log-entry__label">{{this.label}}</span>
+            <span class="resource-log-entry__time">{{this.timeAgo}}</span>
+            <button type="button" class="resource-log-delete-btn"
+              data-ENTITY-id="{{../../id}}" data-entry-id="{{this.id}}">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          ...
+        </div>
+      {{/each}}
+    </div>
+  </div>
+{{/if}}
+```
+
+### Panel getData helper pattern:
+```typescript
+const logEntries = [...(r.log ?? [])]
+  .sort((a, b) => b.timestamp - a.timestamp)
+  .map(enrichLogEntry); // adds label, timeAgo, dateLabel, isPositive/isNegative
+```
+
+### CSS
+All log styles are in `src/styles/resource-dialog.css` under `/* ── Resource Activity Log */`.
+Reuse the same class names (`.resource-log-section`, `.resource-log-entry`, etc.) for all entities.
+Color coding: `--positive` (green border), `--negative` (red border), `--pending` (gold border).
 
 ## MCP — Codex Usage
 
@@ -97,6 +263,52 @@ Full MCP setup documentation: `docs/MCP.md`
 Object.keys(CONFIG.queries).filter(k => k.startsWith('guard-management'))
 // Should return ~35 keys when module is loaded
 ```
+
+## MCP Tool Index
+
+These MCP tools are available as **direct function calls** — invoke them natively, do NOT use bash or HTTP to call them.
+
+- In **Claude Desktop**: tools are named exactly as listed (e.g. `guard-resources-create`)
+- In **Claude Code / OpenCode**: tools carry the server prefix (e.g. `foundry-mcp_guard-resources-create`)
+
+> ⚠️ **CRITICAL**: Guard Management data (resources, reputations, officers, buildings, crimes, gangs, POIs, prisoners, patrols…) is stored in `game.settings`, NOT in Foundry Actors, Items, or Journals.
+> - **NEVER** use `manage-world-items`, `list-characters`, `search-compendium`, or any standard Foundry tool to find Guard Management data.
+> - **ALWAYS** use the `guard-*` MCP tools below to read or write Guard Management data.
+> - If you can't find a resource, officer, or building in Foundry's actor/item lists, that is expected — look it up with `guard-resources-list`, `guard-list-officers`, `guard-buildings-list`, etc.
+
+All tools follow the pattern `guard-<entity>-<action>`.
+
+All tools follow the pattern `guard-<entity>-<action>`. Use these names directly when calling MCP tools.
+
+| Entity | Tools available |
+|---|---|
+| **Organizations** | `guard-organizations-list` · `guard-organizations-get` · `guard-organizations-create` · `guard-organizations-update` · `guard-organizations-delete` |
+| **Patrols** | `guard-patrols-list` · `guard-patrols-create` · `guard-patrols-update` · `guard-patrols-delete` |
+| **Officers** | `guard-list-officers` · `guard-create-officer` · `guard-update-officer` · `guard-delete-officer` |
+| **Resources** | `guard-resources-list` · `guard-resources-create` · `guard-resources-update` · `guard-resources-delete` |
+| **Reputations** | `guard-reputations-list` · `guard-reputations-create` · `guard-reputations-update` · `guard-reputations-delete` |
+| **Crimes** | `guard-crimes-list` · `guard-crimes-create` · `guard-crimes-update` · `guard-crimes-delete` |
+| **Gangs** | `guard-gangs-list` · `guard-gangs-create` · `guard-gangs-update` · `guard-gangs-delete` |
+| **POIs** | `guard-pois-list` · `guard-pois-create` · `guard-pois-update` · `guard-pois-delete` |
+| **Prisoners** | `guard-prisoners-list` · `guard-prisoners-create` · `guard-prisoners-update` · `guard-prisoners-delete` |
+| **Buildings** | `guard-buildings-list` · `guard-buildings-create` · `guard-buildings-update` · `guard-buildings-delete` · `guard-buildings-activate` · `guard-buildings-deactivate` · `guard-buildings-setHidden` |
+| **Finance** | `guard-finance-get` · `guard-finance-update` |
+| **Phase** | `guard-phase-get` · `guard-phase-advance` |
+| **Phase Events** | `guard-phase-events-list` · `guard-phase-events-get` · `guard-phase-events-search` · `guard-phase-events-create` · `guard-phase-events-update` · `guard-phase-events-cancel` · `guard-phase-events-delete` |
+| **Phase Reports** | `guard-phase-reports-list` · `guard-phase-reports-get` · `guard-phase-reports-search` |
+
+**Key fields per entity (for create/update):**
+
+- **Resource**: `name`, `description`, `quantity` (number), `image` (icon path), `organizationId`
+- **Reputation**: `name`, `level` (1–7), `faction`, `category` (`gremio|banda|noble|militar|religiosa|otra`), `trend` (`rising|stable|falling`), `contact`, `gmNotes`, `factionRelations` (array), `favors` (array)
+- **Crime**: `name`, `description`, `offenseType` (`minor|major|capital|civil`), `customSentence`
+- **Gang**: `name`, `img`, `notes`, `status` (`active|disbanded|arrested|unknown`)
+- **POI**: `name`, `actorId`, `img`, `notes`, `possibleCrimes` (crime ID array), `gangIds` (gang ID array), `status` (`active|arrested|released|deceased`)
+- **Prisoner**: `name`, `actorId`, `img`, `cellIndex`, `notes`, `crimes` (crime ID array), `sentencePhases`, `status` (`awaiting|serving|released|executed`)
+- **Building**: `name`, `description`, `img`, `zone` (`claro-entrada|claro-obrero|claro-central|claro-fronterizo|claro-noble|zona-salvaje|bajo-arbol|fuera-arboria`), `tags` (`civil|auxiliar|guardia|publico|oficial`), `active`, `hidden`, `gangLink` (`{gangId, gangName, notes}`)
+- **Officer**: `actorId` (required), `actorName` (required), `title` (required), `actorImg`, `organizationId`, `isCivil`, `skill` (`{name, image}`), `pros`/`cons` (array of `{title, description}`)
+- **Patrol**: `name`, `subtitle`, `soldierSlots`, `baseStats`, `officerId`, `maxHope`, `currentHope`
+- **Phase Event**: `title` (required), `triggerTurn` (required), `description`, `category` (`aviso|recordatorio|economico|prision|banda|aleatorio|otro`), `visibility` (`all|players|gm`), `recurrence` (`{mode, interval, endTurn}`), `notifyChat`, `linkedId`
 
 ---
 

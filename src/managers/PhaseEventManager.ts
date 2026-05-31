@@ -185,6 +185,22 @@ export class PhaseEventManager {
     return deleted;
   }
 
+  /** Delete a single entry from a phase report by its id. scope: 'player' | 'gm' | 'any' */
+  public async deleteReportEntry(
+    turn: number,
+    entryId: string,
+    scope: 'player' | 'gm' | 'any' = 'any'
+  ): Promise<boolean> {
+    const report = this.reports.get(turn);
+    if (!report) return false;
+    const filterOut = (arr: PhaseReportEntry[]) => arr.filter((e) => e.id !== entryId);
+    if (scope === 'player' || scope === 'any') report.playerEntries = filterOut(report.playerEntries);
+    if (scope === 'gm' || scope === 'any') report.gmEntries = filterOut(report.gmEntries);
+    await this._saveToSettingsAsync();
+    this._emit();
+    return true;
+  }
+
   // --- Reports access ---
 
   public getAllReports(): PhaseReport[] {
@@ -254,6 +270,10 @@ export class PhaseEventManager {
 
     const gmEntries: PhaseReportEntry[] = [];
     const playerEntries: PhaseReportEntry[] = [];
+    const mkEntry = (e: Omit<PhaseReportEntry, 'id'>): PhaseReportEntry => ({
+      id: foundry.utils.randomID(),
+      ...e,
+    });
     const chatQueue: { event: PhaseEvent; text: string }[] = [];
 
     const gm = (window as any).GuardManagement;
@@ -266,11 +286,11 @@ export class PhaseEventManager {
         const histEntry = (finance.getHistory?.() || []).find((h: any) => h.turn === turn);
         if (histEntry) {
           const net = histEntry.net ?? 0;
-          gmEntries.push({
+          gmEntries.push(mkEntry({
             category: 'economico',
             icon: EVENT_CATEGORY_ICONS.economico,
             text: `Finanzas procesadas: ingresos ${histEntry.recurringIncome ?? 0}, gastos ${histEntry.recurringExpenses ?? 0}, neto ${net > 0 ? '+' : ''}${net} (total ${histEntry.totalAfter ?? 0}).`,
-          });
+          }));
         }
       }
     } catch (e) {
@@ -288,20 +308,20 @@ export class PhaseEventManager {
         ];
         if (ready.length > 0) {
           const names = ready.map((p: any) => p.name).join(', ');
-          gmEntries.push({
+          gmEntries.push(mkEntry({
             category: 'prision',
             icon: EVENT_CATEGORY_ICONS.prision,
             text: `${ready.length} prisionero(s) con condena cumplida listos para liberar: ${names}.`,
-          });
+          }));
         }
         const overcrowded = prisoner.getOvercrowdedCells?.() || [];
         if (overcrowded.length > 0) {
           const total = overcrowded.reduce((s: number, c: any) => s + (c.excess || 0), 0);
-          gmEntries.push({
+          gmEntries.push(mkEntry({
             category: 'prision',
             icon: 'fas fa-triangle-exclamation',
             text: `Hacinamiento: ${overcrowded.length} celda(s) sobrepobladas (${total} preso(s) de exceso).`,
-          });
+          }));
         }
       }
     } catch (e) {
@@ -313,13 +333,13 @@ export class PhaseEventManager {
     for (const event of due) {
       try {
         const resolvedText = await this._resolveEventText(event);
-        const entry: PhaseReportEntry = {
+        const entry: PhaseReportEntry = mkEntry({
           category: event.category,
           icon: EVENT_CATEGORY_ICONS[event.category] || EVENT_CATEGORY_ICONS.otro,
           text: resolvedText,
           sourceEventId: event.id,
           sourceId: event.linkedId,
-        };
+        });
         // Visibility routing: players see player+all; gm-only goes to gmEntries
         if (event.visibility === 'gm') {
           gmEntries.push(entry);

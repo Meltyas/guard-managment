@@ -182,29 +182,15 @@
 .custom-dialog-content {
   flex: 1;
   padding: 16px;
-  overflow-y: auto;
+  overflow: hidden;
   background: transparent; /* Daggerheart uses transparent backgrounds */
-  scrollbar-width: thin;
-  scrollbar-color: #f3c267 transparent; /* Daggerheart scrollbar colors */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Scrollbar styling like Daggerheart */
 .custom-dialog-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-dialog-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-dialog-content::-webkit-scrollbar-thumb {
-  background-color: #f3c267;
-  border-radius: 6px;
-}
-
-/* Add gradient fade at top and bottom like Daggerheart */
-.custom-dialog-content {
-  mask-image: linear-gradient(0deg, transparent 0%, black 5%, black 95%, transparent 100%);
+  display: none;
 }
 
 /* Resize Handle - Styled like Daggerheart */

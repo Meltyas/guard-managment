@@ -314,6 +314,35 @@
   padding-top: 0.75rem;
 }
 
+.prisoner-records-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.prisoner-records-header h4 {
+  margin: 0;
+}
+
+.prisoner-clear-records-btn {
+  background: rgba(180, 60, 60, 0.25);
+  border: 1px solid rgba(220, 80, 80, 0.4);
+  color: #e08080;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.2s;
+}
+.prisoner-clear-records-btn:hover {
+  background: rgba(200, 60, 60, 0.5);
+  color: #ffc0c0;
+}
+
 .prisoner-records-section h4 {
   color: #f3c267;
   font-family: 'Cinzel', serif;
@@ -323,6 +352,22 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.record-delete-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(220, 100, 100, 0.6);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+.record-delete-btn:hover {
+  background: rgba(200, 60, 60, 0.3);
+  border-color: rgba(220, 80, 80, 0.5);
+  color: #ff9090;
 }
 
 /* Individual Record Card */

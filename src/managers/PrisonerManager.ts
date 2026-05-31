@@ -196,6 +196,17 @@ export class PrisonerManager {
     return deleted;
   }
 
+  public async clearAllRecords(): Promise<number> {
+    const ids = Array.from(this.prisoners.keys());
+    let count = 0;
+    for (const id of ids) {
+      this.prisoners.delete(id);
+      count++;
+    }
+    if (count > 0) await this._saveToSettingsAsync();
+    return count;
+  }
+
   // --- Notes & Turn updates (with history) ---
 
   public async updateNotes(id: string, notes: string): Promise<Prisoner | null> {
