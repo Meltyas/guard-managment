@@ -5,6 +5,7 @@
 import type { FinanceRefType, FinanceReference } from '../../types/finances';
 import { REF_TYPE_ICONS, REF_TYPE_LABELS } from '../../types/finances';
 import { GuardModal } from '../GuardModal.js';
+import { formatTimeAgo } from './panel-helpers.js';
 
 export class FinancesPanel {
   static get template() {
@@ -229,7 +230,7 @@ export class FinancesPanel {
     }
 
     // Time ago
-    enriched.timeAgo = FinancesPanel.formatTimeAgo(entry.createdAt);
+    enriched.timeAgo = formatTimeAgo(entry.createdAt);
 
     // Current phase
     const gm = (window as any).GuardManagement;
@@ -263,17 +264,6 @@ export class FinancesPanel {
       }
     } catch { /* ignore */ }
     return undefined;
-  }
-
-  private static formatTimeAgo(timestamp: number): string {
-    const diff = Date.now() - timestamp;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'justo ahora';
-    if (mins < 60) return `hace ${mins}m`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `hace ${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `hace ${days}d`;
   }
 
   // ========================
@@ -358,7 +348,7 @@ export class FinancesPanel {
       })
       .map((entry: any) => ({
         ...entry,
-        timeAgo: FinancesPanel.formatTimeAgo(entry.timestamp),
+        timeAgo: formatTimeAgo(entry.timestamp),
       }));
 
     return {

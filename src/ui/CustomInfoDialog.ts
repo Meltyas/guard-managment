@@ -1769,6 +1769,16 @@ export class CustomInfoDialog implements FocusableDialog {
 
     // Keyboard navigation
     const keyNavHandler = (ev: KeyboardEvent) => {
+      // Ignore while the user is typing in a form field (e.g. a search box):
+      // otherwise letters like "s"/"w" would jump tabs mid-word.
+      const target = ev.target as HTMLElement | null;
+      if (
+        target &&
+        (target.isContentEditable ||
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      ) {
+        return;
+      }
       if (!['ArrowUp', 'ArrowDown', 'w', 's', 'W', 'S'].includes(ev.key)) return;
       const idx = buttons.findIndex((b) => b.classList.contains('active'));
       if (idx === -1) return;

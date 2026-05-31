@@ -76,7 +76,8 @@ export class OfficerWarehouseDialog {
    */
   private bringToFront(): void {
     if (this.element) {
-      this.element.style.zIndex = '100';
+      // Delegate to the shared stack so we stay within the sub-90 band.
+      ModalStack.bringToFront(this.element);
     }
   }
 

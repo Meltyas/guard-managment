@@ -15,7 +15,19 @@ export abstract class BaseWarehouseItemDialog<T extends BaseWarehouseItem>
   protected isDragging = false;
   protected dragOffset = { x: 0, y: 0 };
   protected isFocused = false;
-  private static zIndexCounter = 80;
+  // Stays within a band below 90 so Foundry's FilePicker (~100) always wins.
+  private static readonly Z_BASE = 78;
+  private static readonly Z_MAX = 88;
+  private static zIndexCounter = BaseWarehouseItemDialog.Z_BASE;
+
+  /** Next z-index for focus, clamped so modals never reach 90. */
+  private static nextZIndex(): number {
+    BaseWarehouseItemDialog.zIndexCounter = Math.min(
+      BaseWarehouseItemDialog.zIndexCounter + 1,
+      BaseWarehouseItemDialog.Z_MAX
+    );
+    return BaseWarehouseItemDialog.zIndexCounter;
+  }
 
   constructor(config: WarehouseItemDialogConfig<T>, item?: T) {
     this.config = config;
@@ -87,7 +99,7 @@ export abstract class BaseWarehouseItemDialog<T extends BaseWarehouseItem>
   public focus(): void {
     if (this.element) {
       this.isFocused = true;
-      this.element.style.zIndex = (++BaseWarehouseItemDialog.zIndexCounter).toString();
+      this.element.style.zIndex = BaseWarehouseItemDialog.nextZIndex().toString();
 
       // Focus first input
       const firstInput = this.element.querySelector('input, select, textarea') as HTMLElement;
@@ -117,7 +129,7 @@ export abstract class BaseWarehouseItemDialog<T extends BaseWarehouseItem>
         transform: translate(-50%, -50%);
         width: ${this.config.width || 600}px;
         max-height: 90vh;
-        z-index: ${++BaseWarehouseItemDialog.zIndexCounter};
+        z-index: ${BaseWarehouseItemDialog.nextZIndex()};
         ${this.config.resizable !== false ? 'resize: both;' : ''}
       ">
         <div class="custom-dialog-header" style="cursor: move;">

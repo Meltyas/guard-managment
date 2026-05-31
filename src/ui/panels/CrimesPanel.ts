@@ -8,6 +8,7 @@ import { OFFENSE_LABELS, OFFENSE_TYPES, OFFENSE_TYPE_FROM_SPANISH } from '../../
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { GuardModal } from '../GuardModal.js';
+import { setupFilterToggles } from './panel-helpers.js';
 
 export class CrimesPanel {
   static get template() {
@@ -70,30 +71,14 @@ export class CrimesPanel {
     });
 
     // Filter toggles (multi-select: each toggle is independent)
-    $html.off('click', '.crimes-toggle').on('click', '.crimes-toggle', (ev) => {
-      ev.preventDefault();
-      const btn = ev.currentTarget as HTMLElement;
-      const filter = btn.dataset.filter || 'all';
-
-      if (filter === 'all') {
-        // "Todos" clears all other toggles and activates itself
-        container.querySelectorAll('.crimes-toggle').forEach((el) => el.classList.remove('active'));
-        btn.classList.add('active');
-      } else {
-        // Toggle this filter on/off
-        btn.classList.toggle('active');
-        // Remove "Todos" active state
-        container.querySelector('.crimes-toggle[data-filter="all"]')?.classList.remove('active');
-        // If no toggle is active, reactivate "Todos"
-        const anyActive = container.querySelector('.crimes-toggle.active:not([data-filter="all"])');
-        if (!anyActive) {
-          container.querySelector('.crimes-toggle[data-filter="all"]')?.classList.add('active');
-        }
-      }
-
-      const query =
-        (container.querySelector('.crimes-search-input') as HTMLInputElement)?.value || '';
-      this.filterCrimes(container, query, this.getActiveFilters(container));
+    setupFilterToggles(container, {
+      buttonSelector: '.crimes-toggle',
+      dataAttr: 'data-filter',
+      onChange: () => {
+        const query =
+          (container.querySelector('.crimes-search-input') as HTMLInputElement)?.value || '';
+        CrimesPanel.filterCrimes(container, query, CrimesPanel.getActiveFilters(container));
+      },
     });
 
     // Add crime

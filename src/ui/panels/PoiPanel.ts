@@ -6,6 +6,7 @@ import type { Crime } from '../../types/crimes';
 import type { PersonOfInterest, PoiStatus } from '../../types/poi';
 import { POI_STATUS_LABELS } from '../../types/poi';
 import { GuardModal } from '../GuardModal.js';
+import { formatTimeAgo, setupImagePicker } from './panel-helpers.js';
 
 export class PoiPanel {
   static get template() {
@@ -30,7 +31,7 @@ export class PoiPanel {
           .sort((a: any, b: any) => b.timestamp - a.timestamp)
           .map((entry: any) => ({
             ...entry,
-            timeAgo: PoiPanel.formatTimeAgo(entry.timestamp),
+            timeAgo: formatTimeAgo(entry.timestamp, { now: 'ahora', minSuffix: 'm' }),
           })),
       }));
 
@@ -409,25 +410,14 @@ export class PoiPanel {
         }
 
         // File picker
-        imgPicker?.addEventListener('click', () => {
-          new (globalThis as any).FilePicker({
-            type: 'image',
-            current: imgInput?.value || '',
-            callback: (path: string) => {
-              if (imgInput) imgInput.value = path;
-              selectedImage = path;
-              if (imgPreview) {
-                imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-              }
-            },
-          }).render(true);
-        });
-
-        imgInput?.addEventListener('change', () => {
-          selectedImage = imgInput.value;
-          if (imgPreview && imgInput.value) {
-            imgPreview.innerHTML = `<img src="${imgInput.value}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-          }
+        setupImagePicker({
+          pickerEl: imgPicker,
+          inputEl: imgInput,
+          previewEl: imgPreview,
+          onSelect: (path) => {
+            selectedImage = path;
+          },
+          previewOnInput: true,
         });
 
         nameInput?.focus();
@@ -500,22 +490,13 @@ export class PoiPanel {
         const imgPreview = bodyEl.querySelector('#poi-img-preview') as HTMLElement;
         const imgPicker = bodyEl.querySelector('#poi-img-picker');
 
-        imgPicker?.addEventListener('click', () => {
-          new (globalThis as any).FilePicker({
-            type: 'image',
-            current: imgInput?.value || '',
-            callback: (path: string) => {
-              if (imgInput) imgInput.value = path;
-              selectedImage = path;
-              if (imgPreview) {
-                imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-              }
-            },
-          }).render(true);
-        });
-
-        imgInput?.addEventListener('change', () => {
-          selectedImage = imgInput.value;
+        setupImagePicker({
+          pickerEl: imgPicker,
+          inputEl: imgInput,
+          previewEl: imgPreview,
+          onSelect: (path) => {
+            selectedImage = path;
+          },
         });
       },
       onSave: async (bodyEl) => {
@@ -885,15 +866,4 @@ export class PoiPanel {
   }
 
   // --- Helpers ---
-
-  private static formatTimeAgo(timestamp: number): string {
-    const diff = Date.now() - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'ahora';
-    if (minutes < 60) return `hace ${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `hace ${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `hace ${days}d`;
-  }
 }

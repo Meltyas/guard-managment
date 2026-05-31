@@ -14,14 +14,23 @@
  *   ModalStack.unregister(this.element);
  */
 
-// Keep below Foundry's native app windows (~100) so all Foundry UI appears above.
-const BASE_Z = 75;
+// Keep below Foundry's native app windows (~100, e.g. FilePicker) so all
+// Foundry UI appears above our modals. The whole band stays under 90: the
+// topmost modal never exceeds MAX_Z, deeper ones clamp to it (only relative
+// order of the last few stacked modals matters visually).
+const BASE_Z = 60;
+const STEP_Z = 3;
+const MAX_Z = 88;
 const stack: HTMLElement[] = [];
 
 function updateAll(): void {
+  const n = stack.length;
   stack.forEach((el, i) => {
-    el.style.zIndex = `${BASE_Z + i * 10}`;
-    el.classList.toggle('is-top', i === stack.length - 1);
+    // Anchor the topmost at MAX_Z and count downwards so the focused modal
+    // is always the highest while the whole stack stays below 90.
+    const z = Math.max(BASE_Z, MAX_Z - (n - 1 - i) * STEP_Z);
+    el.style.zIndex = `${z}`;
+    el.classList.toggle('is-top', i === n - 1);
   });
 }
 

@@ -991,6 +991,16 @@
 }
 
 /* === Organization Info Dialog Tabs (Info Dialog) === */
+/* Propagate the height constraint down so .org-tab-panels can scroll.
+   Without this, .organization-content grows to fit its content and the
+   inner overflow-y:auto never triggers (content gets clipped instead). */
+.organization-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .org-tabs-layout {
   display: flex;
   flex-direction: row;

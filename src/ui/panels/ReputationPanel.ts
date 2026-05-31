@@ -12,6 +12,7 @@ import {
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { ReputationTemplate } from '../ReputationTemplate.js';
+import { setupExpandCollapse, setupEntitySearch, setupLogToggle } from './panel-helpers.js';
 
 /** Lee/guarda el orden de categorías de reputación en settings */
 function getCategoryOrder(): string[] {
@@ -181,48 +182,27 @@ export class ReputationPanel {
     });
 
     // ── Toggle changelog visibility ───────────────────────────────────────
-    container.querySelectorAll<HTMLElement>('.rep-changelog-toggle').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const log = btn.closest('.entity-row__detail')?.querySelector('.rep-changelog-list') as HTMLElement | null;
-        if (!log) return;
-        const isHidden = log.hidden;
-        log.hidden = !isHidden;
-        btn.querySelector('i')?.classList.toggle('fa-chevron-down', isHidden);
-        btn.querySelector('i')?.classList.toggle('fa-chevron-up', !isHidden);
-      });
+    setupLogToggle(container, {
+      toggleSelector: '.rep-changelog-toggle',
+      sectionSelector: '.entity-row__detail',
+      listSelector: '.rep-changelog-list',
+      iconSwap: true,
     });
 
     // ── Expand/collapse individual row ────────────────────────────────────
-    container.querySelectorAll<HTMLElement>('.entity-row__summary').forEach((summary) => {
-      summary.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.entity-row__actions')) return;
-        e.stopPropagation();
-        const row = summary.closest('.entity-row') as HTMLElement;
-        const detail = row.querySelector('.entity-row__detail') as HTMLElement;
-        const toggle = row.querySelector('.entity-row__toggle') as HTMLElement;
-        const isOpen = !detail.hidden;
-        detail.hidden = isOpen;
-        toggle?.setAttribute('aria-expanded', String(!isOpen));
-        row.classList.toggle('entity-row--open', !isOpen);
-      });
-    });
+    setupExpandCollapse(container);
 
     // ── Search filter ─────────────────────────────────────────────────────
-    const searchInput = container.querySelector<HTMLInputElement>('.entity-list-search__input');
-    searchInput?.addEventListener('input', () => {
-      const query = searchInput.value.trim().toLowerCase();
-      container.querySelectorAll<HTMLElement>('.entity-row').forEach((row) => {
-        const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
-        row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
-      });
-      // Hide empty category sections
-      container.querySelectorAll<HTMLElement>('.rep-category-section').forEach((section) => {
-        const hasVisible = Array.from(section.querySelectorAll('.entity-row')).some(
-          (r) => !(r as HTMLElement).classList.contains('entity-row--hidden')
-        );
-        (section as HTMLElement).style.display = hasVisible ? '' : 'none';
-      });
+    setupEntitySearch(container, {
+      afterFilter: (root) => {
+        // Hide empty category sections
+        root.querySelectorAll<HTMLElement>('.rep-category-section').forEach((section) => {
+          const hasVisible = Array.from(section.querySelectorAll('.entity-row')).some(
+            (r) => !(r as HTMLElement).classList.contains('entity-row--hidden')
+          );
+          section.style.display = hasVisible ? '' : 'none';
+        });
+      },
     });
   }
 

@@ -5,6 +5,7 @@
 import type { Gang, GangMember } from '../../types/gangs';
 import { GANG_STATUS_LABELS } from '../../types/gangs';
 import { GuardModal } from '../GuardModal.js';
+import { formatTimeAgo, setupFilterToggles, setupImagePicker } from './panel-helpers.js';
 
 export class GangsPanel {
   static get template() {
@@ -41,7 +42,7 @@ export class GangsPanel {
           .sort((a: any, b: any) => b.timestamp - a.timestamp)
           .map((entry: any) => ({
             ...entry,
-            timeAgo: GangsPanel.formatTimeAgo(entry.timestamp),
+            timeAgo: formatTimeAgo(entry.timestamp, { now: 'ahora', minSuffix: 'm' }),
           })),
       }));
 
@@ -75,30 +76,10 @@ export class GangsPanel {
     }
 
     // Filter toggles
-    container.querySelectorAll('.gang-filter-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const status = (btn as HTMLElement).dataset.filterStatus;
-        if (status === 'all') {
-          container
-            .querySelectorAll('.gang-filter-btn')
-            .forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
-        } else {
-          container
-            .querySelector('.gang-filter-btn[data-filter-status="all"]')
-            ?.classList.remove('active');
-          btn.classList.toggle('active');
-          const anyActive =
-            container.querySelectorAll('.gang-filter-btn.active:not([data-filter-status="all"])')
-              .length > 0;
-          if (!anyActive) {
-            container
-              .querySelector('.gang-filter-btn[data-filter-status="all"]')
-              ?.classList.add('active');
-          }
-        }
-        GangsPanel.filterGangs(container);
-      });
+    setupFilterToggles(container, {
+      buttonSelector: '.gang-filter-btn',
+      dataAttr: 'data-filter-status',
+      onChange: () => GangsPanel.filterGangs(container),
     });
 
     // Toggle visibility (ojo) por banda
@@ -396,25 +377,14 @@ export class GangsPanel {
         const imgPreview = bodyEl.querySelector('#gang-img-preview') as HTMLElement;
         const imgPicker = bodyEl.querySelector('#gang-img-picker');
 
-        imgPicker?.addEventListener('click', () => {
-          new (globalThis as any).FilePicker({
-            type: 'image',
-            current: imgInput?.value || '',
-            callback: (path: string) => {
-              if (imgInput) imgInput.value = path;
-              selectedImage = path;
-              if (imgPreview) {
-                imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-              }
-            },
-          }).render(true);
-        });
-
-        imgInput?.addEventListener('change', () => {
-          selectedImage = imgInput.value;
-          if (imgPreview && imgInput.value) {
-            imgPreview.innerHTML = `<img src="${imgInput.value}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-          }
+        setupImagePicker({
+          pickerEl: imgPicker,
+          inputEl: imgInput,
+          previewEl: imgPreview,
+          onSelect: (path) => {
+            selectedImage = path;
+          },
+          previewOnInput: true,
         });
 
         (bodyEl.querySelector('#gang-name') as HTMLInputElement)?.focus();
@@ -489,22 +459,13 @@ export class GangsPanel {
         const imgPreview = bodyEl.querySelector('#gang-img-preview') as HTMLElement;
         const imgPicker = bodyEl.querySelector('#gang-img-picker');
 
-        imgPicker?.addEventListener('click', () => {
-          new (globalThis as any).FilePicker({
-            type: 'image',
-            current: imgInput?.value || '',
-            callback: (path: string) => {
-              if (imgInput) imgInput.value = path;
-              selectedImage = path;
-              if (imgPreview) {
-                imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-              }
-            },
-          }).render(true);
-        });
-
-        imgInput?.addEventListener('change', () => {
-          selectedImage = imgInput.value;
+        setupImagePicker({
+          pickerEl: imgPicker,
+          inputEl: imgInput,
+          previewEl: imgPreview,
+          onSelect: (path) => {
+            selectedImage = path;
+          },
         });
       },
       onSave: async (bodyEl) => {
@@ -656,16 +617,5 @@ export class GangsPanel {
     (globalThis as any).ui?.notifications?.info(`Ficha de "${gang.name}" enviada al chat`);
   }
 
-  // --- Helpers ---
-
-  private static formatTimeAgo(timestamp: number): string {
-    const diff = Date.now() - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'ahora';
-    if (minutes < 60) return `hace ${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `hace ${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `hace ${days}d`;
-  }
+   // --- Helpers ---
 }

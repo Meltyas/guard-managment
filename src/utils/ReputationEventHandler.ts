@@ -719,7 +719,7 @@ export class ReputationEventHandler {
         justify-content: center;
         color: #ff6b6b;
         font-weight: bold;
-        z-index: 9999;
+        z-index: 89;
         font-size: 14px;
         text-align: center;
       `;

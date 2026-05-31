@@ -8,6 +8,7 @@ import type { Prisoner, PrisonerHistoryEntry } from '../../types/entities';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { GuardModal } from '../GuardModal.js';
+import { formatTimeAgo } from './panel-helpers.js';
 
 const STATUS_LABELS: Record<string, string> = {
   imprisoned: 'Preso',
@@ -1050,20 +1051,9 @@ export class PrisonersPanel {
         ...entry,
         details: displayText + phaseTag,
         actionLabel,
-        timeAgo: PrisonersPanel.formatTimeAgo(entry.timestamp),
+        timeAgo: formatTimeAgo(entry.timestamp),
       };
     });
-  }
-
-  private static formatTimeAgo(timestamp: number): string {
-    const diff = Date.now() - timestamp;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'justo ahora';
-    if (mins < 60) return `hace ${mins}m`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `hace ${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `hace ${days}d`;
   }
 
   /**

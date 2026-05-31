@@ -9,6 +9,7 @@ import {
   REPUTATION_CATEGORY_LABELS,
   ReputationLevel,
 } from '../types/entities.js';
+import { ModalStack } from '../utils/modal-stack.js';
 
 interface ReputationDialogData {
   name: string;
@@ -29,10 +30,10 @@ export class AddOrEditReputationDialog {
   private element: HTMLElement | null = null;
   private isDragging = false;
   private dragOffset = { x: 0, y: 0 };
-  private static zCounter = 200;
 
   private hide(): void {
     if (this.element) {
+      ModalStack.unregister(this.element);
       this.element.remove();
       this.element = null;
     }
@@ -54,7 +55,7 @@ export class AddOrEditReputationDialog {
       modal.style.cssText = `
         position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
         width:620px; max-height:90vh; display:flex; flex-direction:column;
-        z-index:${++AddOrEditReputationDialog.zCounter}; resize:both; overflow:hidden;
+        resize:both; overflow:hidden;
       `;
       modal.innerHTML = `
         <div class="custom-dialog-header" style="cursor:move;flex-shrink:0;">
@@ -84,6 +85,7 @@ export class AddOrEditReputationDialog {
 
       document.body.appendChild(modal);
       this.element = modal;
+      ModalStack.register(modal);
 
       // ── Populate textareas (HBS escapes content so we set via JS) ────────
       const descTA = modal.querySelector('#reputation-description') as HTMLTextAreaElement;

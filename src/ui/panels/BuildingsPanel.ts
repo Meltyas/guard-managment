@@ -12,6 +12,7 @@ import {
 } from '../../types/buildings';
 import { GuardModal } from '../GuardModal.js';
 import { BuildingActivatorModal } from '../modals/BuildingActivatorModal.js';
+import { setupFilterToggles, setupImagePicker } from './panel-helpers.js';
 
 export class BuildingsPanel {
   static get template() {
@@ -124,30 +125,10 @@ export class BuildingsPanel {
     }
 
     // Filter toggles
-    container.querySelectorAll('.building-filter-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const tag = (btn as HTMLElement).dataset.filterTag;
-        if (tag === 'all') {
-          container
-            .querySelectorAll('.building-filter-btn')
-            .forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
-        } else {
-          container
-            .querySelector('.building-filter-btn[data-filter-tag="all"]')
-            ?.classList.remove('active');
-          btn.classList.toggle('active');
-          const anyActive =
-            container.querySelectorAll('.building-filter-btn.active:not([data-filter-tag="all"])')
-              .length > 0;
-          if (!anyActive) {
-            container
-              .querySelector('.building-filter-btn[data-filter-tag="all"]')
-              ?.classList.add('active');
-          }
-        }
-        BuildingsPanel.filterBuildings(container);
-      });
+    setupFilterToggles(container, {
+      buttonSelector: '.building-filter-btn',
+      dataAttr: 'data-filter-tag',
+      onChange: () => BuildingsPanel.filterBuildings(container),
     });
 
     // Add building button
@@ -341,25 +322,14 @@ export class BuildingsPanel {
         const gangSelect = bodyEl.querySelector('#building-gang') as HTMLSelectElement;
         const gangNotesGroup = bodyEl.querySelector('#building-gang-notes-group') as HTMLElement;
 
-        imgPicker?.addEventListener('click', () => {
-          new (globalThis as any).FilePicker({
-            type: 'image',
-            current: imgInput?.value || '',
-            callback: (path: string) => {
-              if (imgInput) imgInput.value = path;
-              selectedImage = path;
-              if (imgPreview) {
-                imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-              }
-            },
-          }).render(true);
-        });
-
-        imgInput?.addEventListener('change', () => {
-          selectedImage = imgInput.value;
-          if (imgPreview && imgInput.value) {
-            imgPreview.innerHTML = `<img src="${imgInput.value}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-          }
+        setupImagePicker({
+          pickerEl: imgPicker,
+          inputEl: imgInput,
+          previewEl: imgPreview,
+          onSelect: (path) => {
+            selectedImage = path;
+          },
+          previewOnInput: true,
         });
 
         gangSelect?.addEventListener('change', () => {
@@ -533,22 +503,13 @@ export class BuildingsPanel {
         const gangSelect = bodyEl.querySelector('#building-gang') as HTMLSelectElement;
         const gangNotesGroup = bodyEl.querySelector('#building-gang-notes-group') as HTMLElement;
 
-        imgPicker?.addEventListener('click', () => {
-          new (globalThis as any).FilePicker({
-            type: 'image',
-            current: imgInput?.value || '',
-            callback: (path: string) => {
-              if (imgInput) imgInput.value = path;
-              selectedImage = path;
-              if (imgPreview) {
-                imgPreview.innerHTML = `<img src="${path}" style="max-width: 80px; max-height: 80px; border-radius: 6px; border: 1px solid #555;" />`;
-              }
-            },
-          }).render(true);
-        });
-
-        imgInput?.addEventListener('change', () => {
-          selectedImage = imgInput.value;
+        setupImagePicker({
+          pickerEl: imgPicker,
+          inputEl: imgInput,
+          previewEl: imgPreview,
+          onSelect: (path) => {
+            selectedImage = path;
+          },
         });
 
         gangSelect?.addEventListener('change', () => {

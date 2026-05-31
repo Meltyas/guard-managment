@@ -2,6 +2,7 @@ import type { GuardOrganization, ResourceLogEntry } from '../../types/entities';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { ResourceTemplate } from '../ResourceTemplate.js';
+import { formatTimeAgo, setupExpandCollapse, setupEntitySearch, setupLogToggle } from './panel-helpers.js';
 
 // ── Log helpers ──────────────────────────────────────────────────────────────
 
@@ -14,22 +15,11 @@ const LOG_ACTION_LABELS: Record<string, string> = {
   resource_created:'Recurso creado',
 };
 
-function _formatTimeAgo(timestamp: number): string {
-  const diffMs = Date.now() - timestamp;
-  const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 1) return 'ahora mismo';
-  if (diffMins < 60) return `hace ${diffMins} min`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `hace ${diffHours}h`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `hace ${diffDays}d`;
-}
-
 function _enrichLogEntry(e: ResourceLogEntry) {
   return {
     ...e,
     label: LOG_ACTION_LABELS[e.action] ?? e.action,
-    timeAgo: _formatTimeAgo(e.timestamp),
+    timeAgo: formatTimeAgo(e.timestamp, { now: 'ahora mismo', minSuffix: ' min' }),
     dateLabel: new Date(e.timestamp).toLocaleString('es-ES', {
       day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     }),
@@ -98,41 +88,18 @@ export class ResourcesPanel {
     console.log('ResourcesPanel | DOM updated');
 
     // Set up expand/collapse toggles — click anywhere in summary except action buttons
-    container.querySelectorAll<HTMLElement>('.entity-row__summary').forEach((summary) => {
-      summary.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.entity-row__actions')) return;
-        e.stopPropagation();
-        const row = summary.closest('.entity-row') as HTMLElement;
-        const detail = row.querySelector('.entity-row__detail') as HTMLElement;
-        const toggle = row.querySelector('.entity-row__toggle') as HTMLElement;
-        const isOpen = !detail.hidden;
-        detail.hidden = isOpen;
-        toggle?.setAttribute('aria-expanded', String(!isOpen));
-        row.classList.toggle('entity-row--open', !isOpen);
-      });
-    });
+    setupExpandCollapse(container);
 
     // Search filter
-    const searchInput = container.querySelector<HTMLInputElement>('.entity-list-search__input');
-    searchInput?.addEventListener('input', () => {
-      const query = searchInput.value.trim().toLowerCase();
-      container.querySelectorAll<HTMLElement>('.entity-row').forEach((row) => {
-        const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
-        row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
-      });
-    });
+    setupEntitySearch(container);
 
     // Log section toggle (collapse/expand inside each row detail)
-    container.querySelectorAll<HTMLElement>('.resource-log-toggle').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const section = btn.closest('.resource-log-section') as HTMLElement;
-        const list = section?.querySelector('.resource-log-list') as HTMLElement;
-        const chevron = btn.querySelector('.resource-log-chevron') as HTMLElement;
-        if (!list) return;
-        list.hidden = !list.hidden;
-        chevron?.classList.toggle('resource-log-chevron--open', !list.hidden);
-      });
+    setupLogToggle(container, {
+      toggleSelector: '.resource-log-toggle',
+      sectionSelector: '.resource-log-section',
+      listSelector: '.resource-log-list',
+      chevronSelector: '.resource-log-chevron',
+      openClass: 'resource-log-chevron--open',
     });
   }
 
