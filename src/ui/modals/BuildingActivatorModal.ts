@@ -8,6 +8,7 @@
  */
 
 import { GuardModal } from '../GuardModal.js';
+import { DialogPersistence, DIALOG_KEYS } from '../../utils/DialogPersistence.js';
 import {
   BUILDING_ZONE_LABELS,
   BUILDING_ZONE_ICONS,
@@ -84,7 +85,14 @@ export class BuildingActivatorModal {
       width: 540,
       showFooter: false,
       onSave: async () => {},
+      onClose: () => {
+        // Clear open-state so it is not restored after F5
+        DialogPersistence.markClosed(DIALOG_KEYS.buildingActivator);
+      },
       onRender: (bodyEl) => {
+        // Persist that this modal is open so it can be restored after F5
+        DialogPersistence.markOpen(DIALOG_KEYS.buildingActivator);
+
         this._renderList(bodyEl, isGM, onActivated);
 
         const searchInput = bodyEl.querySelector('.building-activator-search') as HTMLInputElement;

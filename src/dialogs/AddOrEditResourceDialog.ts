@@ -4,6 +4,7 @@
 
 import type { Resource } from '../types/entities';
 import { GuardModal } from '../ui/GuardModal.js';
+import { DialogPersistence, DIALOG_KEYS } from '../utils/DialogPersistence.js';
 
 export interface ResourceDialogData {
   name: string;
@@ -28,6 +29,13 @@ export class AddOrEditResourceDialog {
   ): Promise<Resource | null> {
     const content = await this.generateContent(mode, organizationId, existingResource);
     const title = mode === 'create' ? 'Nuevo Recurso' : 'Editar Recurso';
+
+    // Remember this editor is open so it can be restored after an F5
+    DialogPersistence.markOpen(DIALOG_KEYS.resourceEditor, {
+      mode,
+      organizationId,
+      resourceId: existingResource?.id,
+    });
 
     try {
       return await GuardModal.openAsync<Resource>({
@@ -146,6 +154,8 @@ export class AddOrEditResourceDialog {
       console.error('Error mostrando el diálogo de recurso:', error);
       ui?.notifications?.error('Error al mostrar el diálogo');
       return null;
+    } finally {
+      DialogPersistence.markClosed(DIALOG_KEYS.resourceEditor);
     }
   }
 

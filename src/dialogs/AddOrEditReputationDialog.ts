@@ -10,6 +10,7 @@ import {
   ReputationLevel,
 } from '../types/entities.js';
 import { ModalStack } from '../utils/modal-stack.js';
+import { DialogPersistence, DIALOG_KEYS } from '../utils/DialogPersistence.js';
 
 interface ReputationDialogData {
   name: string;
@@ -48,7 +49,19 @@ export class AddOrEditReputationDialog {
     const title = mode === 'create' ? 'Nueva Reputación' : 'Editar Reputación';
     const saveLabel = mode === 'create' ? 'Crear' : 'Guardar';
 
-    return new Promise((resolve) => {
+    // Remember this editor is open so it can be restored after an F5
+    DialogPersistence.markOpen(DIALOG_KEYS.reputationEditor, {
+      mode,
+      organizationId,
+      reputationId: existingReputation?.id,
+    });
+
+    return new Promise<Reputation | null>((rawResolve) => {
+      // Clear the F5-restore flag whichever way the dialog is dismissed
+      const resolve = (value: Reputation | null) => {
+        DialogPersistence.markClosed(DIALOG_KEYS.reputationEditor);
+        rawResolve(value);
+      };
       // ── Build modal shell ────────────────────────────────────────────────
       const modal = document.createElement('div');
       modal.className = 'warehouse-item-dialog custom-info-dialog reputation-custom-dialog';

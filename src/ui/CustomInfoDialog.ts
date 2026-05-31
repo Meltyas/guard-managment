@@ -6,6 +6,7 @@ import type { GuardOrganization } from '../types/entities';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { ModalStack } from '../utils/modal-stack.js';
 import { LogDeletion } from '../utils/LogDeletion.js';
+import { DialogPersistence, DIALOG_KEYS } from '../utils/DialogPersistence.js';
 // Import CSS for drag & drop styling
 import '../styles/custom-info-dialog.css';
 import { NotificationService } from '../utils/services/NotificationService.js';
@@ -135,7 +136,7 @@ export class CustomInfoDialog implements FocusableDialog {
     document.body.appendChild(this.element);
 
     // Persist that this dialog is open so it can be restored after F5
-    localStorage.setItem(CustomInfoDialog.OPEN_LS_KEY, 'true');
+    DialogPersistence.markOpen(DIALOG_KEYS.orgInfo);
 
     // Register with focus manager
     DialogFocusManager.getInstance().registerDialog(this);
@@ -301,7 +302,7 @@ export class CustomInfoDialog implements FocusableDialog {
       this.element = null;
 
       // Clear open-state so it is not restored after F5
-      localStorage.removeItem(CustomInfoDialog.OPEN_LS_KEY);
+      DialogPersistence.markClosed(DIALOG_KEYS.orgInfo);
 
       if (this.onCloseCallback) {
         this.onCloseCallback();

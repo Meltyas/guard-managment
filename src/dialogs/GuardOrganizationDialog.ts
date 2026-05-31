@@ -5,6 +5,7 @@
 import type { GuardOrganization, GuardStats } from '../types/entities';
 import { DEFAULT_GUARD_STATS, GUARD_STAT_MAX, GUARD_STAT_MIN } from '../types/entities';
 import { GuardModal } from '../ui/GuardModal.js';
+import { DialogPersistence, DIALOG_KEYS } from '../utils/DialogPersistence.js';
 
 export interface GuardOrganizationDialogData {
   name: string;
@@ -42,6 +43,9 @@ export class GuardOrganizationDialog {
     const title =
       mode === 'create' ? 'Nueva Organización de Guardias' : 'Editar Organización de Guardias';
 
+    // Remember this editor is open so it can be restored after an F5
+    DialogPersistence.markOpen(DIALOG_KEYS.organizationEditor, { mode });
+
     try {
       const data = await GuardModal.openAsync<GuardOrganizationDialogData>({
         title,
@@ -75,6 +79,8 @@ export class GuardOrganizationDialog {
       console.error('GuardOrganizationDialog | Error showing dialog:', error);
       ui?.notifications?.error('Error al mostrar el diálogo de organización');
       return null;
+    } finally {
+      DialogPersistence.markClosed(DIALOG_KEYS.organizationEditor);
     }
   }
 

@@ -9,6 +9,7 @@ import type { Officer } from '../types/officer';
 import { setupFilterToggles } from '../ui/panels/panel-helpers.js';
 import { ImportExportService } from '../utils/ImportExportService.js';
 import { ModalStack } from '../utils/modal-stack.js';
+import { DialogPersistence, DIALOG_KEYS } from '../utils/DialogPersistence.js';
 import { GuardModal } from '../ui/GuardModal.js';
 import { AddOrEditOfficerDialog } from './AddOrEditOfficerDialog.js';
 
@@ -72,6 +73,9 @@ export class OfficerWarehouseDialog {
     this.element = await this.createElement();
     document.body.appendChild(this.element);
 
+    // Persist that this dialog is open so it can be restored after F5
+    DialogPersistence.markOpen(DIALOG_KEYS.officerWarehouse);
+
     // Register in shared modal stack (brings to front on click, manages z-index)
     ModalStack.register(this.element);
 
@@ -87,6 +91,9 @@ export class OfficerWarehouseDialog {
       ModalStack.unregister(this.element);
       this.element.remove();
       this.element = null;
+
+      // Clear open-state so it is not restored after F5
+      DialogPersistence.markClosed(DIALOG_KEYS.officerWarehouse);
     }
   }
 

@@ -8,6 +8,7 @@
 import type { Officer, OfficerTrait } from '../types/officer';
 import { GuardModal } from '../ui/GuardModal.js';
 import { setupImagePicker } from '../ui/panels/panel-helpers.js';
+import { DialogPersistence, DIALOG_KEYS } from '../utils/DialogPersistence.js';
 
 interface OfficerState {
   actorId: string;
@@ -64,29 +65,40 @@ export class AddOrEditOfficerDialog {
     existingOfficer?: Officer,
     _personnelType: 'officer' | 'civilian' = 'officer'
   ): Promise<Officer | null> {
-    const state: OfficerState = {
-      actorId: existingOfficer?.actorId || '',
-      actorName: existingOfficer?.actorName || '',
-      actorImg: existingOfficer?.actorImg || '',
-      title: existingOfficer?.title || '',
-      skillName: existingOfficer?.skill?.name || '',
-      skillImage: existingOfficer?.skill?.image || '',
-      pros: existingOfficer ? [...existingOfficer.pros] : [],
-      cons: existingOfficer ? [...existingOfficer.cons] : [],
+    // Remember this editor is open so it can be restored after an F5
+    DialogPersistence.markOpen(DIALOG_KEYS.officerEditor, {
+      mode,
       organizationId: existingOfficer?.organizationId ?? organizationId,
-    };
-
-    const result = await GuardModal.openAsync<Officer>({
-      title: mode === 'create' ? 'Crear Oficial' : 'Editar Oficial',
-      icon: 'fas fa-user-shield',
-      width: 640,
-      saveLabel: mode === 'create' ? 'Crear' : 'Guardar',
-      body: this.buildBody(state),
-      onRender: (bodyEl) => this.wire(bodyEl, state),
-      onSave: async () => this.save(mode, state, existingOfficer),
+      officerId: existingOfficer?.id,
+      personnelType: _personnelType,
     });
+    try {
+      const state: OfficerState = {
+        actorId: existingOfficer?.actorId || '',
+        actorName: existingOfficer?.actorName || '',
+        actorImg: existingOfficer?.actorImg || '',
+        title: existingOfficer?.title || '',
+        skillName: existingOfficer?.skill?.name || '',
+        skillImage: existingOfficer?.skill?.image || '',
+        pros: existingOfficer ? [...existingOfficer.pros] : [],
+        cons: existingOfficer ? [...existingOfficer.cons] : [],
+        organizationId: existingOfficer?.organizationId ?? organizationId,
+      };
 
-    return result ?? null;
+      const result = await GuardModal.openAsync<Officer>({
+        title: mode === 'create' ? 'Crear Oficial' : 'Editar Oficial',
+        icon: 'fas fa-user-shield',
+        width: 640,
+        saveLabel: mode === 'create' ? 'Crear' : 'Guardar',
+        body: this.buildBody(state),
+        onRender: (bodyEl) => this.wire(bodyEl, state),
+        onSave: async () => this.save(mode, state, existingOfficer),
+      });
+
+      return result ?? null;
+    } finally {
+      DialogPersistence.markClosed(DIALOG_KEYS.officerEditor);
+    }
   }
 
   // ── Body markup ─────────────────────────────────────────────

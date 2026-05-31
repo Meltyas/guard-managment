@@ -8,6 +8,7 @@ import {
   SpellcastingType,
 } from '../types/entities';
 import { GuardModal } from '../ui/GuardModal.js';
+import { DialogPersistence, DIALOG_KEYS } from '../utils/DialogPersistence.js';
 
 interface PatrolDialogData {
   name: string;
@@ -35,6 +36,14 @@ export class AddOrEditPatrolDialog {
         ? { create: 'Nuevo Auxiliar', edit: 'Editar Auxiliar' }
         : { create: 'Nueva Patrulla', edit: 'Editar Patrulla' };
     const title = mode === 'create' ? labels.create : labels.edit;
+
+    // Remember this editor is open so it can be restored after an F5
+    DialogPersistence.markOpen(DIALOG_KEYS.patrolEditor, {
+      mode,
+      organizationId,
+      patrolId: existing?.id,
+      unitType,
+    });
 
     try {
       return await GuardModal.openAsync<Patrol>({
@@ -180,6 +189,8 @@ export class AddOrEditPatrolDialog {
       console.error('Error mostrando diálogo de patrulla', e);
       ui?.notifications?.error('Error al mostrar diálogo de patrulla');
       return null;
+    } finally {
+      DialogPersistence.markClosed(DIALOG_KEYS.patrolEditor);
     }
   }
 

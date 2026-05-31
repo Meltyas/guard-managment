@@ -13,6 +13,7 @@ import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-
 import { DOMEventSetup } from '../utils/DOMEventSetup.js';
 import { ImportExportService } from '../utils/ImportExportService.js';
 import { ModalStack } from '../utils/modal-stack.js';
+import { DialogPersistence, DIALOG_KEYS } from '../utils/DialogPersistence.js';
 import { ResourceErrorHandler } from '../utils/ResourceErrorHandler.js';
 import { ResourceEventHandler, type ResourceEventContext } from '../utils/ResourceEventHandler.js';
 
@@ -121,7 +122,7 @@ export class GMWarehouseDialog implements FocusableDialog {
     document.body.appendChild(this.element);
 
     // Persist that this dialog is open so it can be restored after F5
-    localStorage.setItem('guard-management-warehouse-open', 'true');
+    DialogPersistence.markOpen(DIALOG_KEYS.gmWarehouse);
 
     // Register with focus manager
     DialogFocusManager.getInstance().registerDialog(this);
@@ -160,7 +161,7 @@ export class GMWarehouseDialog implements FocusableDialog {
       this.element = null;
 
       // Clear open-state so it is not restored after F5
-      localStorage.removeItem('guard-management-warehouse-open');
+      DialogPersistence.markClosed(DIALOG_KEYS.gmWarehouse);
     }
   }
 

@@ -5,8 +5,14 @@
 
 import { GMWarehouseDialog } from './dialogs/GMWarehouseDialog';
 import { OfficerWarehouseDialog } from './dialogs/OfficerWarehouseDialog';
+import { AddOrEditOfficerDialog } from './dialogs/AddOrEditOfficerDialog';
+import { AddOrEditResourceDialog } from './dialogs/AddOrEditResourceDialog';
+import { AddOrEditReputationDialog } from './dialogs/AddOrEditReputationDialog';
+import { AddOrEditPatrolDialog } from './dialogs/AddOrEditPatrolDialog';
 import { registerDataModels } from './documents/index';
 import { registerHooks } from './hooks';
+import { BuildingActivatorModal } from './ui/modals/BuildingActivatorModal';
+import { DialogPersistence, DIALOG_KEYS } from './utils/DialogPersistence';
 
 import { BuildingManager } from './managers/BuildingManager';
 import { CrimeManager } from './managers/CrimeManager';
@@ -573,18 +579,83 @@ Hooks.once('ready', async () => {
     guardManagementModule.floatingPanel.updateOrganizationList();
   }
 
-  // Restore dialogs that were open before the last F5 / page reload
-  const infoDialogWasOpen =
-    localStorage.getItem('guard-management.infoDialog.open') === 'true';
-  const warehouseWasOpen =
-    localStorage.getItem('guard-management-warehouse-open') === 'true';
+  // Restore dialogs/modals that were open before the last F5 / page reload.
+  // Each persistable dialog registers a re-open factory; DialogPersistence
+  // re-opens only the ones whose open flag is still set in localStorage.
+  DialogPersistence.register(DIALOG_KEYS.orgInfo, () =>
+    guardManagementModule?.guardDialogManager?.showManageOrganizationsDialog()
+  );
+  DialogPersistence.register(DIALOG_KEYS.gmWarehouse, () => GMWarehouseDialog.show(), {
+    gmOnly: true,
+  });
+  DialogPersistence.register(DIALOG_KEYS.officerWarehouse, () => OfficerWarehouseDialog.show());
+  DialogPersistence.register(DIALOG_KEYS.buildingActivator, () => BuildingActivatorModal.open());
 
-  if (infoDialogWasOpen) {
-    guardManagementModule?.guardDialogManager?.showManageOrganizationsDialog();
-  }
-  if (warehouseWasOpen && (game as any)?.user?.isGM) {
-    GMWarehouseDialog.show();
-  }
+  // Editor dialogs — re-fetch the entity live by id, then re-open in the same mode.
+  DialogPersistence.register(
+    DIALOG_KEYS.officerEditor,
+    async (s) => {
+      if (!s) return;
+      if (s.mode === 'edit') {
+        const officer = guardManagementModule?.officerManager?.get(s.officerId);
+        if (officer) await AddOrEditOfficerDialog.edit(officer, s.personnelType);
+      } else {
+        await AddOrEditOfficerDialog.create(s.organizationId, s.personnelType);
+      }
+    },
+    { gmOnly: true }
+  );
+  DialogPersistence.register(
+    DIALOG_KEYS.resourceEditor,
+    async (s) => {
+      if (!s) return;
+      if (s.mode === 'edit') {
+        const resource = guardManagementModule?.resourceManager?.getResource(s.resourceId);
+        if (resource) await AddOrEditResourceDialog.edit(resource);
+      } else if (s.organizationId) {
+        await AddOrEditResourceDialog.create(s.organizationId);
+      }
+    },
+    { gmOnly: true }
+  );
+  DialogPersistence.register(
+    DIALOG_KEYS.reputationEditor,
+    async (s) => {
+      if (!s) return;
+      if (s.mode === 'edit') {
+        await AddOrEditReputationDialog.showEditDialog(s.reputationId);
+      } else if (s.organizationId) {
+        await AddOrEditReputationDialog.showCreateDialog(s.organizationId);
+      }
+    },
+    { gmOnly: true }
+  );
+  DialogPersistence.register(
+    DIALOG_KEYS.patrolEditor,
+    async (s) => {
+      if (!s || !s.organizationId) return;
+      const orgMgr = guardManagementModule?.guardOrganizationManager;
+      if (!orgMgr) return;
+      if (s.mode === 'edit') {
+        const mgr = s.unitType === 'auxiliary' ? orgMgr.getAuxiliaryManager() : orgMgr.getPatrolManager();
+        const patrol = mgr.getPatrol(s.patrolId);
+        if (patrol) await AddOrEditPatrolDialog.edit(s.organizationId, patrol, s.unitType);
+      } else {
+        await AddOrEditPatrolDialog.create(s.organizationId, s.unitType);
+      }
+    },
+    { gmOnly: true }
+  );
+  DialogPersistence.register(
+    DIALOG_KEYS.organizationEditor,
+    async (s) => {
+      if (s?.mode !== 'edit') return;
+      await guardManagementModule?.guardOrganizationManager?.showEditDialog();
+    },
+    { gmOnly: true }
+  );
+
+  await DialogPersistence.restoreAll();
 
   // Register MCP Bridge tools
   if (guardManagementModule) {
