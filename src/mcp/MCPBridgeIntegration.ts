@@ -62,10 +62,10 @@ export class MCPBridgeIntegration {
     const tools: Record<string, ToolHandler> = {
       // ── Organizations ──────────────────────────────────────────────────
       'guard-management.organizations.list': gmOnly(async () => org.getAllOrganizations()),
-      'guard-management.organizations.get': gmOnly(async ({ id }) => org.getOrganization(id)),
+      'guard-management.organizations.get': gmOnly(async () => org.getOrganization()),
       'guard-management.organizations.create': gmMutation('guard-management.organizations', async (data) => org.createOrganization(data)),
       'guard-management.organizations.update': gmMutation('guard-management.organizations', async (data) => org.updateOrganization(data)),
-      'guard-management.organizations.delete': gmMutation('guard-management.organizations', async ({ id }) => org.deleteOrganization(id)),
+      'guard-management.organizations.delete': gmMutation('guard-management.organizations', async () => org.deleteOrganization()),
 
       // ── Patrols (operate on the currently active organization) ─────────
       'guard-management.patrols.list': gmOnly(async () => org.listOrganizationPatrols()),
@@ -74,10 +74,10 @@ export class MCPBridgeIntegration {
       'guard-management.patrols.delete': gmMutation('guard-management.patrols', async ({ patrolId }) => org.removePatrol(patrolId)),
 
       // ── Officers ───────────────────────────────────────────────────────
-      'guard-management.officers.list': gmOnly(async () => officer.getOfficers()),
-      'guard-management.officers.create': gmMutation('guard-management.officers', async (data) => officer.createOfficer(data)),
-      'guard-management.officers.update': gmMutation('guard-management.officers', async ({ id, ...updates }) => officer.updateOfficer(id, updates)),
-      'guard-management.officers.delete': gmMutation('guard-management.officers', async ({ id }) => officer.deleteOfficer(id)),
+      'guard-management.officers.list': gmOnly(async () => officer.list()),
+      'guard-management.officers.create': gmMutation('guard-management.officers', async (data) => officer.create(data)),
+      'guard-management.officers.update': gmMutation('guard-management.officers', async ({ id, ...updates }) => officer.update(id, updates)),
+      'guard-management.officers.delete': gmMutation('guard-management.officers', async ({ id }) => officer.delete(id)),
 
       // ── Resources ──────────────────────────────────────────────────────
       'guard-management.resources.list': gmOnly(async () => resource.getAllResources()),
@@ -93,7 +93,7 @@ export class MCPBridgeIntegration {
 
       // ── Crimes ─────────────────────────────────────────────────────────
       'guard-management.crimes.list': gmOnly(async () => crime.getAllCrimes()),
-      'guard-management.crimes.create': gmMutation('guard-management.crimes', async (data) => crime.createCrime(data)),
+      'guard-management.crimes.create': gmMutation('guard-management.crimes', async (data) => crime.createCrime(data.name, data.offenseType, data.description, data.customSentence)),
       'guard-management.crimes.update': gmMutation('guard-management.crimes', async ({ id, ...updates }) => crime.updateCrime(id, updates)),
       'guard-management.crimes.delete': gmMutation('guard-management.crimes', async ({ id }) => crime.deleteCrime(id)),
 

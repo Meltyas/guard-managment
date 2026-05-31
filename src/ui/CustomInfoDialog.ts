@@ -930,13 +930,6 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
-   * Handle deleting a log entry from a resource
-   */
-  private async handleDeleteResourceLogEntry(resourceId: string, entryId: string): Promise<void> {
-    await ResourcesPanel.handleDeleteLogEntry(resourceId, entryId, () => this.refreshContent());
-  }
-
-  /**
    * Unified shift+click deletion for any log line (resource, reputation,
    * phase-report) rendered inside this dialog.
    */

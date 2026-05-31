@@ -17,8 +17,6 @@ import type { Building, BuildingZone } from '../../types/buildings.js';
 import { BuildingsPanel } from '../panels/BuildingsPanel.js';
 
 export class BuildingActivatorModal {
-  private modal: GuardModal | null = null;
-
   /** Abre el modal de activación. Accesible por cualquier jugador. */
   static open(onActivated?: () => void): void {
     new BuildingActivatorModal()._open(onActivated);
@@ -79,7 +77,7 @@ export class BuildingActivatorModal {
       </div>
     `;
 
-    this.modal = GuardModal.open({
+    GuardModal.open({
       title: 'Activar Edificio',
       icon: 'fas fa-map-marker-alt',
       body,

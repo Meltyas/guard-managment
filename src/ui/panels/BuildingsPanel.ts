@@ -54,10 +54,11 @@ export class BuildingsPanel {
     // Agrupar por zona en orden almacenado (o por defecto)
     const order = BuildingsPanel.getZoneOrder();
     const zonesWithBuildings = mapped.map((b: any) => b.zone as BuildingZone);
+    const uniqueZones = Array.from(new Set(zonesWithBuildings)) as BuildingZone[];
     // Include zones that have buildings, preserving order; append unknown zones at end
-    const allZoneKeys = [
+    const allZoneKeys: BuildingZone[] = [
       ...order,
-      ...Array.from(new Set(zonesWithBuildings)).filter((z) => !order.includes(z)),
+      ...uniqueZones.filter((z) => !order.includes(z)),
     ];
     const zones = allZoneKeys
       .map((zoneKey, idx, arr) => {

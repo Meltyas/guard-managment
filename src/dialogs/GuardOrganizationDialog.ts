@@ -103,7 +103,7 @@ export class GuardOrganizationDialog {
 
     return foundry.applications.handlebars.renderTemplate(
       'modules/guard-management/templates/dialogs/guard-organization.hbs',
-      data
+      data as unknown as Record<string, unknown>
     );
   }
 
@@ -250,6 +250,7 @@ export class GuardOrganizationDialog {
         resources: [],
         reputation: [],
         patrols: [],
+        auxiliaries: [],
       };
     }
   }

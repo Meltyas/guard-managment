@@ -862,7 +862,7 @@ export class PrisonersPanel {
           });
 
           // Diff and apply
-          const oldCrimeIds = Array.isArray(prisoner.crimes) ? prisoner.crimes : [];
+          const oldCrimeIds: string[] = Array.isArray(prisoner.crimes) ? prisoner.crimes : [];
           const toAdd = newCrimeIds.filter((id) => !oldCrimeIds.includes(id));
           const toRemove = oldCrimeIds.filter((id) => !newCrimeIds.includes(id));
           for (const crimeId of toAdd) await gm.prisonerManager.assignCrime(prisonerId, crimeId);

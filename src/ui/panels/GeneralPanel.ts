@@ -48,25 +48,6 @@ export class GeneralPanel {
           if (total > base) cssClass = 'positive';
           else if (total < base) cssClass = 'negative';
 
-          const tooltip =
-            mods.length > 0
-              ? '<ul class="stat-tooltip-list">' +
-                mods
-                  .map((m: { name: string; img: string; value: number }) => {
-                    let colorClass = 'neutral';
-                    let sign = '';
-                    if (m.value > 0) {
-                      colorClass = 'positive';
-                      sign = '+';
-                    } else if (m.value < 0) {
-                      colorClass = 'negative';
-                    }
-                    return `<li><span class="mod-val ${colorClass}">${sign}${m.value}</span> <img src="${m.img}" class="tooltip-icon"/> ${m.name}</li>`;
-                  })
-                  .join('') +
-                '</ul>'
-              : '';
-
           const orgMod = mods.reduce((sum: number, m: any) => sum + (m.value || 0), 0);
 
           return {

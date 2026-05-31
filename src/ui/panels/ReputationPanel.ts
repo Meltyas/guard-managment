@@ -56,9 +56,9 @@ export class ReputationPanel {
             ...r,
             value: REPUTATION_LABELS[level as ReputationLevel] || 'Desconocido',
             statusClass,
-            trendLabel: r.trend ? REPUTATION_TREND_LABELS[r.trend] : '',
-            trendIcon:  r.trend ? REPUTATION_TREND_ICONS[r.trend]  : '',
-            categoryLabel: r.category ? REPUTATION_CATEGORY_LABELS[r.category] : '',
+            trendLabel: r.trend ? REPUTATION_TREND_LABELS[r.trend as keyof typeof REPUTATION_TREND_LABELS] : '',
+            trendIcon:  r.trend ? REPUTATION_TREND_ICONS[r.trend as keyof typeof REPUTATION_TREND_ICONS]  : '',
+            categoryLabel: r.category ? REPUTATION_CATEGORY_LABELS[r.category as keyof typeof REPUTATION_CATEGORY_LABELS] : '',
             changelogEntries: (r.changelog ?? []).map((entry: any) => ({
               ...entry,
               dateLabel: new Date(entry.timestamp).toLocaleString('es-ES', {
@@ -82,7 +82,7 @@ export class ReputationPanel {
     // Group by category in stored order
     const categoryOrder = getCategoryOrder();
     const groups = categoryOrder
-      .map((catKey, idx) => {
+      .map((catKey) => {
         const items = reputation.filter((r) => (r.category || '') === catKey);
         if (items.length === 0) return null;
         return {

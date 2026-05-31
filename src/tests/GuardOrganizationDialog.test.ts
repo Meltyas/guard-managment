@@ -31,6 +31,7 @@ describe('GuardOrganizationDialog', () => {
       resources: [],
       reputation: [],
       patrols: [],
+      auxiliaries: [],
     };
   });
 

@@ -167,7 +167,7 @@ export class DayNightDecoration {
         volume: 0.5,
         autoplay: true,
         loop: false,
-      },
+      } as any,
       false
     );
 

@@ -80,7 +80,7 @@ export class GuardModal {
 
   /** Close all open GuardModals */
   static closeAll(): void {
-    [...openModals].forEach((m) => m.close());
+    [...openGuardModals].forEach((m) => m.close());
   }
 
   /** Open a GuardModal (convenience wrapper) */

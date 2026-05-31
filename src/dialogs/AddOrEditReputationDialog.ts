@@ -221,7 +221,7 @@ export class AddOrEditReputationDialog {
   }
 
   /** Wire up the dynamic faction-relations and favors lists inside the modal */
-  private setupDynamicLists(container: HTMLElement, existing?: Reputation): void {
+  private setupDynamicLists(container: HTMLElement, _existing?: Reputation): void {
     const form = container.querySelector('form.reputation-form') as HTMLFormElement | null;
     if (!form) return;
 

@@ -114,7 +114,7 @@ function setupModuleWatchdog(moduleInstance: GuardManagementModule): void {
   }
 }
 
-class GuardManagementModule {
+export class GuardManagementModule {
   public guardOrganizationManager: GuardOrganizationManager;
   public guardDialogManager: GuardDialogManager;
   public officerManager: OfficerManager;

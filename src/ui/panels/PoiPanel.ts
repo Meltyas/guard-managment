@@ -623,7 +623,7 @@ export class PoiPanel {
     if (!poi) return;
 
     const allCrimes = gm.crimeManager.getAllCrimes();
-    const currentCrimeIds = new Set(poi.possibleCrimes || []);
+    const currentCrimeIds = new Set<string>(poi.possibleCrimes || []);
 
     const crimeRows = allCrimes
       .map(
@@ -692,7 +692,7 @@ export class PoiPanel {
     if (!poi) return;
 
     const allGangs = gm.gangManager.getAllGangs();
-    const currentGangIds = new Set(poi.gangIds || []);
+    const currentGangIds = new Set<string>(poi.gangIds || []);
 
     const gangRows = allGangs
       .map(

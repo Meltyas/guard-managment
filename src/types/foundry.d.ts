@@ -47,6 +47,20 @@ declare global {
     'guard-management.buildings': any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     'guard-management.finances': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.auxiliaries': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.patrolEffects': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.modifiers': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.reputationCategoryOrder': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.buildingZoneOrder': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.phaseEventsData': any;
+    'guard-management.awayMode': boolean;
+    'guard-management.migrationVersion': number;
     // Configuration settings
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     'guard-management.syncOptions': any;

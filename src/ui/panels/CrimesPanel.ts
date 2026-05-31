@@ -661,7 +661,7 @@ export class CrimesPanel {
     const defaultSentence = sentenceManager?.formatSentence(crime.offenseType) || '';
     const sentenceText = crime.customSentence || defaultSentence;
     const isCustom = !!crime.customSentence;
-    const offenseLabel = OFFENSE_LABELS[crime.offenseType] || crime.offenseType;
+    const offenseLabel = OFFENSE_LABELS[crime.offenseType as OffenseType] || crime.offenseType;
     const descriptionHtml = crime.description || '<em style="color: #888;">Sin descripción</em>';
 
     const body = `
@@ -694,7 +694,7 @@ export class CrimesPanel {
     const crime = gm?.crimeManager?.getAllCrimes()?.find((c: Crime) => c.id === crimeId);
     if (!crime) return;
 
-    const offenseLabel = OFFENSE_LABELS[crime.offenseType] || crime.offenseType;
+    const offenseLabel = OFFENSE_LABELS[crime.offenseType as OffenseType] || crime.offenseType;
     const sentenceText =
       crime.customSentence || gm?.sentenceConfigManager?.formatSentence(crime.offenseType) || '';
 

@@ -2,6 +2,8 @@ import type { GuardStats, PatrolEffectInstance } from '../../types/entities';
 import { classifyLastOrderAge } from '../../utils/patrol-helpers.js';
 import { AddOrEditPatrolDialog, UnitType } from '../../dialogs/AddOrEditPatrolDialog.js';
 
+export type PanelUnitType = UnitType;
+
 export class PatrolsPanel {
   static get template() {
     return 'modules/guard-management/templates/panels/patrols.hbs';
@@ -1094,6 +1096,35 @@ export class PatrolsPanel {
         ui.notifications?.warn(`Actor ${actorId} no encontrado`);
       }
     }
+  }
+
+  public static async handleSkillToChat(skill: {
+    name: string;
+    image?: string;
+    hopeCost: number;
+    officerName?: string;
+  }) {
+    const heartIcons = skill.hopeCost > 0
+      ? Array(skill.hopeCost).fill('<i class="fas fa-heart" style="color:#e84a4a;font-size:0.8rem;"></i>').join(' ')
+      : '<span style="opacity:0.5;font-size:0.8rem;">0</span>';
+
+    const content = `
+      <div class="guard-resource-chat">
+        ${skill.image ? `<div class="resource-image" style="margin-bottom: 8px;"><img src="${skill.image}" style="max-width: 64px; border: none;" /></div>` : ''}
+        <div class="chat-header" style="font-weight: bold; font-size: 1.1em; margin-bottom: 4px;">${skill.name}</div>
+        ${skill.officerName ? `<div style="font-size: 0.85em; opacity: 0.75; margin-bottom: 6px;"><i class="fas fa-user"></i> ${skill.officerName}</div>` : ''}
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.9em;">
+          <span style="opacity: 0.8;">Coste de Hope:</span>
+          <span>${heartIcons}</span>
+        </div>
+      </div>
+    `;
+
+    await (ChatMessage as any).create({
+      content,
+      speaker: { scene: null, actor: null, token: null, alias: 'Habilidad de Oficial' },
+      flags: { 'guard-management': { type: 'officer-skill' } },
+    });
   }
 
   public static async handleEffectClick(patrolId: string, effectId: string, unitType: UnitType = 'patrol') {

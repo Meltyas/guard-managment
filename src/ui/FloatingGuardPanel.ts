@@ -5,7 +5,6 @@
 import { GMWarehouseDialog } from '../dialogs/GMWarehouseDialog';
 import { OfficerWarehouseDialog } from '../dialogs/OfficerWarehouseDialog';
 import { GuardDialogManager } from '../managers/GuardDialogManager';
-import { GuardModal } from './GuardModal';
 import { PhaseCalendar } from './panels/PhaseCalendar';
 
 export interface FloatingPanelPosition {
