@@ -500,27 +500,59 @@ export class PhaseEventManager {
     }
   }
 
-  private _postEventChat(event: PhaseEvent, text: string, turn: number): void {
-    try {
-      const icon = EVENT_CATEGORY_ICONS[event.category] || EVENT_CATEGORY_ICONS.otro;
-      const content = `
+  /** Render a list of report entries as icon+text rows. */
+  private _renderEntries(entries: PhaseReportEntry[], emptyMsg?: string): string {
+    if (entries.length === 0) {
+      return emptyMsg ? `<p class="phase-report-empty">${emptyMsg}</p>` : '';
+    }
+    return entries
+      .map(
+        (e) => `
+            <div class="phase-report-entry">
+              <i class="${e.icon || 'fas fa-circle-info'}"></i>
+              <span>${e.text}</span>
+            </div>`
+      )
+      .join('');
+  }
+
+  /** Build the shared Daggerheart domain-card HTML used by every phase chat message. */
+  private _buildPhaseCard(
+    icon: string,
+    title: string,
+    bodyHtml: string,
+    tags: string[],
+    descClass = ''
+  ): string {
+    const tagsHtml = tags.map((t) => `<li class="tag">${t}</li>`).join('');
+    return `
         <div class="message-content">
           <div class="daggerheart chat domain-card dh-style">
             <details class="domain-card-move" open>
               <summary class="domain-card-header">
-                <div class="domain-label"><h2 class="title"><i class="${icon}"></i> ${event.title}</h2></div>
+                <div class="domain-label"><h2 class="title"><i class="${icon}"></i> ${title}</h2></div>
                 <i class="fa-solid fa-chevron-down"></i>
               </summary>
-              <div class="description"><p>${event.description || text}</p></div>
+              <div class="description${descClass ? ` ${descClass}` : ''}">${bodyHtml}</div>
             </details>
             <footer class="ability-card-footer">
-              <ul class="tags">
-                <li class="tag">Turno ${turn}</li>
-                <li class="tag">${event.visibility === 'gm' ? 'Solo DM' : event.visibility === 'players' ? 'Jugadores' : 'Todos'}</li>
-              </ul>
+              <ul class="tags">${tagsHtml}</ul>
             </footer>
           </div>
         </div>`;
+  }
+
+  private _postEventChat(event: PhaseEvent, text: string, turn: number): void {
+    try {
+      const icon = EVENT_CATEGORY_ICONS[event.category] || EVENT_CATEGORY_ICONS.otro;
+      const visTag =
+        event.visibility === 'gm' ? 'Solo DM' : event.visibility === 'players' ? 'Jugadores' : 'Todos';
+      const content = this._buildPhaseCard(
+        icon,
+        event.title,
+        `<p>${event.description || text}</p>`,
+        [`Turno ${turn}`, visTag]
+      );
 
       const messageData: any = {
         content,
@@ -570,37 +602,13 @@ export class PhaseEventManager {
     try {
       const phaseLabel = phase === 'day' ? 'Día' : 'Noche';
       const phaseIcon = phase === 'day' ? 'fas fa-sun' : 'fas fa-moon';
-
-      const entriesHtml = playerEntries.length > 0
-        ? playerEntries.map((e) => `
-            <div class="phase-report-entry">
-              <i class="${e.icon || 'fas fa-circle-info'}"></i>
-              <span>${e.text}</span>
-            </div>`).join('')
-        : '<p class="phase-report-empty">Sin novedades este turno.</p>';
-
-      const content = `
-        <div class="message-content">
-          <div class="daggerheart chat domain-card dh-style">
-            <details class="domain-card-move" open>
-              <summary class="domain-card-header">
-                <div class="domain-label">
-                  <h2 class="title"><i class="${phaseIcon}"></i> Turno ${turn} — ${phaseLabel}</h2>
-                </div>
-                <i class="fa-solid fa-chevron-down"></i>
-              </summary>
-              <div class="description phase-report-entries">
-                ${entriesHtml}
-              </div>
-            </details>
-            <footer class="ability-card-footer">
-              <ul class="tags">
-                <li class="tag">Informe de Fase</li>
-                <li class="tag">Turno ${turn}</li>
-              </ul>
-            </footer>
-          </div>
-        </div>`;
+      const content = this._buildPhaseCard(
+        phaseIcon,
+        `Turno ${turn} — ${phaseLabel}`,
+        this._renderEntries(playerEntries, 'Sin novedades este turno.'),
+        ['Informe de Fase', `Turno ${turn}`],
+        'phase-report-entries'
+      );
 
       (ChatMessage as any).create({
         content,
@@ -616,35 +624,13 @@ export class PhaseEventManager {
   private _postGMReport(turn: number, phase: DayNightPhase, gmEntries: PhaseReportEntry[]): void {
     try {
       const phaseLabel = phase === 'day' ? 'Día' : 'Noche';
-
-      const entriesHtml = gmEntries.map((e) => `
-        <div class="phase-report-entry">
-          <i class="${e.icon || 'fas fa-circle-info'}"></i>
-          <span>${e.text}</span>
-        </div>`).join('');
-
-      const content = `
-        <div class="message-content">
-          <div class="daggerheart chat domain-card dh-style">
-            <details class="domain-card-move" open>
-              <summary class="domain-card-header">
-                <div class="domain-label">
-                  <h2 class="title"><i class="fas fa-clipboard-list"></i> Resumen GM — Turno ${turn} (${phaseLabel})</h2>
-                </div>
-                <i class="fa-solid fa-chevron-down"></i>
-              </summary>
-              <div class="description phase-report-entries">
-                ${entriesHtml}
-              </div>
-            </details>
-            <footer class="ability-card-footer">
-              <ul class="tags">
-                <li class="tag">Solo DM</li>
-                <li class="tag">Turno ${turn}</li>
-              </ul>
-            </footer>
-          </div>
-        </div>`;
+      const content = this._buildPhaseCard(
+        'fas fa-clipboard-list',
+        `Resumen GM — Turno ${turn} (${phaseLabel})`,
+        this._renderEntries(gmEntries),
+        ['Solo DM', `Turno ${turn}`],
+        'phase-report-entries'
+      );
 
       const gmIds = (game as any)?.users
         ?.filter((u: any) => u.isGM)
