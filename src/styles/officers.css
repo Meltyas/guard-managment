@@ -449,9 +449,17 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  object-fit: cover;
+  overflow: hidden;
   border: 2px solid #f3c267;
   flex-shrink: 0;
+}
+
+.officer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
 }
 
 .officer-info {

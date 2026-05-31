@@ -38,9 +38,11 @@ export interface GuardModalOptions {
   showFooter?: boolean;
 }
 
-// Track all open modals for stacking
-const openModals: GuardModal[] = [];
-let baseZIndex = 80;
+import { ModalStack } from '../utils/modal-stack.js';
+
+// Track GuardModal instances only (used for cascade-offset positioning and Escape handling)
+const openGuardModals: GuardModal[] = [];
+const CASCADE_OFFSET = 28;    // px to offset each new modal (cascade effect)
 
 export class GuardModal {
   public readonly element: HTMLElement;
@@ -63,8 +65,8 @@ export class GuardModal {
     document.body.appendChild(this.element);
 
     // Register in stack
-    openModals.push(this);
-    this.updateZIndex();
+    openGuardModals.push(this);
+    ModalStack.register(this.element);
 
     // Center on screen
     this.centerOnScreen();
@@ -124,8 +126,9 @@ export class GuardModal {
     document.removeEventListener('mouseup', this.boundMouseUp);
     document.removeEventListener('keydown', this.boundKeyDown);
 
-    const idx = openModals.indexOf(this);
-    if (idx !== -1) openModals.splice(idx, 1);
+    const idx = openGuardModals.indexOf(this);
+    if (idx !== -1) openGuardModals.splice(idx, 1);
+    ModalStack.unregister(this.element);
 
     this.opts.onClose?.();
   }
@@ -250,35 +253,22 @@ export class GuardModal {
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
-    if (e.key === 'Escape' && openModals.length > 0) {
-      // Close the topmost modal
-      const top = openModals[openModals.length - 1];
-      if (top === this) {
-        this.close();
-      }
+    if (e.key === 'Escape' && ModalStack.isTop(this.element)) {
+      this.close();
     }
   }
 
   private centerOnScreen(): void {
     const rect = this.element.getBoundingClientRect();
-    const x = (window.innerWidth - rect.width) / 2;
-    const y = (window.innerHeight - rect.height) / 2;
-    this.element.style.left = `${Math.max(0, x)}px`;
-    this.element.style.top = `${Math.max(0, y)}px`;
+    // Cascade: offset each GuardModal slightly so stacked modals are distinguishable
+    const cascade = (openGuardModals.length - 1) * CASCADE_OFFSET;
+    const x = Math.max(0, (window.innerWidth  - rect.width)  / 2 + cascade);
+    const y = Math.max(0, (window.innerHeight - rect.height) / 2 + cascade);
+    this.element.style.left = `${x}px`;
+    this.element.style.top  = `${y}px`;
   }
 
   private bringToFront(): void {
-    const idx = openModals.indexOf(this);
-    if (idx !== -1 && idx !== openModals.length - 1) {
-      openModals.splice(idx, 1);
-      openModals.push(this);
-    }
-    this.updateZIndex();
-  }
-
-  private updateZIndex(): void {
-    openModals.forEach((m, i) => {
-      m.element.style.zIndex = `${baseZIndex + i}`;
-    });
+    ModalStack.bringToFront(this.element);
   }
 }

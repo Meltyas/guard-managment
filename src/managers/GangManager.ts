@@ -111,6 +111,7 @@ export class GangManager {
       notes: data.notes || '',
       status: 'active',
       history: [],
+      hidden: true,
       createdAt: now,
       updatedAt: now,
     };

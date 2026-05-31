@@ -5,6 +5,8 @@
 import { GMWarehouseDialog } from '../dialogs/GMWarehouseDialog';
 import { OfficerWarehouseDialog } from '../dialogs/OfficerWarehouseDialog';
 import { GuardDialogManager } from '../managers/GuardDialogManager';
+import { GuardModal } from './GuardModal';
+import { PhaseCalendar } from './panels/PhaseCalendar';
 
 export interface FloatingPanelPosition {
   x: number;
@@ -17,6 +19,9 @@ export class FloatingGuardPanel {
   private dragOffset: { x: number; y: number } = { x: 0, y: 0 };
   private dialogManager: GuardDialogManager;
   private uiRefreshHandler?: (event: Event) => void;
+  private boundDragMove?: (event: MouseEvent) => void;
+  private boundDragEnd?: () => void;
+  private globalListenersAttached = false;
 
   private readonly STORAGE_KEY = 'guard-management-panel-position';
   private readonly DEFAULT_POSITION: FloatingPanelPosition = { x: 50, y: 50 };
@@ -30,6 +35,7 @@ export class FloatingGuardPanel {
    */
   public async initialize(): Promise<void> {
     await this.createPanel();
+    this.attachGlobalListeners();
     this.attachEventListeners();
     this.restorePosition();
   }
@@ -84,6 +90,17 @@ export class FloatingGuardPanel {
       this.uiRefreshHandler = undefined;
     }
 
+    // Remove global drag listeners
+    if (this.boundDragMove) {
+      document.removeEventListener('mousemove', this.boundDragMove);
+      this.boundDragMove = undefined;
+    }
+    if (this.boundDragEnd) {
+      document.removeEventListener('mouseup', this.boundDragEnd);
+      this.boundDragEnd = undefined;
+    }
+    this.globalListenersAttached = false;
+
     if (this.panel) {
       this.panel.remove();
       this.panel = null;
@@ -135,11 +152,13 @@ export class FloatingGuardPanel {
     const isMinimized = this.panel?.classList.contains('minimized') || false;
 
     const templatePath = 'modules/guard-management/templates/panels/floating-panel.hbs';
+    const isAway = (game?.settings?.get('guard-management', 'awayMode' as any) as boolean) ?? false;
     const content = await foundry.applications.handlebars.renderTemplate(templatePath, {
       isGM,
       organizations,
       isMinimized,
       minimizeIcon: isMinimized ? 'fas fa-plus' : 'fas fa-minus',
+      isAway,
     });
 
     this.panel.innerHTML = content;
@@ -332,6 +351,47 @@ export class FloatingGuardPanel {
         cursor: grabbing;
       }
 
+      .guard-floating-panel .action-btn.away-active {
+        background: linear-gradient(135deg, #8b2020, #5c1010);
+        color: #ffcdd2;
+        border: 1px solid #ef9a9a;
+      }
+
+      .guard-floating-panel .action-btn.away-active:hover {
+        background: linear-gradient(135deg, #a52a2a, #6e1414);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .guard-floating-panel .action-btn.away-inactive {
+        background: linear-gradient(135deg, #555, #333);
+        color: #ccc;
+      }
+
+      .guard-floating-panel .action-btn.away-inactive:hover {
+        background: linear-gradient(135deg, #666, #444);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .guard-floating-panel .away-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        background: rgba(139, 32, 32, 0.3);
+        border: 1px solid #ef9a9a;
+        border-radius: 4px;
+        color: #ffcdd2;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-top: 4px;
+      }
+
+      .guard-floating-panel .away-indicator i {
+        color: #ef9a9a;
+      }
+
       /* Scrollbar styling */
       .guard-floating-panel .organization-list::-webkit-scrollbar {
         width: 4px;
@@ -390,12 +450,24 @@ export class FloatingGuardPanel {
     orgItems.forEach((item) => {
       item.addEventListener('click', this.handleOrganizationClick.bind(this));
     });
+  }
 
-    // Global drag handlers
-    document.addEventListener('mousemove', this.handleDragMove.bind(this));
-    document.addEventListener('mouseup', this.handleDragEnd.bind(this));
+  /**
+   * Attach document-level listeners exactly once for the panel's lifetime.
+   * These must NOT be re-registered on every refreshPanel() or they accumulate
+   * (causing duplicate drag handling and repeated panel rebuilds).
+   */
+  private attachGlobalListeners(): void {
+    if (this.globalListenersAttached) return;
+    this.globalListenersAttached = true;
 
-    // Setup UI refresh listener
+    // Global drag handlers (read this.panel lazily, so they survive recreation)
+    this.boundDragMove = this.handleDragMove.bind(this);
+    this.boundDragEnd = this.handleDragEnd.bind(this);
+    document.addEventListener('mousemove', this.boundDragMove);
+    document.addEventListener('mouseup', this.boundDragEnd);
+
+    // Setup UI refresh listener (once)
     this.setupUIRefreshListener();
   }
 
@@ -403,6 +475,7 @@ export class FloatingGuardPanel {
    * Setup listener for UI refresh events
    */
   private setupUIRefreshListener(): void {
+    if (this.uiRefreshHandler) return;
     this.uiRefreshHandler = (event: Event) => {
       const detail = (event as CustomEvent).detail;
       console.log('🔄 FloatingGuardPanel received UI refresh event:', detail);
@@ -502,16 +575,30 @@ export class FloatingGuardPanel {
       case 'manage-organizations':
         this.dialogManager.showManageOrganizationsDialog();
         break;
+      case 'toggle-away':
+        this.toggleAwayMode();
+        break;
       case 'open-warehouse':
         this.openGMWarehouse();
         break;
       case 'open-officer-warehouse':
         this.openOfficerWarehouse();
         break;
+      case 'open-phase-reports':
+        this.openPhaseReports();
+        break;
       case 'debug-info':
         this.showDebugInfo();
         break;
     }
+  }
+
+  /**
+   * Toggle away mode on/off (GM only)
+   */
+  private async toggleAwayMode(): Promise<void> {
+    const current = (game?.settings?.get('guard-management', 'awayMode' as any) as boolean) ?? false;
+    await game?.settings?.set('guard-management', 'awayMode' as any, !current);
   }
 
   /**
@@ -610,10 +697,28 @@ export class FloatingGuardPanel {
   }
 
   /**
+   * Open the Phase Calendar window (singleton, GM + players)
+   */
+  private openPhaseReports(): void {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.phaseEventManager) {
+        ui?.notifications?.warn('El sistema de fases aún no está listo.');
+        return;
+      }
+      PhaseCalendar.openWindow();
+    } catch (error) {
+      console.error('FloatingGuardPanel.openPhaseReports() | Error:', error);
+      ui?.notifications?.error(
+        `Error al abrir el calendario: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
+    }
+  }
+
+  /**
    * Ensure the GuardManagement module is available, restore if needed
    */
-  private ensureModuleAvailable(): void {
-    const currentModule = (window as any).GuardManagement;
+  private ensureModuleAvailable(): void {    const currentModule = (window as any).GuardManagement;
 
     if (!currentModule) {
       // Try to find a backup reference in the system

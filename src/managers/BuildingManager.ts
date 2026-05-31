@@ -1,7 +1,7 @@
 /**
  * Building Manager - Manages buildings using game.settings
  */
-import type { Building, BuildingGangLink, BuildingTag } from '../types/buildings';
+import type { Building, BuildingChangelogEntry, BuildingGangLink, BuildingTag, BuildingZone } from '../types/buildings';
 
 export class BuildingManager {
   private buildings: Map<string, Building> = new Map();
@@ -23,6 +23,10 @@ export class BuildingManager {
         for (const b of buildings) {
           if (!Array.isArray(b.tags)) b.tags = [];
           if (typeof b.description !== 'string') b.description = '';
+          if (!b.zone) b.zone = 'fuera-arboria';
+          if (typeof b.active !== 'boolean') b.active = false;
+          if (typeof b.hidden !== 'boolean') b.hidden = false;
+          if (!Array.isArray(b.changelog)) b.changelog = [];
           this.buildings.set(b.id, b);
         }
         console.log(`BuildingManager | Loaded ${buildings.length} buildings from settings`);
@@ -58,7 +62,10 @@ export class BuildingManager {
     description?: string;
     img?: string;
     tags?: BuildingTag[];
+    zone?: BuildingZone;
     gangLink?: BuildingGangLink;
+    active?: boolean;
+    hidden?: boolean;
   }): Promise<Building> {
     const id = foundry.utils.randomID();
     const now = Date.now();
@@ -68,7 +75,11 @@ export class BuildingManager {
       description: data.description || '',
       img: data.img,
       tags: data.tags || [],
+      zone: data.zone || 'fuera-arboria',
       gangLink: data.gangLink,
+      active: data.active ?? false,
+      hidden: data.hidden ?? false,
+      changelog: [],
       createdAt: now,
       updatedAt: now,
     };
@@ -84,11 +95,22 @@ export class BuildingManager {
       ...building,
       ...updates,
       id: building.id,
+      changelog: updates.changelog ?? building.changelog,
       updatedAt: Date.now(),
     };
     this.buildings.set(id, updated);
     await this._saveToSettingsAsync();
     return updated;
+  }
+
+  public async appendChangelog(
+    id: string,
+    entry: BuildingChangelogEntry
+  ): Promise<Building | null> {
+    const building = this.buildings.get(id);
+    if (!building) return null;
+    const changelog = [...(building.changelog || []), entry];
+    return this.updateBuilding(id, { changelog });
   }
 
   public async deleteBuilding(id: string): Promise<boolean> {
@@ -103,11 +125,36 @@ export class BuildingManager {
     return this.buildings.size;
   }
 
+  public getBuildingsByZone(zone: BuildingZone): Building[] {
+    return this.getAllBuildings().filter((b) => b.zone === zone);
+  }
+
   public getBuildingsByTag(tag: BuildingTag): Building[] {
     return this.getAllBuildings().filter((b) => b.tags.includes(tag));
   }
 
   public getBuildingsByGang(gangId: string): Building[] {
     return this.getAllBuildings().filter((b) => b.gangLink?.gangId === gangId);
+  }
+
+  public getActiveBuildings(): Building[] {
+    return this.getAllBuildings().filter((b) => b.active);
+  }
+
+  /** Buildings visible in the activator (inactive + not hidden by GM) */
+  public getActivatableBuildings(): Building[] {
+    return this.getAllBuildings().filter((b) => !b.active && !b.hidden);
+  }
+
+  public async activateBuilding(id: string): Promise<Building | null> {
+    return this.updateBuilding(id, { active: true });
+  }
+
+  public async deactivateBuilding(id: string): Promise<Building | null> {
+    return this.updateBuilding(id, { active: false });
+  }
+
+  public async setHidden(id: string, hidden: boolean): Promise<Building | null> {
+    return this.updateBuilding(id, { hidden });
   }
 }

@@ -45,6 +45,129 @@
   display: none;
 }
 
+/* Reputación/banda oculta: dimmed */
+.custom-info-dialog .entity-row--faded {
+  opacity: 0.45;
+}
+
+.custom-info-dialog .entity-row--faded:hover {
+  opacity: 0.75;
+}
+
+/* ── Reputation detail extras ────────────────────────────────────────────── */
+.custom-info-dialog .rep-detail-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.custom-info-dialog .rep-detail-trend {
+  font-size: 11px;
+  color: rgba(239, 230, 216, 0.65);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+
+.custom-info-dialog .rep-detail-category {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #c9a44a;
+  background: rgba(201,164,74,0.12);
+  border: 1px solid rgba(201,164,74,0.3);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+
+.custom-info-dialog .rep-detail-gmnotes {
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(239, 230, 216, 0.45);
+  border-left: 2px solid rgba(201,164,74,0.3);
+  padding-left: 6px;
+  margin: 2px 0 0;
+}
+
+.custom-info-dialog .rep-detail-section {
+  margin-top: 6px;
+  border-top: 1px solid rgba(201,164,74,0.15);
+  padding-top: 5px;
+}
+
+.custom-info-dialog .rep-detail-section__title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(201,164,74,0.7);
+  margin-bottom: 4px;
+}
+
+.custom-info-dialog .rep-favor-item {
+  margin-bottom: 5px;
+}
+
+.custom-info-dialog .rep-favor-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #efe6d8;
+}
+
+.custom-info-dialog .rep-favor-cost {
+  font-size: 10px;
+  color: rgba(239,230,216,0.5);
+  margin-left: 6px;
+}
+
+/* BEM variant used in warehouse-reputation-item.hbs */
+.custom-info-dialog .rep-favor__cost {
+  font-size: 0.8em;
+  color: rgba(239,230,216,0.65);
+  margin: 2px 0 0 0;
+  padding: 0;
+}
+
+.custom-info-dialog .rep-favor-desc {
+  font-size: 11px;
+  color: rgba(239,230,216,0.75);
+  font-style: italic;
+  margin: 1px 0 0 0;
+}
+
+.custom-info-dialog .rep-relation-item {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+
+.custom-info-dialog .rep-relation-type {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 3px;
+  padding: 0 4px;
+  border: 1px solid;
+}
+.custom-info-dialog .rep-relation-aliada  { color: #81c784; border-color: #81c784; background: rgba(129,199,132,0.15); }
+.custom-info-dialog .rep-relation-neutral  { color: #bdbdbd; border-color: #bdbdbd; background: rgba(189,189,189,0.1); }
+.custom-info-dialog .rep-relation-rival    { color: #ffb74d; border-color: #ffb74d; background: rgba(255,183,77,0.15); }
+.custom-info-dialog .rep-relation-enemiga  { color: #ff6b6b; border-color: #ff6b6b; background: rgba(255,107,107,0.15); }
+
+.custom-info-dialog .rep-relation-name {
+  color: #efe6d8;
+}
+
+.custom-info-dialog .rep-relation-notes {
+  color: rgba(239,230,216,0.5);
+  font-style: italic;
+}
+
 /* ── List ────────────────────────────────────────────────────────────────── */
 .custom-info-dialog .entity-list {
   display: flex;
@@ -405,4 +528,257 @@
   background: rgba(80, 80, 80, 0.4);
   color: #bdbdbd;
   border-color: rgba(189, 189, 189, 0.4);
+}
+
+/* ── Reputation category reorder ─────────────────────────────────────────── */
+.custom-info-dialog .rep-category-section {
+  margin-bottom: 8px;
+}
+
+.custom-info-dialog .rep-category-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(201, 164, 74, 0.1);
+  border: 1px solid rgba(201, 164, 74, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-info-dialog .rep-category-icon {
+  color: rgba(201, 164, 74, 0.8);
+  font-size: 12px;
+  width: 14px;
+  text-align: center;
+}
+
+.custom-info-dialog .rep-category-label {
+  font-weight: 600;
+  font-size: 11px;
+  color: #c9a44a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.custom-info-dialog .rep-category-count {
+  font-size: 10px;
+  color: rgba(201, 164, 74, 0.6);
+  background: rgba(0,0,0,0.3);
+  border-radius: 9px;
+  padding: 0 5px;
+  margin-right: auto;
+}
+
+.custom-info-dialog .rep-category-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.custom-info-dialog .rep-order-btn {
+  background: transparent;
+  border: 1px solid rgba(201, 164, 74, 0.3);
+  border-radius: 3px;
+  color: rgba(201, 164, 74, 0.7);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.custom-info-dialog .rep-order-btn:hover {
+  background: rgba(201, 164, 74, 0.2);
+  color: #c9a44a;
+}
+
+.custom-info-dialog .rep-category-chevron {
+  color: rgba(201, 164, 74, 0.5);
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.custom-info-dialog .rep-category-section--collapsed .rep-category-chevron {
+  transform: rotate(-90deg);
+}
+
+.custom-info-dialog .rep-category-section--collapsed .entity-list {
+  display: none;
+}
+
+/* ── Reputation Changelog ────────────────────────────────────────────────── */
+.custom-info-dialog .rep-changelog-section {
+  margin-top: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.custom-info-dialog .rep-changelog-toggle {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(201, 164, 74, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.custom-info-dialog .rep-changelog-toggle:hover {
+  color: #c9a44a;
+}
+
+.custom-info-dialog .rep-changelog-count {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.custom-info-dialog .rep-changelog-chevron {
+  margin-left: auto;
+  font-size: 9px;
+  transition: transform 0.2s;
+}
+
+.custom-info-dialog .rep-changelog-list {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.custom-info-dialog .rep-log-entry {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-size: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.custom-info-dialog .rep-log-entry__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  min-width: 0;
+}
+
+.custom-info-dialog .rep-log-entry__date {
+  color: rgba(201, 164, 74, 0.7);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.custom-info-dialog .rep-log-entry__user {
+  color: #aaa;
+  font-style: italic;
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-info-dialog .rep-log-delete-btn {
+  all: unset;
+  margin-left: auto;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: rgba(220, 80, 80, 0.6);
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.custom-info-dialog .rep-log-delete-btn:hover {
+  color: #ff6b6b;
+  background: rgba(220, 80, 80, 0.15);
+}
+
+.custom-info-dialog .rep-log-entry__change {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.custom-info-dialog .rep-log-field {
+  color: #b0bec5;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.custom-info-dialog .rep-log-from {
+  color: #ef9a9a;
+  text-decoration: line-through;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.custom-info-dialog .rep-log-arrow {
+  color: #555;
+  font-size: 8px;
+  flex-shrink: 0;
+}
+
+.custom-info-dialog .rep-log-to {
+  color: #a5d6a7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+/* ── Favor / Relation sub-chat buttons ───────────────────────────────────── */
+.custom-info-dialog .rep-favor-item__header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.custom-info-dialog .rep-sub-chat-btn {
+  all: unset;
+  margin-left: auto;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: rgba(201, 164, 74, 0.55);
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.custom-info-dialog .rep-sub-chat-btn:hover {
+  color: #c9a44a;
+  background: rgba(201, 164, 74, 0.12);
+  border-color: rgba(201, 164, 74, 0.3);
+}
+
+.custom-info-dialog .rep-relation-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
 }

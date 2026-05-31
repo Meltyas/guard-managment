@@ -39,6 +39,8 @@ export interface Gang {
   history: GangHistoryEntry[];
   createdAt: number;
   updatedAt: number;
+  /** Si true, la banda está oculta en el panel. Por defecto true. */
+  hidden?: boolean;
 }
 
 export interface GangHistoryEntry {

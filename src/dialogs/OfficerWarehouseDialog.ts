@@ -7,6 +7,7 @@
 
 import type { Officer } from '../types/officer';
 import { ImportExportService } from '../utils/ImportExportService.js';
+import { ModalStack } from '../utils/modal-stack.js';
 import { AddOrEditOfficerDialog } from './AddOrEditOfficerDialog.js';
 
 export class OfficerWarehouseDialog {
@@ -38,12 +39,15 @@ export class OfficerWarehouseDialog {
    */
   public async show(): Promise<void> {
     if (this.element && this.isOpen()) {
-      this.bringToFront();
+      ModalStack.bringToFront(this.element);
       return;
     }
 
     this.element = await this.createElement();
     document.body.appendChild(this.element);
+
+    // Register in shared modal stack (brings to front on click, manages z-index)
+    ModalStack.register(this.element);
 
     this.addEventListeners();
     this.setupDragAndDrop();
@@ -54,6 +58,7 @@ export class OfficerWarehouseDialog {
    */
   public close(): void {
     if (this.element) {
+      ModalStack.unregister(this.element);
       this.element.remove();
       this.element = null;
     }
@@ -67,7 +72,7 @@ export class OfficerWarehouseDialog {
   }
 
   /**
-   * Bring dialog to front
+   * Check if dialog is open
    */
   private bringToFront(): void {
     if (this.element) {
@@ -88,7 +93,6 @@ export class OfficerWarehouseDialog {
       transform: translate(-50%, -50%);
       width: 800px;
       max-height: 80vh;
-      z-index: 100;
     `;
 
     const isGM = (game as any)?.user?.isGM || false;

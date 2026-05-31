@@ -4,6 +4,7 @@
 
 import type { GuardOrganization } from '../types/entities';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
+import { ModalStack } from '../utils/modal-stack.js';
 // Import CSS for drag & drop styling
 import '../styles/custom-info-dialog.css';
 import { NotificationService } from '../utils/services/NotificationService.js';
@@ -13,6 +14,7 @@ import { FinancesPanel } from './panels/FinancesPanel.js';
 import { GangsPanel } from './panels/GangsPanel.js';
 import { GeneralPanel } from './panels/GeneralPanel.js';
 import { PatrolsPanel } from './panels/PatrolsPanel.js';
+import { PhaseCalendar } from './panels/PhaseCalendar.js';
 import { PoiPanel } from './panels/PoiPanel.js';
 import { PrisonersPanel } from './panels/PrisonersPanel.js';
 import { ReputationPanel } from './panels/ReputationPanel.js';
@@ -139,6 +141,25 @@ export class CustomInfoDialog implements FocusableDialog {
         console.warn('CustomInfoDialog | finances auto-refresh failed', e);
       }
     });
+    // Auto-refresh phases panel when events or reports update
+    window.addEventListener('guard-phase-events-updated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="phases"]');
+        if (activeTab) this.refreshPhasesPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | phases auto-refresh failed', e);
+      }
+    });
+    window.addEventListener('guard-phase-report-generated', () => {
+      try {
+        if (!this.element || !this.currentOrganization) return;
+        const activeTab = this.element.querySelector('[data-tab-panel="phases"]');
+        if (activeTab) this.refreshPhasesPanel();
+      } catch (e) {
+        console.warn('CustomInfoDialog | phase-report auto-refresh failed', e);
+      }
+    });
   }
 
   /**
@@ -191,6 +212,9 @@ export class CustomInfoDialog implements FocusableDialog {
     // Register with focus manager
     DialogFocusManager.getInstance().registerDialog(this);
 
+    // Register in shared modal stack (brings to front on click, manages z-index)
+    ModalStack.register(this.element);
+
     // Add event listeners
     this.addEventListeners();
 
@@ -235,10 +259,13 @@ export class CustomInfoDialog implements FocusableDialog {
     dialog.tabIndex = -1; // Make focusable for keyboard events
 
     const templatePath = 'modules/guard-management/templates/dialogs/info-dialog.hbs';
+    const isGM = !!(game as any)?.user?.isGM;
+    const isAway = ((game as any)?.settings?.get('guard-management', 'awayMode') as boolean) ?? false;
     const content = await foundry.applications.handlebars.renderTemplate(templatePath, {
       title: `Información: ${organization.name}`,
       initialTab: localStorage.getItem(CustomInfoDialog.TAB_LS_KEY) || 'general',
-      isGM: !!(game as any)?.user?.isGM,
+      isGM,
+      isAway,
     });
 
     dialog.innerHTML = content;
@@ -398,6 +425,14 @@ export class CustomInfoDialog implements FocusableDialog {
           console.log('🔄 Rendering FinancesPanel...');
           await FinancesPanel.render(financesContainer);
         }
+
+        const phasesContainer = this.element.querySelector(
+          '[data-tab-panel="phases"]'
+        ) as HTMLElement;
+        if (phasesContainer) {
+          console.log('🔄 Rendering PhaseEventsPanel...');
+          await PhaseCalendar.mount(phasesContainer);
+        }
       }
 
       console.log('✅ Refresh completed successfully');
@@ -429,6 +464,9 @@ export class CustomInfoDialog implements FocusableDialog {
 
       // Unregister from focus manager
       DialogFocusManager.getInstance().unregisterDialog(this);
+
+      // Unregister from shared modal stack
+      ModalStack.unregister(this.element);
 
       this.removeEventListeners();
       this.element.remove();
@@ -933,6 +971,71 @@ export class CustomInfoDialog implements FocusableDialog {
     if (!tabPanel) return;
 
     FinancesPanel.render(tabPanel);
+  }
+
+  public refreshPhasesPanel() {
+    const tabPanel = this.element?.querySelector(
+      '[data-tab-panel="phases"]'
+    ) as HTMLElement | null;
+    if (!tabPanel) return;
+
+    PhaseCalendar.mount(tabPanel);
+  }
+
+  /**
+   * Update the away overlay without a full re-render.
+   * Called by the awayMode settings onChange on all clients.
+   */
+  public refreshAwayMode(): void {
+    if (!this.element) return;
+
+    const isGM = !!(game as any)?.user?.isGM;
+    const isAway = ((game as any)?.settings?.get('guard-management', 'awayMode') as boolean) ?? false;
+
+    // --- Player: full overlay ---
+    if (!isGM) {
+      // Remove existing overlay if present
+      this.element.querySelector('.away-full-overlay')?.remove();
+
+      if (isAway) {
+        const overlay = document.createElement('div');
+        overlay.className = 'away-full-overlay';
+        overlay.innerHTML = `
+          <div class="away-full-overlay-content">
+            <img class="away-placeholder-img"
+                 src="modules/guard-management/assets/away-placeholder.png"
+                 alt="Demasiado lejos"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+            <div class="away-placeholder-fallback" style="display:none">
+              <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <p class="away-full-overlay-text">Estáis demasiado lejos para poder organizar la guardia</p>
+          </div>`;
+        // Insert after header (before .custom-dialog-content)
+        const content = this.element.querySelector('.custom-dialog-content');
+        if (content) {
+          this.element.insertBefore(overlay, content);
+        } else {
+          this.element.appendChild(overlay);
+        }
+      }
+    } else {
+      // --- GM: reminder banner at the bottom of .custom-dialog-content ---
+      this.element.querySelector('.away-gm-reminder')?.remove();
+
+      if (isAway) {
+        const reminder = document.createElement('div');
+        reminder.className = 'away-gm-reminder';
+        reminder.innerHTML = `
+          <img class="away-placeholder-img-small"
+               src="modules/guard-management/assets/away-placeholder.png"
+               alt="AWAY"
+               onerror="this.style.display='none'"/>
+          <span><i class="fas fa-map-marker-alt"></i> Modo AWAY activo — los jugadores no pueden ver la organización</span>`;
+        const content = this.element.querySelector('.custom-dialog-content');
+        if (content) content.appendChild(reminder);
+      }
+    }
   }
 
   /**
@@ -1582,6 +1685,9 @@ export class CustomInfoDialog implements FocusableDialog {
         }
         if (tab === 'finances') {
           this.refreshFinancesPanel();
+        }
+        if (tab === 'phases') {
+          this.refreshPhasesPanel();
         }
       }
     };

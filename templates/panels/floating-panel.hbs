@@ -27,11 +27,26 @@
                 <span>Personal</span>
             </button>
 
+            <button class="action-btn secondary" data-action="open-phase-reports">
+                <i class="fas fa-scroll"></i>
+                <span>Reportes de Fase</span>
+            </button>
+
             {{#if isGM}}
             <button class="action-btn secondary" data-action="open-warehouse">
                 <i class="fas fa-warehouse"></i>
                 <span>GM Warehouse</span>
             </button>
+            <button class="action-btn {{#if isAway}}away-active{{else}}away-inactive{{/if}}" data-action="toggle-away" title="{{#if isAway}}Desactivar modo AWAY{{else}}Activar modo AWAY{{/if}}">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{#if isAway}}AWAY (activo){{else}}Modo AWAY{{/if}}</span>
+            </button>
+            {{/if}}
+            {{#if isAway}}
+            <div class="away-indicator">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Modo AWAY activo</span>
+            </div>
             {{/if}}
 
             <button class="action-btn secondary" data-action="debug-info">

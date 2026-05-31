@@ -154,6 +154,11 @@
                             <button type="button" class="toggle-overlay-patrol" data-action="toggle-overlay" data-patrol-id="{{this.id}}" data-tooltip="Abrir resumen flotante">
                                 <i class="fas fa-external-link-alt"></i>
                             </button>
+                            <button type="button" class="call-patrol" data-action="call-patrol" data-patrol-id="{{this.id}}"
+                                    data-tooltip="{{#if @root.isAuxiliary}}Colocar tokens del auxiliar{{else}}Colocar tokens de la patrulla{{/if}}"
+                                    {{#unless this.hasMembers}}disabled{{/unless}}>
+                                <i class="fas fa-bullhorn"></i>
+                            </button>
                             <button type="button" class="to-chat-patrol" data-action="to-chat" data-patrol-id="{{this.id}}" data-tooltip="Enviar al chat">
                                 <i class="fas fa-comment-alt"></i>
                             </button>

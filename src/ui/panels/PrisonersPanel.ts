@@ -341,6 +341,7 @@ export class PrisonersPanel {
           });
 
           NotificationService.info(`${actor.name} encarcelado en celda ${cellIndex + 1}`);
+          gm.guardDialogManager?.customInfoDialog?.refreshPrisonersPanel?.();
         } catch (error) {
           console.error('PrisonersPanel | Drop error:', error);
           NotificationService.error('Error al encarcelar al prisionero');

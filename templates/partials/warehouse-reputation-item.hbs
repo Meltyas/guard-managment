@@ -4,8 +4,20 @@
       <img class="entity-row__thumb" src="{{#if image}}{{image}}{{else}}icons/svg/cowled.svg{{/if}}" alt="{{name}}" />
     </button>
     <span class="entity-row__badge entity-row__badge--level-{{level}}">{{levelLabel}}</span>
+    {{#if trend}}
+      <span class="rep-trend rep-trend--{{trend}}" title="{{trendLabel}}">{{trendIcon}}</span>
+    {{/if}}
     <span class="entity-row__name">{{name}}</span>
+    {{#if category}}
+      <span class="rep-category-pill">{{categoryLabel}}</span>
+    {{/if}}
     <div class="entity-row__actions">
+      <button type="button" class="entity-row__btn rep-level-down-btn" title="Bajar nivel" data-reputation-id="{{id}}">
+        <i class="fas fa-chevron-down"></i>
+      </button>
+      <button type="button" class="entity-row__btn rep-level-up-btn" title="Subir nivel" data-reputation-id="{{id}}">
+        <i class="fas fa-chevron-up"></i>
+      </button>
       <button type="button" class="entity-row__btn send-to-chat-template-btn" title="Enviar al chat" data-reputation-id="{{id}}">
         <i class="fas fa-comment"></i>
       </button>
@@ -20,16 +32,82 @@
       </button>
     </div>
   </div>
+
   <div class="entity-row__detail" hidden>
     <div class="entity-row__detail-image">
       <img class="entity-row__detail-img" src="{{#if image}}{{image}}{{else}}icons/svg/cowled.svg{{/if}}" alt="{{name}}" />
     </div>
     <div class="entity-row__detail-body">
       <div class="entity-row__detail-title">{{name}}</div>
-      <span class="entity-row__detail-badge entity-row__detail-badge--level-{{level}}">{{levelLabel}}</span>
+
+      <div class="rep-meta-row">
+        <span class="entity-row__detail-badge entity-row__detail-badge--level-{{level}}">{{levelLabel}}</span>
+        {{#if trend}}
+          <span class="rep-trend rep-trend--{{trend}}">{{trendIcon}} {{trendLabel}}</span>
+        {{/if}}
+        {{#if category}}
+          <span class="rep-category-pill">{{categoryLabel}}</span>
+        {{/if}}
+      </div>
+
+      {{#if contact}}
+        <p class="rep-detail-meta"><i class="fas fa-user"></i> <strong>Contacto:</strong> {{contact}}</p>
+      {{/if}}
+
       {{#if description}}
         <p class="entity-row__detail-desc">{{description}}</p>
       {{/if}}
+
+      {{#if factionRelations.length}}
+        <div class="rep-section">
+          <div class="rep-section__title"><i class="fas fa-network-wired"></i> Relaciones</div>
+          {{#each factionRelations}}
+            <div class="rep-relation rep-relation--{{this.relationType}}">
+              <span class="rep-relation__type">{{this.relationLabel}}</span>
+              <span class="rep-relation__name">{{this.factionName}}</span>
+              {{#if this.notes}}
+                <span class="rep-relation__notes">— {{this.notes}}</span>
+              {{/if}}
+              <button
+                type="button"
+                class="entity-row__btn send-relation-to-chat-btn"
+                title="Enviar relación al chat"
+                data-reputation-id="{{../id}}"
+                data-relation-id="{{this.id}}"
+              ><i class="fas fa-comment"></i></button>
+            </div>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      {{#if favors.length}}
+        <div class="rep-section">
+          <div class="rep-section__title"><i class="fas fa-handshake"></i> Favores</div>
+          {{#each favors}}
+            <div class="rep-favor" data-favor-id="{{this.id}}">
+              <div class="rep-favor__header">
+                <span class="rep-favor__name">{{this.name}}</span>
+                <button
+                  type="button"
+                  class="entity-row__btn send-favor-to-chat-btn"
+                  title="Enviar favor al chat"
+                  data-reputation-id="{{../id}}"
+                  data-favor-id="{{this.id}}"
+                >
+                  <i class="fas fa-comment"></i>
+                </button>
+              </div>
+              {{#if this.cost}}
+                <p class="rep-favor__cost"><strong>Coste:</strong> {{this.cost}}</p>
+              {{/if}}
+              {{#if this.description}}
+                <p class="rep-favor__desc">{{this.description}}</p>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      {{/if}}
+
     </div>
   </div>
 </div>

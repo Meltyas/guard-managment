@@ -23,7 +23,7 @@
     {{#if gangs.length}}
       <div class="gang-cards">
         {{#each gangs}}
-          <div class="gang-card" data-gang-id="{{this.id}}" data-gang-status="{{this.status}}">
+          <div class="gang-card{{#if this.hidden}} gang-card--faded{{/if}}" data-gang-id="{{this.id}}" data-gang-status="{{this.status}}">
             <div class="gang-card-header">
               <div class="gang-image-wrapper">
                 {{#if this.img}}
@@ -39,6 +39,9 @@
                 <span class="gang-status-badge gang-status-{{this.status}}">{{this.statusLabel}}</span>
               </div>
               <div class="gang-card-actions">
+                <button class="gang-action-btn gang-toggle-hidden-btn" data-gang-id="{{this.id}}" title="{{#if this.hidden}}Mostrar{{else}}Ocultar{{/if}}">
+                  <i class="fas fa-eye{{#if this.hidden}}-slash{{/if}}"></i>
+                </button>
                 <button class="gang-action-btn gang-chat-btn" data-gang-id="{{this.id}}" title="Enviar al chat">
                   <i class="fas fa-comment-dots"></i>
                 </button>

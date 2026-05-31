@@ -1,0 +1,83 @@
+<div class='phases-section phase-reports-player'>
+  <div class='phases-status'>
+    <div class='phase-status-item'>
+      <i class='{{phaseIcon}}'></i>
+      <span>Turno {{currentTurn}} · {{phaseLabel}}</span>
+    </div>
+    <div class='phase-status-item'>
+      <i class='fas fa-scroll'></i>
+      <span>{{reportCount}} reporte(s)</span>
+    </div>
+    {{#if isGM}}
+    <div class='phase-status-item'>
+      <button class='phases-btn phases-add-btn' title='Programar nuevo evento'>
+        <i class='fas fa-plus'></i> Programar evento
+      </button>
+    </div>
+    {{/if}}
+  </div>
+
+  {{#if isGM}}
+  <div class='phases-events-pending'>
+    {{#if pendingEvents.length}}
+    <div class='phases-subheader'>
+      <i class='fas fa-calendar-alt'></i>
+      <span>Próximos eventos ({{pendingEvents.length}})</span>
+    </div>
+    <div class='phases-events-list'>
+      {{#each pendingEvents}}
+        <div class='phase-event-row status-pending' data-event-id='{{id}}'>
+          <div class='phase-event-turn' title='Turno de disparo'>T{{triggerTurn}}</div>
+          <div class='phase-event-main'>
+            <div class='phase-event-title'><i class='{{icon}}'></i> {{title}}</div>
+            {{#if description}}<div class='phase-event-desc'>{{description}}</div>{{/if}}
+            <div class='phase-event-tags'>
+              <span class='ev-tag visibility-{{visibility}}'>{{visibilityLabel}}</span>
+              <span class='ev-tag'>{{categoryLabel}}</span>
+              {{#if recurrenceLabel}}<span class='ev-tag'><i class='fas fa-repeat'></i> {{recurrenceLabel}}</span>{{/if}}
+            </div>
+          </div>
+          <div class='phase-event-actions'>
+            <button class='phase-event-edit-btn' data-event-id='{{id}}' title='Editar'><i class='fas fa-edit'></i></button>
+            <button class='phase-event-cancel-btn' data-event-id='{{id}}' title='Cancelar'><i class='fas fa-ban'></i></button>
+          </div>
+        </div>
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+  {{/if}}
+
+  <div class='phases-subheader'>
+    <i class='fas fa-scroll'></i>
+    <span>Historial de reportes</span>
+  </div>
+  <div class='phases-reports-list'>
+    {{#if reports.length}}
+      {{#each reports}}
+        <details class='phase-report' data-turn='{{turn}}' {{#if open}}open{{/if}}>
+          <summary class='phase-report-summary'>
+            <span class='phase-report-turn'>Turno {{turn}}</span>
+            <span class='phase-report-phase'><i class='{{phaseIcon}}'></i> {{phaseLabel}}</span>
+            <span class='phase-report-count'>{{totalEntries}} entrada(s)</span>
+            <i class='fas fa-chevron-down phase-report-chevron'></i>
+          </summary>
+          <div class='phase-report-body'>
+            {{#each playerEntries}}
+              <div class='report-entry'>
+                <i class='{{icon}}'></i>
+                <span>{{text}}</span>
+              </div>
+            {{/each}}
+          </div>
+        </details>
+      {{/each}}
+    {{else}}
+      <div class='phases-empty'>
+        <i class='fas fa-scroll'></i>
+        <p>Aún no hay novedades</p>
+        <p class='phases-empty-hint'>Los reportes aparecerán al avanzar las fases</p>
+      </div>
+    {{/if}}
+  </div>
+</div>

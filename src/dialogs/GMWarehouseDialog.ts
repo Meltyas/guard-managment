@@ -1,10 +1,18 @@
 // @ts-nocheck
-import { REPUTATION_LABELS, ReputationLevel } from '../types/entities.js';
+import {
+  REPUTATION_LABELS,
+  REPUTATION_TREND_LABELS,
+  REPUTATION_TREND_ICONS,
+  REPUTATION_CATEGORY_LABELS,
+  FACTION_RELATION_LABELS,
+  ReputationLevel,
+} from '../types/entities.js';
 import { ReputationTemplate } from '../ui/ReputationTemplate.js';
 import { ResourceTemplate } from '../ui/ResourceTemplate.js';
 import { DialogFocusManager, type FocusableDialog } from '../utils/dialog-focus-manager.js';
 import { DOMEventSetup } from '../utils/DOMEventSetup.js';
 import { ImportExportService } from '../utils/ImportExportService.js';
+import { ModalStack } from '../utils/modal-stack.js';
 import { ResourceErrorHandler } from '../utils/ResourceErrorHandler.js';
 import { ResourceEventHandler, type ResourceEventContext } from '../utils/ResourceEventHandler.js';
 
@@ -117,6 +125,9 @@ export class GMWarehouseDialog implements FocusableDialog {
     // Register with focus manager
     DialogFocusManager.getInstance().registerDialog(this);
 
+    // Register in shared modal stack (brings to front on click, manages z-index)
+    ModalStack.register(this.element);
+
     // Add event listeners
     this.addEventListeners();
 
@@ -139,6 +150,9 @@ export class GMWarehouseDialog implements FocusableDialog {
     if (this.element) {
       // Unregister from focus manager
       DialogFocusManager.getInstance().unregisterDialog(this);
+
+      // Unregister from shared modal stack
+      ModalStack.unregister(this.element);
 
       this.removeEventListeners();
       this.element.remove();
@@ -355,16 +369,32 @@ export class GMWarehouseDialog implements FocusableDialog {
    * Render individual reputation template
    */
   private async renderReputationTemplate(reputation: any): Promise<string> {
-    // reputation is a plain object from SimpleReputationManager — no .system wrapper
     const level = reputation.level ?? ReputationLevel.Neutrales;
+    const trend = reputation.trend ?? null;
+    const factionRelations = (reputation.factionRelations ?? []).map((r: any) => ({
+      ...r,
+      relationLabel: FACTION_RELATION_LABELS[r.relationType as keyof typeof FACTION_RELATION_LABELS] ?? r.relationType,
+    }));
+    const favors = reputation.favors ?? [];
+
     const reputationData = {
       id: reputation.id,
       name: reputation.name,
       description: reputation.description || '',
-      level: level,
+      level,
       image: reputation.image || '',
       organizationId: reputation.organizationId || '',
-      levelLabel: REPUTATION_LABELS[level as ReputationLevel] || `Level ${level}`,
+      levelLabel: REPUTATION_LABELS[level as ReputationLevel] || `Nivel ${level}`,
+      trend,
+      trendLabel: trend ? (REPUTATION_TREND_LABELS[trend as keyof typeof REPUTATION_TREND_LABELS] ?? trend) : '',
+      trendIcon: trend ? (REPUTATION_TREND_ICONS[trend as keyof typeof REPUTATION_TREND_ICONS] ?? '') : '',
+      category: reputation.category || '',
+      categoryLabel: reputation.category
+        ? (REPUTATION_CATEGORY_LABELS[reputation.category as keyof typeof REPUTATION_CATEGORY_LABELS] ?? reputation.category)
+        : '',
+      contact: reputation.contact || '',
+      factionRelations,
+      favors,
     };
 
     return foundry.applications.handlebars.renderTemplate(
@@ -998,9 +1028,15 @@ export class GMWarehouseDialog implements FocusableDialog {
         e.stopPropagation();
         const row = summary.closest('.entity-row') as HTMLElement;
         const toggle = row.querySelector('.entity-row__toggle') as HTMLElement;
+        const detail = row.querySelector('.entity-row__detail') as HTMLElement;
         const isOpen = row.classList.contains('entity-row--open');
         row.classList.toggle('entity-row--open', !isOpen);
         toggle?.setAttribute('aria-expanded', String(!isOpen));
+        // Explicitly manage [hidden] attribute — some Foundry CSS contexts override !important on [hidden]
+        if (detail) {
+          if (!isOpen) detail.removeAttribute('hidden');
+          else detail.setAttribute('hidden', '');
+        }
       };
     });
 
@@ -1030,6 +1066,57 @@ export class GMWarehouseDialog implements FocusableDialog {
         } else if (reputationId) {
           this.handleSendReputationTemplateToChat(reputationId);
         }
+      };
+    });
+
+    // Handle send favor to chat buttons
+    const sendFavorButtons = this.element.querySelectorAll('.send-favor-to-chat-btn');
+    sendFavorButtons.forEach((button) => {
+      (button as HTMLElement).onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const el = button as HTMLElement;
+        const reputationId = el.dataset.reputationId;
+        const favorId = el.dataset.favorId;
+        if (reputationId && favorId) {
+          this.handleSendFavorToChat(reputationId, favorId);
+        }
+      };
+    });
+
+    // Handle send relation to chat buttons
+    const sendRelationButtons = this.element.querySelectorAll('.send-relation-to-chat-btn');
+    sendRelationButtons.forEach((button) => {
+      (button as HTMLElement).onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const el = button as HTMLElement;
+        const reputationId = el.dataset.reputationId;
+        const relationId = el.dataset.relationId;
+        if (reputationId && relationId) {
+          this.handleSendRelationToChat(reputationId, relationId);
+        }
+      };
+    });
+
+    // Handle reputation level +/- buttons
+    const levelDownButtons = this.element.querySelectorAll('.rep-level-down-btn');
+    levelDownButtons.forEach((button) => {
+      (button as HTMLElement).onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const reputationId = (button as HTMLElement).dataset.reputationId;
+        if (reputationId) this.handleReputationLevelChange(reputationId, -1);
+      };
+    });
+
+    const levelUpButtons = this.element.querySelectorAll('.rep-level-up-btn');
+    levelUpButtons.forEach((button) => {
+      (button as HTMLElement).onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const reputationId = (button as HTMLElement).dataset.reputationId;
+        if (reputationId) this.handleReputationLevelChange(reputationId, +1);
       };
     });
 
@@ -1412,13 +1499,8 @@ export class GMWarehouseDialog implements FocusableDialog {
   private async handleSendReputationTemplateToChat(reputationId: string): Promise<void> {
     try {
       console.log('💬 Send reputation template to chat request:', reputationId);
-
-      // Send to chat using ReputationTemplate
       await ReputationTemplate.sendReputationToChat(reputationId);
-
       console.log('✅ Reputation template sent to chat successfully');
-
-      // Show success notification
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.info('Reputación enviada al chat');
       }
@@ -1427,6 +1509,64 @@ export class GMWarehouseDialog implements FocusableDialog {
       if ((globalThis as any).ui?.notifications) {
         (globalThis as any).ui.notifications.error('Error al enviar reputación al chat');
       }
+    }
+  }
+
+  /**
+   * Handle sending a single favor to chat
+   */
+  private async handleSendFavorToChat(reputationId: string, favorId: string): Promise<void> {
+    try {
+      await ReputationTemplate.sendFavorToChat(reputationId, favorId);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info('Favor enviado al chat');
+      }
+    } catch (error) {
+      console.error('Error sending favor to chat:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al enviar el favor al chat');
+      }
+    }
+  }
+
+  /**
+   * Handle sending a single relation to chat
+   */
+  private async handleSendRelationToChat(reputationId: string, relationId: string): Promise<void> {
+    try {
+      await ReputationTemplate.sendRelationToChat(reputationId, relationId);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info('Relación enviada al chat');
+      }
+    } catch (error) {
+      console.error('Error sending relation to chat:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al enviar la relación al chat');
+      }
+    }
+  }
+
+  /**
+   * Handle changing a reputation level by delta (+1 / -1)
+   */
+  private async handleReputationLevelChange(reputationId: string, delta: 1 | -1): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.reputationManager) return;
+
+      const reputation = gm.reputationManager.getReputation(reputationId);
+      if (!reputation) return;
+
+      const minLevel = 1;
+      const maxLevel = 7;
+      const newLevel = Math.min(maxLevel, Math.max(minLevel, (reputation.level ?? 4) + delta));
+
+      if (newLevel === reputation.level) return;
+
+      await gm.reputationManager.updateReputation(reputationId, { level: newLevel });
+      await this.refreshReputationTab();
+    } catch (error) {
+      console.error('Error changing reputation level:', error);
     }
   }
 

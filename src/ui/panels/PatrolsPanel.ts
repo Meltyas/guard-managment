@@ -34,10 +34,19 @@ export class PatrolsPanel {
       const bd = this.computePatrolStatBreakdown(p);
 
       // Format stats breakdown for template
+      const STAT_BADGE: Record<string, string> = {
+        agility: 'AGL', strength: 'FUE', finesse: 'DES',
+        instinct: 'INS', presence: 'PRE', knowledge: 'CON',
+      };
       const statsBreakdown: Record<string, any> = {};
       Object.entries(p.baseStats || {}).forEach(([k]) => {
         const b = (bd as any)[k] || { base: 0, effects: 0, effectList: [], org: 0, total: 0 };
-        statsBreakdown[k] = { ...b }; // total is already live-computed inside computePatrolStatBreakdown
+        const mods = (b.org || 0) + (b.effects || 0);
+        statsBreakdown[k] = {
+          ...b,
+          label: STAT_BADGE[k] ?? k.slice(0, 3).toUpperCase(),
+          totalClass: mods > 0 ? 'stat-positive' : mods < 0 ? 'stat-negative' : '',
+        };
       });
 
       // Prepare slots
@@ -56,6 +65,7 @@ export class PatrolsPanel {
         ageClass,
         statsBreakdown,
         slots,
+        hasMembers: !!(p.officer?.actorId || (p.soldiers && p.soldiers.length > 0)),
         officerSkill: p.officer?.actorId
           ? (officerSkillByActorId.get(p.officer.actorId) ?? null)
           : null,
@@ -119,12 +129,12 @@ export class PatrolsPanel {
         lastOrder: lastOrder
           ? {
               ...lastOrder,
-              text:
-                lastOrder.text &&
-                typeof lastOrder.text === 'string' &&
-                lastOrder.text.includes('[object ')
-                  ? '— (error de datos)'
-                  : lastOrder.text,
+              text: (() => {
+                if (!lastOrder.text || typeof lastOrder.text !== 'string') return '';
+                if (lastOrder.text.includes('[object ')) return '— (error de datos)';
+                // Strip HTML tags left by rich-text editor
+                return lastOrder.text.replace(/<[^>]*>/g, '').trim();
+              })(),
             }
           : null,
       };
@@ -169,6 +179,11 @@ export class PatrolsPanel {
       ev.preventDefault();
       const id = ev.currentTarget.dataset.patrolId;
       if (id) this.handleDeletePatrol(id, () => this.refresh(container), unitMode);
+    });
+    $html.find('[data-action="call-patrol"]').on('click', (ev) => {
+      ev.preventDefault();
+      const id = ev.currentTarget.dataset.patrolId;
+      if (id) this.handleCallPatrol(id, unitMode);
     });
     $html.find('[data-action="to-chat"]').on('click', (ev) => {
       ev.preventDefault();
@@ -1236,5 +1251,153 @@ export class PatrolsPanel {
   private static resolveUnitManager(orgMgr: any, mode: 'patrol' | 'auxiliary'): any {
     if (mode === 'auxiliary') return orgMgr?.getAuxiliaryManager?.();
     return orgMgr?.getPatrolManager?.();
+  }
+
+  // ─── Call Patrol / Token Placement ────────────────────────────────────────
+
+  public static async handleCallPatrol(patrolId: string, unitType: PanelUnitType = 'patrol'): Promise<void> {
+    const g: any = (globalThis as any).game;
+    const cv: any = (globalThis as any).canvas;
+
+    if (!cv?.scene) {
+      (globalThis as any).ui?.notifications?.warn?.('No hay escena activa. Abre una escena primero.');
+      return;
+    }
+
+    const pMgr = this.resolveUnitManager(g?.GuardManagement?.guardOrganizationManager, unitType);
+    if (!pMgr) return;
+    const patrol = pMgr.getPatrol(patrolId);
+    if (!patrol) return;
+
+    const members: Array<{ actorId: string; name: string; isOfficer: boolean }> = [];
+    if (patrol.officer?.actorId) {
+      members.push({ actorId: patrol.officer.actorId, name: patrol.officer.name || 'Officer', isOfficer: true });
+    }
+    for (const soldier of (patrol.soldiers || [])) {
+      if (soldier.actorId) {
+        members.push({ actorId: soldier.actorId, name: soldier.name || 'Soldier', isOfficer: false });
+      }
+    }
+
+    if (members.length === 0) {
+      const label = unitType === 'auxiliary' ? 'auxiliar' : 'patrulla';
+      (globalThis as any).ui?.notifications?.warn?.(`Esta ${label} no tiene miembros para colocar`);
+      return;
+    }
+
+    const label = unitType === 'auxiliary' ? 'auxiliar' : 'patrulla';
+    (globalThis as any).ui?.notifications?.info?.(`Haz clic en el canvas para colocar la ${label}. Clic derecho o Escape para cancelar.`);
+
+    try {
+      const position = await PatrolsPanel.pickCanvasLocation();
+      if (!position) {
+        (globalThis as any).ui?.notifications?.info?.('Colocación de tokens cancelada');
+        return;
+      }
+
+      const gridSize = cv.grid?.size || 100;
+      const tokenPositions = PatrolsPanel.calculateFormationPositions(position.x, position.y, members, gridSize);
+
+      const tokenDataArray: any[] = [];
+      const skipped: string[] = [];
+
+      for (const tp of tokenPositions) {
+        const actor = g.actors?.get?.(tp.actorId);
+        if (!actor) { skipped.push(tp.name); continue; }
+        const tokenDoc = await actor.getTokenDocument?.({ x: tp.x, y: tp.y });
+        if (tokenDoc) {
+          tokenDataArray.push(tokenDoc.toObject());
+        } else {
+          const protoData = actor.prototypeToken?.toObject?.() || actor.prototypeToken || {};
+          tokenDataArray.push({ ...protoData, name: protoData.name || actor.name, actorId: actor.id, x: tp.x, y: tp.y });
+        }
+      }
+
+      if (tokenDataArray.length === 0) {
+        (globalThis as any).ui?.notifications?.error?.('No se encontraron actores para colocar');
+        return;
+      }
+
+      await cv.scene.createEmbeddedDocuments('Token', tokenDataArray);
+
+      if (skipped.length > 0) {
+        (globalThis as any).ui?.notifications?.warn?.(`${tokenDataArray.length} tokens colocados. Actores no encontrados: ${skipped.join(', ')}`);
+      } else {
+        (globalThis as any).ui?.notifications?.info?.(`${tokenDataArray.length} tokens colocados exitosamente`);
+      }
+    } catch (err) {
+      console.error('GuardManagement | Error placing patrol tokens:', err);
+      (globalThis as any).ui?.notifications?.error?.('Error al colocar tokens');
+    }
+  }
+
+  private static pickCanvasLocation(): Promise<{ x: number; y: number } | null> {
+    return new Promise((resolve) => {
+      const cv: any = (globalThis as any).canvas;
+      const board = document.getElementById('board') as HTMLCanvasElement | null;
+      if (!cv?.stage || !board) { resolve(null); return; }
+
+      const originalCursor = board.style.cursor || '';
+      board.style.cursor = 'crosshair';
+      let resolved = false;
+
+      const cleanup = () => {
+        if (resolved) return;
+        resolved = true;
+        board.style.cursor = originalCursor;
+        board.removeEventListener('click', onClick);
+        document.removeEventListener('keydown', onKeyDown);
+        board.removeEventListener('contextmenu', onContextMenu);
+      };
+
+      const onClick = (event: MouseEvent) => {
+        if (event.button !== 0) return;
+        // Convert client → canvas world using the PIXI stage world transform
+        const t = cv.stage.worldTransform;
+        const worldX = (event.clientX - t.tx) / t.a;
+        const worldY = (event.clientY - t.ty) / t.d;
+        const GPCONST = (globalThis as any).CONST;
+        const snapped: { x: number; y: number } =
+          cv.grid?.getSnappedPoint?.({ x: worldX, y: worldY }, { mode: GPCONST?.GRID_SNAPPING_MODES?.CENTER ?? 2 }) ||
+          cv.grid?.getSnappedPosition?.(worldX, worldY, 1) ||
+          { x: worldX, y: worldY };
+        cleanup();
+        resolve(snapped);
+      };
+
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') { e.preventDefault(); cleanup(); resolve(null); }
+      };
+
+      const onContextMenu = (e: MouseEvent) => { e.preventDefault(); cleanup(); resolve(null); };
+
+      board.addEventListener('click', onClick);
+      document.addEventListener('keydown', onKeyDown);
+      board.addEventListener('contextmenu', onContextMenu, { once: true });
+    });
+  }
+
+  private static calculateFormationPositions(
+    centerX: number, centerY: number,
+    members: Array<{ actorId: string; name: string; isOfficer: boolean }>,
+    gridSize: number
+  ): Array<{ actorId: string; name: string; x: number; y: number }> {
+    const result: Array<{ actorId: string; name: string; x: number; y: number }> = [];
+    const officer = members.find(m => m.isOfficer);
+    const soldiers = members.filter(m => !m.isOfficer);
+
+    if (officer) result.push({ actorId: officer.actorId, name: officer.name, x: centerX, y: centerY });
+
+    if (soldiers.length > 0) {
+      const baseRadius = gridSize * 1.0;
+      const minArcLength = gridSize * 0.85;
+      const minRadiusForCount = (soldiers.length * minArcLength) / (2 * Math.PI);
+      const radius = Math.max(baseRadius, minRadiusForCount);
+      for (let i = 0; i < soldiers.length; i++) {
+        const angle = (2 * Math.PI * i) / soldiers.length - Math.PI / 2;
+        result.push({ actorId: soldiers[i].actorId, name: soldiers[i].name, x: centerX + radius * Math.cos(angle), y: centerY + radius * Math.sin(angle) });
+      }
+    }
+    return result;
   }
 }

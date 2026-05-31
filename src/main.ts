@@ -15,6 +15,7 @@ import { GangManager } from './managers/GangManager';
 import { GuardDialogManager } from './managers/GuardDialogManager';
 import { GuardOrganizationManager } from './managers/GuardOrganizationManager';
 import { OfficerManager } from './managers/OfficerManager';
+import { PhaseEventManager } from './managers/PhaseEventManager';
 import { PhaseManager } from './managers/PhaseManager';
 import { PoiManager } from './managers/PoiManager';
 import { PrisonerManager } from './managers/PrisonerManager';
@@ -23,6 +24,7 @@ import { SimpleModifierManager } from './managers/SimpleModifierManager';
 import { SimplePatrolEffectManager } from './managers/SimplePatrolEffectManager';
 import { SimpleReputationManager } from './managers/SimpleReputationManager';
 import { SimpleResourceManager } from './managers/SimpleResourceManager';
+import { MCPBridgeIntegration } from './mcp/MCPBridgeIntegration';
 import { runMigrationIfNeeded } from './migration';
 import { registerSettings } from './settings';
 import './styles/buildings.css';
@@ -36,6 +38,7 @@ import './styles/gangs.css';
 import './styles/gm-warehouse.css';
 import './styles/main.css';
 import './styles/officers.css';
+import './styles/phase-events.css';
 import './styles/poi.css';
 import './styles/presence.css';
 import './styles/prisoners.css';
@@ -122,6 +125,7 @@ class GuardManagementModule {
   public poiManager: PoiManager;
   public prisonerManager: PrisonerManager;
   public phaseManager: PhaseManager;
+  public phaseEventManager: PhaseEventManager;
   public buildingManager: BuildingManager;
   public financeManager: FinanceManager;
   public modifierManager: SimpleModifierManager;
@@ -143,6 +147,7 @@ class GuardManagementModule {
     this.poiManager = new PoiManager();
     this.prisonerManager = new PrisonerManager();
     this.phaseManager = new PhaseManager();
+    this.phaseEventManager = new PhaseEventManager();
     this.buildingManager = new BuildingManager();
     this.financeManager = new FinanceManager();
     this.modifierManager = new SimpleModifierManager();
@@ -172,6 +177,7 @@ class GuardManagementModule {
     await this.resourceManager.initialize(); // Load resources from settings
     await this.reputationManager.initialize(); // Load reputations from settings
     await this.phaseManager.initialize(); // Load phase/turn data from settings
+    await this.phaseEventManager.initialize(); // Load phase events & reports from settings
     await this.crimeManager.initialize(); // Load crimes catalog from settings
     await this.sentenceConfigManager.initialize(); // Load sentence config from settings
     await this.gangManager.initialize(); // Load gangs from settings
@@ -285,6 +291,7 @@ class GuardManagementModule {
     this.floatingPanel.cleanup();
     this.guardDialogManager.cleanup();
     this.guardOrganizationManager?.cleanup?.();
+    MCPBridgeIntegration.unregister();
   }
 }
 
@@ -478,6 +485,39 @@ Hooks.once('init', async () => {
 });
 
 Hooks.once('ready', async () => {
+  // Patch DhActorCollection.set to be more permissive.
+  // Daggerheart adds a strict `instanceof Actor` check in its custom collection's set()
+  // method. This check fails during folder drag-and-drop in the Foundry sidebar because
+  // that code path calls Actor.updateDocuments(), which at some point passes through a
+  // raw document object that doesn't satisfy the instanceof check. We catch that specific
+  // error and fall back to the base Map.set() so the operation can proceed.
+  try {
+    const coll = game.actors as any;
+    if (coll) {
+      const proto = Object.getPrototypeOf(coll);
+      if (proto && typeof proto.set === 'function') {
+        const originalSet = proto.set;
+        proto.set = function (id: string, value: any) {
+          try {
+            return originalSet.call(this, id, value);
+          } catch (e: any) {
+            if (
+              typeof e?.message === 'string' &&
+              e.message.includes('DhActorCollection')
+            ) {
+              // Fall back to the generic Map.set so the collection still gets updated
+              return Map.prototype.set.call(this, id, value);
+            }
+            throw e;
+          }
+        };
+        console.log('Guard Management | DhActorCollection.set patched successfully');
+      }
+    }
+  } catch (patchError) {
+    console.warn('Guard Management | Could not patch DhActorCollection:', patchError);
+  }
+
   // Configure tooltips to be fast
   if (game?.tooltip) {
     (game.tooltip as any).activationTime = 100; // 100ms delay
@@ -540,5 +580,10 @@ Hooks.once('ready', async () => {
   }
   if (warehouseWasOpen && (game as any)?.user?.isGM) {
     GMWarehouseDialog.show();
+  }
+
+  // Register MCP Bridge tools
+  if (guardManagementModule) {
+    MCPBridgeIntegration.register(guardManagementModule);
   }
 });

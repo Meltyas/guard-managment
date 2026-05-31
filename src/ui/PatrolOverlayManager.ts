@@ -190,17 +190,25 @@ export class PatrolOverlayManager {
       });
     });
 
-    // Skills toggle
-    el.querySelectorAll('[data-action="toggle-overlay-skills"]').forEach((btn) => {
+    // Deploy button – place patrol tokens on canvas
+    el.querySelectorAll('[data-action="overlay-deploy"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        const list = (btn as HTMLElement).nextElementSibling as HTMLElement | null;
-        const chevron = (btn as HTMLElement).querySelector('.overlay-skills-chevron');
-        if (list) {
-          const isHidden = list.style.display === 'none';
-          list.style.display = isHidden ? 'block' : 'none';
-          chevron?.classList.toggle('open', isHidden);
-        }
+        PatrolsPanel.handleCallPatrol(patrolId, unitType);
+      });
+    });
+
+    // Section toggles (soldier / magic / order)
+    el.querySelectorAll('[data-action="toggle-section"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = (btn as HTMLElement).dataset.target;
+        if (!target) return;
+        const section = el.querySelector(`.patrol-overlay-section-${target}`) as HTMLElement | null;
+        if (!section) return;
+        const isHidden = section.style.display === 'none' || !section.style.display;
+        section.style.display = isHidden ? 'block' : 'none';
+        (btn as HTMLElement).classList.toggle('active', isHidden);
       });
     });
 
@@ -298,235 +306,365 @@ export class PatrolOverlayManager {
     if (document.getElementById(style.id)) return;
 
     style.textContent = `
+      /* ── Overlay shell ── */
       .patrol-overlay {
         position: fixed;
-        width: 260px;
-        background: rgba(24, 22, 46, 0.92);
-        border: 1px solid #f3c267;
-        border-radius: 8px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        width: 320px;
+        background: rgba(20, 18, 40, 0.94);
+        border: 1px solid rgba(243, 194, 103, 0.55);
+        border-radius: 6px;
+        box-shadow: 0 6px 22px rgba(0,0,0,0.6);
         z-index: 60;
         font-family: 'Signika', sans-serif;
         backdrop-filter: blur(10px);
         user-select: none;
-        color: #ddd;
-        font-size: 0.82rem;
+        color: #d4d4d4;
+        font-size: 0.76rem;
+        line-height: 1.2;
       }
+      .patrol-overlay.dragging { opacity: 0.82; cursor: grabbing; }
 
-      .patrol-overlay.dragging {
-        opacity: 0.8;
-        cursor: grabbing;
-      }
-
-      /* Header */
+      /* ── Header ── */
       .patrol-overlay-header {
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 6px 10px;
-        border-bottom: 1px solid rgba(243, 194, 103, 0.4);
+        gap: 5px;
+        padding: 0 4px;
         cursor: move;
       }
-
       .patrol-overlay-name {
         flex: 1;
         font-family: 'Cinzel', serif;
-        font-weight: bold;
-        font-size: 0.85rem;
+        font-weight: 700;
+        font-size: 0.8rem;
         color: #f3c267;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-
-      .patrol-overlay-subtitle {
-        font-size: 0.7rem;
-        color: #aaa;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 80px;
-      }
-
       .patrol-overlay-close {
         background: none;
         border: none;
-        color: #ccc;
+        color: #888;
         cursor: pointer;
-        padding: 2px 4px;
-        font-size: 0.8rem;
+        padding: 1px 4px;
+        font-size: 0.72rem;
         border-radius: 3px;
-        transition: all 0.2s;
         line-height: 1;
+        transition: color 0.15s, background 0.15s;
       }
+      .patrol-overlay-close:hover { background: rgba(255,80,80,0.22); color: #ff6b6b; }
 
-      .patrol-overlay-close:hover {
-        background: rgba(255, 80, 80, 0.3);
-        color: #ff6b6b;
-      }
-
-      /* Body */
+      /* ── Body: two-column (deco | content) ── */
       .patrol-overlay-body {
-        padding: 8px 10px;
+        display: flex;
+        gap: 0;
+        padding: 0;
       }
 
-      /* Stats */
-      .patrol-overlay-stats {
+      /* Officer decoration column */
+      .patrol-overlay-officer-deco {
+        flex-shrink: 0;
+        width: 48px;
         display: flex;
-        flex-wrap: wrap;
-        gap: 4px 8px;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 2px;
+      }
+      .overlay-deco-img {
+        width: 48px;
+        height: 100%;
+        border-radius: 0;
+        object-fit: cover;
+        border: 1px solid rgba(243,194,103,0.35);
+        box-shadow: 0 0 8px rgba(243,194,103,0.12);
+      }
+      .overlay-deco-placeholder {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #555;
+        font-size: 0.78rem;
+      }
+
+      /* Content column */
+      .patrol-overlay-content { flex: 1; padding: 0.25rem 0.5rem; min-width: 0; }
+
+      /* ── Stats grid ── */
+      .patrol-overlay-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
         margin-bottom: 6px;
       }
-
       .overlay-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+        padding: 4px 2px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 4px;
         cursor: pointer;
-        padding: 2px 4px;
-        border-radius: 3px;
-        transition: all 0.2s;
-        font-size: 0.8rem;
+        transition: background 0.12s, border-color 0.12s, transform 0.1s;
+        color: inherit;
       }
-
       .overlay-stat:hover {
-        background: rgba(243, 194, 103, 0.15);
-        transform: scale(1.05);
-        box-shadow: 0 0 6px rgba(243, 194, 103, 0.3);
+        background: rgba(243,194,103,0.1);
+        border-color: rgba(243,194,103,0.3);
+        transform: translateY(-1px);
       }
+      .overlay-stat:active { transform: translateY(0); }
+      .overlay-stat:focus { outline: none; border-color: rgba(243,194,103,0.5); }
+      .overlay-stat-key {
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: #999;
+        text-transform: uppercase;
+      }
+      .overlay-stat-val { font-size: 0.88rem; font-weight: 700; color: #e8e8e8; }
+      .stat-positive { color: #4ae89a !important; }
+      .stat-negative { color: #e84a4a !important; }
 
-      .overlay-stat .stat-positive { color: #4ae89a; }
-      .overlay-stat .stat-negative { color: #e84a4a; }
-      .overlay-stat .stat-mixed { color: #f3c267; }
-
-      /* Hope */
-      .patrol-overlay-hope {
+      /* ── Hope + Deploy row ── */
+      .patrol-overlay-hope-row {
         display: flex;
         align-items: center;
         gap: 6px;
+        padding: 4px 0 6px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
         margin-bottom: 6px;
       }
-
-      .patrol-overlay-hope .hope-pips {
+      .patrol-overlay-hope {
+        flex: 1;
         display: flex;
-        gap: 3px;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
       }
-
-      .patrol-overlay-hope .hope-pip {
+      .patrol-overlay-deploy-btns { flex-shrink: 0; }
+      .overlay-deploy-btn {
+        padding: 3px 7px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.05);
+        color: #bbb;
+        font-size: 0.66rem;
         cursor: pointer;
-        font-size: 0.75rem;
-        color: #666;
-        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+        transition: background 0.14s, border-color 0.14s, color 0.14s;
       }
+      .overlay-deploy-btn:hover { background: rgba(255,255,255,0.1); color: #eee; }
+      .overlay-deploy-btn--idle     { border-color: rgba(74,232,154,0.3); color: #4ae89a; }
+      .overlay-deploy-btn--idle:hover { background: rgba(74,232,154,0.1); }
+      .overlay-deploy-btn--deployed { border-color: rgba(243,194,103,0.4); color: #f3c267; }
+      .overlay-deploy-btn--deployed:hover { background: rgba(243,194,103,0.1); }
+      .overlay-deploy-btn--recalled { border-color: rgba(232,74,74,0.35); color: #e87a4a; }
+      .overlay-deploy-btn--recalled:hover { background: rgba(232,74,74,0.1); }
 
-      .patrol-overlay-hope .hope-pip.filled {
-        color: #f3c267;
-      }
-
-      .patrol-overlay-hope .hope-pip:hover {
-        transform: scale(1.2);
-      }
-
-      .patrol-overlay-hope .hope-label {
+      .hope-label {
         font-family: 'Cinzel', serif;
-        font-size: 0.65rem;
+        font-size: 0.6rem;
+        letter-spacing: 0.12em;
         color: #f3c267;
-        letter-spacing: 0.1em;
-        opacity: 0.7;
+        opacity: 0.75;
+        text-transform: uppercase;
+      }
+      .hope-pips { display: flex; gap: 4px; }
+      .hope-pip {
+        cursor: pointer;
+        font-size: 0.7rem;
+        color: rgba(243,194,103,0.25);
+        transition: color 0.15s, transform 0.1s;
+      }
+      .hope-pip.filled { color: #f3c267; }
+      .hope-pip:hover { transform: scale(1.25); }
+
+      .patrol-overlay-section-toggles {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 4px;
+      }
+      .patrol-section-toggle {
+        flex: 1;
+        padding: 4px 4px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        color: #999;
+        font-size: 0.66rem;
+        cursor: pointer;
+        transition: background 0.14s, color 0.14s, border-color 0.14s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        white-space: nowrap;
+      }
+      .patrol-section-toggle:hover { color: #ccc; border-color: rgba(255,255,255,0.15); }
+      .patrol-section-toggle.active {
+        background: rgba(243,194,103,0.12);
+        color: #f3c267;
+        border-color: rgba(243,194,103,0.3);
       }
 
-      /* Skills */
-      .patrol-overlay-skills-section {
+      /* ── Sections ── */
+      .patrol-overlay-section {
+        padding: 6px 6px;
+        border-radius: 4px;
+        background: rgba(0,0,0,0.18);
+        border: 1px solid rgba(255,255,255,0.05);
         margin-top: 4px;
       }
+      .overlay-empty-hint {
+        margin: 0;
+        padding: 2px 0;
+        font-size: 0.68rem;
+        color: #666;
+        font-style: italic;
+        text-align: center;
+      }
 
-      .patrol-overlay-skills-toggle {
+      /* Officer row */
+      .overlay-officer-row {
         display: flex;
         align-items: center;
         gap: 6px;
-        width: 100%;
-        padding: 4px 8px;
-        background: rgba(243, 194, 103, 0.1);
-        border: 1px solid rgba(243, 194, 103, 0.25);
-        border-radius: 4px;
-        color: #f3c267;
-        font-family: 'Cinzel', serif;
-        font-size: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s;
+        margin-bottom: 5px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
       }
-
-      .patrol-overlay-skills-toggle:hover {
-        background: rgba(243, 194, 103, 0.2);
-      }
-
-      .overlay-skills-chevron {
-        margin-left: auto;
-        transition: transform 0.2s;
-        font-size: 0.65rem;
-      }
-
-      .overlay-skills-chevron.open {
-        transform: rotate(180deg);
-      }
-
-      .patrol-overlay-skills-list {
-        padding: 4px 0;
-      }
-
-      .overlay-skill-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 8px;
-        cursor: pointer;
-        border-radius: 3px;
-        transition: background 0.15s;
-      }
-
-      .overlay-skill-item:hover {
-        background: rgba(255, 255, 255, 0.08);
-      }
-
-      .overlay-skill-img {
-        width: 20px;
-        height: 20px;
-        border-radius: 3px;
+      .overlay-member-img, .overlay-slot-img {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
         object-fit: cover;
-        border: none;
+        border: 1px solid rgba(243,194,103,0.3);
+        flex-shrink: 0;
       }
-
-      .overlay-skill-name {
-        flex: 1;
-        font-size: 0.78rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .overlay-skill-hope {
-        font-size: 0.7rem;
+      .overlay-member-icon { color: #888; font-size: 0.9rem; }
+      .overlay-member-name { flex: 1; font-size: 0.74rem; font-weight: 600; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .overlay-member-badge {
+        font-size: 0.6rem;
+        background: rgba(243,194,103,0.12);
+        border: 1px solid rgba(243,194,103,0.25);
         color: #f3c267;
-        opacity: 0.8;
+        padding: 1px 5px;
+        border-radius: 10px;
+        white-space: nowrap;
       }
 
-      /* Toggle button in patrol card */
+      /* Officer skill */
+      .overlay-officer-skill {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 5px;
+        border-radius: 4px;
+        background: rgba(243,194,103,0.06);
+        border: 1px solid rgba(243,194,103,0.12);
+        cursor: pointer;
+        transition: background 0.14s;
+        margin-bottom: 6px;
+      }
+      .overlay-officer-skill:hover { background: rgba(243,194,103,0.14); }
+      .overlay-skill-img { width: 18px; height: 18px; border-radius: 3px; object-fit: cover; border: none; flex-shrink: 0; }
+      .overlay-skill-name { flex: 1; font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #d4d4d4; }
+      .overlay-skill-hope { font-size: 0.66rem; color: #f3c267; opacity: 0.85; white-space: nowrap; }
+
+      /* Soldier slots */
+      .overlay-slots {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .overlay-slot {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.03);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        color: #555;
+        overflow: hidden;
+        cursor: default;
+      }
+      .overlay-slot.filled { border-color: rgba(243,194,103,0.35); background: rgba(243,194,103,0.06); color: #bbb; }
+      .overlay-slot.filled img { width: 100%; height: 100%; object-fit: cover; }
+
+      /* Spellcasting */
+      .overlay-spellcasting-header {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 6px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+      }
+      .overlay-spell-type-img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; border: none; flex-shrink: 0; }
+      .overlay-spellcasting-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+      .overlay-spell-type-name { font-size: 0.74rem; font-weight: 600; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .overlay-spell-type-label { font-size: 0.65rem; color: #999; }
+
+      .overlay-spells-list { display: flex; flex-direction: column; gap: 2px; }
+      .overlay-spell-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 4px;
+        border-radius: 3px;
+        background: rgba(255,255,255,0.03);
+      }
+      .overlay-spell-name { flex: 1; font-size: 0.71rem; color: #d0d0d0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .overlay-spell-hope { font-size: 0.65rem; color: #f3c267; opacity: 0.8; white-space: nowrap; }
+
+      /* Order */
+      .overlay-order-text {
+        font-size: 0.72rem;
+        color: #ccc;
+        font-style: italic;
+        line-height: 1.4;
+        margin-bottom: 5px;
+      }
+      .overlay-order-age {
+        font-size: 0.62rem;
+        color: #777;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .overlay-order-age-fresh .fas { color: #4ae89a; }
+      .overlay-order-age-old .fas    { color: #f3c267; }
+      .overlay-order-age-stale .fas  { color: #e84a4a; }
+
+      /* ── Patrol card toggle button ── */
       .toggle-overlay {
         background: none;
         border: 1px solid transparent;
-        color: #aaa;
+        color: #999;
         cursor: pointer;
         padding: 2px 6px;
         border-radius: 4px;
-        transition: all 0.2s;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
       }
-
-      .toggle-overlay:hover {
-        color: #f3c267;
-        border-color: rgba(243, 194, 103, 0.3);
-      }
-
+      .toggle-overlay:hover { color: #f3c267; border-color: rgba(243,194,103,0.3); }
       .toggle-overlay.overlay-active {
         color: #f3c267;
-        border-color: rgba(243, 194, 103, 0.5);
-        background: rgba(243, 194, 103, 0.1);
+        border-color: rgba(243,194,103,0.45);
+        background: rgba(243,194,103,0.1);
       }
     `;
 

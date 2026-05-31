@@ -1,6 +1,10 @@
 <form class="reputation-form guard-dialog">
   <input type="hidden" name="organizationId" value="{{organizationId}}" />
+  <!-- Arrays serializados como JSON -->
+  <input type="hidden" id="rep-faction-relations-json" name="factionRelationsJson" value="{{factionRelationsJson}}" />
+  <input type="hidden" id="rep-favors-json" name="favorsJson" value="{{favorsJson}}" />
 
+  <!-- ── DATOS BÁSICOS ─────────────────────────────────────────── -->
   <div class="form-group">
     <label for="reputation-name">
       <i class="fas fa-tag"></i> Nombre
@@ -10,20 +14,72 @@
       id="reputation-name"
       name="name"
       value="{{name}}"
-      placeholder="Ej: Guía de los Vientos"
+      placeholder="Ej: Los Tanatopractores"
       required
     />
   </div>
 
+  <div class="form-row">
+    <div class="form-group form-group--half">
+      <label for="reputation-level">
+        <i class="fas fa-heart"></i> Nivel
+      </label>
+      <select id="reputation-level" name="level" required>
+        {{#each reputationLevels}}
+          <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group form-group--half">
+      <label for="reputation-trend">
+        <i class="fas fa-chart-line"></i> Tendencia
+      </label>
+      <select id="reputation-trend" name="trend">
+        {{#each trendOptions}}
+          <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group form-group--half">
+      <label for="reputation-category">
+        <i class="fas fa-users"></i> Categoría
+      </label>
+      <select id="reputation-category" name="category">
+        {{#each categoryOptions}}
+          <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="form-group form-group--half">
+      <label for="reputation-faction">
+        <i class="fas fa-landmark"></i> Facción
+      </label>
+      <input
+        type="text"
+        id="reputation-faction"
+        name="faction"
+        value="{{faction}}"
+        placeholder="Nombre real de la facción"
+      />
+    </div>
+  </div>
+
   <div class="form-group">
-    <label for="reputation-level">
-      <i class="fas fa-heart"></i> Nivel de Reputación
+    <label for="reputation-contact">
+      <i class="fas fa-user"></i> Contacto NPC
     </label>
-    <select id="reputation-level" name="level" required>
-      {{#each reputationLevels}}
-        <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-      {{/each}}
-    </select>
+    <input
+      type="text"
+      id="reputation-contact"
+      name="contact"
+      value="{{contact}}"
+      placeholder="Nombre del NPC de contacto (opcional)"
+    />
   </div>
 
   <div class="form-group">
@@ -33,9 +89,21 @@
     <textarea
       id="reputation-description"
       name="description"
-      rows="4"
-      placeholder="Describe esta relación de reputación..."
+      rows="3"
+      placeholder="Describe esta relación..."
     >{{description}}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label for="reputation-gmnotes">
+      <i class="fas fa-eye-slash"></i> Notas del GM <small>(privadas)</small>
+    </label>
+    <textarea
+      id="reputation-gmnotes"
+      name="gmNotes"
+      rows="2"
+      placeholder="Información reservada al GM..."
+    >{{gmNotes}}</textarea>
   </div>
 
   <div class="form-group">
@@ -60,4 +128,126 @@
       </button>
     </div>
   </div>
+
+  <!-- ── RELACIONES CON OTRAS FACCIONES ───────────────────────── -->
+  <div class="form-section">
+    <div class="form-section__header">
+      <h4><i class="fas fa-network-wired"></i> Relaciones con otras facciones</h4>
+      <button type="button" class="btn btn--sm btn--add" id="add-faction-relation-btn">
+        <i class="fas fa-plus"></i> Añadir
+      </button>
+    </div>
+    <div id="faction-relations-list" class="dynamic-list">
+      <!-- Generado dinámicamente por JS desde AddOrEditReputationDialog -->
+    </div>
+  </div>
+
+  <!-- ── FAVORES ───────────────────────────────────────────────── -->
+  <div class="form-section">
+    <div class="form-section__header">
+      <h4><i class="fas fa-handshake"></i> Favores</h4>
+      <button type="button" class="btn btn--sm btn--add" id="add-favor-btn">
+        <i class="fas fa-plus"></i> Añadir
+      </button>
+    </div>
+    <div id="favors-list" class="dynamic-list">
+      <!-- Generado dinámicamente por JS desde AddOrEditReputationDialog -->
+    </div>
+  </div>
+
 </form>
+
+<style>
+  .reputation-form .form-row {
+    display: flex;
+    gap: 8px;
+  }
+  .reputation-form .form-group--half {
+    flex: 1;
+  }
+  .reputation-form .form-section {
+    border: 1px solid var(--color-border-light-tertiary, #999);
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 10px;
+  }
+  .reputation-form .form-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .reputation-form .form-section__header h4 {
+    margin: 0;
+    font-size: 0.85em;
+    font-weight: bold;
+  }
+  .reputation-form .dynamic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .reputation-form .dynamic-item {
+    background: var(--color-bg-option, rgba(0,0,0,0.05));
+    border-radius: 4px;
+    padding: 6px 8px;
+    position: relative;
+  }
+  .reputation-form .dynamic-item .remove-item-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: none;
+    border: none;
+    color: var(--color-text-dark-secondary, #888);
+    cursor: pointer;
+    font-size: 0.8em;
+    padding: 2px 4px;
+  }
+  .reputation-form .dynamic-item .remove-item-btn:hover {
+    color: var(--color-level-error, #c0392b);
+  }
+  .reputation-form .dynamic-item input,
+  .reputation-form .dynamic-item select,
+  .reputation-form .dynamic-item textarea {
+    width: 100%;
+    margin-top: 3px;
+    font-size: 0.85em;
+  }
+  .reputation-form .dynamic-item label {
+    font-size: 0.78em;
+    color: var(--color-text-dark-secondary, #666);
+    font-weight: normal;
+    border-bottom: none;
+  }
+  .reputation-form .item-row {
+    display: flex;
+    gap: 6px;
+  }
+  .reputation-form .item-row .form-group {
+    flex: 1;
+    margin: 0;
+  }
+  .btn--sm {
+    padding: 2px 8px;
+    font-size: 0.8em;
+    line-height: 1.4;
+  }
+  .btn--add {
+    background: var(--color-bg-btn, #4e7dad);
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .btn--add:hover {
+    background: var(--color-bg-btn-hover, #3a6090);
+  }
+  .empty-dynamic {
+    font-size: 0.8em;
+    color: var(--color-text-dark-secondary, #888);
+    font-style: italic;
+    text-align: center;
+    padding: 4px 0;
+  }
+</style>

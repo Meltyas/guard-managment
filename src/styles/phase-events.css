@@ -1,0 +1,863 @@
+/* =========================================
+   Phase Events & Reports Panel Styles
+   ========================================= */
+
+.phases-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+/* --- Status bar --- */
+.phases-status {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.phase-status-item {
+  flex: 1;
+  min-width: 120px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #555;
+  padding: 8px 12px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.85em;
+  color: #ddd;
+}
+
+.phase-status-item i {
+  color: #f3c267;
+}
+
+/* --- Toolbar --- */
+.phases-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phases-search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.phases-search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  pointer-events: none;
+}
+
+.phases-search-input {
+  width: 100%;
+  padding: 6px 8px 6px 28px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #555;
+  color: #eee;
+  border-radius: 4px;
+}
+
+.phases-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.phases-btn {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #666;
+  color: #f3c267;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.phases-btn:hover {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+}
+
+/* --- Filter toggles --- */
+.phases-filter-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.phases-toggle {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #555;
+  color: #bbb;
+  padding: 3px 10px;
+  font-size: 0.78em;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.phases-toggle:hover {
+  border-color: #f3c267;
+  color: #eee;
+}
+
+.phases-toggle.active {
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+/* --- Subheaders --- */
+.phases-subheader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #444;
+  color: #f3c267;
+  font-weight: bold;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --- Events list --- */
+.phases-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.phase-event-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #444;
+  border-left: 3px solid #666;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.phase-event-row.status-pending {
+  border-left-color: #4caf50;
+}
+
+.phase-event-row.status-triggered {
+  border-left-color: #888;
+  opacity: 0.75;
+}
+
+.phase-event-row.status-cancelled {
+  border-left-color: #e74c3c;
+  opacity: 0.6;
+}
+
+.phase-event-turn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  font-weight: bold;
+  color: #f3c267;
+  font-size: 0.85em;
+}
+
+.phase-event-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.phase-event-title {
+  font-weight: bold;
+  color: #eee;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phase-event-title i {
+  color: #f3c267;
+}
+
+.phase-event-desc {
+  font-size: 0.82em;
+  color: #aaa;
+  margin: 2px 0;
+}
+
+.phase-event-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.ev-tag {
+  font-size: 0.7em;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid #555;
+  color: #ccc;
+}
+
+.ev-tag.visibility-gm {
+  border-color: #9b59b6;
+  color: #c89be0;
+}
+
+.ev-tag.visibility-players,
+.ev-tag.visibility-all {
+  border-color: #3498db;
+  color: #8ecbf0;
+}
+
+.ev-tag.status-tag.status-pending {
+  border-color: #4caf50;
+  color: #8fd49a;
+}
+
+.ev-tag.status-tag.status-triggered {
+  border-color: #888;
+  color: #aaa;
+}
+
+.ev-tag.status-tag.status-cancelled {
+  border-color: #e74c3c;
+  color: #e88;
+}
+
+.phase-event-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.phase-event-actions button {
+  background: transparent;
+  border: none;
+  color: #999;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.phase-event-actions button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.phase-event-delete-btn:hover {
+  color: #e74c3c !important;
+}
+
+/* --- Reports list --- */
+.phases-reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.phase-report {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #444;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.phase-report-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.phase-report-summary::-webkit-details-marker {
+  display: none;
+}
+
+.phase-report-turn {
+  font-weight: bold;
+  color: #f3c267;
+}
+
+.phase-report-phase {
+  color: #ddd;
+  font-size: 0.85em;
+}
+
+.phase-report-count {
+  margin-left: auto;
+  font-size: 0.78em;
+  color: #999;
+}
+
+.phase-report-chevron {
+  transition: transform 0.2s ease;
+  color: #888;
+}
+
+.phase-report[open] .phase-report-chevron {
+  transform: rotate(180deg);
+}
+
+.phase-report-body {
+  padding: 6px 10px 10px;
+  border-top: 1px solid #3a3a3a;
+}
+
+.report-group {
+  margin-top: 6px;
+}
+
+.report-group-header {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+
+.report-group.gm .report-group-header {
+  color: #c89be0;
+}
+
+.report-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 3px 6px;
+  font-size: 0.85em;
+  color: #ddd;
+  border-left: 2px solid transparent;
+}
+
+.report-entry i {
+  color: #f3c267;
+  margin-top: 2px;
+}
+
+.report-entry.gm {
+  border-left-color: #9b59b6;
+  background: rgba(155, 89, 182, 0.08);
+}
+
+.report-empty {
+  font-style: italic;
+  color: #777;
+  font-size: 0.85em;
+  padding: 4px 6px;
+}
+
+/* --- Empty states --- */
+.phases-empty {
+  text-align: center;
+  padding: 20px;
+  color: #777;
+}
+
+.phases-empty > i {
+  font-size: 2em;
+  opacity: 0.4;
+  margin-bottom: 6px;
+}
+
+.phases-empty p {
+  margin: 2px 0;
+}
+
+.phases-empty-hint {
+  font-size: 0.8em;
+  color: #666;
+}
+
+/* =========================================
+   Phase Calendar
+   ========================================= */
+
+.phase-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9em;
+}
+
+/* ── Header ── */
+.cal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cal-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cal-phase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 0.9em;
+  border: 1px solid #555;
+  background: rgba(0,0,0,0.3);
+}
+
+.cal-phase-badge.phase-day  { border-color: #f3c267; color: #f3c267; }
+.cal-phase-badge.phase-night { border-color: #6ab0de; color: #6ab0de; }
+
+.cal-pending-info {
+  font-size: 0.82em;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cal-following-badge {
+  margin-left: auto;
+  font-size: 0.78em;
+  color: #888;
+  background: none;
+  border: 1px solid #555;
+  border-radius: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.cal-following-badge:hover { border-color: #f3c267; color: #f3c267; }
+
+.cal-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cal-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.cal-btn {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.82em;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cal-btn:hover { border-color: #f3c267; color: #f3c267; }
+.cal-btn.active { background: rgba(243,194,103,0.2); border-color: #f3c267; color: #f3c267; }
+
+.cal-today-btn { font-weight: bold; }
+.cal-add-btn { color: #4caf50; border-color: #4caf50; }
+.cal-add-btn:hover { background: rgba(76,175,80,0.15); color: #8fd49a; border-color: #8fd49a; }
+
+.cal-jump-input {
+  width: 80px;
+  padding: 4px 6px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid #555;
+  color: #eee;
+  border-radius: 4px;
+  font-size: 0.82em;
+}
+
+/* ── Filters ── */
+.cal-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cal-search-wrap {
+  position: relative;
+}
+
+.cal-search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  pointer-events: none;
+  font-size: 0.8em;
+}
+
+.cal-search-input {
+  width: 100%;
+  padding: 5px 8px 5px 26px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid #555;
+  color: #eee;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.cal-filter-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.cal-toggle {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid #555;
+  color: #bbb;
+  padding: 2px 8px;
+  font-size: 0.76em;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cal-toggle:hover { border-color: #f3c267; color: #eee; }
+.cal-toggle.active { background: rgba(243,194,103,0.2); border-color: #f3c267; color: #f3c267; }
+
+/* ── Shared cell helpers ── */
+.phase-day  { --phase-color: #f3c267; }
+.phase-night { --phase-color: #6ab0de; }
+
+.cal-turn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: bold;
+  font-size: 0.82em;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid #555;
+}
+.cal-turn-badge.phase-day  { border-color: #f3c267; color: #f3c267; }
+.cal-turn-badge.phase-night { border-color: #6ab0de; color: #6ab0de; }
+
+/* ── Agenda ── */
+.cal-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.cal-agenda-cell {
+  border: 1px solid #3a3a3a;
+  border-left: 3px solid #555;
+  border-radius: 5px;
+  background: rgba(0,0,0,0.18);
+  padding: 6px 8px;
+  transition: border-color 0.15s;
+}
+.cal-agenda-cell.is-current { border-left-color: #f3c267; background: rgba(243,194,103,0.06); }
+.cal-agenda-cell.is-past    { opacity: 0.7; }
+.cal-agenda-cell.is-future  { border-left-color: #444; }
+
+.cal-cell-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.cal-rel-label {
+  font-size: 0.76em;
+  color: #888;
+  font-style: italic;
+}
+.cal-agenda-cell.is-current .cal-rel-label { color: #f3c267; font-style: normal; font-weight: bold; }
+
+.cal-cell-add-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #444;
+  color: #666;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.75em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.cal-cell-add-btn:hover { border-color: #4caf50; color: #4caf50; }
+
+.cal-cell-empty {
+  color: #444;
+  font-size: 0.78em;
+  padding: 2px 0;
+}
+
+/* ── Events (agenda) ── */
+.cal-events {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.cal-event {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 0.83em;
+  position: relative;
+  min-height: 26px;        /* fixed height so hover buttons don't push layout */
+  padding-right: 52px;     /* reserve space for the action buttons */
+}
+.cal-event.is-ghost {
+  opacity: 0.45;
+  border-style: dashed;
+  border-color: #555;
+  font-style: italic;
+}
+.cal-event i { color: #f3c267; flex-shrink: 0; }
+.cal-event-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ddd; }
+.cal-event-rec { color: #888; font-size: 0.85em; }
+
+.cal-event-vis {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cal-event-vis.vis-gm      { background: #9b59b6; }
+.cal-event-vis.vis-players { background: #3498db; }
+.cal-event-vis.vis-all     { background: #4caf50; }
+
+.cal-event-actions {
+  display: none;
+  align-items: center;
+  gap: 1px;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(20,20,20,0.85);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+.cal-event:hover .cal-event-actions { display: flex; }
+
+.cal-event-edit,
+.cal-event-cancel {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-size: 0.85em;
+  transition: all 0.15s;
+}
+.cal-event-edit:hover   { color: #f3c267; }
+.cal-event-cancel:hover { color: #e74c3c; }
+
+/* ── Report inline (agenda) ── */
+.cal-report-summary {
+  margin-top: 3px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  font-size: 0.82em;
+}
+.cal-report-summary > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  list-style: none;
+  color: #888;
+}
+.cal-report-summary > summary::-webkit-details-marker { display: none; }
+.cal-report-summary > summary i { color: #888; }
+.cal-rep-chevron { margin-left: auto; transition: transform 0.2s; }
+.cal-report-summary[open] .cal-rep-chevron { transform: rotate(180deg); }
+
+.cal-report-body { padding: 4px 8px 6px; border-top: 1px solid #333; }
+.cal-rep-group { margin-top: 3px; }
+.cal-rep-group-label { font-size: 0.76em; color: #9b59b6; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+.cal-rep-group.gm .cal-rep-entry { border-left: 2px solid #9b59b6; background: rgba(155,89,182,0.07); }
+
+.cal-rep-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 2px 4px;
+  font-size: 0.85em;
+  color: #ccc;
+}
+.cal-rep-entry i { color: #f3c267; margin-top: 1px; flex-shrink: 0; }
+
+/* ── Grid ── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.cal-grid-cell {
+  border: 1px solid #3a3a3a;
+  border-radius: 5px;
+  background: rgba(0,0,0,0.2);
+  overflow: hidden;
+  min-height: 64px;
+}
+.cal-grid-cell.is-current { border-color: #f3c267; background: rgba(243,194,103,0.06); }
+.cal-grid-cell.is-past    { opacity: 0.65; }
+
+.cal-grid-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  font-size: 0.78em;
+  font-weight: bold;
+  background: rgba(0,0,0,0.3);
+}
+.cal-grid-header.phase-day   { color: #f3c267; }
+.cal-grid-header.phase-night { color: #6ab0de; }
+
+.cal-now-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f3c267;
+  margin-left: auto;
+}
+
+.cal-grid-body {
+  padding: 3px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+}
+
+.cal-grid-event {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.75em;
+  color: #ddd;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.2);
+  cursor: pointer;
+  overflow: hidden;
+}
+.cal-grid-event span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-grid-event:hover { background: rgba(243,194,103,0.15); color: #f3c267; }
+.cal-grid-event.is-ghost { opacity: 0.4; font-style: italic; cursor: default; }
+.cal-grid-event i { color: #f3c267; flex-shrink: 0; }
+
+.cal-grid-report {
+  font-size: 0.72em;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 3px;
+}
+
+.cal-grid-add {
+  display: none;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: none;
+  border: 1px solid #444;
+  color: #555;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.8em;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.cal-grid-cell:hover .cal-grid-add { display: flex; align-items: center; justify-content: center; }
+.cal-grid-add:hover { border-color: #4caf50; color: #4caf50; }
+
+/* ── Empty state ── */
+.cal-empty-state {
+  text-align: center;
+  padding: 24px;
+  color: #555;
+}
+.cal-empty-state i { font-size: 1.8em; opacity: 0.4; display: block; margin-bottom: 6px; }
+
+/* ── Prisoner releases ── */
+.cal-prisoner-releases { margin-top: 3px; }
+.cal-prisoner-release {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  background: rgba(140,60,60,0.25);
+  border: 1px solid #6b2e2e;
+  border-radius: 4px;
+  font-size: 0.8em;
+  color: #e8a0a0;
+}
+.cal-prisoner-release i { color: #c07070; font-size: 0.9em; }
+
+/* Grid variant */
+.cal-grid-prisoner {
+  font-size: 0.72em;
+  padding: 1px 4px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ── Window body wrapper ── */
+.phase-calendar-window-body { padding: 8px; }

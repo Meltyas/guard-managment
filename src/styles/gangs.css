@@ -147,6 +147,15 @@
   border-color: #666;
 }
 
+/* Banda oculta: dimmed */
+.gang-card--faded {
+  opacity: 0.45;
+}
+
+.gang-card--faded:hover {
+  opacity: 0.75;
+}
+
 .gang-card-header {
   display: flex;
   align-items: center;

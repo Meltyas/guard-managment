@@ -5,56 +5,165 @@
       <i class="fas fa-search entity-list-search__icon"></i>
       <input type="text" class="entity-list-search__input" placeholder="Buscar facción..." />
     </div>
-    <div class="entity-list" data-organization-id="{{organizationId}}">
-      {{#if reputation.length}}
-        {{#each reputation}}
-          <div class="entity-row" data-entity-id="{{this.id}}">
-            <!-- Collapsed row -->
-            <div class="entity-row__summary">
-              <button type="button" class="entity-row__toggle" aria-expanded="false" aria-label="Expandir">
-                <img class="entity-row__thumb" src="{{#if this.image}}{{this.image}}{{else}}icons/environment/people/group.webp{{/if}}" alt="{{this.name}}" />
-              </button>
-              <span class="entity-row__name">{{this.name}}</span>
-                            <span class="entity-row__badge entity-row__badge--level-{{this.level}}">{{this.value}}</span>
-              <div class="entity-row__actions">
-                <button type="button" class="entity-row__btn send-to-chat-btn" title="Enviar al chat"
-                  data-reputation-id="{{this.id}}" data-reputation-name="{{this.name}}"
-                  data-organization-id="{{../organizationId}}">
-                  <i class="fas fa-comment"></i>
+
+    {{#if groups.length}}
+      {{#each groups}}
+        <div class="rep-category-section" data-category-key="{{this.key}}">
+          <!-- Category header -->
+          <div class="rep-category-header">
+            <i class="{{this.icon}} rep-category-icon"></i>
+            <span class="rep-category-label">{{this.label}}</span>
+            <span class="rep-category-count">{{this.items.length}}</span>
+            <div class="rep-category-actions">
+              {{#unless this.isFirst}}
+                <button type="button" class="rep-order-btn rep-category-up-btn" data-category-key="{{this.key}}" title="Subir categoría">
+                  <i class="fas fa-chevron-up"></i>
                 </button>
-                <button type="button" class="entity-row__btn edit-reputation-btn" title="Editar"
-                  data-reputation-id="{{this.id}}">
-                  <i class="fas fa-edit"></i>
+              {{/unless}}
+              {{#unless this.isLast}}
+                <button type="button" class="rep-order-btn rep-category-down-btn" data-category-key="{{this.key}}" title="Bajar categoría">
+                  <i class="fas fa-chevron-down"></i>
                 </button>
-                <button type="button" class="entity-row__btn entity-row__btn--danger remove-reputation-btn" title="Remover"
-                  data-reputation-id="{{this.id}}" data-reputation-name="{{this.name}}">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
+              {{/unless}}
             </div>
-            <!-- Expanded detail -->
-            <div class="entity-row__detail" hidden>
-              <div class="entity-row__detail-image">
-                <img class="entity-row__detail-img" src="{{#if this.image}}{{this.image}}{{else}}icons/environment/people/group.webp{{/if}}" alt="{{this.name}}" />
-              </div>
-              <div class="entity-row__detail-body">
-                <div class="entity-row__detail-title">{{this.name}}</div>
-                <div class="entity-row__detail-badge entity-row__detail-badge--level-{{this.level}}">{{this.value}}</div>
-                {{#if this.faction}}
-                  <div class="entity-row__detail-meta"><i class="fas fa-users"></i> {{this.faction}}</div>
-                {{/if}}
-                {{#if this.description}}
-                  <p class="entity-row__detail-desc">{{this.description}}</p>
-                {{/if}}
-              </div>
-            </div>
+            <i class="rep-category-chevron fas fa-chevron-down"></i>
           </div>
-        {{/each}}
-      {{else}}
-        <p class="empty-state">
-          No hay reputación registrada.<br /><small>Arrastra reputaciones desde el warehouse o crea una nueva.</small>
-        </p>
-      {{/if}}
-    </div>
+
+          <!-- Items in this category -->
+          <div class="entity-list" data-organization-id="{{../organizationId}}">
+            {{#each this.items}}
+              <div class="entity-row{{#if this.hidden}} entity-row--faded{{/if}}" data-entity-id="{{this.id}}">
+                <div class="entity-row__summary">
+                  <button type="button" class="entity-row__toggle" aria-expanded="false" aria-label="Expandir">
+                    <img class="entity-row__thumb" src="{{#if this.image}}{{this.image}}{{else}}icons/environment/people/group.webp{{/if}}" alt="{{this.name}}" />
+                  </button>
+                  <span class="entity-row__name">{{this.name}}</span>
+                  <span class="entity-row__badge entity-row__badge--level-{{this.level}}">{{this.value}}</span>
+                  <div class="entity-row__actions">
+                    <button type="button" class="entity-row__btn toggle-hidden-btn" title="{{#if this.hidden}}Mostrar{{else}}Ocultar{{/if}}"
+                      data-reputation-id="{{this.id}}">
+                      <i class="fas fa-eye{{#if this.hidden}}-slash{{/if}}"></i>
+                    </button>
+                    <button type="button" class="entity-row__btn send-to-chat-btn" title="Enviar al chat"
+                      data-reputation-id="{{this.id}}" data-reputation-name="{{this.name}}"
+                      data-organization-id="{{../../organizationId}}">
+                      <i class="fas fa-comment"></i>
+                    </button>
+                    <button type="button" class="entity-row__btn edit-reputation-btn" title="Editar"
+                      data-reputation-id="{{this.id}}">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="entity-row__btn entity-row__btn--danger remove-reputation-btn" title="Remover"
+                      data-reputation-id="{{this.id}}" data-reputation-name="{{this.name}}">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <!-- Expanded detail -->
+                <div class="entity-row__detail" hidden>
+                  <div class="entity-row__detail-image">
+                    <img class="entity-row__detail-img" src="{{#if this.image}}{{this.image}}{{else}}icons/environment/people/group.webp{{/if}}" alt="{{this.name}}" />
+                  </div>
+                  <div class="entity-row__detail-body">
+                    <div class="entity-row__detail-title">{{this.name}}</div>
+                    <div class="rep-detail-meta-row">
+                      <div class="entity-row__detail-badge entity-row__detail-badge--level-{{this.level}}">{{this.value}}</div>
+                      {{#if this.trendLabel}}
+                        <span class="rep-detail-trend">{{this.trendIcon}} {{this.trendLabel}}</span>
+                      {{/if}}
+                    </div>
+                    {{#if this.faction}}
+                      <div class="entity-row__detail-meta"><i class="fas fa-landmark"></i> {{this.faction}}{{#if this.contact}} · <i class="fas fa-user"></i> {{this.contact}}{{/if}}</div>
+                    {{else if this.contact}}
+                      <div class="entity-row__detail-meta"><i class="fas fa-user"></i> {{this.contact}}</div>
+                    {{/if}}
+                    {{#if this.description}}
+                      <p class="entity-row__detail-desc">{{this.description}}</p>
+                    {{/if}}
+                    {{#if this.gmNotes}}
+                      <p class="rep-detail-gmnotes"><i class="fas fa-eye-slash"></i> {{this.gmNotes}}</p>
+                    {{/if}}
+                    {{#if this.favors.length}}
+                      <div class="rep-detail-section">
+                        <div class="rep-detail-section__title"><i class="fas fa-handshake"></i> Favores</div>
+                        {{#each this.favors}}
+                          <div class="rep-favor-item">
+                            <div class="rep-favor-item__header">
+                              <span class="rep-favor-name">{{this.name}}</span>
+                              {{#if this.cost}}<span class="rep-favor-cost"><strong>Coste:</strong> {{this.cost}}</span>{{/if}}
+                              <button type="button" class="rep-sub-chat-btn" title="Enviar favor al chat"
+                                data-reputation-id="{{../id}}" data-favor-id="{{this.id}}">
+                                <i class="fas fa-comment"></i>
+                              </button>
+                            </div>
+                            {{#if this.description}}<p class="rep-favor-desc">{{this.description}}</p>{{/if}}
+                          </div>
+                        {{/each}}
+                      </div>
+                    {{/if}}
+                    {{#if this.factionRelations.length}}
+                      <div class="rep-detail-section">
+                        <div class="rep-detail-section__title"><i class="fas fa-network-wired"></i> Relaciones</div>
+                        {{#each this.factionRelations}}
+                          <div class="rep-relation-item">
+                            <span class="rep-relation-type rep-relation-{{this.relationType}}">{{this.relationType}}</span>
+                            <span class="rep-relation-name">{{this.factionName}}</span>
+                            {{#if this.notes}}<span class="rep-relation-notes">— {{this.notes}}</span>{{/if}}
+                            <button type="button" class="rep-sub-chat-btn rep-relation-chat-btn" title="Enviar relación al chat"
+                              data-reputation-id="{{../id}}" data-relation-id="{{this.id}}">
+                              <i class="fas fa-comment"></i>
+                            </button>
+                          </div>
+                        {{/each}}
+                      </div>
+                    {{/if}}
+
+                    {{#if this.changelogEntries.length}}
+                      <div class="rep-detail-section rep-changelog-section">
+                        <button type="button" class="rep-changelog-toggle rep-detail-section__title">
+                          <i class="fas fa-history"></i> Registro de cambios
+                          <span class="rep-changelog-count">({{this.changelogEntries.length}})</span>
+                          <i class="fas fa-chevron-down rep-changelog-chevron"></i>
+                        </button>
+                        <div class="rep-changelog-list" hidden>
+                          {{#each this.changelogEntries}}
+                            <div class="rep-log-entry" data-entry-id="{{this.id}}">
+                              <div class="rep-log-entry__header">
+                                <span class="rep-log-entry__date">{{this.dateLabel}}</span>
+                                <span class="rep-log-entry__user">{{this.userName}}</span>
+                                {{#if ../../../isGM}}
+                                  <button type="button" class="rep-log-delete-btn"
+                                    data-reputation-id="{{../id}}"
+                                    data-entry-id="{{this.id}}"
+                                    title="Borrar entrada">
+                                    <i class="fas fa-times"></i>
+                                  </button>
+                                {{/if}}
+                              </div>
+                              {{#each this.changes}}
+                                <div class="rep-log-entry__change">
+                                  <span class="rep-log-field">{{this.field}}</span>
+                                  <span class="rep-log-from">{{this.from}}</span>
+                                  <i class="fas fa-arrow-right rep-log-arrow"></i>
+                                  <span class="rep-log-to">{{this.to}}</span>
+                                </div>
+                              {{/each}}
+                            </div>
+                          {{/each}}
+                        </div>
+                      </div>
+                    {{/if}}
+                  </div>
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      {{/each}}
+    {{else}}
+      <p class="empty-state">
+        No hay reputación registrada.<br /><small>Arrastra reputaciones desde el warehouse o crea una nueva.</small>
+      </p>
+    {{/if}}
   </div>
 </div>

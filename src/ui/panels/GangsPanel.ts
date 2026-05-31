@@ -24,7 +24,13 @@ export class GangsPanel {
     });
 
     const gangs = allGangs
-      .sort((a: any, b: any) => b.updatedAt - a.updatedAt)
+      .sort((a: any, b: any) => {
+        // Visible (hidden=false) primero, luego ocultas; dentro de cada grupo por updatedAt desc
+        const aHidden = a.hidden !== false ? 1 : 0;
+        const bHidden = b.hidden !== false ? 1 : 0;
+        if (aHidden !== bHidden) return aHidden - bHidden;
+        return b.updatedAt - a.updatedAt;
+      })
       .map((gang: any) => ({
         ...gang,
         subleaders: (gang.subleaders || []).map(enrichMember),
@@ -92,6 +98,23 @@ export class GangsPanel {
           }
         }
         GangsPanel.filterGangs(container);
+      });
+    });
+
+    // Toggle visibility (ojo) por banda
+    container.querySelectorAll('.gang-toggle-hidden-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const gangId = (btn as HTMLElement).dataset.gangId;
+        if (!gangId) return;
+        const gm = (window as any).GuardManagement;
+        if (!gm?.gangManager) return;
+        const gang = gm.gangManager.getGang(gangId);
+        if (!gang) return;
+        const newHidden = gang.hidden === false;
+        await gm.gangManager.updateGang(gangId, { hidden: newHidden });
+        window.dispatchEvent(new CustomEvent('guard-gangs-updated'));
+        await GangsPanel.render(container);
       });
     });
 

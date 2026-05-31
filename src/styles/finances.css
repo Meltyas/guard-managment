@@ -491,9 +491,20 @@
   user-select: none;
   font-family: 'Signika', sans-serif;
   color: #efe6d8;
+  /* Modals not on top appear slightly dimmed */
+  opacity: 0.88;
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* --- Header --- */
+/* Active/top modal: full brightness + stronger glow */
+.guard-modal.is-top {
+  opacity: 1;
+  box-shadow:
+    0 12px 50px rgba(0, 0, 0, 0.75),
+    0 0 30px rgba(243, 194, 103, 0.18);
+}
+
+/* --- Header ---  */
 .guard-modal-header {
   display: flex;
   align-items: center;

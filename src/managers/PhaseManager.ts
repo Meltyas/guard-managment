@@ -105,6 +105,17 @@ export class PhaseManager {
       if (patrolMgr) await patrolMgr.recoverHopeOnPhaseAdvance();
       const auxMgr = orgMgr?.getAuxiliaryManager?.();
       if (auxMgr) await auxMgr.recoverHopeOnPhaseAdvance();
+
+      // Generate the phase report (events, finances, sentence completions…).
+      // GM-only side effects are guarded inside generatePhaseReport.
+      const phaseEventMgr = gm?.phaseEventManager;
+      if (phaseEventMgr?.generatePhaseReport) {
+        try {
+          await phaseEventMgr.generatePhaseReport(targetTurn, newPhase);
+        } catch (e) {
+          console.warn('PhaseManager | generatePhaseReport failed:', e);
+        }
+      }
     }
 
     return { ...this.data };

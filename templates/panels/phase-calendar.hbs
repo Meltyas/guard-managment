@@ -1,0 +1,200 @@
+<div class='phase-calendar' data-view-mode='{{#if isAgenda}}agenda{{else}}grid{{/if}}'>
+
+  {{! ── Header ── }}
+  <div class='cal-header'>
+    <div class='cal-status-bar'>
+      <span class='cal-phase-badge {{#if isAgenda}}phase-{{#if (eq currentPhaseLabel "Noche")}}night{{else}}day{{/if}}{{/if}}'>
+        <i class='{{currentPhaseIcon}}'></i> T{{currentTurn}} · {{currentPhaseLabel}}
+      </span>
+      <span class='cal-pending-info'>
+        <i class='fas fa-calendar-alt'></i> {{pendingCount}} pendiente(s)
+      </span>
+      {{#unless isFollowing}}
+      <button class='cal-btn cal-following-badge' data-action='today' title='Volviendo a la fase actual'>
+        <i class='fas fa-crosshairs'></i> Siguiendo T{{currentTurn}}
+      </button>
+      {{/unless}}
+    </div>
+    <div class='cal-controls'>
+      <div class='cal-nav'>
+        <button class='cal-btn' data-action='prev' title='Fases anteriores'><i class='fas fa-chevron-left'></i></button>
+        <button class='cal-btn cal-today-btn {{#if isFollowing}}active{{/if}}' data-action='today' title='Ir a la fase actual'>Hoy</button>
+        <button class='cal-btn' data-action='next' title='Fases siguientes'><i class='fas fa-chevron-right'></i></button>
+      </div>
+      <div class='cal-tools'>
+        <input type='number' class='cal-jump-input' min='1' placeholder='Ir a T…' title='Saltar a turno (Enter)' />
+        <button class='cal-btn cal-view-btn' data-action='toggle-view'
+          title='{{#if isAgenda}}Vista rejilla{{else}}Vista agenda{{/if}}'>
+          <i class='fas {{#if isAgenda}}fa-th{{else}}fa-list{{/if}}'></i>
+        </button>
+        {{#if isGM}}
+        <button class='cal-btn cal-add-btn' data-action='add-event' title='Programar evento'>
+          <i class='fas fa-plus'></i>
+        </button>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+
+  {{! ── Filters ── }}
+  <div class='cal-filters'>
+    <div class='cal-search-wrap'>
+      <i class='fas fa-search cal-search-icon'></i>
+      <input type='text' class='cal-search-input' placeholder='Buscar en eventos y reportes…' value='{{filterQuery}}' />
+    </div>
+    <div class='cal-filter-toggles'>
+      <button class='cal-toggle {{#if allActive}}active{{/if}}' data-filter='all'>Todos</button>
+      {{#each categories}}
+        <button class='cal-toggle {{#if active}}active{{/if}}' data-filter='{{value}}'>{{label}}</button>
+      {{/each}}
+      <button class='cal-toggle {{#if onlyEvents}}active{{/if}}' data-filter='only-events' title='Solo fases con eventos'>
+        <i class='fas fa-calendar-check'></i>
+      </button>
+    </div>
+  </div>
+
+  {{! ── AGENDA view ── }}
+  {{#if isAgenda}}
+  <div class='cal-agenda'>
+    {{#each cells}}
+    <div class='cal-agenda-cell {{turnClass}}' data-turn='{{turn}}' data-has-events='{{hasEvents}}'>
+
+      <div class='cal-cell-header'>
+        <span class='cal-turn-badge {{phaseClass}}'>
+          <i class='{{phaseIcon}}'></i> T{{turn}}
+        </span>
+        <span class='cal-rel-label'>{{relLabel}}</span>
+        {{#if @root.isGM}}
+        <button class='cal-cell-add-btn' data-action='add-event-turn' data-turn='{{turn}}' title='Programar en T{{turn}}'>
+          <i class='fas fa-plus'></i>
+        </button>
+        {{/if}}
+      </div>
+
+      {{#if events.length}}
+      <div class='cal-events'>
+        {{#each events}}
+        <div class='cal-event {{#if isGhost}}is-ghost{{/if}} cat-{{category}}'
+             data-event-id='{{id}}'
+             data-category='{{category}}'
+             data-search='{{searchText}}'
+             data-ghost='{{isGhost}}'>
+          <i class='{{icon}}'></i>
+          <span class='cal-event-title'>{{title}}</span>
+          {{#if recurrenceLabel}}<span class='cal-event-rec' title='{{recurrenceLabel}}'><i class='fas fa-repeat'></i></span>{{/if}}
+          <span class='cal-event-vis vis-{{visibility}}' title='{{visibilityLabel}}'></span>
+          {{#unless isGhost}}
+          {{#if @root.isGM}}
+          <span class='cal-event-actions'>
+            <button class='cal-event-edit' data-event-id='{{id}}' title='Editar'><i class='fas fa-edit'></i></button>
+            {{#if isPending}}<button class='cal-event-cancel' data-event-id='{{id}}' title='Cancelar'><i class='fas fa-ban'></i></button>{{/if}}
+          </span>
+          {{/if}}
+          {{/unless}}
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+
+      {{#if prisonerReleases.length}}
+      <div class='cal-prisoner-releases'>
+        {{#each prisonerReleases}}
+        <div class='cal-prisoner-release' data-search='{{searchText}}'>
+          <i class='fas fa-dungeon'></i>
+          <span>Liberación: {{name}}</span>
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+
+      {{#if report}}
+      <details class='cal-report-summary'>
+        <summary>
+          <i class='fas fa-scroll'></i>
+          <span>Reporte ({{report.totalCount}})</span>
+          <i class='fas fa-chevron-down cal-rep-chevron'></i>
+        </summary>
+        <div class='cal-report-body'>
+          {{#if report.playerEntries.length}}
+          <div class='cal-rep-group'>
+            {{#each report.playerEntries}}
+            <div class='cal-rep-entry' data-category='{{category}}' data-search='{{searchText}}'>
+              <i class='{{icon}}'></i><span>{{text}}</span>
+            </div>
+            {{/each}}
+          </div>
+          {{/if}}
+          {{#if @root.isGM}}{{#if report.gmEntries.length}}
+          <div class='cal-rep-group gm'>
+            <div class='cal-rep-group-label'><i class='fas fa-user-secret'></i> Solo DM</div>
+            {{#each report.gmEntries}}
+            <div class='cal-rep-entry gm' data-category='{{category}}' data-search='{{searchText}}'>
+              <i class='{{icon}}'></i><span>{{text}}</span>
+            </div>
+            {{/each}}
+          </div>
+          {{/if}}{{/if}}
+        </div>
+      </details>
+      {{/if}}
+
+      {{#unless hasEvents}}{{#unless report}}
+      <div class='cal-cell-empty'><i class='fas fa-minus'></i></div>
+      {{/unless}}{{/unless}}
+    </div>
+    {{/each}}
+    {{#unless cells.length}}
+    <div class='cal-empty-state'><i class='fas fa-calendar-alt'></i><p>No hay fases en este rango</p></div>
+    {{/unless}}
+  </div>
+  {{/if}}
+
+  {{! ── GRID view ── }}
+  {{#if isGrid}}
+  <div class='cal-grid'>
+    {{#each cells}}
+    <div class='cal-grid-cell {{turnClass}}' data-turn='{{turn}}' data-has-events='{{hasEvents}}'>
+      <div class='cal-grid-header {{phaseClass}}'>
+        <i class='{{phaseIcon}}'></i>
+        <span>T{{turn}}</span>
+        {{#if isCurrent}}<span class='cal-now-dot' title='Fase actual'></span>{{/if}}
+      </div>
+      <div class='cal-grid-body'>
+        {{#each events}}
+        <div class='cal-grid-event {{#if isGhost}}is-ghost{{/if}}'
+             data-category='{{category}}'
+             data-search='{{searchText}}'
+             data-event-id='{{id}}'
+             data-ghost='{{isGhost}}'
+             title='{{title}} · {{categoryLabel}}{{#if isGhost}} (recurrencia proyectada){{/if}}'>
+          <i class='{{icon}}'></i>
+          <span>{{title}}</span>
+        </div>
+        {{/each}}
+        {{#if report}}
+        <div class='cal-grid-report' title='Reporte: {{report.totalCount}} entrada(s)'>
+          <i class='fas fa-scroll'></i> {{report.totalCount}}
+        </div>
+        {{/if}}
+        {{#each prisonerReleases}}
+        <div class='cal-prisoner-release cal-grid-prisoner' data-search='{{searchText}}'
+             title='Liberación: {{name}}'>
+          <i class='fas fa-dungeon'></i><span>{{name}}</span>
+        </div>
+        {{/each}}
+        {{#if @root.isGM}}
+        <button class='cal-grid-add' data-action='add-event-turn' data-turn='{{turn}}'
+                title='Programar en T{{turn}}'>+</button>
+        {{/if}}
+      </div>
+    </div>
+    {{/each}}
+    {{#unless cells.length}}
+    <div class='cal-empty-state' style='grid-column:1/-1'>
+      <i class='fas fa-calendar-alt'></i><p>No hay fases en este rango</p>
+    </div>
+    {{/unless}}
+  </div>
+  {{/if}}
+
+</div>

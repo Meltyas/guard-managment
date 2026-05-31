@@ -138,11 +138,6 @@
 }
 
 /* --- Building cards --- */
-.building-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 
 .building-card {
   background: rgba(30, 30, 50, 0.7);
@@ -354,6 +349,77 @@
   padding: 6px 0;
 }
 
+/* --- Zone sections --- */
+.building-zone-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.building-zone-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  border-left: 3px solid rgba(243, 194, 103, 0.5);
+  user-select: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.building-zone-header:hover {
+  background: rgba(243, 194, 103, 0.08);
+}
+
+.building-zone-header i {
+  color: #f3c267;
+  font-size: 0.9em;
+  width: 14px;
+  text-align: center;
+}
+
+.building-zone-label {
+  flex: 1;
+  font-size: 0.88em;
+  font-weight: bold;
+  color: #e0c88a;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.building-zone-count {
+  font-size: 0.78em;
+  color: #888;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.building-zone-chevron {
+  margin-left: auto;
+  font-size: 0.75em;
+  color: #888;
+  transition: transform 0.2s ease;
+}
+
+.building-zone-section.collapsed .building-zone-chevron {
+  transform: rotate(-90deg);
+}
+
+.building-zone-section .building-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  transition: opacity 0.15s ease;
+}
+
+.building-zone-section.collapsed .building-cards {
+  display: none;
+}
+
 /* --- Empty state --- */
 .buildings-empty-state {
   text-align: center;
@@ -374,4 +440,386 @@
 .buildings-empty-hint {
   font-size: 0.85em;
   color: #666;
+}
+
+/* =========================================
+   Building status badges (inactive / hidden)
+   ========================================= */
+.building-status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.building-status-inactive {
+  background: rgba(120, 120, 120, 0.25);
+  color: #999;
+  border: 1px solid rgba(120, 120, 120, 0.3);
+}
+
+.building-status-hidden {
+  background: rgba(200, 100, 50, 0.2);
+  color: #c86432;
+  border: 1px solid rgba(200, 100, 50, 0.3);
+}
+
+/* Inactive card — subtle dimming for GM */
+.building-card--inactive {
+  opacity: 0.65;
+}
+
+.building-card--inactive .building-image-wrapper {
+  filter: grayscale(60%);
+}
+
+/* =========================================
+   Building Activator Modal
+   ========================================= */
+.building-activator-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.building-activator-hint {
+  font-size: 0.85em;
+  color: #aaa;
+  margin: 0;
+}
+
+.building-activator-hint i {
+  color: #c89a52;
+  margin-right: 4px;
+}
+
+.building-activator-search-wrapper {
+  position: relative;
+}
+
+.building-activator-search-wrapper i {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  pointer-events: none;
+}
+
+.building-activator-search {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(200, 154, 82, 0.3);
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 0.9em;
+  box-sizing: border-box;
+}
+
+.building-activator-search:focus {
+  outline: none;
+  border-color: rgba(200, 154, 82, 0.7);
+}
+
+/* Zone filter buttons */
+.building-activator-zone-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.building-activator-zone-btn {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  color: #aaa;
+  font-size: 0.78em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.building-activator-zone-btn i {
+  margin-right: 3px;
+  font-size: 0.9em;
+}
+
+.building-activator-zone-btn:hover {
+  background: rgba(200, 154, 82, 0.1);
+  border-color: rgba(200, 154, 82, 0.3);
+  color: #c89a52;
+}
+
+.building-activator-zone-btn.active {
+  background: rgba(200, 154, 82, 0.18);
+  border-color: rgba(200, 154, 82, 0.6);
+  color: #c89a52;
+  font-weight: 600;
+}
+
+.building-activator-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.building-activator-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.building-activator-item:hover {
+  background: rgba(200, 154, 82, 0.08);
+  border-color: rgba(200, 154, 82, 0.2);
+}
+
+.building-activator-img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.building-activator-img-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.building-activator-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.building-activator-name {
+  font-weight: 600;
+  color: #ddd;
+  font-size: 0.9em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.building-activator-hidden-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75em;
+  color: #c86432;
+  margin-left: 5px;
+  opacity: 0.8;
+}
+
+.building-activator-zone {
+  font-size: 0.78em;
+  color: #888;
+}
+
+.building-activator-zone i {
+  margin-right: 3px;
+  color: #c89a52;
+}
+
+.building-activator-btn {
+  padding: 5px 12px;
+  background: rgba(200, 154, 82, 0.15);
+  border: 1px solid rgba(200, 154, 82, 0.4);
+  border-radius: 5px;
+  color: #c89a52;
+  font-size: 0.82em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.building-activator-btn:hover {
+  background: rgba(200, 154, 82, 0.3);
+  border-color: rgba(200, 154, 82, 0.7);
+}
+
+.building-activator-edit-btn {
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  color: #aaa;
+  font-size: 0.82em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.building-activator-edit-btn:hover {
+  background: rgba(100, 160, 220, 0.15);
+  border-color: rgba(100, 160, 220, 0.4);
+  color: #82b4d0;
+}
+
+.building-activator-empty {
+  text-align: center;
+  padding: 24px 0;
+  color: #888;
+  font-size: 0.9em;
+}
+
+.building-activator-empty p {
+  margin: 6px 0 0;
+}
+
+/* GM visibility row in edit dialog */
+.building-visibility-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+/* =========================================
+   Building Changelog (edit dialog)
+   ========================================= */
+.building-changelog-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.building-changelog-row > label {
+  font-weight: 600;
+  color: #a0a0b0;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.building-changelog-row > label i {
+  color: #c89a52;
+  margin-right: 5px;
+}
+
+.building-changelog-list {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.building-changelog-entry {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-size: 0.82em;
+}
+
+.building-changelog-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+
+.building-changelog-user {
+  color: #c89a52;
+  font-weight: 600;
+}
+
+.building-changelog-user i {
+  margin-right: 3px;
+  font-size: 0.85em;
+}
+
+.building-changelog-date {
+  color: #666;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.building-changelog-change {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.building-changelog-field {
+  color: #888;
+  font-style: italic;
+  min-width: 70px;
+}
+
+.building-changelog-field::after {
+  content: ':';
+}
+
+.building-changelog-from {
+  color: #e06060;
+  text-decoration: line-through;
+  opacity: 0.8;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.building-changelog-to {
+  color: #6ec26e;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Zone reorder buttons ─────────────────────────────────────────────────── */
+.building-zone-header .zone-order-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  margin-right: 6px;
+}
+
+.zone-order-btn {
+  background: transparent;
+  border: 1px solid rgba(201, 164, 74, 0.3);
+  border-radius: 3px;
+  color: rgba(201, 164, 74, 0.7);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.zone-order-btn:hover {
+  background: rgba(201, 164, 74, 0.2);
+  color: #c9a44a;
 }

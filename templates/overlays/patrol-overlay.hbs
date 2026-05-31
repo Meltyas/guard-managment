@@ -1,63 +1,170 @@
 <div class="patrol-overlay-header" data-drag-handle>
     <span class="patrol-overlay-name">{{patrol.name}}</span>
-    {{#if patrol.subtitle}}<span class="patrol-overlay-subtitle">{{patrol.subtitle}}</span>{{/if}}
-    <button class="patrol-overlay-close" data-action="close-overlay"><i class="fas fa-times"></i></button>
+    <button class="patrol-overlay-close" data-action="close-overlay" type="button"><i class="fas fa-times"></i></button>
 </div>
+
 <div class="patrol-overlay-body">
+
+    <!-- ── Officer decoration column ── -->
+    <div class="patrol-overlay-officer-deco">
+        {{#if patrol.officer.img}}
+        <img src="{{patrol.officer.img}}" class="overlay-deco-img" alt="{{patrol.officer.name}}" title="{{patrol.officer.name}}" />
+        {{else}}
+        <div class="overlay-deco-placeholder"><i class="fas fa-shield-alt"></i></div>
+        {{/if}}
+    </div>
+
+    <!-- ── Main content ── -->
+    <div class="patrol-overlay-content">
+
+    <!-- ── Stats ── -->
     <div class="patrol-overlay-stats">
         {{#each patrol.statsBreakdown as |stat key|}}
-        <span class="overlay-stat clickable-stat"
-              data-action="overlay-roll-stat"
-              data-stat="{{key}}"
-              data-patrol-id="{{../patrol.id}}"
-              data-tooltip="{{patrolStatTooltip stat}}">
-            {{key}}: <strong class="{{stat.totalClass}}">{{stat.total}}</strong>
-        </span>
+        <button class="overlay-stat" type="button"
+                data-action="overlay-roll-stat"
+                data-stat="{{key}}"
+                data-patrol-id="{{../patrol.id}}"
+                title="{{patrolStatTooltip stat key}}">
+            <span class="overlay-stat-key">{{stat.label}}</span>
+            <strong class="overlay-stat-val {{stat.totalClass}}">{{stat.total}}</strong>
+        </button>
         {{/each}}
     </div>
 
-    {{#if patrol.hopePips.length}}
-    <div class="patrol-overlay-hope">
-        <div class="hope-pips">
-            {{#each patrol.hopePips}}
-            <span class="hope-pip {{#if this.filled}}filled{{/if}}"
-                  data-action="overlay-hope-pip"
-                  data-patrol-id="{{../patrol.id}}"
-                  data-value="{{this.index}}">
-                {{#if this.filled}}<i class="fa-solid fa-diamond"></i>{{else}}<i class="fa-regular fa-circle"></i>{{/if}}
-            </span>
-            {{/each}}
-        </div>
-        <span class="hope-label">HOPE</span>
-    </div>
-    {{/if}}
-
-    {{#if patrol.officerSkills.length}}
-    <div class="patrol-overlay-skills-section">
-        <button class="patrol-overlay-skills-toggle" data-action="toggle-overlay-skills">
-            <i class="fas fa-bolt"></i> Habilidades ({{patrol.officerSkills.length}})
-            <i class="fas fa-chevron-down overlay-skills-chevron"></i>
-        </button>
-        <div class="patrol-overlay-skills-list" style="display:none;">
-            {{#each patrol.officerSkills}}
-            <div class="overlay-skill-item"
-                 data-action="overlay-skill-to-chat"
-                 data-skill-name="{{this.name}}"
-                 data-skill-image="{{this.image}}"
-                 data-skill-hope-cost="{{this.hopeCost}}"
-                 data-officer-name="{{../patrol.officerName}}">
-                {{#if this.image}}
-                <img src="{{this.image}}" class="overlay-skill-img" />
-                {{else}}
-                <i class="fas fa-bolt"></i>
-                {{/if}}
-                <span class="overlay-skill-name">{{this.name}}</span>
-                <span class="overlay-skill-hope">
-                    <i class="fa-solid fa-diamond"></i> {{this.hopeCost}}
+    <!-- ── Hope + Deploy ── -->
+    <div class="patrol-overlay-hope-row">
+        {{#if patrol.hopePips.length}}
+        <div class="patrol-overlay-hope">
+            <span class="hope-label">HOPE</span>
+            <div class="hope-pips">
+                {{#each patrol.hopePips}}
+                <span class="hope-pip {{#if this.filled}}filled{{/if}}"
+                      data-action="overlay-hope-pip"
+                      data-patrol-id="{{../patrol.id}}"
+                      data-value="{{this.index}}">
+                    {{#if this.filled}}<i class="fa-solid fa-diamond"></i>{{else}}<i class="fa-regular fa-diamond"></i>{{/if}}
                 </span>
+                {{/each}}
+            </div>
+        </div>
+        {{else}}
+        <div class="patrol-overlay-hope"></div>
+        {{/if}}
+        <div class="patrol-overlay-deploy-btns">
+            <button class="overlay-deploy-btn"
+                    type="button"
+                    data-action="overlay-deploy"
+                    data-patrol-id="{{patrol.id}}"
+                    title="Colocar tokens de la patrulla en el escenario"
+                    {{#unless patrol.hasMembers}}disabled{{/unless}}>
+                <i class="fas fa-bullhorn"></i> Deploy
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Section toggle tabs ── -->
+    <div class="patrol-overlay-section-toggles">
+        <button class="patrol-section-toggle" type="button" data-action="toggle-section" data-target="soldier">
+            <i class="fas fa-shield-alt"></i> Soldiers
+        </button>
+        <button class="patrol-section-toggle" type="button" data-action="toggle-section" data-target="magic">
+            <i class="fas fa-hat-wizard"></i> Magic
+        </button>
+        <button class="patrol-section-toggle" type="button" data-action="toggle-section" data-target="order">
+            <i class="fas fa-scroll"></i> Order
+        </button>
+    </div>
+
+    <!-- ── Soldiers section ── -->
+    <div class="patrol-overlay-section patrol-overlay-section-soldier" style="display:none;">
+        {{#if patrol.officer}}
+        <div class="overlay-officer-row">
+            {{#if patrol.officer.img}}
+            <img src="{{patrol.officer.img}}" class="overlay-member-img" alt="{{patrol.officer.name}}" />
+            {{else}}
+            <i class="fas fa-user-shield overlay-member-icon"></i>
+            {{/if}}
+            <span class="overlay-member-name">{{patrol.officer.name}}</span>
+            <span class="overlay-member-badge">Oficial</span>
+        </div>
+        {{#if patrol.officerSkill}}
+        <div class="overlay-officer-skill"
+             data-action="overlay-skill-to-chat"
+             data-skill-name="{{patrol.officerSkill.name}}"
+             data-skill-image="{{patrol.officerSkill.image}}"
+             data-skill-hope-cost="{{patrol.officerSkill.hopeCost}}"
+             data-officer-name="{{patrol.officer.name}}">
+            {{#if patrol.officerSkill.image}}
+            <img src="{{patrol.officerSkill.image}}" class="overlay-skill-img" />
+            {{else}}
+            <i class="fas fa-bolt"></i>
+            {{/if}}
+            <span class="overlay-skill-name">{{patrol.officerSkill.name}}</span>
+            {{#if patrol.officerSkill.hopeCost}}
+            <span class="overlay-skill-hope"><i class="fa-solid fa-diamond"></i> {{patrol.officerSkill.hopeCost}}</span>
+            {{/if}}
+        </div>
+        {{/if}}
+        {{/if}}
+
+        <div class="overlay-slots">
+            {{#each patrol.slots}}
+            <div class="overlay-slot {{#if (eq this.type 'soldier')}}filled{{/if}}"
+                 title="{{#if (eq this.type 'soldier')}}{{this.data.name}}{{else}}Empty{{/if}}">
+                {{#if (eq this.type 'soldier')}}
+                    {{#if this.data.img}}
+                    <img src="{{this.data.img}}" class="overlay-slot-img" />
+                    {{else}}
+                    <i class="fas fa-user"></i>
+                    {{/if}}
+                {{else}}
+                    <i class="fas fa-circle" style="opacity:0.18;font-size:0.55rem;"></i>
+                {{/if}}
             </div>
             {{/each}}
         </div>
     </div>
-    {{/if}}
+
+    <!-- ── Magic section ── -->
+    <div class="patrol-overlay-section patrol-overlay-section-magic" style="display:none;">
+        {{#if patrol.spellcastingInfo}}
+        <div class="overlay-spellcasting-header">
+            {{#if patrol.spellcastingInfo.image}}
+            <img src="{{patrol.spellcastingInfo.image}}" class="overlay-spell-type-img" />
+            {{/if}}
+            <div class="overlay-spellcasting-info">
+                <span class="overlay-spell-type-name">{{patrol.spellcastingInfo.name}}</span>
+                <span class="overlay-spell-type-label">{{patrol.spellcastingInfo.typeLabel}} · {{patrol.spellcastingInfo.statLabel}} <strong>{{patrol.spellcastingInfo.statTotal}}</strong></span>
+            </div>
+        </div>
+        {{#if patrol.patrolSpells.length}}
+        <div class="overlay-spells-list">
+            {{#each patrol.patrolSpells}}
+            <div class="overlay-spell-item">
+                <span class="overlay-spell-name">{{this.name}}</span>
+                {{#if this.hopeCost}}<span class="overlay-spell-hope"><i class="fa-solid fa-diamond"></i> {{this.hopeCost}}</span>{{/if}}
+            </div>
+            {{/each}}
+        </div>
+        {{else}}
+        <p class="overlay-empty-hint">No spells assigned</p>
+        {{/if}}
+        {{else}}
+        <p class="overlay-empty-hint">No spellcasting</p>
+        {{/if}}
+    </div>
+
+    <!-- ── Order section ── -->
+    <div class="patrol-overlay-section patrol-overlay-section-order" style="display:none;">
+        {{#if patrol.lastOrder}}
+        <div class="overlay-order-text">&ldquo;{{patrol.lastOrder.text}}&rdquo;</div>
+        <div class="overlay-order-age overlay-order-age-{{patrol.ageClass}}">
+            <i class="fas fa-circle"></i> {{patrol.ageClass}}
+        </div>
+        {{else}}
+        <p class="overlay-empty-hint">No active order</p>
+        {{/if}}
+    </div>
+
+    </div><!-- /.patrol-overlay-content -->
 </div>

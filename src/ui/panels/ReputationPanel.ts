@@ -1,9 +1,36 @@
 import { AddOrEditReputationDialog } from '../../dialogs/AddOrEditReputationDialog.js';
 import type { GuardOrganization } from '../../types/entities';
-import { REPUTATION_LABELS, ReputationLevel } from '../../types/entities.js';
+import {
+  REPUTATION_LABELS,
+  REPUTATION_TREND_LABELS,
+  REPUTATION_TREND_ICONS,
+  REPUTATION_CATEGORY_LABELS,
+  REPUTATION_CATEGORY_ICONS,
+  REPUTATION_CATEGORY_DEFAULT_ORDER,
+  ReputationLevel,
+} from '../../types/entities.js';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { ReputationTemplate } from '../ReputationTemplate.js';
+
+/** Lee/guarda el orden de categorías de reputación en settings */
+function getCategoryOrder(): string[] {
+  try {
+    const stored = (game as any)?.settings?.get('guard-management', 'reputationCategoryOrder') as string[] | null;
+    if (Array.isArray(stored) && stored.length > 0) {
+      // Asegurarse de que todas las categorías estén incluidas
+      const all = [...REPUTATION_CATEGORY_DEFAULT_ORDER] as string[];
+      const merged = [...stored];
+      for (const cat of all) if (!merged.includes(cat)) merged.push(cat);
+      return merged;
+    }
+  } catch (_) {}
+  return [...REPUTATION_CATEGORY_DEFAULT_ORDER] as string[];
+}
+
+async function saveCategoryOrder(order: string[]): Promise<void> {
+  await (game as any)?.settings?.set('guard-management', 'reputationCategoryOrder', order);
+}
 
 export class ReputationPanel {
   static get template() {
@@ -12,48 +39,178 @@ export class ReputationPanel {
 
   static async getData(organization: GuardOrganization) {
     const gm = (window as any).GuardManagement;
-    const reputation = [];
+    const isGM = !!(game as any)?.user?.isGM;
+    const reputation: any[] = [];
     if (organization.reputation && organization.reputation.length > 0) {
       const allReputation = gm.reputationManager?.getAllReputations() || [];
       for (const id of organization.reputation) {
         const r = allReputation.find((res: any) => res.id === id);
         if (r) {
-          const reputationData = r; // Ya no necesita conversión
-          const level = reputationData.level;
-
+          const level = r.level;
           let statusClass = 'neutral';
           if (level <= 2) statusClass = 'negative';
           else if (level >= 5) statusClass = 'positive';
 
-          const rep = {
-            ...reputationData,
+          reputation.push({
+            ...r,
             value: REPUTATION_LABELS[level as ReputationLevel] || 'Desconocido',
-            statusClass: statusClass,
-          };
-          reputation.push(rep);
+            statusClass,
+            trendLabel: r.trend ? REPUTATION_TREND_LABELS[r.trend] : '',
+            trendIcon:  r.trend ? REPUTATION_TREND_ICONS[r.trend]  : '',
+            categoryLabel: r.category ? REPUTATION_CATEGORY_LABELS[r.category] : '',
+            changelogEntries: (r.changelog ?? []).map((entry: any) => ({
+              ...entry,
+              dateLabel: new Date(entry.timestamp).toLocaleString('es-ES', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+              }),
+            })),
+          });
         }
       }
     }
 
-    // Sort by level descending
-    reputation.sort((a, b) => b.level - a.level);
+    // Sort within each group: visible first, then by level desc
+    reputation.sort((a, b) => {
+      const aH = a.hidden !== false ? 1 : 0;
+      const bH = b.hidden !== false ? 1 : 0;
+      if (aH !== bH) return aH - bH;
+      return b.level - a.level;
+    });
+
+    // Group by category in stored order
+    const categoryOrder = getCategoryOrder();
+    const groups = categoryOrder
+      .map((catKey, idx) => {
+        const items = reputation.filter((r) => (r.category || '') === catKey);
+        if (items.length === 0) return null;
+        return {
+          key: catKey,
+          label: catKey ? (REPUTATION_CATEGORY_LABELS[catKey as keyof typeof REPUTATION_CATEGORY_LABELS] || catKey) : 'Sin categoría',
+          icon:  catKey ? (REPUTATION_CATEGORY_ICONS[catKey as keyof typeof REPUTATION_CATEGORY_ICONS] || 'fas fa-circle') : 'fas fa-question',
+          items,
+          isFirst: false, // se rellena abajo
+          isLast: false,
+        };
+      })
+      .filter(Boolean) as any[];
+
+    // Mark first/last for up/down button visibility
+    groups.forEach((g, i) => {
+      g.isFirst = i === 0;
+      g.isLast = i === groups.length - 1;
+    });
 
     return {
       organizationId: organization.id,
-      reputation,
+      isGM,
+      groups,
     };
   }
 
   static async render(container: HTMLElement, organization: GuardOrganization) {
     const data = await this.getData(organization);
     const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-
-    // Use jQuery html() to forcibly replace content
-    console.log('ReputationPanel | Rendering with data:', data);
     $(container).html(htmlContent);
-    console.log('ReputationPanel | DOM updated');
 
-    // Set up expand/collapse toggles — click anywhere in summary except action buttons
+    // ── Reorder category groups ───────────────────────────────────────────
+    container.querySelectorAll<HTMLElement>('.rep-category-up-btn, .rep-category-down-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const catKey = btn.dataset.categoryKey ?? '';
+        const dir = btn.classList.contains('rep-category-up-btn') ? -1 : 1;
+        const order = getCategoryOrder();
+        const idx = order.indexOf(catKey);
+        if (idx < 0) return;
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= order.length) return;
+        [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+        await saveCategoryOrder(order);
+        await ReputationPanel.render(container, organization);
+      });
+    });
+
+    // ── Collapse/expand category ──────────────────────────────────────────
+    container.querySelectorAll<HTMLElement>('.rep-category-header').forEach((header) => {
+      header.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.rep-category-actions')) return;
+        const section = header.closest('.rep-category-section') as HTMLElement;
+        section?.classList.toggle('rep-category-section--collapsed');
+      });
+    });
+
+    // ── Toggle visibility (ojo) ───────────────────────────────────────────
+    container.querySelectorAll<HTMLElement>('.toggle-hidden-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const reputationId = btn.dataset.reputationId;
+        if (!reputationId) return;
+        const gm = (window as any).GuardManagement;
+        if (!gm?.reputationManager) return;
+        const rep = gm.reputationManager.getReputation(reputationId);
+        if (!rep) return;
+        const newHidden = rep.hidden === false;
+        await gm.reputationManager.updateReputation(reputationId, { hidden: newHidden });
+        const allOrgs = gm.guardOrganizationManager?.getAllOrganizations?.() ?? [];
+        const org = allOrgs.find((o: any) => o.id === rep.organizationId);
+        if (org) await ReputationPanel.render(container, org);
+      });
+    });
+
+    // ── Delete changelog entry (GM only) ─────────────────────────────────
+    container.querySelectorAll<HTMLElement>('.rep-log-delete-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const reputationId = btn.dataset.reputationId;
+        const entryId = btn.dataset.entryId;
+        if (!reputationId || !entryId) return;
+        const gm = (window as any).GuardManagement;
+        if (!gm?.reputationManager) return;
+        await gm.reputationManager.deleteReputationLogEntry(reputationId, entryId);
+        const allOrgs = gm.guardOrganizationManager?.getAllOrganizations?.() ?? [];
+        const rep = gm.reputationManager.getReputation(reputationId);
+        const org = allOrgs.find((o: any) => o.id === rep?.organizationId);
+        if (org) await ReputationPanel.render(container, org);
+      });
+    });
+
+    // ── Send favor / relation to chat ─────────────────────────────────────
+    container.querySelectorAll<HTMLElement>('.rep-sub-chat-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const reputationId = btn.dataset.reputationId;
+        if (!reputationId) return;
+        const favorId = btn.dataset.favorId;
+        const relationId = btn.dataset.relationId;
+        try {
+          if (favorId) {
+            await ReputationTemplate.sendFavorToChat(reputationId, favorId);
+            NotificationService.info('Favor enviado al chat');
+          } else if (relationId) {
+            await ReputationTemplate.sendRelationToChat(reputationId, relationId);
+            NotificationService.info('Relación enviada al chat');
+          }
+        } catch (err) {
+          console.error('Error sending to chat:', err);
+          NotificationService.error('Error al enviar al chat');
+        }
+      });
+    });
+
+    // ── Toggle changelog visibility ───────────────────────────────────────
+    container.querySelectorAll<HTMLElement>('.rep-changelog-toggle').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const log = btn.closest('.entity-row__detail')?.querySelector('.rep-changelog-list') as HTMLElement | null;
+        if (!log) return;
+        const isHidden = log.hidden;
+        log.hidden = !isHidden;
+        btn.querySelector('i')?.classList.toggle('fa-chevron-down', isHidden);
+        btn.querySelector('i')?.classList.toggle('fa-chevron-up', !isHidden);
+      });
+    });
+
+    // ── Expand/collapse individual row ────────────────────────────────────
     container.querySelectorAll<HTMLElement>('.entity-row__summary').forEach((summary) => {
       summary.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).closest('.entity-row__actions')) return;
@@ -68,13 +225,20 @@ export class ReputationPanel {
       });
     });
 
-    // Search filter
+    // ── Search filter ─────────────────────────────────────────────────────
     const searchInput = container.querySelector<HTMLInputElement>('.entity-list-search__input');
     searchInput?.addEventListener('input', () => {
       const query = searchInput.value.trim().toLowerCase();
       container.querySelectorAll<HTMLElement>('.entity-row').forEach((row) => {
         const name = row.querySelector('.entity-row__name')?.textContent?.toLowerCase() ?? '';
         row.classList.toggle('entity-row--hidden', !!query && !name.includes(query));
+      });
+      // Hide empty category sections
+      container.querySelectorAll<HTMLElement>('.rep-category-section').forEach((section) => {
+        const hasVisible = Array.from(section.querySelectorAll('.entity-row')).some(
+          (r) => !(r as HTMLElement).classList.contains('entity-row--hidden')
+        );
+        (section as HTMLElement).style.display = hasVisible ? '' : 'none';
       });
     });
   }

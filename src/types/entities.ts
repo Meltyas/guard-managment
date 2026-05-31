@@ -73,11 +73,72 @@ export interface Resource extends BaseEntity {
 }
 
 // Reputation (Organizational Level)
+
+/** Momentum de la relación: mejorando, estable o deteriorándose */
+export type ReputationTrend = 'rising' | 'stable' | 'falling';
+
+/** Categoría de la facción */
+export type ReputationCategory =
+  | 'gremio'
+  | 'banda'
+  | 'noble'
+  | 'militar'
+  | 'religiosa'
+  | 'otra';
+
+/** Tipo de relación entre facciones */
+export type FactionRelationType = 'aliada' | 'rival' | 'enemiga' | 'neutral';
+
+/** Relación entre esta facción y otra del mundo */
+export interface FactionRelation {
+  id: string;
+  factionName: string;
+  relationType: FactionRelationType;
+  notes?: string;
+}
+
+/** Un favor que la facción puede ofrecer o pedir */
+export interface ReputationFavor {
+  id: string;
+  name: string;
+  description: string;
+  cost?: string; // coste opcional (texto libre)
+}
+
+/** Una entrada del registro de cambios de una reputación */
+export interface ReputationChangelogEntry {
+  id: string;
+  timestamp: number;
+  userId: string;
+  userName: string;
+  /** Cambios registrados: campo → { from, to } */
+  changes: { field: string; from: string; to: string }[];
+}
+
 export interface Reputation extends BaseEntity {
   description: string;
   level: ReputationLevel;
   image?: string;
   organizationId: string; // Reference to GuardOrganization
+
+  // Campos enriquecidos
+  faction?: string;               // Nombre real de la facción en el mundo
+  trend?: ReputationTrend;        // Momentum de la relación
+  category?: ReputationCategory;  // Tipo de facción
+  contact?: string;               // NPC de contacto en la facción
+  gmNotes?: string;               // Notas privadas del GM
+
+  // Relaciones inter-facción
+  factionRelations?: FactionRelation[];
+
+  // Favores
+  favors?: ReputationFavor[];
+
+  /** Registro de cambios (ordenado del más reciente al más antiguo) */
+  changelog?: ReputationChangelogEntry[];
+
+  /** Si true, la reputación está oculta en el panel (no visible para los jugadores). Por defecto true. */
+  hidden?: boolean;
 }
 
 export enum ReputationLevel {
@@ -98,6 +159,48 @@ export const REPUTATION_LABELS: Record<ReputationLevel, string> = {
   [ReputationLevel.Amistosos]: 'Amistosos',
   [ReputationLevel.Confiados]: 'Confiados',
   [ReputationLevel.Aliados]: 'Aliados',
+};
+
+export const REPUTATION_TREND_LABELS: Record<ReputationTrend, string> = {
+  rising: 'Mejorando',
+  stable: 'Estable',
+  falling: 'Deteriorándose',
+};
+
+export const REPUTATION_TREND_ICONS: Record<ReputationTrend, string> = {
+  rising: '↑',
+  stable: '→',
+  falling: '↓',
+};
+
+export const REPUTATION_CATEGORY_LABELS: Record<ReputationCategory, string> = {
+  gremio: 'Gremio',
+  banda: 'Banda',
+  noble: 'Noble',
+  militar: 'Militar',
+  religiosa: 'Religiosa',
+  otra: 'Otra',
+};
+
+export const REPUTATION_CATEGORY_ICONS: Record<ReputationCategory, string> = {
+  noble:     'fas fa-crown',
+  militar:   'fas fa-shield-alt',
+  gremio:    'fas fa-tools',
+  banda:     'fas fa-skull-crossbones',
+  religiosa: 'fas fa-pray',
+  otra:      'fas fa-circle',
+};
+
+/** Orden por defecto de las categorías en el panel (incluye '' para sin categoría) */
+export const REPUTATION_CATEGORY_DEFAULT_ORDER: (ReputationCategory | '')[] = [
+  'noble', 'militar', 'gremio', 'banda', 'religiosa', 'otra', '',
+];
+
+export const FACTION_RELATION_LABELS: Record<FactionRelationType, string> = {
+  aliada: 'Aliada',
+  rival: 'Rival',
+  enemiga: 'Enemiga',
+  neutral: 'Neutral',
 };
 
 // Patrols (Operational Units)

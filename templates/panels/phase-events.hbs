@@ -1,0 +1,151 @@
+<div class='organization-info'>
+  <div class='info-section phases-section'>
+    {{! Current status }}
+    <div class='phases-status'>
+      <div class='phase-status-item'>
+        <i class='{{phaseIcon}}'></i>
+        <span>Turno {{currentTurn}} · {{phaseLabel}}</span>
+      </div>
+      <div class='phase-status-item'>
+        <i class='fas fa-calendar-check'></i>
+        <span>{{pendingCount}} programado(s)</span>
+      </div>
+      <div class='phase-status-item'>
+        <i class='fas fa-scroll'></i>
+        <span>{{reportCount}} reporte(s)</span>
+      </div>
+    </div>
+
+    {{! Toolbar }}
+    <div class='phases-toolbar'>
+      <div class='phases-search-wrapper'>
+        <i class='fas fa-search phases-search-icon'></i>
+        <input type='text' class='phases-search-input' placeholder='Buscar en eventos y reportes...' />
+      </div>
+      <div class='phases-actions'>
+        <button class='phases-btn phases-add-btn' title='Programar evento'>
+          <i class='fas fa-plus'></i>
+        </button>
+      </div>
+    </div>
+
+    {{! Category filter toggles }}
+    <div class='phases-filter-toggles'>
+      <button class='phases-toggle active' data-filter='all'>Todos</button>
+      {{#each categories}}
+        <button class='phases-toggle' data-filter='{{value}}'>{{label}}</button>
+      {{/each}}
+    </div>
+
+    {{! Scheduled events }}
+    <div class='phases-subheader'>
+      <i class='fas fa-calendar-alt'></i>
+      <span>Eventos programados</span>
+    </div>
+    <div class='phases-events-list'>
+      {{#if events.length}}
+        {{#each events}}
+          <div
+            class='phase-event-row status-{{status}}'
+            data-event-id='{{id}}'
+            data-category='{{category}}'
+            data-visibility='{{visibility}}'
+            data-search='{{searchText}}'
+          >
+            <div class='phase-event-turn' title='Turno de disparo'>T{{triggerTurn}}</div>
+            <div class='phase-event-main'>
+              <div class='phase-event-title'><i class='{{icon}}'></i> {{title}}</div>
+              {{#if description}}<div class='phase-event-desc'>{{description}}</div>{{/if}}
+              <div class='phase-event-tags'>
+                <span class='ev-tag visibility-{{visibility}}'>{{visibilityLabel}}</span>
+                <span class='ev-tag'>{{categoryLabel}}</span>
+                {{#if recurrenceLabel}}<span class='ev-tag'><i class='fas fa-repeat'></i>
+                    {{recurrenceLabel}}</span>{{/if}}
+                <span class='ev-tag status-tag status-{{status}}'>{{statusLabel}}</span>
+              </div>
+            </div>
+            <div class='phase-event-actions'>
+              <button class='phase-event-edit-btn' data-event-id='{{id}}' title='Editar'>
+                <i class='fas fa-edit'></i>
+              </button>
+              {{#if isPending}}
+                <button class='phase-event-cancel-btn' data-event-id='{{id}}' title='Cancelar'>
+                  <i class='fas fa-ban'></i>
+                </button>
+              {{/if}}
+              <button
+                class='phase-event-delete-btn'
+                data-event-id='{{id}}'
+                data-event-title='{{title}}'
+                title='Eliminar'
+              >
+                <i class='fas fa-trash'></i>
+              </button>
+            </div>
+          </div>
+        {{/each}}
+      {{else}}
+        <div class='phases-empty'>
+          <i class='fas fa-calendar-alt'></i>
+          <p>No hay eventos programados</p>
+          <p class='phases-empty-hint'>Usa el botón
+            <i class='fas fa-plus'></i>
+            para programar un aviso o evento</p>
+        </div>
+      {{/if}}
+    </div>
+
+    {{! Phase reports }}
+    <div class='phases-subheader'>
+      <i class='fas fa-scroll'></i>
+      <span>Reportes de fase</span>
+    </div>
+    <div class='phases-reports-list'>
+      {{#if reports.length}}
+        {{#each reports}}
+          <details class='phase-report' data-turn='{{turn}}' {{#if open}}open{{/if}}>
+            <summary class='phase-report-summary'>
+              <span class='phase-report-turn'>Turno {{turn}}</span>
+              <span class='phase-report-phase'><i class='{{phaseIcon}}'></i> {{phaseLabel}}</span>
+              <span class='phase-report-count'>{{totalEntries}} entrada(s)</span>
+              <i class='fas fa-chevron-down phase-report-chevron'></i>
+            </summary>
+            <div class='phase-report-body'>
+              {{#if playerEntries.length}}
+                <div class='report-group players'>
+                  <div class='report-group-header'><i class='fas fa-users'></i> Visible para jugadores</div>
+                  {{#each playerEntries}}
+                    <div class='report-entry' data-category='{{category}}' data-search='{{searchText}}'>
+                      <i class='{{icon}}'></i>
+                      <span>{{text}}</span>
+                    </div>
+                  {{/each}}
+                </div>
+              {{/if}}
+              {{#if gmEntries.length}}
+                <div class='report-group gm'>
+                  <div class='report-group-header'><i class='fas fa-user-secret'></i> Solo DM</div>
+                  {{#each gmEntries}}
+                    <div class='report-entry gm' data-category='{{category}}' data-search='{{searchText}}'>
+                      <i class='{{icon}}'></i>
+                      <span>{{text}}</span>
+                    </div>
+                  {{/each}}
+                </div>
+              {{/if}}
+              {{#unless totalEntries}}
+                <div class='report-empty'>Sin novedades este turno</div>
+              {{/unless}}
+            </div>
+          </details>
+        {{/each}}
+      {{else}}
+        <div class='phases-empty'>
+          <i class='fas fa-scroll'></i>
+          <p>Aún no hay reportes</p>
+          <p class='phases-empty-hint'>Se generan automáticamente al avanzar de fase</p>
+        </div>
+      {{/if}}
+    </div>
+  </div>
+</div>

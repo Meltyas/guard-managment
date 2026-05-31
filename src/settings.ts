@@ -447,6 +447,24 @@ export function registerSettings(): void {
     },
   });
 
+  // Custom order for reputation categories
+  game?.settings?.register('guard-management', 'reputationCategoryOrder', {
+    name: 'Reputation Category Order',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+  });
+
+  // Custom order for building zones
+  game?.settings?.register('guard-management', 'buildingZoneOrder', {
+    name: 'Building Zone Order',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+  });
+
   // Buildings
   game?.settings?.register('guard-management', 'buildings', {
     name: 'Buildings Data',
@@ -483,6 +501,38 @@ export function registerSettings(): void {
     onChange: (_value) => {
       const gm = (window as any).GuardManagement;
       if (gm?.phaseManager) gm.phaseManager.loadFromSettings?.();
+    },
+  });
+
+  // Phase events & reports data
+  game?.settings?.register('guard-management', 'phaseEventsData', {
+    name: 'Phase Events Data',
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: { events: [], reports: [] },
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.phaseEventManager) gm.phaseEventManager.loadFromSettings?.();
+    },
+  });
+
+  // Away mode — players are too far to use the guard organization
+  game?.settings?.register('guard-management', 'awayMode', {
+    name: 'Modo Ausencia',
+    hint: 'Cuando está activo, los jugadores ven un mensaje de que están demasiado lejos para organizar la guardia',
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      // Refresh floating panel (updates button state)
+      gm?.floatingPanel?.refreshPanel?.();
+      // Refresh open CustomInfoDialog (shows/hides away overlay)
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshAwayMode?.();
+      }
     },
   });
 

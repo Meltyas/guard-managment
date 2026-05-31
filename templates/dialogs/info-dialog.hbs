@@ -22,6 +22,20 @@
     </div>
 </div>
 
+{{#if isAway}}
+{{#unless isGM}}
+<div class="away-full-overlay">
+    <div class="away-full-overlay-content">
+        <img class="away-placeholder-img" src="modules/guard-management/assets/away-placeholder.png" alt="Demasiado lejos" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+        <div class="away-placeholder-fallback" style="display:none">
+            <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <p class="away-full-overlay-text">Estáis demasiado lejos para poder organizar la guardia</p>
+    </div>
+</div>
+{{/unless}}
+{{/if}}
+
 <div class="custom-dialog-content">
     <div class="organization-content">
         <div class="org-tabs-layout" data-current-tab="{{activeTab}}">
@@ -58,6 +72,9 @@
                 </button>
                 <button type="button" class="org-tab-btn {{#if (eq activeTab 'finances')}}active{{/if}}" role="tab" data-tab="finances" data-tooltip="Finanzas" data-tooltip-direction="RIGHT">
                     <i class="fas fa-coins"></i><span>Finanzas</span>
+                </button>
+                <button type="button" class="org-tab-btn {{#if (eq activeTab 'phases')}}active{{/if}}" role="tab" data-tab="phases" data-tooltip="Fases y Eventos" data-tooltip-direction="RIGHT">
+                    <i class="fas fa-hourglass-half"></i><span>Fases</span>
                 </button>
                 <div class="active-bar" aria-hidden="true"></div>
             </nav>
@@ -96,9 +113,21 @@
                 <section class="org-tab-panel {{#if (eq activeTab 'finances')}}active{{/if}}" role="tabpanel" data-tab-panel="finances">
                     <!-- FinancesPanel renders here -->
                 </section>
+                <section class="org-tab-panel {{#if (eq activeTab 'phases')}}active{{/if}}" role="tabpanel" data-tab-panel="phases">
+                    <!-- PhaseEventsPanel renders here -->
+                </section>
             </div>
         </div>
     </div>
+
+    {{#if isAway}}
+    {{#if isGM}}
+    <div class="away-gm-reminder">
+        <img class="away-placeholder-img-small" src="modules/guard-management/assets/away-placeholder.png" alt="AWAY" onerror="this.style.display='none'"/>
+        <span><i class="fas fa-map-marker-alt"></i> Modo AWAY activo — los jugadores no pueden ver la organización</span>
+    </div>
+    {{/if}}
+    {{/if}}
 </div>
 
 <div class="custom-dialog-resize-handle"></div>
