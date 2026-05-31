@@ -5,7 +5,7 @@
 import type { Gang, GangMember } from '../../types/gangs';
 import { GANG_STATUS_LABELS } from '../../types/gangs';
 import { GuardModal } from '../GuardModal.js';
-import { formatTimeAgo, setupFilterToggles, setupImagePicker } from './panel-helpers.js';
+import { formatTimeAgo, setupFilterToggles, setupImagePicker, renderPanel } from './panel-helpers.js';
 
 export class GangsPanel {
   static get template() {
@@ -53,15 +53,15 @@ export class GangsPanel {
   }
 
   static async render(container: HTMLElement): Promise<void> {
-    try {
-      const data = await GangsPanel.getData();
-      const html = await foundry.applications.handlebars.renderTemplate(GangsPanel.template, data);
-      $(container).html(html);
-      GangsPanel.setupEventListeners(container);
-      GangsPanel.setupDragAndDrop(container);
-    } catch (error) {
-      console.error('GangsPanel | Error rendering:', error);
-    }
+    await renderPanel(container, {
+      template: GangsPanel.template,
+      getData: () => GangsPanel.getData(),
+      onMounted: (c) => {
+        GangsPanel.setupEventListeners(c);
+        GangsPanel.setupDragAndDrop(c);
+      },
+      panelName: 'GangsPanel',
+    });
   }
 
   // --- Event listeners ---

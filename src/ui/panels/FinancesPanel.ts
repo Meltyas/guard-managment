@@ -5,7 +5,7 @@
 import type { FinanceRefType, FinanceReference } from '../../types/finances';
 import { REF_TYPE_ICONS, REF_TYPE_LABELS } from '../../types/finances';
 import { GuardModal } from '../GuardModal.js';
-import { formatTimeAgo } from './panel-helpers.js';
+import { formatTimeAgo, renderPanel } from './panel-helpers.js';
 
 export class FinancesPanel {
   static get template() {
@@ -381,17 +381,12 @@ export class FinancesPanel {
   }
 
   static async render(container: HTMLElement): Promise<void> {
-    try {
-      const data = await FinancesPanel.getData();
-      const html = await foundry.applications.handlebars.renderTemplate(
-        FinancesPanel.template,
-        data
-      );
-      $(container).html(html);
-      FinancesPanel.setupEventListeners(container);
-    } catch (error) {
-      console.error('FinancesPanel | Error rendering:', error);
-    }
+    await renderPanel(container, {
+      template: FinancesPanel.template,
+      getData: () => FinancesPanel.getData(),
+      onMounted: (c) => FinancesPanel.setupEventListeners(c),
+      panelName: 'FinancesPanel',
+    });
   }
 
   // ========================

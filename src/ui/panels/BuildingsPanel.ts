@@ -12,7 +12,7 @@ import {
 } from '../../types/buildings';
 import { GuardModal } from '../GuardModal.js';
 import { BuildingActivatorModal } from '../modals/BuildingActivatorModal.js';
-import { setupFilterToggles, setupImagePicker } from './panel-helpers.js';
+import { setupFilterToggles, setupImagePicker, renderPanel } from './panel-helpers.js';
 
 export class BuildingsPanel {
   static get template() {
@@ -82,17 +82,12 @@ export class BuildingsPanel {
   }
 
   static async render(container: HTMLElement): Promise<void> {
-    try {
-      const data = await BuildingsPanel.getData();
-      const html = await foundry.applications.handlebars.renderTemplate(
-        BuildingsPanel.template,
-        data
-      );
-      $(container).html(html);
-      BuildingsPanel.setupEventListeners(container);
-    } catch (error) {
-      console.error('BuildingsPanel | Error rendering:', error);
-    }
+    await renderPanel(container, {
+      template: BuildingsPanel.template,
+      getData: () => BuildingsPanel.getData(),
+      onMounted: (c) => BuildingsPanel.setupEventListeners(c),
+      panelName: 'BuildingsPanel',
+    });
   }
 
   // --- Event listeners ---

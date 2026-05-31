@@ -35,6 +35,18 @@ export class CustomInfoDialog implements FocusableDialog {
   private currentOrganization: GuardOrganization | null = null;
   // Tab state keys
   private static readonly TAB_LS_KEY = 'guard-management.infoDialog.selectedTab';
+  /** Tabs re-rendered on click. general/resources/reputation refresh via refreshContent instead. */
+  private static readonly REFRESH_ON_TAB_ACTIVATE = new Set<string>([
+    'patrols',
+    'auxiliaries',
+    'prisoners',
+    'crimes',
+    'gangs',
+    'buildings',
+    'poi',
+    'finances',
+    'phases',
+  ]);
   private static readonly POS_LS_KEY = 'guard-management.orgDialog.pos';
   static readonly OPEN_LS_KEY = 'guard-management.infoDialog.open';
   private tabsInitialized = false;
@@ -51,116 +63,31 @@ export class CustomInfoDialog implements FocusableDialog {
     this.handleFocus = this.handleFocus.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
     this.handleGlobalClick = this.handleGlobalClick.bind(this);
-    // Auto-refresh patrols when data layer updates (hydrate / persist)
-    window.addEventListener('guard-patrols-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        // Solo refrescar si la pestaña de patrullas está montada
-        const activeTab = this.element.querySelector('[data-tab-panel="patrols"]');
-        if (activeTab) this.refreshPatrolsPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | patrols auto-refresh failed', e);
-      }
-    });
-    // Auto-refresh prisoners when data layer updates
-    window.addEventListener('guard-prisoners-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="prisoners"]');
-        if (activeTab) this.refreshPrisonersPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | prisoners auto-refresh failed', e);
-      }
-    });
-    // Auto-refresh prisoners when phase advances (remaining phases change)
-    window.addEventListener('guard-phase-advanced', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="prisoners"]');
-        if (activeTab) this.refreshPrisonersPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | prisoners phase-refresh failed', e);
-      }
-    });
-    // Auto-refresh auxiliaries when data layer updates
-    window.addEventListener('guard-auxiliaries-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="auxiliaries"]');
-        if (activeTab) this.refreshAuxiliariesPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | auxiliaries auto-refresh failed', e);
-      }
-    });
-    // Auto-refresh crimes when data layer updates
-    window.addEventListener('guard-crimes-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="crimes"]');
-        if (activeTab) this.refreshCrimesPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | crimes auto-refresh failed', e);
-      }
-    });
-    // Auto-refresh gangs when data layer updates
-    window.addEventListener('guard-gangs-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="gangs"]');
-        if (activeTab) this.refreshGangsPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | gangs auto-refresh failed', e);
-      }
-    });
-    // Auto-refresh buildings when data layer updates
-    window.addEventListener('guard-buildings-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="buildings"]');
-        if (activeTab) this.refreshBuildingsPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | buildings auto-refresh failed', e);
-      }
-    });
-    // Auto-refresh POI when data layer updates
-    window.addEventListener('guard-poi-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="poi"]');
-        if (activeTab) this.refreshPoiPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | poi auto-refresh failed', e);
-      }
-    });
-    // Auto-refresh finances when data layer updates
-    window.addEventListener('guard-finances-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="finances"]');
-        if (activeTab) this.refreshFinancesPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | finances auto-refresh failed', e);
-      }
-    });
-    // Auto-refresh phases panel when events or reports update
-    window.addEventListener('guard-phase-events-updated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="phases"]');
-        if (activeTab) this.refreshPhasesPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | phases auto-refresh failed', e);
-      }
-    });
-    window.addEventListener('guard-phase-report-generated', () => {
-      try {
-        if (!this.element || !this.currentOrganization) return;
-        const activeTab = this.element.querySelector('[data-tab-panel="phases"]');
-        if (activeTab) this.refreshPhasesPanel();
-      } catch (e) {
-        console.warn('CustomInfoDialog | phase-report auto-refresh failed', e);
-      }
-    });
+    // Auto-refresh panels when the data layer emits update events.
+    // renderTabPanel internally skips tabs whose container is not currently mounted.
+    const AUTO_REFRESH: ReadonlyArray<readonly [string, string]> = [
+      ['guard-patrols-updated', 'patrols'],
+      ['guard-prisoners-updated', 'prisoners'],
+      ['guard-phase-advanced', 'prisoners'], // remaining sentence phases change
+      ['guard-auxiliaries-updated', 'auxiliaries'],
+      ['guard-crimes-updated', 'crimes'],
+      ['guard-gangs-updated', 'gangs'],
+      ['guard-buildings-updated', 'buildings'],
+      ['guard-poi-updated', 'poi'],
+      ['guard-finances-updated', 'finances'],
+      ['guard-phase-events-updated', 'phases'],
+      ['guard-phase-report-generated', 'phases'],
+    ];
+    for (const [event, tabKey] of AUTO_REFRESH) {
+      window.addEventListener(event, () => {
+        try {
+          if (!this.element || !this.currentOrganization) return;
+          void this.renderTabPanel(tabKey);
+        } catch (e) {
+          console.warn(`CustomInfoDialog | ${event} auto-refresh failed`, e);
+        }
+      });
+    }
   }
 
   /**
@@ -329,110 +256,10 @@ export class CustomInfoDialog implements FocusableDialog {
       // IMPORTANT: Update our current organization reference to the fresh one
       this.currentOrganization = freshOrganization;
 
-      // Render panels with fresh data
+      // Render every panel with fresh data (see getPanelRegistry for the list)
       if (this.element) {
-        const generalContainer = this.element.querySelector(
-          '[data-tab-panel="general"]'
-        ) as HTMLElement;
-        if (generalContainer) {
-          console.log('🔄 Rendering GeneralPanel...');
-          await GeneralPanel.render(generalContainer, freshOrganization, () =>
-            this.refreshContent()
-          );
-        }
-
-        const patrolsContainer = this.element.querySelector(
-          '[data-tab-panel="patrols"]'
-        ) as HTMLElement;
-        if (patrolsContainer) {
-          console.log('🔄 Rendering PatrolsPanel...');
-          await PatrolsPanel.render(patrolsContainer);
-        }
-
-        const auxiliariesContainer = this.element.querySelector(
-          '[data-tab-panel="auxiliaries"]'
-        ) as HTMLElement;
-        if (auxiliariesContainer) {
-          console.log('🔄 Rendering AuxiliariesPanel...');
-          await PatrolsPanel.render(auxiliariesContainer, 'auxiliary');
-        }
-
-        const resourcesContainer = this.element.querySelector(
-          '[data-tab-panel="resources"]'
-        ) as HTMLElement;
-        if (resourcesContainer) {
-          console.log(
-            '🔄 Rendering ResourcesPanel with',
-            freshOrganization.resources?.length || 0,
-            'resource IDs...'
-          );
-          await ResourcesPanel.render(resourcesContainer, freshOrganization);
-        }
-
-        const reputationContainer = this.element.querySelector(
-          '[data-tab-panel="reputation"]'
-        ) as HTMLElement;
-        if (reputationContainer) {
-          console.log(
-            '🔄 Rendering ReputationPanel with',
-            freshOrganization.reputation?.length || 0,
-            'reputation IDs...'
-          );
-          await ReputationPanel.render(reputationContainer, freshOrganization);
-        }
-
-        const crimesContainer = this.element.querySelector(
-          '[data-tab-panel="crimes"]'
-        ) as HTMLElement;
-        if (crimesContainer) {
-          console.log('🔄 Rendering CrimesPanel...');
-          await CrimesPanel.render(crimesContainer);
-        }
-
-        const prisonersContainer = this.element.querySelector(
-          '[data-tab-panel="prisoners"]'
-        ) as HTMLElement;
-        if (prisonersContainer) {
-          console.log('🔄 Rendering PrisonersPanel...');
-          await PrisonersPanel.render(prisonersContainer);
-        }
-
-        const gangsContainer = this.element.querySelector(
-          '[data-tab-panel="gangs"]'
-        ) as HTMLElement;
-        if (gangsContainer) {
-          console.log('🔄 Rendering GangsPanel...');
-          await GangsPanel.render(gangsContainer);
-        }
-
-        const buildingsContainer = this.element.querySelector(
-          '[data-tab-panel="buildings"]'
-        ) as HTMLElement;
-        if (buildingsContainer) {
-          console.log('🔄 Rendering BuildingsPanel...');
-          await BuildingsPanel.render(buildingsContainer);
-        }
-
-        const poiContainer = this.element.querySelector('[data-tab-panel="poi"]') as HTMLElement;
-        if (poiContainer) {
-          console.log('🔄 Rendering PoiPanel...');
-          await PoiPanel.render(poiContainer);
-        }
-
-        const financesContainer = this.element.querySelector(
-          '[data-tab-panel="finances"]'
-        ) as HTMLElement;
-        if (financesContainer) {
-          console.log('🔄 Rendering FinancesPanel...');
-          await FinancesPanel.render(financesContainer);
-        }
-
-        const phasesContainer = this.element.querySelector(
-          '[data-tab-panel="phases"]'
-        ) as HTMLElement;
-        if (phasesContainer) {
-          console.log('🔄 Rendering PhaseEventsPanel...');
-          await PhaseCalendar.mount(phasesContainer);
+        for (const tabKey of Object.keys(this.getPanelRegistry())) {
+          await this.renderTabPanel(tabKey);
         }
       }
 
@@ -947,79 +774,76 @@ export class CustomInfoDialog implements FocusableDialog {
     console.log('✅ Resource event listeners set up');
   }
 
-  private refreshPatrolsPanel() {
-    const tabPanel = this.element?.querySelector(
-      '[data-tab-panel="patrols"]'
-    ) as HTMLElement | null;
-    if (!tabPanel) return;
+  /**
+   * Single source of truth for the dialog's tabs: maps each tab key to the
+   * function that renders it into its container. Adding a tab now only needs
+   * one entry here (plus the markup in info-dialog.hbs). Org-dependent panels
+   * read the freshest organization from this.currentOrganization.
+   */
+  private getPanelRegistry(): Record<string, (container: HTMLElement) => void | Promise<void>> {
+    const org = this.currentOrganization;
+    return {
+      general: (c) => (org ? GeneralPanel.render(c, org, () => this.refreshContent()) : undefined),
+      patrols: (c) => PatrolsPanel.render(c),
+      auxiliaries: (c) => PatrolsPanel.render(c, 'auxiliary'),
+      resources: (c) => (org ? ResourcesPanel.render(c, org) : undefined),
+      reputation: (c) => (org ? ReputationPanel.render(c, org) : undefined),
+      crimes: (c) => CrimesPanel.render(c),
+      prisoners: (c) => PrisonersPanel.render(c),
+      gangs: (c) => GangsPanel.render(c),
+      buildings: (c) => BuildingsPanel.render(c),
+      poi: (c) => PoiPanel.render(c),
+      finances: (c) => FinancesPanel.render(c),
+      phases: (c) => PhaseCalendar.mount(c),
+    };
+  }
 
-    PatrolsPanel.render(tabPanel);
+  /** Render a single tab panel by key into its [data-tab-panel] container. */
+  private async renderTabPanel(tabKey: string): Promise<void> {
+    if (!this.element) return;
+    const render = this.getPanelRegistry()[tabKey];
+    if (!render) return;
+    const container = this.element.querySelector(
+      `[data-tab-panel="${tabKey}"]`
+    ) as HTMLElement | null;
+    if (!container) return;
+    await render(container);
+  }
+
+  public refreshPatrolsPanel() {
+    void this.renderTabPanel('patrols');
   }
 
   public refreshAuxiliariesPanel() {
-    const tabPanel = this.element?.querySelector(
-      '[data-tab-panel="auxiliaries"]'
-    ) as HTMLElement | null;
-    if (!tabPanel) return;
-
-    PatrolsPanel.render(tabPanel, 'auxiliary');
+    void this.renderTabPanel('auxiliaries');
   }
 
   public refreshPrisonersPanel() {
-    const tabPanel = this.element?.querySelector(
-      '[data-tab-panel="prisoners"]'
-    ) as HTMLElement | null;
-    if (!tabPanel) return;
-
-    PrisonersPanel.render(tabPanel);
+    void this.renderTabPanel('prisoners');
   }
 
   public refreshCrimesPanel() {
-    const tabPanel = this.element?.querySelector('[data-tab-panel="crimes"]') as HTMLElement | null;
-    if (!tabPanel) return;
-
-    CrimesPanel.render(tabPanel);
+    void this.renderTabPanel('crimes');
   }
 
   public refreshGangsPanel() {
-    const tabPanel = this.element?.querySelector('[data-tab-panel="gangs"]') as HTMLElement | null;
-    if (!tabPanel) return;
-
-    GangsPanel.render(tabPanel);
+    void this.renderTabPanel('gangs');
   }
 
   public refreshBuildingsPanel() {
-    const tabPanel = this.element?.querySelector(
-      '[data-tab-panel="buildings"]'
-    ) as HTMLElement | null;
-    if (!tabPanel) return;
-
-    BuildingsPanel.render(tabPanel);
+    void this.renderTabPanel('buildings');
   }
 
   public refreshPoiPanel() {
-    const tabPanel = this.element?.querySelector('[data-tab-panel="poi"]') as HTMLElement | null;
-    if (!tabPanel) return;
-
-    PoiPanel.render(tabPanel);
+    void this.renderTabPanel('poi');
   }
 
   public refreshFinancesPanel() {
-    const tabPanel = this.element?.querySelector(
-      '[data-tab-panel="finances"]'
-    ) as HTMLElement | null;
-    if (!tabPanel) return;
-
-    FinancesPanel.render(tabPanel);
+    void this.renderTabPanel('finances');
   }
 
   public refreshPhasesPanel() {
-    const tabPanel = this.element?.querySelector(
-      '[data-tab-panel="phases"]'
-    ) as HTMLElement | null;
-    if (!tabPanel) return;
-
-    PhaseCalendar.mount(tabPanel);
+    void this.renderTabPanel('phases');
   }
 
   /**
@@ -1733,35 +1557,10 @@ export class CustomInfoDialog implements FocusableDialog {
       // Notify presence indicator of tab change
       this.presenceIndicator?.notifyInteraction(tab);
 
-      // Refresh panel when user clicks a tab (skip during initial setup to avoid race with refreshContent)
-      if (this.tabsInitialized) {
-        if (tab === 'patrols') {
-          this.refreshPatrolsPanel();
-        }
-        if (tab === 'auxiliaries') {
-          this.refreshAuxiliariesPanel();
-        }
-        if (tab === 'prisoners') {
-          this.refreshPrisonersPanel();
-        }
-        if (tab === 'crimes') {
-          this.refreshCrimesPanel();
-        }
-        if (tab === 'gangs') {
-          this.refreshGangsPanel();
-        }
-        if (tab === 'buildings') {
-          this.refreshBuildingsPanel();
-        }
-        if (tab === 'poi') {
-          this.refreshPoiPanel();
-        }
-        if (tab === 'finances') {
-          this.refreshFinancesPanel();
-        }
-        if (tab === 'phases') {
-          this.refreshPhasesPanel();
-        }
+      // Refresh panel when user clicks a tab (skip during initial setup to avoid race with refreshContent).
+      // general/resources/reputation are intentionally excluded: they refresh via refreshContent.
+      if (this.tabsInitialized && CustomInfoDialog.REFRESH_ON_TAB_ACTIVATE.has(tab)) {
+        void this.renderTabPanel(tab);
       }
     };
 

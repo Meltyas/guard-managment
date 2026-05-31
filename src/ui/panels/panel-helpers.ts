@@ -241,3 +241,39 @@ export function setupImagePicker(opts: {
     if (previewOnInput) renderPreview(inputEl.value);
   });
 }
+
+/**
+ * Shared render pipeline for the (static) entity panels — the template-method
+ * extracted out of every `Panel.render()`:
+ *   getData → renderTemplate → inject into the container → wire listeners.
+ *
+ * Centralises the boilerplate (and the try/catch error logging) so each panel
+ * only declares its template, its data source and its post-mount wiring.
+ *
+ * @param container  The tab-panel element to render into.
+ * @param opts.template   Handlebars template path.
+ * @param opts.getData    Produces the template context (sync or async).
+ * @param opts.onMounted  Optional post-render wiring (event listeners, DnD…).
+ * @param opts.panelName  Label used in the error log.
+ */
+export async function renderPanel(
+  container: HTMLElement,
+  opts: {
+    template: string;
+    getData: () => unknown | Promise<unknown>;
+    onMounted?: (container: HTMLElement) => void | Promise<void>;
+    panelName?: string;
+  }
+): Promise<void> {
+  try {
+    const data = await opts.getData();
+    const html = await (foundry as any).applications.handlebars.renderTemplate(
+      opts.template,
+      data
+    );
+    ($ as any)(container).html(html);
+    await opts.onMounted?.(container);
+  } catch (error) {
+    console.error(`${opts.panelName ?? 'Panel'} | Error rendering:`, error);
+  }
+}

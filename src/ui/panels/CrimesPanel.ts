@@ -8,7 +8,7 @@ import { OFFENSE_LABELS, OFFENSE_TYPES, OFFENSE_TYPE_FROM_SPANISH } from '../../
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { GuardModal } from '../GuardModal.js';
-import { setupFilterToggles } from './panel-helpers.js';
+import { setupFilterToggles, renderPanel } from './panel-helpers.js';
 
 export class CrimesPanel {
   static get template() {
@@ -47,10 +47,12 @@ export class CrimesPanel {
   }
 
   static async render(container: HTMLElement) {
-    const data = await this.getData();
-    const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-    $(container).html(htmlContent);
-    this.setupEventListeners(container);
+    await renderPanel(container, {
+      template: CrimesPanel.template,
+      getData: () => CrimesPanel.getData(),
+      onMounted: (c) => CrimesPanel.setupEventListeners(c),
+      panelName: 'CrimesPanel',
+    });
   }
 
   // --- Event Listeners ---

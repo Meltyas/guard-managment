@@ -6,7 +6,7 @@ import type { Crime } from '../../types/crimes';
 import type { PersonOfInterest, PoiStatus } from '../../types/poi';
 import { POI_STATUS_LABELS } from '../../types/poi';
 import { GuardModal } from '../GuardModal.js';
-import { formatTimeAgo, setupImagePicker } from './panel-helpers.js';
+import { formatTimeAgo, setupImagePicker, renderPanel } from './panel-helpers.js';
 
 export class PoiPanel {
   static get template() {
@@ -42,15 +42,15 @@ export class PoiPanel {
   }
 
   static async render(container: HTMLElement): Promise<void> {
-    try {
-      const data = await PoiPanel.getData();
-      const html = await foundry.applications.handlebars.renderTemplate(PoiPanel.template, data);
-      $(container).html(html);
-      PoiPanel.setupEventListeners(container);
-      PoiPanel.setupDragAndDrop(container);
-    } catch (error) {
-      console.error('PoiPanel | Error rendering:', error);
-    }
+    await renderPanel(container, {
+      template: PoiPanel.template,
+      getData: () => PoiPanel.getData(),
+      onMounted: (c) => {
+        PoiPanel.setupEventListeners(c);
+        PoiPanel.setupDragAndDrop(c);
+      },
+      panelName: 'PoiPanel',
+    });
   }
 
   // --- Event listeners ---

@@ -8,7 +8,7 @@ import type { Prisoner, PrisonerHistoryEntry } from '../../types/entities';
 import { ConfirmService } from '../../utils/services/ConfirmService.js';
 import { NotificationService } from '../../utils/services/NotificationService.js';
 import { GuardModal } from '../GuardModal.js';
-import { formatTimeAgo } from './panel-helpers.js';
+import { formatTimeAgo, renderPanel } from './panel-helpers.js';
 
 const STATUS_LABELS: Record<string, string> = {
   imprisoned: 'Preso',
@@ -100,12 +100,15 @@ export class PrisonersPanel {
   }
 
   static async render(container: HTMLElement) {
-    const data = await this.getData();
-    const htmlContent = await foundry.applications.handlebars.renderTemplate(this.template, data);
-    $(container).html(htmlContent);
-
-    this.setupEventListeners(container);
-    this.setupDragAndDrop(container);
+    await renderPanel(container, {
+      template: PrisonersPanel.template,
+      getData: () => PrisonersPanel.getData(),
+      onMounted: (c) => {
+        PrisonersPanel.setupEventListeners(c);
+        PrisonersPanel.setupDragAndDrop(c);
+      },
+      panelName: 'PrisonersPanel',
+    });
   }
 
   // --- Event Listeners ---
