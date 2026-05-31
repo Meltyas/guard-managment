@@ -250,9 +250,11 @@ export class PatrolManager {
     return merged;
   }
 
-  /** Recovers 1 hope for every patrol/auxiliary that has maxHope > 0, called on phase advance */
-  public async recoverHopeOnPhaseAdvance(): Promise<void> {
+  /** Recovers 1 hope for every patrol/auxiliary that has maxHope > 0, called on phase advance.
+   *  Returns the list of patrols that actually recovered hope. */
+  public async recoverHopeOnPhaseAdvance(): Promise<{ name: string; before: number; after: number; max: number }[]> {
     let changed = false;
+    const recovered: { name: string; before: number; after: number; max: number }[] = [];
     for (const [, patrol] of this.patrols) {
       const maxHope = patrol.maxHope ?? 0;
       if (maxHope <= 0) continue;
@@ -263,9 +265,11 @@ export class PatrolManager {
         patrol.updatedAt = new Date();
         this.onChange?.(patrol, 'update', { field: 'currentHope' });
         changed = true;
+        recovered.push({ name: patrol.name, before: currentHope, after: currentHope + 1, max: maxHope });
       }
     }
     if (changed) await this.persistToSettings();
+    return recovered;
   }
 
   /** Obtiene todos los patrols actuales */

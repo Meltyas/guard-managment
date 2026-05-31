@@ -101,17 +101,20 @@ export class PhaseManager {
     if (targetTurn > previousTurn) {
       const gm = (window as any).GuardManagement;
       const orgMgr = gm?.guardOrganizationManager;
+
+      // Collect hope recovery results from patrols and auxiliaries
+      const hopeRecovered: { name: string; before: number; after: number; max: number }[] = [];
       const patrolMgr = orgMgr?.getPatrolManager?.();
-      if (patrolMgr) await patrolMgr.recoverHopeOnPhaseAdvance();
+      if (patrolMgr) hopeRecovered.push(...(await patrolMgr.recoverHopeOnPhaseAdvance()));
       const auxMgr = orgMgr?.getAuxiliaryManager?.();
-      if (auxMgr) await auxMgr.recoverHopeOnPhaseAdvance();
+      if (auxMgr) hopeRecovered.push(...(await auxMgr.recoverHopeOnPhaseAdvance()));
 
       // Generate the phase report (events, finances, sentence completions…).
       // GM-only side effects are guarded inside generatePhaseReport.
       const phaseEventMgr = gm?.phaseEventManager;
       if (phaseEventMgr?.generatePhaseReport) {
         try {
-          await phaseEventMgr.generatePhaseReport(targetTurn, newPhase);
+          await phaseEventMgr.generatePhaseReport(targetTurn, newPhase, { hopeRecovered });
         } catch (e) {
           console.warn('PhaseManager | generatePhaseReport failed:', e);
         }

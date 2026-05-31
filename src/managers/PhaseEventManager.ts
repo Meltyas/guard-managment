@@ -50,6 +50,17 @@ export interface EventSearchFilters {
   turnTo?: number;
 }
 
+export interface HopeRecoveryEntry {
+  name: string;
+  before: number;
+  after: number;
+  max: number;
+}
+
+export interface PhaseReportExtras {
+  hopeRecovered?: HopeRecoveryEntry[];
+}
+
 export class PhaseEventManager {
   private events: Map<string, PhaseEvent> = new Map();
   private reports: Map<number, PhaseReport> = new Map();
@@ -264,9 +275,23 @@ export class PhaseEventManager {
    * the turn it is returned unchanged. GM-only side effects (finances, sentence
    * completions, event firing) run here.
    */
-  public async generatePhaseReport(turn: number, phase: DayNightPhase): Promise<PhaseReport | null> {
+  public async generatePhaseReport(turn: number, phase: DayNightPhase, extras?: PhaseReportExtras): Promise<PhaseReport | null> {
     if (!(game as any)?.user?.isGM) return this.getReport(turn);
-    if (this.reports.has(turn)) return this.reports.get(turn)!;
+
+    // If already generated (e.g. user went back and forward during testing),
+    // ask whether to regenerate from scratch or just re-post the existing report.
+    if (this.reports.has(turn)) {
+      const existing = this.reports.get(turn)!;
+      const regenerate = await this._askRegenerateReport(turn, phase);
+      if (!regenerate) {
+        // Re-post existing report to chat without touching data
+        this._postPhaseAnnouncement(turn, phase, existing.playerEntries);
+        if (existing.gmEntries.length > 0) this._postGMReport(turn, phase, existing.gmEntries);
+        return existing;
+      }
+      // Regenerate: delete the old report so the rest of the function runs fresh
+      this.reports.delete(turn);
+    }
 
     const gmEntries: PhaseReportEntry[] = [];
     const playerEntries: PhaseReportEntry[] = [];
@@ -328,7 +353,20 @@ export class PhaseEventManager {
       console.warn('PhaseEventManager | prisoner processing failed', e);
     }
 
-    // 3. Scheduled events due this turn
+    // 3. Hope recovery
+    const hopeRecovered = extras?.hopeRecovered || [];
+    if (hopeRecovered.length > 0) {
+      const lines = hopeRecovered.map(
+        (h) => `${h.name}: ${h.before}→${h.after}/${h.max}`
+      );
+      playerEntries.push(mkEntry({
+        category: 'aviso',
+        icon: 'fas fa-heart',
+        text: `Esperanza recuperada — ${lines.join(', ')}.`,
+      }));
+    }
+
+    // 4. Scheduled events due this turn
     const due = this.getPendingEvents().filter((e) => e.triggerTurn <= turn);
     for (const event of due) {
       try {
@@ -374,8 +412,15 @@ export class PhaseEventManager {
     this._emit();
 
     // Chat notifications (after save)
+    // a) Individual event cards (per-event, for events with notifyChat=true)
     for (const { event, text } of chatQueue) {
       this._postEventChat(event, text, turn);
+    }
+    // b) Global phase announcement (all players)
+    this._postPhaseAnnouncement(turn, phase, playerEntries);
+    // c) GM-only summary (finances, prisoners, overcrowding, GM-only events)
+    if (gmEntries.length > 0) {
+      this._postGMReport(turn, phase, gmEntries);
     }
 
     window.dispatchEvent(
@@ -493,6 +538,126 @@ export class PhaseEventManager {
       (ChatMessage as any).create(messageData);
     } catch (e) {
       console.warn('PhaseEventManager | chat post failed', e);
+    }
+  }
+
+  /** Ask the GM whether to regenerate the report from scratch or re-post the existing one. */
+  private _askRegenerateReport(turn: number, phase: DayNightPhase): Promise<boolean> {
+    const phaseLabel = phase === 'day' ? 'Día' : 'Noche';
+    return new Promise((resolve) => {
+      try {
+        (foundry as any).applications.api.DialogV2.confirm({
+          window: { title: `Informe de Turno ${turn} — ${phaseLabel}` },
+          content: `<p>Ya existe un informe para el <strong>Turno ${turn} (${phaseLabel})</strong>.</p>
+                    <p>¿Quieres regenerarlo desde cero (recalcula finanzas, prisioneros y eventos) o simplemente volver a publicar el informe existente en el chat?</p>`,
+          yes: { label: 'Regenerar desde cero', icon: 'fas fa-rotate' },
+          no:  { label: 'Publicar informe existente', icon: 'fas fa-comment' },
+          rejectClose: false,
+        }).then((confirmed: boolean | null) => {
+          // confirmed=true → regenerate, false/null → re-post existing
+          resolve(confirmed === true);
+        });
+      } catch (e) {
+        // Fallback: just re-post existing if dialog fails
+        console.warn('PhaseEventManager | _askRegenerateReport dialog failed', e);
+        resolve(false);
+      }
+    });
+  }
+
+  /** Send a phase-announcement card visible to all players */
+  private _postPhaseAnnouncement(turn: number, phase: DayNightPhase, playerEntries: PhaseReportEntry[]): void {
+    try {
+      const phaseLabel = phase === 'day' ? 'Día' : 'Noche';
+      const phaseIcon = phase === 'day' ? 'fas fa-sun' : 'fas fa-moon';
+
+      const entriesHtml = playerEntries.length > 0
+        ? playerEntries.map((e) => `
+            <div class="phase-report-entry">
+              <i class="${e.icon || 'fas fa-circle-info'}"></i>
+              <span>${e.text}</span>
+            </div>`).join('')
+        : '<p class="phase-report-empty">Sin novedades este turno.</p>';
+
+      const content = `
+        <div class="message-content">
+          <div class="daggerheart chat domain-card dh-style">
+            <details class="domain-card-move" open>
+              <summary class="domain-card-header">
+                <div class="domain-label">
+                  <h2 class="title"><i class="${phaseIcon}"></i> Turno ${turn} — ${phaseLabel}</h2>
+                </div>
+                <i class="fa-solid fa-chevron-down"></i>
+              </summary>
+              <div class="description phase-report-entries">
+                ${entriesHtml}
+              </div>
+            </details>
+            <footer class="ability-card-footer">
+              <ul class="tags">
+                <li class="tag">Informe de Fase</li>
+                <li class="tag">Turno ${turn}</li>
+              </ul>
+            </footer>
+          </div>
+        </div>`;
+
+      (ChatMessage as any).create({
+        content,
+        speaker: { scene: null, actor: null, token: null, alias: 'Guardia Municipal' },
+        flags: { 'guard-management': { type: 'phase-announcement', turn } },
+      });
+    } catch (e) {
+      console.warn('PhaseEventManager | phase announcement failed', e);
+    }
+  }
+
+  /** Send a GM-only summary card whispered to all GMs */
+  private _postGMReport(turn: number, phase: DayNightPhase, gmEntries: PhaseReportEntry[]): void {
+    try {
+      const phaseLabel = phase === 'day' ? 'Día' : 'Noche';
+
+      const entriesHtml = gmEntries.map((e) => `
+        <div class="phase-report-entry">
+          <i class="${e.icon || 'fas fa-circle-info'}"></i>
+          <span>${e.text}</span>
+        </div>`).join('');
+
+      const content = `
+        <div class="message-content">
+          <div class="daggerheart chat domain-card dh-style">
+            <details class="domain-card-move" open>
+              <summary class="domain-card-header">
+                <div class="domain-label">
+                  <h2 class="title"><i class="fas fa-clipboard-list"></i> Resumen GM — Turno ${turn} (${phaseLabel})</h2>
+                </div>
+                <i class="fa-solid fa-chevron-down"></i>
+              </summary>
+              <div class="description phase-report-entries">
+                ${entriesHtml}
+              </div>
+            </details>
+            <footer class="ability-card-footer">
+              <ul class="tags">
+                <li class="tag">Solo DM</li>
+                <li class="tag">Turno ${turn}</li>
+              </ul>
+            </footer>
+          </div>
+        </div>`;
+
+      const gmIds = (game as any)?.users
+        ?.filter((u: any) => u.isGM)
+        ?.map((u: any) => u.id);
+
+      (ChatMessage as any).create({
+        content,
+        whisper: gmIds || [],
+        speaker: { scene: null, actor: null, token: null, alias: 'Guardia Municipal' },
+        flags: { 'guard-management': { type: 'phase-gm-report', turn } },
+      });
+    } catch (e) {
+      console.warn('PhaseEventManager | GM report failed', e);
     }
   }
 
