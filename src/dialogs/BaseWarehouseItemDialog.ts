@@ -148,11 +148,6 @@ export abstract class BaseWarehouseItemDialog<T extends BaseWarehouseItem>
         </div>
       </div>
     `;
-        <div class="warehouse-item-dialog-content">
-          ${content}
-        </div>
-      </div>
-    `;
 
     const wrapper = document.createElement('div');
     wrapper.innerHTML = dialogHtml;
