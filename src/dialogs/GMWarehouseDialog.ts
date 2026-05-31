@@ -2114,19 +2114,92 @@ export class GMWarehouseDialog implements FocusableDialog {
   }
 
   /**
-   * Handle duplicating a template (placeholder)
+   * Handle duplicating a resource template
    */
-  private handleDuplicateTemplate(resourceId: string): void {
-    console.log('Duplicate template:', resourceId);
-    // TODO: Implement duplicate functionality
+  private async handleDuplicateTemplate(resourceId: string): Promise<void> {
+    await ResourceErrorHandler.handleResourceOperation(
+      async () => {
+        const gm = (window as any).GuardManagement;
+        if (!gm?.resourceManager) {
+          throw new Error('ResourceManager not available');
+        }
+
+        const original = gm.resourceManager
+          .getAllResources()
+          ?.find((r: any) => r.id === resourceId);
+        if (!original) {
+          throw new Error('Resource template not found');
+        }
+
+        const duplicated = await gm.resourceManager.createResource({
+          name: `${original.name} (copia)`,
+          description: original.description ?? '',
+          quantity: original.quantity ?? 0,
+          image: original.image ?? '',
+          organizationId: original.organizationId ?? 'gm-warehouse-templates',
+        });
+        if (!duplicated) {
+          throw new Error('Failed to duplicate resource template');
+        }
+
+        await this.refreshResourcesTab();
+        return duplicated;
+      },
+      'create',
+      'template de recurso'
+    );
   }
 
   /**
    * Handle duplicating a reputation template
    */
-  private handleDuplicateReputationTemplate(reputationId: string): void {
-    console.log('Duplicate reputation template:', reputationId);
-    // TODO: Implement duplicate functionality for reputation
+  private async handleDuplicateReputationTemplate(reputationId: string): Promise<void> {
+    try {
+      const gm = (window as any).GuardManagement;
+      if (!gm?.reputationManager) {
+        throw new Error('ReputationManager not available');
+      }
+
+      const original = gm.reputationManager
+        .getAllReputations()
+        ?.find((r: any) => r.id === reputationId);
+      if (!original) {
+        throw new Error('Reputation template not found');
+      }
+
+      const duplicated = await gm.reputationManager.createReputation({
+        name: `${original.name} (copia)`,
+        description: original.description ?? '',
+        level: original.level ?? 1,
+        organizationId: original.organizationId ?? 'gm-warehouse-templates',
+        image: original.image,
+        faction: original.faction,
+        trend: original.trend,
+        category: original.category,
+        contact: original.contact,
+        gmNotes: original.gmNotes,
+        factionRelations: original.factionRelations
+          ? foundry.utils.deepClone(original.factionRelations)
+          : [],
+        favors: original.favors ? foundry.utils.deepClone(original.favors) : [],
+      });
+      if (!duplicated) {
+        throw new Error('Failed to duplicate reputation template');
+      }
+
+      await this.refreshReputationTab();
+
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.info(
+          `Reputación "${duplicated.name}" duplicada correctamente`
+        );
+      }
+    } catch (error) {
+      console.error('Error duplicating reputation template:', error);
+      if ((globalThis as any).ui?.notifications) {
+        (globalThis as any).ui.notifications.error('Error al duplicar la reputación');
+      }
+    }
   }
 
   /**

@@ -136,23 +136,33 @@ export class ResourceEventHandler {
    * Handle editing an existing resource
    */
   private static async handleEdit(
-    _context: ResourceEventContext,
+    context: ResourceEventContext,
     resourceId: string
   ): Promise<void> {
     try {
-      // For now, we need to get the resource object from the context or manager
-      // This is a limitation - we need the full Resource object, not just the ID
-      console.log('ResourceEventHandler | Edit requested for resource ID:', resourceId);
+      // Get the resource data from the manager
+      const gm = (window as any).GuardManagement;
+      const resourceData = gm?.resourceManager
+        ?.getAllResources()
+        ?.find((r: any) => r.id === resourceId);
 
-      if (ui?.notifications) {
-        ui.notifications.warn(
-          'Edición de recursos - funcionalidad pendiente de implementar completamente'
-        );
+      if (!resourceData) {
+        if (ui?.notifications) {
+          ui.notifications.error('No se pudo encontrar el recurso');
+        }
+        return;
       }
 
-      // TODO: Implement proper resource retrieval by ID
-      // const resource = await SomeManager.getResourceById(resourceId);
-      // const updatedResource = await AddOrEditResourceDialog.edit(resource);
+      const updatedResource = await AddOrEditResourceDialog.edit(resourceData);
+
+      if (updatedResource) {
+        if (ui?.notifications) {
+          ui.notifications.info(`Recurso "${updatedResource.name}" actualizado`);
+        }
+
+        context.onResourceEdited?.(updatedResource);
+        context.refreshUI?.();
+      }
     } catch (error) {
       console.error('ResourceEventHandler | Error editing resource:', error);
       if (ui?.notifications) {
