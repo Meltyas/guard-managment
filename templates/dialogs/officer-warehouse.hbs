@@ -1,4 +1,4 @@
-<div class='officer-warehouse-dialog'>
+<div class='officer-warehouse-dialog' data-civil-tab='{{isCivilTab}}'>
   {{#if isGM}}
   <div class='content-header'>
     <h3>
@@ -29,15 +29,61 @@
   </div>
   {{/if}}
 
-  <div class='officers-list'>
+  <div class='officer-toolbar'>
+    <div class='officer-search-wrapper'>
+      <i class='fas fa-search'></i>
+      <input type='text' class='officer-search-input' placeholder='Buscar por nombre, cargo o habilidad...' />
+      <button type='button' class='officer-search-clear' title='Limpiar búsqueda' hidden>
+        <i class='fas fa-times'></i>
+      </button>
+    </div>
+    <div class='officer-view-modes' role='group' aria-label='Modo de visualización'>
+      <button type='button' class='officer-view-btn' data-view-mode='grid' title='Tarjetas'>
+        <i class='fas fa-th-large'></i>
+      </button>
+      <button type='button' class='officer-view-btn' data-view-mode='list' title='Lista compacta'>
+        <i class='fas fa-list'></i>
+      </button>
+      <button type='button' class='officer-view-btn' data-view-mode='gallery' title='Galería'>
+        <i class='fas fa-images'></i>
+      </button>
+    </div>
+  </div>
+
+  {{#if titles.length}}
+  <div class='officer-filter-toggles'>
+    <button type='button' class='officer-filter-btn active' data-filter-title='all'>
+      Todos <span class='officer-filter-count'>{{officers.length}}</span>
+    </button>
+    {{#each titles}}
+    <button type='button' class='officer-filter-btn' data-filter-title='{{this.value}}'>
+      {{this.label}} <span class='officer-filter-count'>{{this.count}}</span>
+    </button>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  <div class='officers-list view-{{viewMode}}'>
     {{#each officers}}
-      <div class='officer-card' data-officer-id='{{this.id}}' draggable='true'>
+      <div
+        class='officer-card'
+        data-officer-id='{{this.id}}'
+        data-officer-title='{{this.title}}'
+        data-search='{{this.searchText}}'
+        draggable='true'
+      >
         <div class='officer-avatar'>
           <img src='{{this.actorImg}}' alt='{{this.actorName}}' />
         </div>
         <div class='officer-info'>
           <div class='officer-name'>{{this.actorName}}</div>
           <div class='officer-title'>{{this.title}}</div>
+          {{#if this.skill.name}}
+          <div class='officer-skill-chip' title='Habilidad: {{this.skill.name}}'>
+            {{#if this.skill.image}}<img src='{{this.skill.image}}' alt='' />{{else}}<i class='fas fa-star'></i>{{/if}}
+            <span>{{this.skill.name}}</span>
+          </div>
+          {{/if}}
           <div class='officer-traits-summary'>
             <span class='pros-count'>
               <i class='fas fa-thumbs-up'></i>
@@ -94,4 +140,8 @@
       </p>
     {{/each}}
   </div>
+
+  <p class='officer-no-results' hidden>
+    <i class='fas fa-search'></i> No hay resultados para los filtros actuales
+  </p>
 </div>

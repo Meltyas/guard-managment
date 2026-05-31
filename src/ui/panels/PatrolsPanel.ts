@@ -970,111 +970,102 @@ export class PatrolsPanel {
     // Escape for attribute value
     const escapedCurrent = current.replace(/"/g, '&quot;');
 
-    const result = await (foundry as any).applications.api.DialogV2.wait({
-      window: { title: 'Editar Última Orden', resizable: true },
-      content: `
-        <form class='last-order-edit'>
-          <div class="form-group" style="display: flex; flex-direction: column;">
-            <label style="margin-bottom: 5px; font-weight: bold;">Orden</label>
-            <div style="width: 100%;">
-              <prose-mirror name="order" value="${escapedCurrent}">
-                ${current}
-              </prose-mirror>
-            </div>
+    const { GuardModal } = await import('../GuardModal');
+
+    const body = `
+      <div class="guard-modal-form last-order-edit">
+        <div class="guard-modal-row" style="flex-direction:column;align-items:stretch;">
+          <label style="margin-bottom:5px;font-weight:bold;"><i class="fas fa-scroll"></i> Orden</label>
+          <div style="width:100%;">
+            <prose-mirror name="order" value="${escapedCurrent}">
+              ${current}
+            </prose-mirror>
           </div>
-          <div class="form-group" style="margin-top: 10px;">
-            <label class="checkbox">
-              <input type="checkbox" name="notifyChat" checked>
-              Notificar al chat
-            </label>
-          </div>
-          <p class='hint'>Actualiza la última orden de la patrulla.</p>
-        </form>`,
-      buttons: [
-        {
-          action: 'save',
-          label: 'Guardar',
-          icon: 'fas fa-save',
-          default: true,
-          callback: async (_ev: any, btn: any, dlg: any) => {
-            const form = btn?.form || dlg?.window?.content?.querySelector('form.last-order-edit');
-            if (!form) return 'cancel';
+        </div>
+        <div class="guard-modal-row" style="margin-top:10px;">
+          <label class="checkbox" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" name="notifyChat" checked>
+            Notificar al chat
+          </label>
+        </div>
+        <p style="font-size:12px;color:#aaa;margin:4px 0 0;">Actualiza la última orden de la patrulla.</p>
+      </div>
+    `;
 
-            let text = '';
+    const result = await GuardModal.openAsync<'save'>({
+      title: 'Editar Última Orden',
+      icon: 'fas fa-scroll',
+      body,
+      width: 560,
+      saveLabel: 'Guardar',
+      onSave: async (bodyEl) => {
+        const form = bodyEl.querySelector('.last-order-edit') as HTMLElement;
+        if (!form) return false;
 
-            // Strategy 1: InnerHTML of the contenteditable div (Most reliable for ProseMirror)
-            const editorContent = form.querySelector('.editor-content.ProseMirror');
-            if (editorContent) {
-              text = editorContent.innerHTML;
+        let text = '';
+
+        // Strategy 1: InnerHTML of the contenteditable div (Most reliable for ProseMirror)
+        const editorContent = form.querySelector('.editor-content.ProseMirror');
+        if (editorContent) {
+          text = editorContent.innerHTML;
+        }
+
+        // Strategy 2: Value of custom element
+        if (!text) {
+          const pmElement = form.querySelector('prose-mirror');
+          if (pmElement && 'value' in pmElement) {
+            const val = (pmElement as any).value;
+            if (typeof val === 'string' && !val.includes('[object Object]')) {
+              text = val;
             }
+          }
+        }
 
-            // Strategy 2: Value of custom element
-            if (!text) {
-              const pmElement = form.querySelector('prose-mirror');
-              if (pmElement && 'value' in pmElement) {
-                const val = (pmElement as any).value;
-                if (typeof val === 'string' && !val.includes('[object Object]')) {
-                  text = val;
-                }
-              }
-            }
+        // Final check
+        if (text.includes('[object ')) {
+          text = '';
+        }
 
-            // Strategy 3: FormData
-            if (!text) {
-              const fd = new FormData(form);
-              const fdText = fd.get('order') as string;
-              if (fdText && !fdText.includes('[object Object]')) {
-                text = fdText;
-              }
-            }
+        // Ensure we have a string
+        text = text || '';
 
-            // Final check
-            if (text.includes('[object ')) {
-              text = '';
-            }
+        await pMgr.updateLastOrder(patrolId, text.trim());
+        const updated = pMgr.getPatrol(patrolId);
+        if (updated) {
+          orgMgr.upsertPatrolSnapshot(updated);
 
-            // Ensure we have a string
-            text = text || '';
-
-            await pMgr.updateLastOrder(patrolId, text.trim());
-            const updated = pMgr.getPatrol(patrolId);
-            if (updated) {
-              orgMgr.upsertPatrolSnapshot(updated);
-
-              // Handle chat notification
-              const notifyChat = form.querySelector('input[name="notifyChat"]')?.checked;
-              if (notifyChat && text.trim()) {
-                const content = `
-                  <div class="daggerheart chat domain-card dh-style">
-                    ${patrol.officer?.img ? `<img class="card-img" src="${patrol.officer.img}">` : ''}
-                    <details class="domain-card-move" open>
-                      <summary class="domain-card-header">
-                        <div class="domain-label">
-                          <h2 class="title">${patrol.name}</h2>
-                          <ul class="tags">
-                            <li class="tag">Nueva Orden</li>
-                          </ul>
-                        </div>
-                        <i class="fa-solid fa-chevron-down"></i>
-                      </summary>
-                      <div class="description">
-                        <p>${text}</p>
-                      </div>
-                    </details>
+          // Handle chat notification
+          const notifyChat = (form.querySelector('input[name="notifyChat"]') as HTMLInputElement)
+            ?.checked;
+          if (notifyChat && text.trim()) {
+            const content = `
+              <div class="daggerheart chat domain-card dh-style">
+                ${patrol.officer?.img ? `<img class="card-img" src="${patrol.officer.img}">` : ''}
+                <details class="domain-card-move" open>
+                  <summary class="domain-card-header">
+                    <div class="domain-label">
+                      <h2 class="title">${patrol.name}</h2>
+                      <ul class="tags">
+                        <li class="tag">Nueva Orden</li>
+                      </ul>
+                    </div>
+                    <i class="fa-solid fa-chevron-down"></i>
+                  </summary>
+                  <div class="description">
+                    <p>${text}</p>
                   </div>
-                `;
+                </details>
+              </div>
+            `;
 
-                await (ChatMessage as any).create({
-                  content: content,
-                  speaker: (ChatMessage as any).getSpeaker({ alias: 'Comandante de la Guardia' }),
-                });
-              }
-            }
-            return 'save';
-          },
-        },
-        { action: 'cancel', label: 'Cancelar', icon: 'fas fa-times', callback: () => 'cancel' },
-      ],
+            await (ChatMessage as any).create({
+              content: content,
+              speaker: (ChatMessage as any).getSpeaker({ alias: 'Comandante de la Guardia' }),
+            });
+          }
+        }
+        return 'save';
+      },
     });
     if (result === 'save') {
       ui?.notifications?.info('Orden actualizada');

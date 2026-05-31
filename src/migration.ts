@@ -4,8 +4,9 @@
  */
 
 import type { GuardModifier, PatrolEffect } from './types/entities';
+import { decodeUnicodeEscapes } from './utils/index.js';
 
-const CURRENT_MIGRATION_VERSION = 2;
+const CURRENT_MIGRATION_VERSION = 3;
 
 // Mapping from old stat keys to new Daggerheart trait keys
 const STAT_KEY_MAP: Record<string, string> = {
@@ -88,6 +89,17 @@ export async function runMigrationIfNeeded(): Promise<void> {
       if (ui?.notifications) {
         ui.notifications.error('Guard Management: Migration v2 failed. Check console for details.');
       }
+      return;
+    }
+  }
+
+  if (currentVersion < 3) {
+    console.log('GuardManagement | Running migration v3: Decode literal \\uXXXX escapes in text fields');
+    try {
+      await migrateDecodeUnicodeEscapes();
+      console.log('GuardManagement | Migration v3 complete');
+    } catch (e) {
+      console.error('GuardManagement | Migration v3 failed:', e);
       return;
     }
   }
@@ -293,4 +305,37 @@ async function cleanupLegacyDocuments(): Promise<void> {
     await (Item as any).deleteDocuments(ids);
     console.log(`GuardManagement | Deleted ${ids.length} legacy item documents`);
   }
+}
+
+// ─── Migration v3: Decode literal \uXXXX escapes ─────────────────────────────
+
+const UNICODE_ESCAPE_SETTINGS = [
+  'officers',
+  'resources',
+  'reputations',
+  'crimes',
+  'gangs',
+  'pois',
+  'prisoners',
+  'buildings',
+  'patrols',
+  'guardOrganization',
+  'phaseEvents',
+  'phaseReports',
+] as const;
+
+async function migrateDecodeUnicodeEscapes(): Promise<void> {
+  let fixed = 0;
+  for (const key of UNICODE_ESCAPE_SETTINGS) {
+    const raw = game?.settings?.get('guard-management', key as any);
+    if (!raw) continue;
+    const decoded = decodeUnicodeEscapes(raw);
+    // Only save if something actually changed (avoid unnecessary writes)
+    if (JSON.stringify(decoded) !== JSON.stringify(raw)) {
+      await game?.settings?.set('guard-management', key as any, decoded);
+      fixed++;
+      console.log(`GuardManagement | v3 decoded unicode escapes in setting: ${key}`);
+    }
+  }
+  console.log(`GuardManagement | v3 migration fixed ${fixed} settings keys`);
 }

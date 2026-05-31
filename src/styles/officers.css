@@ -144,7 +144,7 @@
 .skill-remove-btn {
   background: rgba(244, 67, 54, 0.1);
   border: 1px solid rgba(244, 67, 54, 0.3);
-  color: #f44336;
+  color: #c97070;
   cursor: pointer;
   padding: 0.3rem 0.5rem;
   border-radius: 3px;
@@ -154,7 +154,7 @@
 
 .skill-remove-btn:hover {
   background: rgba(244, 67, 54, 0.3);
-  border-color: #f44336;
+  border-color: #c97070;
 }
 
 .skill-description {
@@ -226,11 +226,11 @@
 }
 
 .pros-column h3 {
-  color: #4caf50;
+  color: #7db87d;
 }
 
 .cons-column h3 {
-  color: #f44336;
+  color: #c97070;
 }
 
 .traits-list {
@@ -250,11 +250,11 @@
 }
 
 .pros-list .trait-item {
-  border-left-color: #4caf50;
+  border-left-color: #7db87d;
 }
 
 .cons-list .trait-item {
-  border-left-color: #f44336;
+  border-left-color: #c97070;
 }
 
 .trait-header {
@@ -278,7 +278,7 @@
 }
 
 .trait-remove-btn:hover {
-  color: #f44336;
+  color: #c97070;
 }
 
 .trait-description {
@@ -490,11 +490,11 @@
 }
 
 .pros-count {
-  color: #4caf50;
+  color: #7db87d;
 }
 
 .cons-count {
-  color: #f44336;
+  color: #c97070;
 }
 
 .officer-actions {
@@ -521,13 +521,309 @@
 
 .edit-officer-btn:hover {
   background: rgba(76, 175, 80, 0.2);
-  border-color: #4caf50;
+  border-color: #7db87d;
 }
 
 .delete-officer-btn:hover {
   background: rgba(244, 67, 54, 0.2);
-  border-color: #f44336;
+  border-color: #c97070;
 }
+
+/* ==================== Officer Warehouse Toolbar (search / view / filters) ==================== */
+
+.officer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.officer-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+}
+
+.officer-search-wrapper > .fa-search {
+  position: absolute;
+  left: 10px;
+  color: rgba(239, 230, 216, 0.45);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.officer-search-input {
+  width: 100%;
+  padding: 6px 30px 6px 28px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(243, 194, 103, 0.3);
+  border-radius: 4px;
+  color: #efe6d8;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.officer-search-input:focus {
+  outline: none;
+  border-color: #f3c267;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.officer-search-clear {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: rgba(239, 230, 216, 0.5);
+  cursor: pointer;
+  padding: 2px 5px;
+  font-size: 0.8rem;
+}
+
+.officer-search-clear:hover {
+  color: #f3c267;
+}
+
+.officer-view-modes {
+  display: flex;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(243, 194, 103, 0.3);
+  border-radius: 4px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.officer-view-btn {
+  background: none;
+  border: none;
+  color: rgba(239, 230, 216, 0.55);
+  cursor: pointer;
+  padding: 5px 9px;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.officer-view-btn:hover {
+  color: #efe6d8;
+  background: rgba(243, 194, 103, 0.1);
+}
+
+.officer-view-btn.active {
+  color: #1a1a1a;
+  background: #f3c267;
+}
+
+.officer-filter-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.officer-filter-btn {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(243, 194, 103, 0.25);
+  border-radius: 999px;
+  color: rgba(239, 230, 216, 0.7);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: inherit;
+  padding: 3px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.officer-filter-btn:hover {
+  color: #efe6d8;
+  border-color: rgba(243, 194, 103, 0.5);
+}
+
+.officer-filter-btn.active {
+  color: #f3c267;
+  border-color: #f3c267;
+  background: rgba(243, 194, 103, 0.12);
+}
+
+.officer-filter-count {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 999px;
+  padding: 0 5px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.officer-no-results {
+  text-align: center;
+  color: rgba(239, 230, 216, 0.5);
+  font-style: italic;
+  padding: 1.5rem 0;
+}
+
+.officer-no-results .fa-search {
+  margin-right: 0.4rem;
+}
+
+/* ==================== Officer Warehouse View Modes ==================== */
+
+/* Compact, fixed-size action buttons so the button row never overflows */
+.officers-list .officer-actions button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Grid (tarjetas): vertical centered cards ---- */
+.officers-list.view-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.officers-list.view-grid .officer-card {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 0.85rem;
+}
+
+.officers-list.view-grid .officer-info {
+  align-items: center;
+  width: 100%;
+}
+
+.officers-list.view-grid .officer-traits-summary {
+  justify-content: center;
+}
+
+.officers-list.view-grid .officer-actions {
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 0.15rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(243, 194, 103, 0.15);
+}
+
+/* ---- List: compact single-line rows ---- */
+.officers-list.view-list {
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+}
+
+.officers-list.view-list .officer-card {
+  padding: 0.4rem 0.6rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.officers-list.view-list .officer-card:hover {
+  transform: none;
+}
+
+.officers-list.view-list .officer-avatar {
+  width: 40px;
+  height: 40px;
+  border-width: 2px;
+}
+
+.officers-list.view-list .officer-info {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem 0.85rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.officers-list.view-list .officer-name {
+  font-size: 0.9rem;
+}
+
+.officers-list.view-list .officer-skill-chip,
+.officers-list.view-list .officer-traits-summary {
+  margin-top: 0;
+}
+
+.officers-list.view-list .officer-actions {
+  flex-direction: row;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* ---- Gallery: avatar-focused tiles ---- */
+.officers-list.view-gallery {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.6rem;
+}
+
+.officers-list.view-gallery .officer-card {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.4rem;
+  padding: 0.7rem 0.5rem;
+}
+
+.officers-list.view-gallery .officer-avatar {
+  width: 84px;
+  height: 84px;
+}
+
+.officers-list.view-gallery .officer-info {
+  align-items: center;
+  width: 100%;
+}
+
+.officers-list.view-gallery .officer-traits-summary {
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.officers-list.view-gallery .officer-actions {
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+
+/* Skill chip shown on cards */
+.officer-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 0.2rem;
+  padding: 2px 8px;
+  background: rgba(243, 194, 103, 0.1);
+  border: 1px solid rgba(243, 194, 103, 0.25);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  color: rgba(239, 230, 216, 0.85);
+  max-width: 100%;
+}
+
+.officer-skill-chip img {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.officer-skill-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 
 /* ==================== Officer Details View ==================== */
 
@@ -582,11 +878,11 @@
 }
 
 .pros-section h4 {
-  color: #4caf50;
+  color: #7db87d;
 }
 
 .cons-section h4 {
-  color: #f44336;
+  color: #c97070;
 }
 
 .trait-detail {
@@ -935,3 +1231,490 @@
   border-radius: 4px;
   flex-shrink: 0;
 }
+
+/* ====================================================================
+   Officer Modal (GuardModal-based create/edit dialog)
+   Scoped under .officer-modal so it overrides the legacy form styles.
+   ==================================================================== */
+
+.officer-modal {
+  gap: 14px;
+}
+
+/* ── Actor assignment ── */
+.officer-modal .officer-modal-actor {
+  margin-bottom: 2px;
+}
+
+.officer-modal .officer-actor-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 22px 16px;
+  border: 2px dashed rgba(243, 194, 103, 0.3);
+  border-radius: 8px;
+  background: rgba(243, 194, 103, 0.05);
+  color: #b0a890;
+  font-size: 0.9em;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.officer-modal .officer-actor-dropzone i {
+  font-size: 2.2rem;
+  color: #f3c267;
+  opacity: 0.65;
+}
+
+.officer-modal .officer-actor-dropzone.dnd-hover {
+  border-color: #4ae89a;
+  background: rgba(74, 232, 154, 0.1);
+  color: #4ae89a;
+  box-shadow: 0 0 12px rgba(74, 232, 154, 0.18);
+}
+
+.officer-modal .officer-actor-dropzone.dnd-hover i {
+  color: #4ae89a;
+  opacity: 1;
+}
+
+.officer-modal .officer-actor-preview {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(243, 194, 103, 0.3);
+  border-radius: 8px;
+  background: rgba(24, 22, 46, 0.5);
+  transition: all 0.2s ease;
+}
+
+.officer-modal .officer-actor-preview.dnd-hover {
+  border-color: #4ae89a;
+  box-shadow: 0 0 12px rgba(74, 232, 154, 0.18);
+}
+
+.officer-modal .officer-actor-preview img {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f3c267;
+  flex-shrink: 0;
+}
+
+.officer-modal .officer-actor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.officer-modal .officer-actor-name {
+  font-size: 1.05em;
+  font-weight: 600;
+  color: #efe6d8;
+}
+
+.officer-modal .officer-actor-hint {
+  font-size: 0.78em;
+  color: #888;
+}
+
+.officer-modal .officer-actor-hint i {
+  margin-right: 4px;
+  opacity: 0.7;
+}
+
+.officer-modal .officer-actor-clear {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #555;
+  color: #aaa;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.officer-modal .officer-actor-clear:hover {
+  background: rgba(231, 76, 60, 0.15);
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+/* ── Sections (skill + trait columns) ── */
+.officer-modal .officer-modal-section {
+  border: 1px solid rgba(243, 194, 103, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.officer-modal .officer-modal-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #f3c267;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(243, 194, 103, 0.15);
+}
+
+.officer-modal .officer-modal-optional {
+  font-size: 0.75em;
+  font-weight: 400;
+  color: #888;
+  text-transform: none;
+}
+
+/* ── Skill image field ── */
+.officer-modal .officer-img-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.officer-modal .officer-img-field input {
+  flex: 1;
+}
+
+.officer-modal .officer-skill-thumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  border: 1px solid rgba(243, 194, 103, 0.35);
+  background: rgba(24, 22, 46, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.officer-modal .officer-skill-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.officer-modal .officer-skill-thumb i {
+  color: #6b6580;
+  font-size: 0.9em;
+}
+
+.officer-modal .officer-icon-btn {
+  background: rgba(243, 194, 103, 0.1);
+  border: 1px solid rgba(243, 194, 103, 0.4);
+  color: #f3c267;
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.officer-modal .officer-icon-btn:hover {
+  background: #f3c267;
+  color: #18162e;
+}
+
+/* ── Pros / Cons ── */
+.officer-modal .officer-modal-traits {
+  gap: 12px;
+  align-items: stretch;
+}
+
+.officer-modal .officer-traits-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.officer-modal .officer-traits-col.pros .officer-modal-section-title {
+  color: #4ae89a;
+  border-bottom-color: rgba(74, 232, 154, 0.2);
+}
+
+.officer-modal .officer-traits-col.cons .officer-modal-section-title {
+  color: #e8674a;
+  border-bottom-color: rgba(232, 103, 74, 0.2);
+}
+
+.officer-modal .officer-traits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 36px;
+}
+
+.officer-modal .officer-traits-empty {
+  margin: 0;
+  padding: 12px 4px;
+  text-align: center;
+  font-size: 0.82em;
+  font-style: italic;
+  color: #777;
+}
+
+.officer-modal .officer-trait-item {
+  background: rgba(24, 22, 46, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid rgba(243, 194, 103, 0.5);
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+
+.officer-modal .officer-traits-col.pros .officer-trait-item {
+  border-left-color: #4ae89a;
+}
+
+.officer-modal .officer-traits-col.cons .officer-trait-item {
+  border-left-color: #e8674a;
+}
+
+.officer-modal .officer-trait-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.officer-modal .officer-trait-head strong {
+  font-size: 0.9em;
+  color: #efe6d8;
+}
+
+.officer-modal .officer-trait-desc {
+  margin-top: 4px;
+  font-size: 0.8em;
+  color: #b0a890;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.officer-modal .officer-trait-remove {
+  background: none;
+  border: none;
+  color: #777;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.officer-modal .officer-trait-remove:hover {
+  background: rgba(231, 76, 60, 0.12);
+  color: #e74c3c;
+}
+
+/* ── Add trait button ── */
+.officer-modal .officer-add-trait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(243, 194, 103, 0.08);
+  border: 1px dashed rgba(243, 194, 103, 0.4);
+  border-radius: 6px;
+  color: #f3c267;
+  font-size: 0.85em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.officer-modal .officer-add-trait:hover {
+  background: rgba(243, 194, 103, 0.18);
+  border-style: solid;
+}
+
+.officer-modal .officer-traits-col.pros .officer-add-trait {
+  color: #4ae89a;
+  border-color: rgba(74, 232, 154, 0.4);
+  background: rgba(74, 232, 154, 0.07);
+}
+
+.officer-modal .officer-traits-col.pros .officer-add-trait:hover {
+  background: rgba(74, 232, 154, 0.16);
+}
+
+.officer-modal .officer-traits-col.cons .officer-add-trait {
+  color: #e8674a;
+  border-color: rgba(232, 103, 74, 0.4);
+  background: rgba(232, 103, 74, 0.07);
+}
+
+.officer-modal .officer-traits-col.cons .officer-add-trait:hover {
+  background: rgba(232, 103, 74, 0.16);
+}
+
+/* ====================================================================
+   Officer View modal (GuardModal-based read-only details)
+   ==================================================================== */
+
+.officer-view {
+  gap: 14px;
+}
+
+.officer-view-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid rgba(243, 194, 103, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.officer-view-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #f3c267;
+  flex-shrink: 0;
+}
+
+.officer-view-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.officer-view-id h2 {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 1.25em;
+  color: #efe6d8;
+  border: none;
+}
+
+.officer-view-id h3 {
+  margin: 0;
+  font-size: 0.95em;
+  font-weight: 500;
+  color: #f3c267;
+  border: none;
+}
+
+.officer-view-tag {
+  font-size: 0.78em;
+  color: #b0a890;
+  opacity: 0.85;
+}
+
+.officer-view-tag i {
+  margin-right: 4px;
+}
+
+.officer-view-skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(243, 194, 103, 0.12);
+  border: 1px solid rgba(243, 194, 103, 0.3);
+  font-size: 0.82em;
+  color: #f3c267;
+  width: fit-content;
+}
+
+.officer-view-skill img {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.officer-view-traits {
+  gap: 12px;
+  align-items: stretch;
+}
+
+.officer-view-col {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 12px;
+}
+
+.officer-view-col-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.95em;
+  font-weight: 600;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.officer-view-col.pros .officer-view-col-title {
+  color: #4ae89a;
+  border-bottom-color: rgba(74, 232, 154, 0.2);
+}
+
+.officer-view-col.cons .officer-view-col-title {
+  color: #e8674a;
+  border-bottom-color: rgba(232, 103, 74, 0.2);
+}
+
+.officer-view-trait {
+  padding: 7px 9px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  background: rgba(24, 22, 46, 0.55);
+  border-left: 3px solid rgba(243, 194, 103, 0.5);
+}
+
+.officer-view-col.pros .officer-view-trait {
+  border-left-color: #4ae89a;
+}
+
+.officer-view-col.cons .officer-view-trait {
+  border-left-color: #e8674a;
+}
+
+.officer-view-trait strong {
+  font-size: 0.9em;
+  color: #efe6d8;
+}
+
+.officer-view-trait p {
+  margin: 4px 0 0;
+  font-size: 0.8em;
+  line-height: 1.35;
+  color: #b0a890;
+  white-space: pre-wrap;
+}
+
+.officer-view-empty {
+  margin: 0;
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 0.82em;
+  font-style: italic;
+  color: #777;
+}
+
+

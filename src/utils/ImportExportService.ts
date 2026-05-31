@@ -45,12 +45,15 @@ export class ImportExportService {
         `✅ ${data.length} elemento(s) de "${sectionLabel}" copiados al portapapeles.`
       );
     } catch {
-      // Fallback: show the JSON in a DialogV2 textarea so the user can copy manually
-      const DialogV2 = foundry.applications.api.DialogV2;
-      if (DialogV2) {
-        await DialogV2.wait({
-          window: { title: `Exportar ${sectionLabel}`, resizable: true },
-          content: `
+      // Fallback: show the JSON in a GuardModal textarea so the user can copy manually
+      const { GuardModal } = await import('../ui/GuardModal.js');
+      GuardModal.open({
+        title: `Exportar ${sectionLabel}`,
+        icon: 'fas fa-file-export',
+        width: 560,
+        showFooter: false,
+        body: `
+          <div class="guard-modal-form">
             <p style="margin-bottom:0.5rem;font-size:0.85rem;color:#aaa;">
               No se pudo acceder al portapapeles automáticamente. Copia el texto manualmente (Ctrl+A → Ctrl+C):
             </p>
@@ -59,15 +62,13 @@ export class ImportExportService {
               readonly
               style="width:100%;height:280px;font-family:monospace;font-size:0.78rem;resize:vertical;background:#1a1a1a;color:#e0e0e0;border:1px solid #555;border-radius:4px;padding:8px;"
             >${json}</textarea>
-          `,
-          buttons: [{ label: 'Cerrar', icon: 'fas fa-times', action: 'close' }],
-          rejectClose: false,
-          render: (event, html) => {
-            const ta = html.querySelector('#gm-export-json') as HTMLTextAreaElement;
-            ta?.select();
-          },
-        });
-      }
+          </div>
+        `,
+        onRender: (bodyEl) => {
+          const ta = bodyEl.querySelector('#gm-export-json') as HTMLTextAreaElement;
+          ta?.select();
+        },
+      });
     }
   }
 
@@ -181,43 +182,38 @@ export class ImportExportService {
    */
   private static async _askPasteJson(sectionLabel: string): Promise<string | null> {
     try {
-      const DialogV2 = foundry.applications.api.DialogV2;
-      if (!DialogV2) return null;
+      const { GuardModal } = await import('../ui/GuardModal.js');
 
-      let resolvedText: string | null = null;
-
-      await DialogV2.wait({
-        window: { title: `Importar ${sectionLabel}`, resizable: true },
-        content: `
-          <p style="margin-bottom:0.5rem;font-size:0.85rem;color:#aaa;">
-            Pega el JSON exportado en el campo de abajo y pulsa <strong>Importar</strong>.
-          </p>
-          <textarea
-            id="gm-import-json"
-            placeholder='{"guardManagement": true, "data": [...]}'
-            style="width:100%;height:280px;font-family:monospace;font-size:0.78rem;resize:vertical;background:#1a1a1a;color:#e0e0e0;border:1px solid #555;border-radius:4px;padding:8px;"
-          ></textarea>
+      const result = await GuardModal.openAsync<string>({
+        title: `Importar ${sectionLabel}`,
+        icon: 'fas fa-file-import',
+        width: 560,
+        saveLabel: 'Importar',
+        body: `
+          <div class="guard-modal-form">
+            <p style="margin-bottom:0.5rem;font-size:0.85rem;color:#aaa;">
+              Pega el JSON exportado en el campo de abajo y pulsa <strong>Importar</strong>.
+            </p>
+            <textarea
+              id="gm-import-json"
+              placeholder='{"guardManagement": true, "data": [...]}'
+              style="width:100%;height:280px;font-family:monospace;font-size:0.78rem;resize:vertical;background:#1a1a1a;color:#e0e0e0;border:1px solid #555;border-radius:4px;padding:8px;"
+            ></textarea>
+          </div>
         `,
-        buttons: [
-          {
-            label: 'Importar',
-            icon: 'fas fa-file-import',
-            action: 'import',
-            callback: (_event, button) => {
-              const textarea = button.form?.querySelector('#gm-import-json') as HTMLTextAreaElement;
-              resolvedText = textarea?.value?.trim() ?? null;
-            },
-          },
-          { label: 'Cancelar', icon: 'fas fa-times', action: 'cancel' },
-        ],
-        rejectClose: false,
-        render: (_event, html) => {
-          const ta = html.querySelector('#gm-import-json') as HTMLTextAreaElement;
+        onRender: (bodyEl) => {
+          const ta = bodyEl.querySelector('#gm-import-json') as HTMLTextAreaElement;
           ta?.focus();
+        },
+        onSave: async (bodyEl) => {
+          const textarea = bodyEl.querySelector('#gm-import-json') as HTMLTextAreaElement;
+          const value = textarea?.value?.trim() ?? '';
+          if (!value) return false;
+          return value;
         },
       });
 
-      return resolvedText && resolvedText.length > 0 ? resolvedText : null;
+      return result && result.length > 0 ? result : null;
     } catch {
       return null;
     }
@@ -229,29 +225,44 @@ export class ImportExportService {
     count: number
   ): Promise<'merge' | 'replace' | null> {
     try {
-      const DialogV2 = foundry.applications.api.DialogV2;
-      if (!DialogV2) return null;
+      const { GuardModal } = await import('../ui/GuardModal.js');
 
-      const result = await DialogV2.wait({
-        window: { title: `Importar ${sectionLabel}` },
-        content: `
-          <p>Se encontraron <strong>${count}</strong> elemento(s) en el archivo.</p>
-          <p>¿Cómo deseas importar?</p>
-          <ul style="margin: 0.5rem 0 1rem 1.5rem; line-height: 1.8;">
-            <li><strong>Fusionar</strong>: Añade los elementos importados con nuevos IDs, conservando los existentes.</li>
-            <li><strong>Reemplazar</strong>: Elimina todos los elementos actuales y los sustituye por los del archivo (IDs originales conservados).</li>
-          </ul>
-        `,
-        buttons: [
-          { label: 'Fusionar', icon: 'fas fa-code-merge', action: 'merge' },
-          { label: 'Reemplazar', icon: 'fas fa-sync-alt', action: 'replace' },
-          { label: 'Cancelar', icon: 'fas fa-times', action: 'cancel' },
-        ],
-        rejectClose: false,
+      return await new Promise<'merge' | 'replace' | null>((resolve) => {
+        let choice: 'merge' | 'replace' | null = null;
+
+        const modal = GuardModal.open({
+          title: `Importar ${sectionLabel}`,
+          icon: 'fas fa-file-import',
+          width: 520,
+          showFooter: false,
+          body: `
+            <div class="guard-modal-form">
+              <p>Se encontraron <strong>${count}</strong> elemento(s) en el archivo.</p>
+              <p>¿Cómo deseas importar?</p>
+              <ul style="margin: 0.5rem 0 1rem 1.5rem; line-height: 1.8;">
+                <li><strong>Fusionar</strong>: Añade los elementos importados con nuevos IDs, conservando los existentes.</li>
+                <li><strong>Reemplazar</strong>: Elimina todos los elementos actuales y los sustituye por los del archivo (IDs originales conservados).</li>
+              </ul>
+              <div class="guard-modal-footer" style="border-top:none;padding-top:0;">
+                <button type="button" class="guard-modal-btn" data-choice="cancel"><i class="fas fa-times"></i> Cancelar</button>
+                <button type="button" class="guard-modal-btn" data-choice="merge"><i class="fas fa-code-merge"></i> Fusionar</button>
+                <button type="button" class="guard-modal-btn save" data-choice="replace"><i class="fas fa-sync-alt"></i> Reemplazar</button>
+              </div>
+            </div>
+          `,
+          onSave: async () => {},
+          onRender: (bodyEl) => {
+            bodyEl.querySelectorAll('[data-choice]').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                const c = (btn as HTMLElement).dataset.choice;
+                choice = c === 'merge' || c === 'replace' ? c : null;
+                modal.close();
+              });
+            });
+          },
+          onClose: () => resolve(choice),
+        });
       });
-
-      if (!result || result === 'cancel') return null;
-      return result as 'merge' | 'replace';
     } catch {
       return null;
     }

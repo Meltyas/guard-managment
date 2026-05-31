@@ -149,7 +149,7 @@
 }
 
 .phase-event-row.status-pending {
-  border-left-color: #4caf50;
+  border-left-color: #7db87d;
 }
 
 .phase-event-row.status-triggered {
@@ -226,7 +226,7 @@
 }
 
 .ev-tag.status-tag.status-pending {
-  border-color: #4caf50;
+  border-color: #7db87d;
   color: #8fd49a;
 }
 
@@ -510,7 +510,7 @@
 .cal-btn.active { background: rgba(243,194,103,0.2); border-color: #f3c267; color: #f3c267; }
 
 .cal-today-btn { font-weight: bold; }
-.cal-add-btn { color: #4caf50; border-color: #4caf50; }
+.cal-add-btn { color: #7db87d; border-color: #7db87d; }
 .cal-add-btn:hover { background: rgba(76,175,80,0.15); color: #8fd49a; border-color: #8fd49a; }
 
 .cal-jump-input {
@@ -641,7 +641,7 @@
   justify-content: center;
   transition: all 0.15s;
 }
-.cal-cell-add-btn:hover { border-color: #4caf50; color: #4caf50; }
+.cal-cell-add-btn:hover { border-color: #7db87d; color: #7db87d; }
 
 .cal-cell-empty {
   color: #444;
@@ -688,7 +688,7 @@
 }
 .cal-event-vis.vis-gm      { background: #9b59b6; }
 .cal-event-vis.vis-players { background: #3498db; }
-.cal-event-vis.vis-all     { background: #4caf50; }
+.cal-event-vis.vis-all     { background: #7db87d; }
 
 .cal-event-actions {
   display: none;
@@ -843,7 +843,7 @@
   transition: all 0.15s;
 }
 .cal-grid-cell:hover .cal-grid-add { display: flex; align-items: center; justify-content: center; }
-.cal-grid-add:hover { border-color: #4caf50; color: #4caf50; }
+.cal-grid-add:hover { border-color: #7db87d; color: #7db87d; }
 
 /* ── Empty state ── */
 .cal-empty-state {

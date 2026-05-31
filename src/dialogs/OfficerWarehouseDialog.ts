@@ -6,9 +6,15 @@
  */
 
 import type { Officer } from '../types/officer';
+import { setupFilterToggles } from '../ui/panels/panel-helpers.js';
 import { ImportExportService } from '../utils/ImportExportService.js';
 import { ModalStack } from '../utils/modal-stack.js';
+import { GuardModal } from '../ui/GuardModal.js';
 import { AddOrEditOfficerDialog } from './AddOrEditOfficerDialog.js';
+
+type OfficerViewMode = 'grid' | 'list' | 'gallery';
+const VIEW_MODE_LS_KEY = 'guard-management.officerWarehouse.viewMode';
+const VALID_VIEW_MODES: OfficerViewMode[] = ['grid', 'list', 'gallery'];
 
 export class OfficerWarehouseDialog {
   private static instance: OfficerWarehouseDialog | null = null;
@@ -16,6 +22,26 @@ export class OfficerWarehouseDialog {
   private isDragging = false;
   private dragOffset = { x: 0, y: 0 };
   private activeTab: 'officers' | 'civiles' = 'officers';
+  private viewMode: OfficerViewMode = OfficerWarehouseDialog.loadViewMode();
+
+  /** Read the persisted view mode from localStorage (defaults to 'grid'). */
+  private static loadViewMode(): OfficerViewMode {
+    try {
+      const stored = window.localStorage.getItem(VIEW_MODE_LS_KEY) as OfficerViewMode | null;
+      if (stored && VALID_VIEW_MODES.includes(stored)) return stored;
+    } catch {
+      /* localStorage may be unavailable */
+    }
+    return 'grid';
+  }
+
+  private saveViewMode(): void {
+    try {
+      window.localStorage.setItem(VIEW_MODE_LS_KEY, this.viewMode);
+    } catch {
+      /* ignore */
+    }
+  }
 
   /**
    * Static method to show the singleton instance
@@ -100,11 +126,11 @@ export class OfficerWarehouseDialog {
 
     const oficialesContent = await renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-      { officers: this.getOfficers(false), isGM, isCivilTab: false }
+      this.buildContext(false, isGM)
     );
     const civilesContent = await renderTemplate(
       'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-      { officers: this.getOfficers(true), isGM, isCivilTab: true }
+      this.buildContext(true, isGM)
     );
 
     dialog.innerHTML = `
@@ -150,6 +176,36 @@ export class OfficerWarehouseDialog {
   }
 
   /**
+   * Build the render context for one tab: enriched officers (with searchText),
+   * the distinct title filter chips, the active view mode and GM flag.
+   */
+  private buildContext(civil: boolean, isGM: boolean) {
+    const officers = this.getOfficers(civil).map((o) => {
+      const skillName = o.skill?.name ?? '';
+      const prosText = (o.pros ?? []).map((p) => p.title).join(' ');
+      const consText = (o.cons ?? []).map((c) => c.title).join(' ');
+      const searchText = `${o.actorName ?? ''} ${o.title ?? ''} ${skillName} ${prosText} ${consText}`
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+      return { ...o, searchText };
+    });
+
+    // Distinct titles → filter chips, sorted alphabetically, with counts
+    const titleCounts = new Map<string, number>();
+    for (const o of officers) {
+      const t = (o.title || '').trim();
+      if (!t) continue;
+      titleCounts.set(t, (titleCounts.get(t) ?? 0) + 1);
+    }
+    const titles = Array.from(titleCounts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], 'es'))
+      .map(([value, count]) => ({ value, label: value, count }));
+
+    return { officers, titles, isGM, isCivilTab: civil, viewMode: this.viewMode };
+  }
+
+  /**
    * Add event listeners
    */
   private addEventListeners(): void {
@@ -178,6 +234,55 @@ export class OfficerWarehouseDialog {
           p.classList.toggle('active', (p as HTMLElement).dataset.tabPanel === tab)
         );
       });
+    });
+
+    // Toolbar: per-panel search + title filters
+    this.element.querySelectorAll('.officer-wh-panel').forEach((panel) => {
+      const panelEl = panel as HTMLElement;
+
+      const searchInput = panelEl.querySelector('.officer-search-input') as HTMLInputElement | null;
+      const clearBtn = panelEl.querySelector('.officer-search-clear') as HTMLElement | null;
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          if (clearBtn) clearBtn.hidden = searchInput.value.length === 0;
+          this.applyFilters(panelEl);
+        });
+        // Prevent Foundry keyboard shortcuts from hijacking typing
+        searchInput.addEventListener('keydown', (e) => e.stopPropagation());
+        searchInput.addEventListener('keyup', (e) => e.stopPropagation());
+      }
+      clearBtn?.addEventListener('click', () => {
+        if (searchInput) {
+          searchInput.value = '';
+          clearBtn.hidden = true;
+          searchInput.focus();
+        }
+        this.applyFilters(panelEl);
+      });
+
+      // Title filter chips (multi-select with "Todos" reset)
+      setupFilterToggles(panelEl, {
+        buttonSelector: '.officer-filter-btn',
+        dataAttr: 'data-filter-title',
+        onChange: () => this.applyFilters(panelEl),
+      });
+    });
+
+    // View mode buttons (shared across both tabs)
+    this.element.querySelectorAll('.officer-view-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = (btn as HTMLElement).dataset.viewMode as OfficerViewMode;
+        if (!mode || !VALID_VIEW_MODES.includes(mode)) return;
+        this.viewMode = mode;
+        this.saveViewMode();
+        this.applyViewMode();
+      });
+    });
+
+    // Apply current view mode + filter state to freshly-rendered panels
+    this.applyViewMode();
+    this.element.querySelectorAll('.officer-wh-panel').forEach((panel) => {
+      this.applyFilters(panel as HTMLElement);
     });
 
     // Add officer buttons (data-civil distinguishes which tab)
@@ -325,70 +430,64 @@ export class OfficerWarehouseDialog {
       return;
     }
 
-    const content = `
-      <div class="officer-details">
-        <div class="officer-header">
-          <img src="${officer.actorImg}" alt="${officer.actorName}" class="officer-avatar-large" />
-          <div>
-            <h2>${officer.actorName}</h2>
-            <h3>${officer.title}</h3>
-            ${officer.isCivil ? '<span style="font-size:0.8em;opacity:0.7"><i class="fas fa-user-friends"></i> Civil</span>' : ''}
+    const esc = (v: unknown) =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    const traitList = (traits: Officer['pros'], emptyMsg: string) =>
+      traits.length
+        ? traits
+            .map(
+              (t) => `
+              <div class="officer-view-trait">
+                <strong>${esc(t.title)}</strong>
+                ${t.description ? `<p>${esc(t.description)}</p>` : ''}
+              </div>`
+            )
+            .join('')
+        : `<p class="officer-view-empty">${emptyMsg}</p>`;
+
+    const skillHtml = officer.skill?.name
+      ? `
+        <div class="officer-view-skill">
+          ${officer.skill.image ? `<img src="${esc(officer.skill.image)}" alt="${esc(officer.skill.name)}" />` : '<i class="fas fa-bolt"></i>'}
+          <span>${esc(officer.skill.name)}</span>
+        </div>`
+      : '';
+
+    const body = `
+      <div class="guard-modal-form officer-view">
+        <div class="officer-view-header">
+          <img src="${esc(officer.actorImg)}" alt="${esc(officer.actorName)}" class="officer-view-avatar" />
+          <div class="officer-view-id">
+            <h2>${esc(officer.actorName)}</h2>
+            <h3>${esc(officer.title)}</h3>
+            ${officer.isCivil ? '<span class="officer-view-tag"><i class="fas fa-user-friends"></i> Civil</span>' : ''}
+            ${skillHtml}
           </div>
         </div>
-        <div class="officer-traits">
-          <div class="pros-section">
-            <h4><i class="fas fa-thumbs-up"></i> Pros</h4>
-            ${
-              officer.pros.length > 0
-                ? officer.pros
-                    .map(
-                      (p) => `
-              <div class="trait-detail">
-                <strong>${p.title}</strong>
-                <p>${p.description}</p>
-              </div>
-            `
-                    )
-                    .join('')
-                : '<p>No hay pros</p>'
-            }
+        <div class="guard-modal-split officer-view-traits">
+          <div class="officer-view-col pros">
+            <div class="officer-view-col-title"><i class="fas fa-thumbs-up"></i> Pros</div>
+            ${traitList(officer.pros, 'No hay pros')}
           </div>
-          <div class="cons-section">
-            <h4><i class="fas fa-thumbs-down"></i> Cons</h4>
-            ${
-              officer.cons.length > 0
-                ? officer.cons
-                    .map(
-                      (c) => `
-              <div class="trait-detail">
-                <strong>${c.title}</strong>
-                <p>${c.description}</p>
-              </div>
-            `
-                    )
-                    .join('')
-                : '<p>No hay cons</p>'
-            }
+          <div class="officer-view-col cons">
+            <div class="officer-view-col-title"><i class="fas fa-thumbs-down"></i> Cons</div>
+            ${traitList(officer.cons, 'No hay cons')}
           </div>
         </div>
       </div>
     `;
 
-    await foundry.applications.api.DialogV2.wait({
-      window: {
-        title: `${officer.isCivil ? 'Civil' : 'Oficial'}: ${officer.actorName}`,
-        resizable: true,
-      },
-      content,
-      buttons: [
-        {
-          action: 'close',
-          icon: 'fas fa-times',
-          label: 'Cerrar',
-        },
-      ],
-      rejectClose: false,
-      modal: true,
+    GuardModal.open({
+      title: `${officer.isCivil ? 'Civil' : 'Oficial'}: ${officer.actorName}`,
+      icon: officer.isCivil ? 'fas fa-user-friends' : 'fas fa-user-shield',
+      body,
+      width: 620,
+      showFooter: false,
     });
   }
 
@@ -468,6 +567,60 @@ export class OfficerWarehouseDialog {
   }
 
   /**
+   * Reflect the active view mode onto both panels: list container class and
+   * the active state of the view-mode buttons.
+   */
+  private applyViewMode(): void {
+    if (!this.element) return;
+    this.element.querySelectorAll('.officers-list').forEach((list) => {
+      const el = list as HTMLElement;
+      el.classList.remove('view-grid', 'view-list', 'view-gallery');
+      el.classList.add(`view-${this.viewMode}`);
+    });
+    this.element.querySelectorAll('.officer-view-btn').forEach((btn) => {
+      const b = btn as HTMLElement;
+      b.classList.toggle('active', b.dataset.viewMode === this.viewMode);
+    });
+  }
+
+  /**
+   * Filter the officer cards within a single panel by the search term and the
+   * active title chips. Hides non-matching cards and shows a "no results"
+   * notice when everything is filtered out.
+   */
+  private applyFilters(panel: HTMLElement): void {
+    const searchInput = panel.querySelector('.officer-search-input') as HTMLInputElement | null;
+    const term = (searchInput?.value || '').toLowerCase().trim();
+
+    const activeTitles: string[] = [];
+    panel
+      .querySelectorAll('.officer-filter-btn.active:not([data-filter-title="all"])')
+      .forEach((btn) => {
+        const t = (btn as HTMLElement).dataset.filterTitle;
+        if (t) activeTitles.push(t);
+      });
+
+    const cards = panel.querySelectorAll('.officer-card');
+    let visibleCount = 0;
+    cards.forEach((card) => {
+      const el = card as HTMLElement;
+      const haystack = el.dataset.search || '';
+      const title = el.dataset.officerTitle || '';
+      const matchesSearch = !term || haystack.includes(term);
+      const matchesTitle = activeTitles.length === 0 || activeTitles.includes(title);
+      const visible = matchesSearch && matchesTitle;
+      el.style.display = visible ? '' : 'none';
+      if (visible) visibleCount += 1;
+    });
+
+    // Toggle "no results" notice (only relevant when there are cards at all)
+    const noResults = panel.querySelector('.officer-no-results') as HTMLElement | null;
+    if (noResults) {
+      noResults.hidden = !(cards.length > 0 && visibleCount === 0);
+    }
+  }
+
+  /**
    * Refresh the dialog content
    */
   private async refresh(): Promise<void> {
@@ -480,7 +633,7 @@ export class OfficerWarehouseDialog {
       if (!panel) continue;
       panel.innerHTML = await renderTemplate(
         'modules/guard-management/templates/dialogs/officer-warehouse.hbs',
-        { officers: this.getOfficers(civil), isGM, isCivilTab: civil }
+        this.buildContext(civil, isGM)
       );
     }
     this.addEventListeners();

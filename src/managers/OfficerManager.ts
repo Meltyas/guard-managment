@@ -4,6 +4,7 @@
  */
 
 import type { Officer, OfficerTrait } from '../types/officer';
+import { decodeUnicodeEscapes } from '../utils/index.js';
 
 export class OfficerManager {
   private officers: Map<string, Officer> = new Map();
@@ -27,20 +28,23 @@ export class OfficerManager {
     try {
       const officers = game?.settings?.get('guard-management', 'officers') as Officer[] | null;
       if (officers && Array.isArray(officers)) {
-        // Deserialize dates
-        const deserializedOfficers = officers.map((o) => ({
-          ...o,
-          createdAt: o.createdAt ? new Date(o.createdAt) : new Date(),
-          updatedAt: o.updatedAt ? new Date(o.updatedAt) : new Date(),
-          pros: (o.pros || []).map((p) => ({
-            ...p,
-            createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
-          })),
-          cons: (o.cons || []).map((c) => ({
-            ...c,
-            createdAt: c.createdAt ? new Date(c.createdAt) : new Date(),
-          })),
-        }));
+        // Deserialize dates and decode any literal \uXXXX escapes in string fields
+        const deserializedOfficers = officers.map((o) => {
+          const decoded = decodeUnicodeEscapes(o);
+          return {
+            ...decoded,
+            createdAt: decoded.createdAt ? new Date(decoded.createdAt) : new Date(),
+            updatedAt: decoded.updatedAt ? new Date(decoded.updatedAt) : new Date(),
+            pros: (decoded.pros || []).map((p) => ({
+              ...p,
+              createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+            })),
+            cons: (decoded.cons || []).map((c) => ({
+              ...c,
+              createdAt: c.createdAt ? new Date(c.createdAt) : new Date(),
+            })),
+          };
+        });
         this.load(deserializedOfficers);
         console.log(`OfficerManager | Loaded ${officers.length} officers from settings`);
       }

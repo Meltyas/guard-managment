@@ -265,7 +265,7 @@
 
 .cell-action-btn.prisoner-release-btn {
   background: rgba(76, 175, 80, 0.2);
-  color: #4caf50;
+  color: #7db87d;
 }
 
 .cell-action-btn.prisoner-forced-labor-btn {
@@ -437,7 +437,7 @@
 }
 .record-status-released {
   background: rgba(76, 175, 80, 0.2);
-  color: #4caf50;
+  color: #7db87d;
 }
 .record-status-executed {
   background: rgba(255, 68, 68, 0.2);
@@ -465,7 +465,7 @@
   background: rgba(76, 175, 80, 0.15);
   border: 1px solid rgba(76, 175, 80, 0.3);
   border-radius: 4px;
-  color: #4caf50;
+  color: #7db87d;
   cursor: pointer;
   font-size: 0.65rem;
   padding: 3px 8px;
@@ -479,7 +479,7 @@
 
 .record-return-btn:hover {
   background: rgba(76, 175, 80, 0.3);
-  border-color: #4caf50;
+  border-color: #7db87d;
 }
 
 /* Send to chat button */
@@ -680,7 +680,7 @@
   background: #ffa500;
 }
 .record-entry-released::before {
-  background: #4caf50;
+  background: #7db87d;
 }
 .record-entry-forced_labor::before {
   background: #ce93d8;
@@ -704,7 +704,7 @@
   background: #f3c267;
 }
 .record-entry-sentence_completed::before {
-  background: #4caf50;
+  background: #7db87d;
 }
 
 /* Shift-held delete highlight on history entries */

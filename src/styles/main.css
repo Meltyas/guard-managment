@@ -50,7 +50,7 @@
 }
 
 .guard-item.active {
-  border-color: #4caf50;
+  border-color: #7db87d;
   background: rgba(76, 175, 80, 0.2);
 }
 
@@ -60,7 +60,7 @@
 }
 
 .guard-item.alert {
-  border-color: #f44336;
+  border-color: #c97070;
   background: rgba(244, 67, 54, 0.2);
   animation: pulse 2s infinite;
 }
@@ -91,7 +91,7 @@
 }
 
 .guard-status.active {
-  background: #4caf50;
+  background: #7db87d;
   color: white;
 }
 
@@ -101,7 +101,7 @@
 }
 
 .guard-status.alert {
-  background: #f44336;
+  background: #c97070;
   color: white;
 }
 
@@ -126,11 +126,11 @@
 }
 
 .sync-indicator.synced {
-  background: #4caf50;
+  background: #7db87d;
 }
 
 .sync-indicator.error {
-  background: #f44336;
+  background: #c97070;
 }
 
 @keyframes blink {
@@ -146,14 +146,14 @@
 
 .conflict-panel {
   background: rgba(244, 67, 54, 0.1);
-  border: 2px solid #f44336;
+  border: 2px solid #c97070;
   border-radius: 8px;
   padding: 15px;
   margin: 10px 0;
 }
 
 .conflict-header {
-  color: #f44336;
+  color: #c97070;
   font-weight: bold;
   margin-bottom: 10px;
 }
@@ -173,12 +173,12 @@
 }
 
 .conflict-button.accept {
-  background: #4caf50;
+  background: #7db87d;
   color: white;
 }
 
 .conflict-button.reject {
-  background: #f44336;
+  background: #c97070;
   color: white;
 }
 
@@ -239,7 +239,7 @@
 }
 
 .debug-log-entry.error {
-  color: #f44336;
+  color: #c97070;
 }
 
 .debug-log-entry.warn {
@@ -251,7 +251,7 @@
 }
 
 .debug-log-entry.success {
-  color: #4caf50;
+  color: #7db87d;
 }
 
 /* Information Dialog Styles */
@@ -564,7 +564,7 @@
 
 .drop-zone.drag-over {
   background-color: rgba(76, 175, 80, 0.15);
-  border-color: #4caf50;
+  border-color: #7db87d;
   border-style: solid;
   border-width: 3px;
 }

@@ -1,751 +1,429 @@
 // @ts-nocheck
 /**
  * AddOrEditOfficerDialog
- * Dialog for creating and editing patrol officers
+ * Custom GuardModal-based dialog for creating and editing patrol officers.
+ * Styled to match the rest of the module's modals (resources, gangs, POIs…).
  */
 
-import type { Officer, OfficerTrait, PatrolSkill } from '../types/officer';
-import { OfficerFormApplication } from './OfficerFormApplication';
+import type { Officer, OfficerTrait } from '../types/officer';
+import { GuardModal } from '../ui/GuardModal.js';
+import { setupImagePicker } from '../ui/panels/panel-helpers.js';
 
-export interface OfficerDialogData {
+interface OfficerState {
   actorId: string;
   actorName: string;
-  actorImg?: string;
+  actorImg: string;
   title: string;
-  patrolSkills: PatrolSkill[];
+  skillName: string;
+  skillImage: string;
   pros: OfficerTrait[];
   cons: OfficerTrait[];
   organizationId?: string;
 }
 
-export class AddOrEditOfficerDialog {
-  private currentData: Partial<OfficerDialogData> = {
-    patrolSkills: [],
-    pros: [],
-    cons: [],
-  };
-  private dialogElement: HTMLElement | null = null;
-  private dialogId: string = '';
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
-  constructor() {
-    this.dialogId = `officer-dialog-${foundry.utils.randomID()}`;
+/** Resolve an Actor document from a drag & drop event. */
+async function resolveActorFromDrop(ev: DragEvent): Promise<any | null> {
+  const raw = ev.dataTransfer?.getData('text/plain') || '';
+  let data: any;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return null;
   }
 
+  let actor: any = null;
+  if (data.type === 'Actor' && data.uuid) {
+    actor = await (globalThis as any).fromUuid(data.uuid);
+  } else if (data.type === 'Actor' && data.id) {
+    actor = (game as any).actors?.get(data.id);
+  }
+  if (!actor && data.tokenId && data.sceneId) {
+    const scene = (game as any).scenes?.get(data.sceneId);
+    const token = scene?.tokens?.get(data.tokenId);
+    actor = token?.actor;
+  }
+  return actor;
+}
+
+export class AddOrEditOfficerDialog {
   /**
-   * Show officer dialog using FormApplication (recommended - keeps dialog open on validation errors)
+   * Show the dialog in create or edit mode using the custom GuardModal.
+   * Resolves with the created/updated Officer, or null if cancelled.
    */
   public async showForm(
     mode: 'create' | 'edit',
-    organizationId: string,
+    organizationId?: string,
     existingOfficer?: Officer,
-    personnelType: 'officer' | 'civilian' = 'officer'
+    _personnelType: 'officer' | 'civilian' = 'officer'
   ): Promise<Officer | null> {
-    const form = new OfficerFormApplication(
-      mode,
-      organizationId,
-      existingOfficer,
-      undefined,
-      personnelType
-    );
-    return form.show();
-  }
-
-  /**
-   * Show the dialog in create or edit mode
-   */
-  public async show(
-    mode: 'create' | 'edit',
-    organizationId?: string,
-    existingOfficer?: Officer
-  ): Promise<Officer | null> {
-    // Initialize current data
-    if (existingOfficer) {
-      this.currentData = {
-        actorId: existingOfficer.actorId,
-        actorName: existingOfficer.actorName,
-        actorImg: existingOfficer.actorImg,
-        title: existingOfficer.title,
-        patrolSkills: [...existingOfficer.patrolSkills],
-        pros: [...existingOfficer.pros],
-        cons: [...existingOfficer.cons],
-        organizationId: existingOfficer.organizationId,
-      };
-    } else {
-      this.currentData = {
-        actorId: '',
-        actorName: '',
-        actorImg: '',
-        title: '',
-        patrolSkills: [],
-        pros: [],
-        cons: [],
-        organizationId: organizationId,
-      };
-    }
-
-    const content = await this.generateContent(mode, organizationId, existingOfficer);
-    console.log('Content generado, buscando data-dialog-id en el HTML...');
-    console.log('dialogId esperado:', this.dialogId);
-    console.log('HTML contiene data-dialog-id?', content.includes('data-dialog-id'));
-    console.log('Primeros 500 caracteres del content:', content.substring(0, 500));
-
-    const title = mode === 'create' ? 'Nuevo Oficial' : 'Editar Oficial';
-
-    try {
-      const DialogV2Class = foundry.applications.api.DialogV2;
-
-      if (!DialogV2Class) {
-        console.error('DialogV2 no está disponible');
-        if (ui?.notifications) {
-          ui.notifications.error('DialogV2 no disponible');
-        }
-        return null;
-      }
-
-      let officerResult: Officer | null = null;
-
-      const result = await DialogV2Class.wait({
-        window: {
-          title,
-          resizable: true,
-        },
-        content,
-        render: (event: any, html: HTMLElement) => {
-          // Setup all event listeners when dialog is rendered
-          console.log('Dialog rendered, setting up event listeners');
-          console.log('DialogId:', this.dialogId);
-
-          // Longer delay to ensure DOM is fully ready
-          setTimeout(() => {
-            console.log('Running setup methods...');
-            this.setupActorDropZone();
-            this.setupSkillButtons();
-            this.setupSkillRemoveButtons();
-            this.setupTraitButtons();
-            this.setupTraitRemoveButtons();
-          }, 100);
-        },
-        buttons: [
-          {
-            action: 'save',
-            icon: 'fas fa-save',
-            label: mode === 'create' ? 'Crear' : 'Guardar',
-            callback: (event: any, button: any, dialog: any) => {
-              let form: HTMLFormElement | null = null;
-
-              // Try multiple methods to find the form
-              if (event?.target) {
-                form = event.target.closest('form.officer-form') as HTMLFormElement;
-              }
-
-              if (!form && button?.form) {
-                form = button.form;
-              }
-
-              if (!form && dialog?.element) {
-                form = dialog.element.querySelector('form.officer-form') as HTMLFormElement;
-              }
-
-              if (!form) {
-                console.error('No se pudo encontrar el formulario del oficial');
-                if (ui?.notifications) {
-                  ui.notifications.error('Error: No se pudo encontrar el formulario');
-                }
-                if (event) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }
-                return false;
-              }
-
-              // Extract data from form
-              const formData = new FormData(form);
-              const data: OfficerDialogData = {
-                actorId: this.currentData.actorId || '',
-                actorName: this.currentData.actorName || '',
-                actorImg: this.currentData.actorImg || '',
-                title: (formData.get('title') as string) || '',
-                patrolSkills: this.currentData.patrolSkills || [],
-                pros: this.currentData.pros || [],
-                cons: this.currentData.cons || [],
-                organizationId: (formData.get('organizationId') as string) || organizationId,
-              };
-
-              // Validation
-              if (!data.actorId?.trim()) {
-                if (ui?.notifications) {
-                  ui.notifications.error('Debes asignar un Actor al oficial');
-                }
-                if (event) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }
-                return false;
-              }
-
-              if (!data.title?.trim()) {
-                if (ui?.notifications) {
-                  ui.notifications.error('El título es obligatorio');
-                }
-                if (event) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }
-                return false;
-              }
-
-              // Get OfficerManager
-              const gm = (window as any).GuardManagement;
-              if (!gm?.officerManager) {
-                console.error('OfficerManager not available');
-                if (ui?.notifications) {
-                  ui.notifications.error('Sistema de oficiales no disponible');
-                }
-                if (event) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }
-                return false;
-              }
-
-              try {
-                if (mode === 'create') {
-                  // Create new officer
-                  officerResult = gm.officerManager.create({
-                    actorId: data.actorId,
-                    actorName: data.actorName,
-                    actorImg: data.actorImg,
-                    title: data.title.trim(),
-                    patrolSkills: data.patrolSkills.map((s: PatrolSkill) => ({
-                      title: s.title,
-                      description: s.description,
-                      hopeCost: s.hopeCost,
-                    })),
-                    pros: data.pros.map((p: OfficerTrait) => ({
-                      title: p.title,
-                      description: p.description,
-                    })),
-                    cons: data.cons.map((c: OfficerTrait) => ({
-                      title: c.title,
-                      description: c.description,
-                    })),
-                    organizationId: data.organizationId,
-                  });
-
-                  if (ui?.notifications) {
-                    ui.notifications.info(`Oficial "${data.actorName}" creado`);
-                  }
-                } else {
-                  // Update existing officer
-                  officerResult = gm.officerManager.update(existingOfficer!.id, {
-                    title: data.title.trim(),
-                    patrolSkills: data.patrolSkills,
-                    pros: data.pros,
-                    cons: data.cons,
-                    organizationId: data.organizationId,
-                  });
-
-                  if (officerResult && ui?.notifications) {
-                    ui.notifications.info(`Oficial "${data.actorName}" actualizado`);
-                  }
-                }
-              } catch (error) {
-                console.error('Error al guardar oficial:', error);
-                if (ui?.notifications) {
-                  ui.notifications.error('Error al guardar el oficial');
-                }
-                if (event) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }
-                return false;
-              }
-
-              return officerResult ? 'save' : false;
-            },
-          },
-          {
-            action: 'cancel',
-            icon: 'fas fa-times',
-            label: 'Cancelar',
-          },
-        ],
-        rejectClose: false,
-        modal: false,
-      });
-
-      if (result === 'save') {
-        return officerResult;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error mostrando el diálogo de oficial:', error);
-      if (ui?.notifications) {
-        ui.notifications.error('Error al mostrar el diálogo');
-      }
-      return null;
-    }
-  }
-
-  /**
-   * Generate the HTML content for the dialog
-   */
-  private async generateContent(
-    mode: 'create' | 'edit',
-    organizationId?: string,
-    existingOfficer?: Officer
-  ): Promise<string> {
-    const data = {
-      dialogId: this.dialogId,
-      actorId: this.currentData.actorId || '',
-      actorName: this.currentData.actorName || '',
-      actorImg: this.currentData.actorImg || '',
-      title: this.currentData.title || '',
-      patrolSkills: this.currentData.patrolSkills || [],
-      pros: this.currentData.pros || [],
-      cons: this.currentData.cons || [],
-      organizationId: organizationId || '',
-      isCreate: mode === 'create',
+    const state: OfficerState = {
+      actorId: existingOfficer?.actorId || '',
+      actorName: existingOfficer?.actorName || '',
+      actorImg: existingOfficer?.actorImg || '',
+      title: existingOfficer?.title || '',
+      skillName: existingOfficer?.skill?.name || '',
+      skillImage: existingOfficer?.skill?.image || '',
+      pros: existingOfficer ? [...existingOfficer.pros] : [],
+      cons: existingOfficer ? [...existingOfficer.cons] : [],
+      organizationId: existingOfficer?.organizationId ?? organizationId,
     };
 
-    return foundry.applications.handlebars.renderTemplate(
-      'modules/guard-management/templates/dialogs/add-edit-officer.hbs',
-      data
-    );
+    const result = await GuardModal.openAsync<Officer>({
+      title: mode === 'create' ? 'Crear Oficial' : 'Editar Oficial',
+      icon: 'fas fa-user-shield',
+      width: 640,
+      saveLabel: mode === 'create' ? 'Crear' : 'Guardar',
+      body: this.buildBody(state),
+      onRender: (bodyEl) => this.wire(bodyEl, state),
+      onSave: async () => this.save(mode, state, existingOfficer),
+    });
+
+    return result ?? null;
   }
 
-  /**
-   * Setup actor drop zone for drag & drop
-   */
-  private setupActorDropZone(): void {
-    const container = document.querySelector(
-      `.officer-content[data-dialog-id="${this.dialogId}"]`
-    ) as HTMLElement;
-    if (!container) {
-      console.warn('setupActorDropZone: No se encontró el contenedor con dialogId:', this.dialogId);
-      return;
+  // ── Body markup ─────────────────────────────────────────────
+
+  private buildBody(state: OfficerState): string {
+    return `
+      <div class="guard-modal-form officer-modal">
+        <div class="officer-modal-actor" id="officer-actor-zone">
+          ${this.actorZoneHtml(state)}
+        </div>
+
+        <div class="guard-modal-row">
+          <label for="officer-title"><i class="fas fa-id-badge"></i> Título del Oficial</label>
+          <input type="text" id="officer-title" value="${escapeHtml(state.title)}"
+            placeholder="Ej: Capitán, Sargento, Comandante..." />
+        </div>
+
+        <div class="officer-modal-section">
+          <div class="officer-modal-section-title">
+            <i class="fas fa-bolt"></i> Habilidad de Patrulla
+            <span class="officer-modal-optional">(Opcional)</span>
+          </div>
+          <div class="guard-modal-row">
+            <label for="officer-skill-name"><i class="fas fa-tag"></i> Nombre</label>
+            <input type="text" id="officer-skill-name" value="${escapeHtml(state.skillName)}"
+              placeholder="Ej: Tácticas Avanzadas, Don de Mando..." />
+          </div>
+          <div class="guard-modal-row">
+            <label><i class="fas fa-image"></i> Imagen</label>
+            <div class="officer-img-field">
+              <div id="officer-skill-preview" class="officer-skill-thumb">
+                ${state.skillImage ? `<img src="${escapeHtml(state.skillImage)}" />` : '<i class="fas fa-image"></i>'}
+              </div>
+              <input type="text" id="officer-skill-image" value="${escapeHtml(state.skillImage)}"
+                placeholder="icons/..." />
+              <button type="button" id="officer-skill-picker" class="officer-icon-btn" title="Seleccionar imagen">
+                <i class="fas fa-folder-open"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="guard-modal-split officer-modal-traits">
+          <div class="officer-modal-section officer-traits-col pros">
+            <div class="officer-modal-section-title">
+              <i class="fas fa-thumbs-up"></i> Pros
+            </div>
+            <div id="officer-pros-list" class="officer-traits-list">
+              ${this.traitsHtml(state.pros, 'pro')}
+            </div>
+            <button type="button" class="officer-add-trait" data-type="pro">
+              <i class="fas fa-plus"></i> Agregar Pro
+            </button>
+          </div>
+
+          <div class="officer-modal-section officer-traits-col cons">
+            <div class="officer-modal-section-title">
+              <i class="fas fa-thumbs-down"></i> Cons
+            </div>
+            <div id="officer-cons-list" class="officer-traits-list">
+              ${this.traitsHtml(state.cons, 'con')}
+            </div>
+            <button type="button" class="officer-add-trait" data-type="con">
+              <i class="fas fa-plus"></i> Agregar Con
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private actorZoneHtml(state: OfficerState): string {
+    if (state.actorId && state.actorName) {
+      return `
+        <div class="officer-actor-preview" data-drop="actor">
+          <img src="${escapeHtml(state.actorImg)}" alt="${escapeHtml(state.actorName)}" />
+          <div class="officer-actor-info">
+            <span class="officer-actor-name">${escapeHtml(state.actorName)}</span>
+            <span class="officer-actor-hint"><i class="fas fa-sync-alt"></i> Arrastra otro actor para cambiarlo</span>
+          </div>
+          <button type="button" class="officer-actor-clear" title="Quitar actor">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
     }
+    return `
+      <div class="officer-actor-dropzone" data-drop="actor">
+        <i class="fas fa-user-plus"></i>
+        <span>Arrastra un Actor aquí para asignarlo como Oficial</span>
+      </div>
+    `;
+  }
 
-    const dropZone = container.querySelector('.officer-actor-dropzone') as HTMLElement;
-    if (!dropZone) {
-      console.log('setupActorDropZone: No hay dropzone (puede ser que ya haya un actor asignado)');
-      return;
+  private traitsHtml(traits: OfficerTrait[], type: 'pro' | 'con'): string {
+    if (!traits.length) {
+      return `<p class="officer-traits-empty">No hay ${type === 'pro' ? 'pros' : 'cons'} agregados</p>`;
     }
+    return traits
+      .map(
+        (t) => `
+        <div class="officer-trait-item" data-trait-id="${t.id}">
+          <div class="officer-trait-head">
+            <strong>${escapeHtml(t.title)}</strong>
+            <button type="button" class="officer-trait-remove" data-trait-id="${t.id}" data-type="${type}" title="Eliminar">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          ${t.description ? `<div class="officer-trait-desc">${escapeHtml(t.description)}</div>` : ''}
+        </div>`
+      )
+      .join('');
+  }
 
-    console.log('setupActorDropZone: Configurando dropzone para dialogId:', this.dialogId);
+  // ── Wiring ──────────────────────────────────────────────────
 
-    // Remove old listeners by cloning the element
-    const newDropZone = dropZone.cloneNode(true) as HTMLElement;
-    dropZone.parentNode?.replaceChild(newDropZone, dropZone);
+  private wire(bodyEl: HTMLElement, state: OfficerState): void {
+    const titleInput = bodyEl.querySelector('#officer-title') as HTMLInputElement;
+    const actorZone = bodyEl.querySelector('#officer-actor-zone') as HTMLElement;
+    const prosList = bodyEl.querySelector('#officer-pros-list') as HTMLElement;
+    const consList = bodyEl.querySelector('#officer-cons-list') as HTMLElement;
 
-    newDropZone.addEventListener('dragover', (event) => {
-      event.preventDefault();
-      newDropZone.classList.add('drag-over');
+    // Keep title synced (it survives partial re-renders via state).
+    titleInput?.addEventListener('input', () => {
+      state.title = titleInput.value;
     });
 
-    newDropZone.addEventListener('dragleave', () => {
-      newDropZone.classList.remove('drag-over');
-    });
+    // ── Actor drop zone ──
+    const wireActorZone = () => {
+      const zone = actorZone.querySelector('[data-drop="actor"]') as HTMLElement;
+      if (!zone) return;
 
-    newDropZone.addEventListener('drop', async (event) => {
-      event.preventDefault();
-      newDropZone.classList.remove('drag-over');
-
-      console.log('Drop event detected!');
-
-      try {
-        const data = JSON.parse(event.dataTransfer?.getData('text/plain') || '{}');
-        console.log('Drop data:', data);
-
-        if (data.type === 'Actor') {
-          const actor = await fromUuid(data.uuid);
-          if (actor) {
-            console.log('Actor found:', actor.name);
-            this.currentData.actorId = actor.id;
-            this.currentData.actorName = actor.name || '';
-            this.currentData.actorImg = actor.img || '';
-
-            // Re-render the dialog content
-            await this.refreshContent();
-
-            if (ui?.notifications) {
-              ui.notifications.info(`Actor "${actor.name}" asignado`);
-            }
-          }
+      zone.addEventListener('dragenter', (ev) => {
+        ev.preventDefault();
+        zone.classList.add('dnd-hover');
+      });
+      zone.addEventListener('dragover', (ev) => {
+        ev.preventDefault();
+        zone.classList.add('dnd-hover');
+      });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dnd-hover'));
+      zone.addEventListener('drop', async (ev) => {
+        ev.preventDefault();
+        zone.classList.remove('dnd-hover');
+        const actor = await resolveActorFromDrop(ev as DragEvent);
+        if (!actor) {
+          (globalThis as any).ui?.notifications?.warn('No se pudo resolver el actor arrastrado.');
+          return;
         }
-      } catch (error) {
-        console.error('Error en drop de actor:', error);
-      }
-    });
-  }
-
-  /**
-   * Setup trait add buttons
-   */
-  private setupTraitButtons(): void {
-    const container = document.querySelector(
-      `.officer-content[data-dialog-id="${this.dialogId}"]`
-    ) as HTMLElement;
-    if (!container) {
-      console.warn('setupTraitButtons: No se encontró el contenedor con dialogId:', this.dialogId);
-      return;
-    }
-
-    const addButtons = container.querySelectorAll('.add-trait-btn');
-    console.log(
-      'setupTraitButtons: Encontrados',
-      addButtons.length,
-      'botones para dialogId:',
-      this.dialogId
-    );
-
-    addButtons.forEach((button) => {
-      const newButton = button.cloneNode(true) as HTMLElement;
-      button.parentNode?.replaceChild(newButton, button);
-
-      newButton.addEventListener('click', async (event) => {
-        event.preventDefault();
-        console.log('Add trait button clicked, type:', newButton.dataset.traitType);
-        const traitType = newButton.dataset.traitType as 'pro' | 'con';
-        await this.showAddTraitDialog(traitType);
+        state.actorId = actor.id;
+        state.actorName = actor.name || '';
+        state.actorImg = actor.img || actor.prototypeToken?.texture?.src || '';
+        actorZone.innerHTML = this.actorZoneHtml(state);
+        wireActorZone();
       });
-    });
-  }
 
-  /**
-   * Setup skill add button
-   */
-  private setupSkillButtons(): void {
-    const container = document.querySelector(
-      `.officer-content[data-dialog-id="${this.dialogId}"]`
-    ) as HTMLElement;
-    if (!container) return;
-
-    const addButton = container.querySelector('.add-skill-btn');
-    if (!addButton) return;
-
-    const newButton = addButton.cloneNode(true) as HTMLElement;
-    addButton.parentNode?.replaceChild(newButton, addButton);
-
-    newButton.addEventListener('click', async (event) => {
-      event.preventDefault();
-      await this.showAddSkillDialog();
-    });
-  }
-
-  /**
-   * Setup skill remove buttons
-   */
-  private setupSkillRemoveButtons(): void {
-    const container = document.querySelector(
-      `.officer-content[data-dialog-id="${this.dialogId}"]`
-    ) as HTMLElement;
-    if (!container) return;
-
-    const removeButtons = container.querySelectorAll('.skill-remove-btn');
-    removeButtons.forEach((button) => {
-      const newButton = button.cloneNode(true) as HTMLElement;
-      button.parentNode?.replaceChild(newButton, button);
-
-      newButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        const skillId = newButton.dataset.skillId;
-        this.removeSkill(skillId!);
+      const clearBtn = actorZone.querySelector('.officer-actor-clear');
+      clearBtn?.addEventListener('click', () => {
+        state.actorId = '';
+        state.actorName = '';
+        state.actorImg = '';
+        actorZone.innerHTML = this.actorZoneHtml(state);
+        wireActorZone();
       });
+    };
+    wireActorZone();
+
+    // ── Skill image picker ──
+    const skillInput = bodyEl.querySelector('#officer-skill-image') as HTMLInputElement;
+    const skillPreview = bodyEl.querySelector('#officer-skill-preview') as HTMLElement;
+    const skillPicker = bodyEl.querySelector('#officer-skill-picker');
+    const skillNameInput = bodyEl.querySelector('#officer-skill-name') as HTMLInputElement;
+
+    skillNameInput?.addEventListener('input', () => {
+      state.skillName = skillNameInput.value;
     });
-  }
 
-  /**
-   * Setup trait remove buttons
-   */
-  private setupTraitRemoveButtons(): void {
-    const container = document.querySelector(
-      `.officer-content[data-dialog-id="${this.dialogId}"]`
-    ) as HTMLElement;
-    if (!container) return;
-
-    const removeButtons = container.querySelectorAll('.trait-remove-btn');
-    removeButtons.forEach((button) => {
-      const newButton = button.cloneNode(true) as HTMLElement;
-      button.parentNode?.replaceChild(newButton, button);
-
-      newButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        const traitId = newButton.dataset.traitId;
-        const traitType = newButton.dataset.traitType as 'pro' | 'con';
-        this.removeTrait(traitId!, traitType);
-      });
-    });
-  }
-
-  /**
-   * Show dialog to add a trait
-   */
-  private async showAddTraitDialog(traitType: 'pro' | 'con'): Promise<void> {
-    const DialogV2Class = foundry.applications.api.DialogV2;
-    if (!DialogV2Class) return;
-
-    const content = await foundry.applications.handlebars.renderTemplate(
-      'modules/guard-management/templates/dialogs/add-edit-trait.hbs',
-      { title: '', description: '' }
-    );
-
-    const result = await DialogV2Class.wait({
-      window: {
-        title: traitType === 'pro' ? 'Agregar Pro' : 'Agregar Con',
-        resizable: true,
+    setupImagePicker({
+      pickerEl: skillPicker,
+      inputEl: skillInput,
+      previewEl: skillPreview,
+      onSelect: (path) => {
+        state.skillImage = path;
+        if (skillPreview) {
+          skillPreview.innerHTML = path
+            ? `<img src="${escapeHtml(path)}" />`
+            : '<i class="fas fa-image"></i>';
+        }
       },
-      content,
-      buttons: [
-        {
-          action: 'add',
-          icon: 'fas fa-plus',
-          label: 'Agregar',
-          callback: (event: any, button: any, dialog: any) => {
-            const dialogElement = dialog.element || dialog.window?.element;
-            if (!dialogElement) {
-              console.error('❌ No se pudo encontrar el elemento del diálogo');
-              return 'cancel';
-            }
+      previewOnInput: true,
+    });
 
-            const titleInput = dialogElement.querySelector('#trait-title') as HTMLInputElement;
-            const descTextarea = dialogElement.querySelector('textarea[name="trait-description"]') as HTMLTextAreaElement;
+    // ── Pros / Cons ──
+    const renderTraits = (type: 'pro' | 'con') => {
+      const list = type === 'pro' ? prosList : consList;
+      list.innerHTML = this.traitsHtml(type === 'pro' ? state.pros : state.cons, type);
+      wireRemove(type);
+    };
 
-            const title = titleInput?.value?.trim() || '';
-            const description = descTextarea?.value?.trim() || '';
+    const wireRemove = (type: 'pro' | 'con') => {
+      const list = type === 'pro' ? prosList : consList;
+      list.querySelectorAll('.officer-trait-remove').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = (btn as HTMLElement).dataset.traitId;
+          if (type === 'pro') state.pros = state.pros.filter((p) => p.id !== id);
+          else state.cons = state.cons.filter((c) => c.id !== id);
+          renderTraits(type);
+        });
+      });
+    };
 
-            if (!title) {
-              if (ui?.notifications) {
-                ui.notifications.error('El título es obligatorio');
-              }
-              return 'cancel';
-            }
+    wireRemove('pro');
+    wireRemove('con');
 
-            if (!description) {
-              if (ui?.notifications) {
-                ui.notifications.error('La descripción es obligatoria');
-              }
-              return 'cancel';
-            }
-
-            const newTrait: OfficerTrait = {
-              id: foundry.utils.randomID(),
-              title: title.trim(),
-              description: description.trim(),
-              createdAt: new Date(),
-            };
-
-            if (traitType === 'pro') {
-              this.currentData.pros = [...(this.currentData.pros || []), newTrait];
-            } else {
-              this.currentData.cons = [...(this.currentData.cons || []), newTrait];
-            }
-
-            console.log('✅ Trait agregado:', newTrait.title);
-            console.log('Total pros:', this.currentData.pros?.length || 0);
-            console.log('Total cons:', this.currentData.cons?.length || 0);
-
-            this.refreshContent();
-
-            if (ui?.notifications) {
-              ui.notifications.info(`${traitType === 'pro' ? 'Pro' : 'Con'} "${title}" agregado`);
-            }
-
-            return 'add';
-          },
-        },
-        {
-          action: 'cancel',
-          icon: 'fas fa-times',
-          label: 'Cancelar',
-        },
-      ],
-      rejectClose: false,
-      modal: false,
+    bodyEl.querySelectorAll('.officer-add-trait').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const type = (btn as HTMLElement).dataset.type as 'pro' | 'con';
+        const trait = await this.promptTrait(type);
+        if (!trait) return;
+        const newTrait: OfficerTrait = {
+          id: foundry.utils.randomID(),
+          title: trait.title,
+          description: trait.description,
+          createdAt: new Date(),
+        };
+        if (type === 'pro') state.pros = [...state.pros, newTrait];
+        else state.cons = [...state.cons, newTrait];
+        renderTraits(type);
+      });
     });
   }
 
-  /**
-   * Remove a trait
-   */
-  private removeTrait(traitId: string, traitType: 'pro' | 'con'): void {
-    if (traitType === 'pro') {
-      this.currentData.pros = (this.currentData.pros || []).filter((p) => p.id !== traitId);
-    } else {
-      this.currentData.cons = (this.currentData.cons || []).filter((c) => c.id !== traitId);
-    }
+  /** Nested GuardModal to add a pro/con trait. */
+  private async promptTrait(
+    type: 'pro' | 'con'
+  ): Promise<{ title: string; description: string } | null> {
+    const body = `
+      <div class="guard-modal-form">
+        <div class="guard-modal-row">
+          <label for="trait-title"><i class="fas fa-heading"></i> Título</label>
+          <input type="text" id="trait-title" placeholder="Ej: Veterano, Temerario..." />
+        </div>
+        <div class="guard-modal-row">
+          <label for="trait-desc"><i class="fas fa-align-left"></i> Descripción</label>
+          <textarea id="trait-desc" rows="4" placeholder="Describe la característica..."></textarea>
+        </div>
+      </div>
+    `;
 
-    this.refreshContent();
-  }
-
-  /**
-   * Show dialog to add a patrol skill
-   */
-  private async showAddSkillDialog(): Promise<void> {
-    const DialogV2Class = foundry.applications.api.DialogV2;
-    if (!DialogV2Class) return;
-
-    const content = await foundry.applications.handlebars.renderTemplate(
-      'modules/guard-management/templates/dialogs/add-edit-skill.hbs',
-      { title: '', description: '', hopeCost: 0 }
-    );
-
-    // Setup editor buttons after dialog opens
-    const result = await DialogV2Class.wait({
-      window: {
-        title: 'Agregar Patrol Skill',
-        resizable: true,
+    return GuardModal.openAsync<{ title: string; description: string }>({
+      title: type === 'pro' ? 'Agregar Pro' : 'Agregar Con',
+      icon: type === 'pro' ? 'fas fa-thumbs-up' : 'fas fa-thumbs-down',
+      width: 460,
+      saveLabel: 'Agregar',
+      body,
+      onRender: (bodyEl) => {
+        (bodyEl.querySelector('#trait-title') as HTMLInputElement)?.focus();
       },
-      content,
-      buttons: [
-        {
-          action: 'add',
-          icon: 'fas fa-plus',
-          label: 'Agregar',
-          callback: (event: any, button: any, dialog: any) => {
-            // Get data from inputs including rich text editor
-            const dialogElement = dialog.element || dialog.window?.element;
-            if (!dialogElement) {
-              console.error('❌ No se pudo encontrar el elemento del diálogo');
-              return 'cancel';
-            }
-
-            const titleInput = dialogElement.querySelector('#skill-title') as HTMLInputElement;
-            const hopeCostInput = dialogElement.querySelector(
-              '#skill-hope-cost'
-            ) as HTMLInputElement;
-
-            const title = titleInput?.value?.trim() || '';
-            const hopeCost = parseInt(hopeCostInput?.value || '0');
-            const descTextarea = dialogElement.querySelector('textarea[name="skill-description"]') as HTMLTextAreaElement;
-            const description = descTextarea?.value?.trim() || '';
-
-            if (!title) {
-              if (ui?.notifications) {
-                ui.notifications.error('El título es obligatorio');
-              }
-              return 'cancel';
-            }
-
-            if (!description) {
-              if (ui?.notifications) {
-                ui.notifications.error('La descripción es obligatoria');
-              }
-              return 'cancel';
-            }
-
-            if (hopeCost < 0 || hopeCost > 5) {
-              if (ui?.notifications) {
-                ui.notifications.error('El coste de Hope debe estar entre 0 y 5');
-              }
-              return 'cancel';
-            }
-
-            const newSkill: PatrolSkill = {
-              id: foundry.utils.randomID(),
-              title: title.trim(),
-              description: description.trim(),
-              hopeCost,
-              createdAt: new Date(),
-            };
-
-            this.currentData.patrolSkills = [...(this.currentData.patrolSkills || []), newSkill];
-
-            this.refreshContent();
-
-            if (ui?.notifications) {
-              ui.notifications.info(`Skill "${title}" agregada`);
-            }
-
-            return 'add';
-          },
-        },
-        {
-          action: 'cancel',
-          icon: 'fas fa-times',
-          label: 'Cancelar',
-        },
-      ],
-      rejectClose: false,
-      modal: false,
+      onSave: async (bodyEl) => {
+        const title = (bodyEl.querySelector('#trait-title') as HTMLInputElement)?.value?.trim();
+        const description =
+          (bodyEl.querySelector('#trait-desc') as HTMLTextAreaElement)?.value?.trim() || '';
+        if (!title) {
+          (globalThis as any).ui?.notifications?.error('El título es obligatorio');
+          return false;
+        }
+        return { title, description };
+      },
     });
   }
 
-  /**
-   * Remove a patrol skill
-   */
-  private removeSkill(skillId: string): void {
-    this.currentData.patrolSkills = (this.currentData.patrolSkills || []).filter(
-      (s) => s.id !== skillId
-    );
-    this.refreshContent();
-  }
+  // ── Persistence ─────────────────────────────────────────────
 
-  /**
-   * Refresh dialog content
-   */
-  private async refreshContent(): Promise<void> {
-    // Find THIS specific dialog using the unique dialogId
-    const container = document.querySelector(
-      `.officer-content[data-dialog-id="${this.dialogId}"]`
-    ) as HTMLElement;
-
-    if (!container) {
-      console.warn('No se pudo encontrar el contenedor del oficial para refrescar');
-      return;
+  private async save(
+    mode: 'create' | 'edit',
+    state: OfficerState,
+    existingOfficer?: Officer
+  ): Promise<Officer | false> {
+    if (!state.actorId?.trim()) {
+      (globalThis as any).ui?.notifications?.error('Debes asignar un Actor al oficial');
+      return false;
+    }
+    if (!state.title?.trim()) {
+      (globalThis as any).ui?.notifications?.error('El título es obligatorio');
+      return false;
     }
 
-    const dialogElement = container.closest('dialog.application.dialog') as HTMLElement;
-    if (!dialogElement) {
-      console.warn('No se pudo encontrar el dialog del oficial');
-      return;
+    const gm = (window as any).GuardManagement;
+    if (!gm?.officerManager) {
+      (globalThis as any).ui?.notifications?.error('Sistema de oficiales no disponible');
+      return false;
     }
 
-    // Save current form values before refresh
-    const titleInput = container.querySelector('input[name="title"]') as HTMLInputElement;
-    if (titleInput) {
-      this.currentData.title = titleInput.value;
-    }
+    const skillName = state.skillName?.trim();
+    const skillImage = state.skillImage?.trim();
+    const skill = skillName ? { name: skillName, image: skillImage || undefined } : undefined;
 
-    const content = await foundry.applications.handlebars.renderTemplate(
-      'modules/guard-management/templates/dialogs/add-edit-officer.hbs',
-      {
-        dialogId: this.dialogId,
-        actorId: this.currentData.actorId || '',
-        actorName: this.currentData.actorName || '',
-        actorImg: this.currentData.actorImg || '',
-        title: this.currentData.title || '',
-        patrolSkills: this.currentData.patrolSkills || [],
-        pros: this.currentData.pros || [],
-        cons: this.currentData.cons || [],
-        organizationId: this.currentData.organizationId || '',
+    try {
+      let officer: Officer | undefined;
+
+      if (mode === 'create') {
+        officer = await gm.officerManager.create({
+          actorId: state.actorId,
+          actorName: state.actorName,
+          actorImg: state.actorImg,
+          title: state.title.trim(),
+          skill,
+          pros: state.pros.map((p) => ({ title: p.title, description: p.description })),
+          cons: state.cons.map((c) => ({ title: c.title, description: c.description })),
+          organizationId: state.organizationId,
+        });
+        (globalThis as any).ui?.notifications?.info(`Oficial "${state.actorName}" creado`);
+      } else {
+        officer = gm.officerManager.update(existingOfficer!.id, {
+          title: state.title.trim(),
+          skill,
+          pros: state.pros,
+          cons: state.cons,
+          organizationId: state.organizationId,
+        });
+        if (!officer) {
+          (globalThis as any).ui?.notifications?.error('No se pudo actualizar el oficial');
+          return false;
+        }
+        (globalThis as any).ui?.notifications?.info(`Oficial "${state.actorName}" actualizado`);
       }
-    );
 
-    // Find the dialog-content area that DialogV2 creates
-    const dialogContent = dialogElement.querySelector('.dialog-content');
-
-    if (dialogContent) {
-      dialogContent.innerHTML = content;
-
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        // Re-setup event listeners
-        this.setupActorDropZone();
-        this.setupSkillButtons();
-        this.setupSkillRemoveButtons();
-        this.setupTraitButtons();
-        this.setupTraitRemoveButtons();
-      }, 100);
-    } else {
-      console.warn('No se pudo encontrar el área de contenido del dialog');
+      return officer!;
+    } catch (error) {
+      console.error('Error al guardar oficial:', error);
+      (globalThis as any).ui?.notifications?.error('Error al guardar el oficial');
+      return false;
     }
   }
 
-  /**
-   * Static method for quick access to show the dialog
-   */
+  // ── Static API ──────────────────────────────────────────────
+
   public static async show(
     mode: 'create' | 'edit',
     organizationId?: string,
@@ -756,9 +434,6 @@ export class AddOrEditOfficerDialog {
     return dialog.showForm(mode, organizationId, existingOfficer, personnelType);
   }
 
-  /**
-   * Static method for creating a new officer
-   */
   public static async create(
     organizationId?: string,
     personnelType: 'officer' | 'civilian' = 'officer'
@@ -766,9 +441,6 @@ export class AddOrEditOfficerDialog {
     return this.show('create', organizationId, undefined, personnelType);
   }
 
-  /**
-   * Static method for editing an existing officer
-   */
   public static async edit(
     officer: Officer,
     personnelType: 'officer' | 'civilian' = 'officer'
