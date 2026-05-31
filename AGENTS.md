@@ -15,14 +15,22 @@ System: Daggerheart 2.x on Foundry VTT v13+.
 ## Build & Test
 
 ```bash
-npm run build    # Vite build → dist/
-npm run dev      # Watch mode
+npm run build       # Vite build → dist/ (esbuild — does NOT type-check)
+npm run type-check  # tsc --noEmit — the REAL type gate
+npm run dev         # Watch mode
 ```
 
+> **⚠️ CRITICAL: `npm run build` does NOT validate types.** Vite/esbuild strips
+> types without checking them, so a build can pass while `tsc` reports dozens of
+> errors. A single parse error can also silently mask the entire type-check.
+> **`npm run type-check` MUST pass (exit 0) before considering any change done.**
+> Treat it as a hard gate, equal to the build.
+
 No automated test suite. After changes:
-1. `npm run build` — must be clean (no TS errors)
-2. Reload Foundry (F5)
-3. Verify in browser console
+1. `npm run build` — must be clean
+2. `npm run type-check` — MUST be clean (exit 0). Do not rely on the build alone.
+3. Reload Foundry (F5)
+4. Verify in browser console
 
 ## Architecture
 
@@ -51,7 +59,12 @@ All data lives in `src/managers/`. Each manager:
 2. Add as public property on `GuardManagementModule` in `src/main.ts`
 3. Initialize in `initialize()`
 4. Register its settings key in `settings.ts` with `scope: 'world'`
-5. **Expose via MCP** (see MCP section below — this is mandatory)
+5. **Declare the key in `src/types/foundry.d.ts`** under the `SettingConfig`
+   interface (e.g. `'guard-management.myKey': any;`). Skipping this makes
+   `game.settings.get/set('guard-management', 'myKey')` fail type-check with
+   TS2345 ("not assignable to KeyFor<...>"). This is easy to miss because the
+   Vite build still passes — only `npm run type-check` catches it.
+6. **Expose via MCP** (see MCP section below — this is mandatory)
 
 ### MCP Integration (MANDATORY)
 
@@ -71,6 +84,8 @@ Every new manager or feature MUST be exposed via MCP. See `docs/MCP.md`.
 - Return data directly (no `{ success, data }` wrapper)
 - Throw on error — the bridge catches it
 - Verify actual method names in manager source before wiring
+  (wrong names/arg-counts compile fine under Vite — only `npm run type-check`
+  catches them, so run it after editing `MCPBridgeIntegration.ts`)
 
 **MCP tool schemas MUST be complete:**
 - When a manager method gains a new field (e.g. `zone` on buildings), the corresponding MCP tool `inputSchema` MUST be updated immediately.
@@ -85,6 +100,69 @@ npm run build
 # MCP server
 cd C:\Users\merty\OneDrive\Documents\projects\foundry-vtt-mcp\packages\mcp-server && npm run build
 ```
+
+## UI / Panel Conventions (reuse the shared helpers — do NOT reinvent)
+
+The panel layer was refactored to share logic. New panels and dialogs MUST use
+these helpers instead of hand-rolling equivalents.
+
+### Rendering a panel — `renderPanel` (`src/ui/panels/panel-helpers.ts`)
+
+Every panel's `render()` should delegate to `renderPanel`, which handles
+template loading, injection and error logging:
+
+```typescript
+import { renderPanel } from './panel-helpers.js';
+
+static async render(container: HTMLElement) {
+  await renderPanel(container, {
+    template: 'modules/guard-management/templates/panels/myentity.hbs',
+    getData: () => MyPanel.getData(),
+    onMounted: (c) => MyPanel.setupListeners(c),
+    panelName: 'MyPanel',
+  });
+}
+```
+
+### Shared panel helpers (all in `panel-helpers.ts`)
+
+- `gm()` — typed accessor for `window.GuardManagement`
+- `formatTimeAgo(timestamp, opts)` — relative time strings (use for log entries)
+- `setupExpandCollapse(container)` — row summary expand/collapse
+- `setupEntitySearch(container, opts)` — the search-filter box
+- `setupLogToggle(container, opts)` — collapsible activity-log section
+- `setupFilterToggles(container, opts)` — status/category filter chips
+- `setupImagePicker(opts)` — FilePicker-backed image input
+
+### Tab registration — `CustomInfoDialog`
+
+Panels are wired through a central registry, NOT ad-hoc:
+
+- `getPanelRegistry()` — maps `tabKey → render fn`. Add new tabs here only.
+- `renderTabPanel(tabKey)` — renders one tab; skips unmounted containers.
+- `REFRESH_ON_TAB_ACTIVATE` (Set) — tab keys that re-render on activation.
+- `AUTO_REFRESH` (table of `[socketEvent, tabKey]`) — add a row to auto-refresh
+  a tab when a manager fires its change event. Do not add bespoke listeners.
+
+Public `refreshXPanel()` methods are kept for external callers but just delegate
+to `renderTabPanel`.
+
+### Activity-log deletion — `LogDeletion` (`src/utils/LogDeletion.ts`)
+
+Log lines are deleted via a single unified shift+click path. Do NOT write
+per-entity log-delete handlers. Render log rows with the data attributes
+(`data-log-kind`, `data-<entity>-id`, `data-entry-id`, the shift+clic title) as
+in `resources.hbs`, then rely on `CustomInfoDialog.handleLogLineShiftDelete`
+which calls `LogDeletion.deleteLine(line)`.
+
+### Phase chat cards — `PhaseEventManager`
+
+Phase-related chat output is built with private helpers; reuse them rather than
+duplicating HTML:
+
+- `_buildPhaseCard(icon, title, bodyHtml, tags, descClass)` — Daggerheart
+  `domain-card dh-style` card shell.
+- `_renderEntries(entries, emptyMsg?)` — renders a list of report entries.
 
 ## Code Conventions
 
