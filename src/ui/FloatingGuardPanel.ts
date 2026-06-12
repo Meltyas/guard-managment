@@ -20,6 +20,8 @@ export class FloatingGuardPanel {
   private uiRefreshHandler?: (event: Event) => void;
   private boundDragMove?: (event: MouseEvent) => void;
   private boundDragEnd?: () => void;
+  /** Guard against concurrent refreshPanel() calls that corrupt the saved position. */
+  private _refreshing = false;
   private globalListenersAttached = false;
 
   private readonly STORAGE_KEY = 'guard-management-panel-position';
@@ -118,6 +120,11 @@ export class FloatingGuardPanel {
    */
   public async refreshPanel(): Promise<void> {
     if (!this.panel) return;
+    // Prevent concurrent calls: a second refresh while one is already in progress
+    // would read style.left='' from the freshly-created blank div and save {x:50,y:50}.
+    if (this._refreshing) return;
+    this._refreshing = true;
+    try {
 
     // Save current position before removing
     this.savePosition();
@@ -134,6 +141,9 @@ export class FloatingGuardPanel {
     const gm = (window as any).GuardManagement;
     if (gm?.dayNightDecoration && this.panel?.style.display !== 'none') {
       gm.dayNightDecoration.show();
+    }
+    } finally {
+      this._refreshing = false;
     }
   }
 

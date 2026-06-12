@@ -315,13 +315,12 @@ const UNICODE_ESCAPE_SETTINGS = [
   'reputations',
   'crimes',
   'gangs',
-  'pois',
+  'poi',
   'prisoners',
   'buildings',
   'patrols',
   'guardOrganization',
-  'phaseEvents',
-  'phaseReports',
+  'phaseEventsData',
 ] as const;
 
 async function migrateDecodeUnicodeEscapes(): Promise<void> {

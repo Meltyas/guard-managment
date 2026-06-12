@@ -58,6 +58,8 @@ export class MCPBridgeIntegration {
     const finance = module.financeManager;
     const phase = module.phaseManager;
     const phaseEvent = module.phaseEventManager;
+    const decision = module.decisionManager;
+    const ability = module.abilityManager;
 
     const tools: Record<string, ToolHandler> = {
       // ── Organizations ──────────────────────────────────────────────────
@@ -151,6 +153,26 @@ export class MCPBridgeIntegration {
       'guard-management.phaseReports.list': gmOnly(async () => phaseEvent.getAllReports()),
       'guard-management.phaseReports.get': gmOnly(async ({ turn }) => phaseEvent.getReport(turn)),
       'guard-management.phaseReports.search': gmOnly(async (filters) => phaseEvent.searchReports(filters || {})),
+
+      // ── Decisions ──────────────────────────────────────────────────────
+      'guard-management.decisions.list': gmOnly(async () => decision.getAllDecisions()),
+      'guard-management.decisions.get': gmOnly(async ({ id }) => decision.getDecision(id)),
+      'guard-management.decisions.create': gmMutation('guard-management.decisions', async (data) => decision.createDecision(data)),
+      'guard-management.decisions.update': gmMutation('guard-management.decisions', async ({ id, ...updates }) => decision.updateDecision(id, updates)),
+      'guard-management.decisions.delete': gmMutation('guard-management.decisions', async ({ id }) => decision.deleteDecision(id)),
+
+      // ── Decision Sections ──────────────────────────────────────────────
+      'guard-management.decisions.sections.list': gmOnly(async () => decision.getAllSections()),
+      'guard-management.decisions.sections.create': gmMutation('guard-management.decisionSections', async (data) => decision.createSection(data)),
+      'guard-management.decisions.sections.update': gmMutation('guard-management.decisionSections', async ({ id, ...updates }) => decision.updateSection(id, updates)),
+      'guard-management.decisions.sections.delete': gmMutation('guard-management.decisionSections', async ({ id }) => decision.deleteSection(id)),
+
+      // ── Abilities / Favors ─────────────────────────────────────────────
+      'guard-management.abilities.list': gmOnly(async () => ability.getAllAbilities()),
+      'guard-management.abilities.get': gmOnly(async ({ id }) => ability.getAbility(id)),
+      'guard-management.abilities.create': gmMutation('guard-management.abilities', async (data) => ability.createAbility(data)),
+      'guard-management.abilities.update': gmMutation('guard-management.abilities', async ({ id, ...updates }) => ability.updateAbility(id, updates)),
+      'guard-management.abilities.delete': gmMutation('guard-management.abilities', async ({ id }) => ability.deleteAbility(id)),
     };
 
     const queries = (CONFIG as any).queries ?? {};

@@ -59,6 +59,12 @@ declare global {
     'guard-management.buildingZoneOrder': any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     'guard-management.phaseEventsData': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.decisions': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.decisionSections': any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    'guard-management.guardAbilities': any;
     'guard-management.awayMode': boolean;
     'guard-management.migrationVersion': number;
     // Configuration settings

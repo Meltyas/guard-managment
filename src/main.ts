@@ -30,6 +30,8 @@ import { SimpleModifierManager } from './managers/SimpleModifierManager';
 import { SimplePatrolEffectManager } from './managers/SimplePatrolEffectManager';
 import { SimpleReputationManager } from './managers/SimpleReputationManager';
 import { SimpleResourceManager } from './managers/SimpleResourceManager';
+import { DecisionManager } from './managers/DecisionManager';
+import { GuardAbilityManager } from './managers/GuardAbilityManager';
 import { MCPBridgeIntegration } from './mcp/MCPBridgeIntegration';
 import { runMigrationIfNeeded } from './migration';
 import { registerSettings } from './settings';
@@ -38,6 +40,7 @@ import './styles/crimes.css';
 import './styles/custom-info-dialog.css';
 import './styles/daggerheart-card.css';
 import './styles/daggerheart-chat.css';
+import './styles/decisions-abilities.css';
 import './styles/entity-row.css';
 import './styles/finances.css';
 import './styles/gangs.css';
@@ -140,6 +143,8 @@ export class GuardManagementModule {
   public patrolOverlayManager: PatrolOverlayManager;
   public dayNightDecoration: DayNightDecoration;
   public floatingPanel: FloatingGuardPanel;
+  public decisionManager: DecisionManager;
+  public abilityManager: GuardAbilityManager;
   public isInitialized: boolean = false;
 
   constructor() {
@@ -162,6 +167,8 @@ export class GuardManagementModule {
     this.patrolOverlayManager = new PatrolOverlayManager();
     this.dayNightDecoration = new DayNightDecoration();
     this.floatingPanel = new FloatingGuardPanel(this.guardDialogManager);
+    this.decisionManager = new DecisionManager();
+    this.abilityManager = new GuardAbilityManager();
   }
 
   /**
@@ -194,14 +201,19 @@ export class GuardManagementModule {
     await this.financeManager.initialize(); // Load finances from settings
     await this.modifierManager.initialize(); // Load guard modifiers from settings
     await this.patrolEffectManager.initialize(); // Load patrol effects from settings
+    await this.decisionManager.initialize(); // Load guard decisions from settings
+    await this.abilityManager.initialize(); // Load guard abilities from settings
 
     // Recalc patrol derived stats again now that modifierManager is loaded.
     // The first recalc (inside guardOrganizationManager.initialize) ran before modifiers
     // were available, so org modifier contributions were missing.
     this.guardOrganizationManager.recalcAllPatrols();
 
-    // Initialize floating panel (but don't show it yet)
-    this.floatingPanel.initialize();
+    // Initialize floating panel (must be awaited so restorePosition() runs before
+    // refreshFloatingPanel() is called in the ready hook — otherwise savePosition()
+    // fires while style.left is still '' and writes {x:50,y:50} to localStorage,
+    // causing the panel to jump to the top-left corner after every F5).
+    await this.floatingPanel.initialize();
 
     // Set up event listeners for panel updates
     this.setupEventListeners();
@@ -314,6 +326,8 @@ Hooks.once('init', async () => {
       'modules/guard-management/templates/panels/patrols.hbs',
       'modules/guard-management/templates/panels/resources.hbs',
       'modules/guard-management/templates/panels/reputation.hbs',
+      'modules/guard-management/templates/panels/decisions.hbs',
+      'modules/guard-management/templates/panels/abilities.hbs',
     ]);
 
     // Register Handlebars helpers
@@ -570,13 +584,13 @@ Hooks.once('ready', async () => {
   // Run data migrations (GM only — converts old stat keys to Daggerheart traits, etc.)
   await runMigrationIfNeeded();
 
-  // Refresh floating panel to ensure GM status is correct
+  // Refresh floating panel to ensure GM status is correct.
+  // refreshFloatingPanel() already recreates the panel with all fresh data
+  // (including the org list), so updateOrganizationList() is not needed here —
+  // calling both concurrently was the root cause of the panel jumping to (50,50).
   if (guardManagementModule && guardManagementModule.floatingPanel) {
     guardManagementModule.refreshFloatingPanel();
     guardManagementModule.floatingPanel.show();
-
-    // Update the organization list in the floating panel
-    guardManagementModule.floatingPanel.updateOrganizationList();
   }
 
   // Restore dialogs/modals that were open before the last F5 / page reload.

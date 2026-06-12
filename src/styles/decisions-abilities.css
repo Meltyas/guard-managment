@@ -1,0 +1,746 @@
+/* ============================================================================
+ * Guard Decisions Panel — Talent Tree
+ * ============================================================================ */
+
+.decisions-panel {
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.decisions-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(243, 194, 103, 0.35);
+  flex-shrink: 0;
+}
+
+.decisions-panel__title {
+  font-family: 'Cinzel', serif;
+  color: #f3c267;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.decisions-panel__title::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: #f3c267;
+  border-radius: 2px;
+}
+
+.decisions-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(243, 194, 103, 0.12);
+  border: 1px solid rgba(243, 194, 103, 0.5);
+  border-radius: 4px;
+  color: #efe6d8;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.decisions-add-btn:hover {
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+/* ── Scrollable viewport ── */
+.decision-tree-viewport {
+  flex: 1;
+  overflow: auto;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(243,194,103,0.03) 0%, transparent 70%),
+    rgba(0,0,0,0.18);
+  border: 1px solid rgba(243, 194, 103, 0.15);
+  border-radius: 6px;
+}
+
+/* ── Infinite canvas ── */
+.decision-tree-canvas {
+  position: relative;
+  /* width/height set inline by JS */
+}
+
+/* ── SVG edge layer ── */
+.decision-tree-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.decision-tree-edge {
+  fill: none;
+  stroke: rgba(243, 194, 103, 0.55);
+  stroke-width: 2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(243,194,103,0.3));
+}
+
+.decision-tree-edge--hidden {
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-dasharray: 6 4;
+  filter: none;
+}
+
+.decision-tree-separator {
+  stroke: rgba(243, 194, 103, 0.2);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+}
+
+/* ── Node tile ── */
+.decision-tile {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  width: 63px;
+}
+
+.decision-tile__icon {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid rgba(243, 194, 103, 0.4);
+  background: rgba(0, 0, 0, 0.45);
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+.decision-tile:hover .decision-tile__icon,
+.decision-tile--open .decision-tile__icon {
+  border-color: #f3c267;
+  transform: scale(1.08);
+  box-shadow: 0 0 14px rgba(243,194,103,0.45);
+}
+
+.decision-tile__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Lock overlay ── */
+.decision-tile__lock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(239, 230, 216, 0.6);
+  font-size: 1.3rem;
+}
+
+/* ── Node name label ── */
+.decision-tile__name {
+  font-size: 0.62rem;
+  font-family: 'Signika', sans-serif;
+  color: rgba(239, 230, 216, 0.75);
+  text-align: center;
+  max-width: 63px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.decision-tile__hidden-icon {
+  font-size: 0.65rem;
+  color: rgba(239, 230, 216, 0.35);
+}
+
+/* ── State variants ── */
+.decision-tile--hidden .decision-tile__icon {
+  border-color: rgba(255,255,255,0.15);
+  opacity: 0.45;
+}
+
+.decision-tile--hidden .decision-tile__name {
+  color: rgba(239, 230, 216, 0.35);
+}
+
+.decision-tile--locked .decision-tile__icon {
+  border-color: rgba(150, 130, 100, 0.4);
+  filter: saturate(0.4) brightness(0.7);
+}
+
+.decision-tile--locked .decision-tile__name {
+  color: rgba(239, 230, 216, 0.45);
+}
+
+.decision-tile--unlocked .decision-tile__icon {
+  border-color: rgba(243, 194, 103, 0.55);
+}
+
+/* ── Action buttons (GM only, visible on hover) ── */
+.decision-tile__actions {
+  position: absolute;
+  top: -6px;
+  right: -20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.decision-tile:hover .decision-tile__actions {
+  opacity: 1;
+}
+
+.decision-tile__actions button {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 1px solid rgba(243, 194, 103, 0.5);
+  background: rgba(24, 22, 46, 0.95);
+  color: rgba(239, 230, 216, 0.8);
+  font-size: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s;
+}
+
+.decision-tile__actions .decision-toggle-vis-btn:hover {
+  background: rgba(100, 181, 246, 0.3);
+  color: #64b5f6;
+  border-color: #64b5f6;
+}
+
+.decision-tile__actions .decision-toggle-state-btn:hover {
+  background: rgba(129, 199, 132, 0.3);
+  color: #81c784;
+  border-color: #81c784;
+}
+
+.decision-tile__actions .decision-edit-btn:hover {
+  background: rgba(243, 194, 103, 0.3);
+  color: #f3c267;
+  border-color: #f3c267;
+}
+
+.decision-tile__actions .decision-delete-btn:hover {
+  background: rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+/* ── Tooltip (fixed positioning via JS) ── */
+.decision-tile__tooltip {
+  display: none;
+  position: fixed;
+  width: 220px;
+  background: #18162e;
+  border: 1px solid #f3c267;
+  border-radius: 6px;
+  padding: 10px 12px;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+  color: #efe6d8;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  pointer-events: all;
+}
+
+/* portal is shown/hidden by JS only */
+
+.decision-tile__tooltip-name {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  color: #f3c267;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(243, 194, 103, 0.25);
+  padding-bottom: 5px;
+}
+
+.decision-tile__tooltip-locked {
+  font-size: 0.78rem;
+  color: rgba(239, 230, 216, 0.45);
+  margin-bottom: 5px;
+}
+
+.decision-tile__tooltip-body {
+  color: rgba(239, 230, 216, 0.85);
+}
+
+.decision-tile__tooltip-body p { margin: 0 0 4px; }
+.decision-tile__tooltip-body strong { color: #f3c267; }
+
+/* ── Tooltip GM action buttons ── */
+.decision-tooltip__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(243, 194, 103, 0.2);
+}
+
+.decision-tooltip__actions button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  background: rgba(243, 194, 103, 0.08);
+  border: 1px solid rgba(243, 194, 103, 0.3);
+  border-radius: 4px;
+  color: #efe6d8;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.decision-tooltip__actions button:hover {
+  background: rgba(243, 194, 103, 0.2);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+.dtt-delete-btn:hover {
+  background: rgba(200, 60, 60, 0.25) !important;
+  border-color: #c83c3c !important;
+  color: #ff8080 !important;
+}
+
+/* ── Empty state ── */
+.decisions-empty-state {
+  text-align: center;
+  color: rgba(239, 230, 216, 0.4);
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px dashed rgba(243, 194, 103, 0.2);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.decisions-empty-state i {
+  font-size: 2rem;
+  opacity: 0.4;
+}
+
+.decisions-empty-state p { margin: 0; font-style: italic; }
+.decisions-empty-hint { font-size: 0.85rem; }
+
+/* ============================================================================
+ * Guard Abilities / Favors Panel
+ * Daggerheart-style card grid
+ * ============================================================================ */
+
+.abilities-panel {
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.abilities-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(243, 194, 103, 0.35);
+}
+
+.abilities-panel__title {
+  font-family: 'Cinzel', serif;
+  color: #f3c267;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.abilities-panel__title::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: #f3c267;
+  border-radius: 2px;
+}
+
+.abilities-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(243, 194, 103, 0.12);
+  border: 1px solid rgba(243, 194, 103, 0.5);
+  border-radius: 4px;
+  color: #efe6d8;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.abilities-add-btn:hover {
+  background: rgba(243, 194, 103, 0.25);
+  border-color: #f3c267;
+  color: #f3c267;
+}
+
+/* ── Cards grid ── */
+.abilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  padding: 4px 0;
+  align-items: start;
+}
+
+/* ── Individual ability card ── */
+.ability-card {
+  position: relative;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(243, 194, 103, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ability-card:hover {
+  border-color: rgba(243, 194, 103, 0.65);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.ability-card__image {
+  width: 100%;
+  height: 80px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
+.ability-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ability-card__body {
+  padding: 10px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.ability-card__name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.9rem;
+  color: #f3c267;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.ability-card__category {
+  font-size: 0.72rem;
+  color: rgba(239, 230, 216, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ability-card__cost {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #81c784;
+  font-weight: 600;
+}
+
+.ability-card__cost i {
+  font-size: 0.72rem;
+  color: #64b5f6;
+}
+
+.ability-card__description {
+  font-size: 0.82rem;
+  color: rgba(239, 230, 216, 0.8);
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
+.ability-card__description p { margin: 0 0 4px; }
+.ability-card__description strong { color: #f3c267; }
+
+/* ── Action buttons (GM only, top-right corner) ── */
+.ability-card__actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.ability-card:hover .ability-card__actions {
+  opacity: 1;
+}
+
+.ability-card__actions button {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s;
+  backdrop-filter: blur(4px);
+}
+
+.ability-card__actions .ability-edit-btn:hover {
+  background: rgba(243, 194, 103, 0.6);
+  color: #000;
+  border-color: #f3c267;
+}
+
+.ability-card__actions .ability-delete-btn:hover {
+  background: rgba(231, 76, 60, 0.7);
+  color: #fff;
+  border-color: #e74c3c;
+}
+
+/* ── Empty state ── */
+.abilities-empty-state {
+  text-align: center;
+  color: rgba(239, 230, 216, 0.4);
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px dashed rgba(243, 194, 103, 0.2);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.abilities-empty-state i {
+  font-size: 2rem;
+  opacity: 0.4;
+}
+
+.abilities-empty-state p { margin: 0; font-style: italic; }
+.abilities-empty-hint { font-size: 0.85rem; }
+
+/* ── Form helpers used in both edit dialogs ── */
+.gm-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+  color: #efe6d8;
+}
+
+.gm-modal-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gm-modal-form label {
+  font-size: 0.85rem;
+  color: rgba(239, 230, 216, 0.75);
+  font-family: 'Signika', sans-serif;
+}
+
+.gm-modal-form input,
+.gm-modal-form textarea {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(243, 194, 103, 0.35);
+  border-radius: 4px;
+  color: #efe6d8;
+  padding: 6px 10px;
+  font-size: 0.88rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gm-modal-form input:focus,
+.gm-modal-form textarea:focus {
+  border-color: #f3c267;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(243, 194, 103, 0.15);
+}
+
+.gm-modal-form .image-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gm-modal-form .image-picker-row input {
+  flex: 1;
+}
+
+/* ── Section tabs ─────────────────────────────────────────── */
+
+.decisions-section-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 12px 0;
+  border-bottom: 1px solid rgba(243,194,103,0.2);
+  background: rgba(0,0,0,0.15);
+}
+
+.decisions-section-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 4px 4px 0 0;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: rgba(239,230,216,0.6);
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  user-select: none;
+}
+
+.decisions-section-tab:hover {
+  color: rgba(239,230,216,0.9);
+  background: rgba(243,194,103,0.08);
+}
+
+.decisions-section-tab.active {
+  color: #f3c267;
+  background: rgba(243,194,103,0.12);
+  border-color: rgba(243,194,103,0.3);
+  border-bottom-color: transparent;
+}
+
+.decisions-section-tab__name {
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.decisions-section-tab__actions {
+  display: none;
+  gap: 2px;
+}
+
+.decisions-section-tab:hover .decisions-section-tab__actions,
+.decisions-section-tab.active .decisions-section-tab__actions {
+  display: flex;
+}
+
+.decisions-section-tab__actions button {
+  background: none;
+  border: none;
+  color: rgba(239,230,216,0.5);
+  cursor: pointer;
+  padding: 1px 4px;
+  font-size: 0.72rem;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.decisions-section-tab__actions button:hover {
+  color: #f3c267;
+  background: rgba(243,194,103,0.15);
+}
+
+/* ── Section canvas visibility ────────────────────────────── */
+
+.decision-section-canvas {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.decision-section-canvas.active {
+  display: flex;
+}
+
+/* ── Section empty state ──────────────────────────────────── */
+
+.decisions-section-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: rgba(239,230,216,0.4);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.decisions-section-empty i {
+  font-size: 2rem;
+  opacity: 0.4;
+}
+
+/* ── Section footer (add node button) ─────────────────────── */
+
+.decisions-section-footer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(243,194,103,0.12);
+  background: rgba(0,0,0,0.1);
+}
+
+/* "Añadir sección" button in header — matches existing .decisions-add-btn style */
+.decisions-add-section-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(243,194,103,0.12);
+  border: 1px solid rgba(243,194,103,0.3);
+  border-radius: 4px;
+  color: #f3c267;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.decisions-add-section-btn:hover {
+  background: rgba(243,194,103,0.22);
+}

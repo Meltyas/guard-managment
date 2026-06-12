@@ -517,6 +517,54 @@ export function registerSettings(): void {
     },
   });
 
+  // Guard Decision Sections
+  game?.settings?.register('guard-management', 'decisionSections', {
+    name: 'Guard Decision Sections Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.decisionManager) gm.decisionManager.loadSectionsFromSettings?.();
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshTabPanel?.('decisions');
+      }
+    },
+  });
+
+  // Guard Decisions
+  game?.settings?.register('guard-management', 'decisions', {
+    name: 'Guard Decisions Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.decisionManager) gm.decisionManager.loadFromSettings?.();
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshTabPanel?.('decisions');
+      }
+    },
+  });
+
+  // Guard Abilities / Favors
+  game?.settings?.register('guard-management', 'guardAbilities', {
+    name: 'Guard Abilities Data',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+    onChange: (_value) => {
+      const gm = (window as any).GuardManagement;
+      if (gm?.abilityManager) gm.abilityManager.loadFromSettings?.();
+      if (gm?.guardDialogManager?.customInfoDialog?.isOpen?.()) {
+        gm.guardDialogManager.customInfoDialog.refreshTabPanel?.('abilities');
+      }
+    },
+  });
+
   // Away mode — players are too far to use the guard organization
   game?.settings?.register('guard-management', 'awayMode', {
     name: 'Modo Ausencia',

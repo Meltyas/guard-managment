@@ -21,6 +21,8 @@ import { PoiPanel } from './panels/PoiPanel.js';
 import { PrisonersPanel } from './panels/PrisonersPanel.js';
 import { ReputationPanel } from './panels/ReputationPanel.js';
 import { ResourcesPanel } from './panels/ResourcesPanel.js';
+import { DecisionsPanel } from './panels/DecisionsPanel.js';
+import { AbilitiesPanel } from './panels/AbilitiesPanel.js';
 import { PresenceIndicator } from './PresenceIndicator.js';
 
 export class CustomInfoDialog implements FocusableDialog {
@@ -34,6 +36,7 @@ export class CustomInfoDialog implements FocusableDialog {
   private onCloseCallback?: () => void;
   private isFocused = false;
   private currentOrganization: GuardOrganization | null = null;
+  private _beforeUnloadHandler: (() => void) | null = null;
   // Tab state keys
   private static readonly TAB_LS_KEY = 'guard-management.infoDialog.selectedTab';
   /** Tabs re-rendered on click. general/resources/reputation refresh via refreshContent instead. */
@@ -47,6 +50,8 @@ export class CustomInfoDialog implements FocusableDialog {
     'poi',
     'finances',
     'phases',
+    'decisions',
+    'abilities',
   ]);
   private static readonly POS_LS_KEY = 'guard-management.orgDialog.pos';
   static readonly OPEN_LS_KEY = 'guard-management.infoDialog.open';
@@ -78,6 +83,8 @@ export class CustomInfoDialog implements FocusableDialog {
       ['guard-finances-updated', 'finances'],
       ['guard-phase-events-updated', 'phases'],
       ['guard-phase-report-generated', 'phases'],
+      ['guard-management:decisions-changed', 'decisions'],
+      ['guard-management:abilities-changed', 'abilities'],
     ];
     for (const [event, tabKey] of AUTO_REFRESH) {
       window.addEventListener(event, () => {
@@ -116,13 +123,22 @@ export class CustomInfoDialog implements FocusableDialog {
         const saved = localStorage.getItem(CustomInfoDialog.POS_LS_KEY);
         if (saved) {
           const pos = JSON.parse(saved);
-          options = {
-            ...options,
-            x: pos.x,
-            y: pos.y,
-            width: pos.width ?? options.width,
-            height: pos.height ?? options.height,
-          };
+          // Reject obviously-invalid saved positions (zero-rect from an unlaid-out element)
+          const validPos =
+            typeof pos.x === 'number' && typeof pos.y === 'number' &&
+            typeof pos.width === 'number' && typeof pos.height === 'number' &&
+            !(pos.x === 0 && pos.y === 0 && pos.width === 0 && pos.height === 0);
+          if (validPos) {
+            options = {
+              ...options,
+              x: pos.x,
+              y: pos.y,
+              width: pos.width ?? options.width,
+              height: pos.height ?? options.height,
+            };
+          } else {
+            console.warn('CustomInfoDialog | saved position rejected (zero-rect):', pos);
+          }
         }
       } catch {
         /* ignore */
@@ -158,6 +174,10 @@ export class CustomInfoDialog implements FocusableDialog {
     if (options.x == null && options.y == null) {
       this.centerOnScreen();
     }
+
+    // Save position on page unload (F5 / tab close) so it is restored on next open
+    this._beforeUnloadHandler = () => this._saveCurrentPosition();
+    window.addEventListener('beforeunload', this._beforeUnloadHandler);
 
     // Initial content render
     await this.refreshContent();
@@ -287,6 +307,15 @@ export class CustomInfoDialog implements FocusableDialog {
    */
   public close(): void {
     if (this.element) {
+      // Save position before closing so it is available after F5
+      this._saveCurrentPosition();
+
+      // Clean up beforeunload handler
+      if (this._beforeUnloadHandler) {
+        window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+        this._beforeUnloadHandler = null;
+      }
+
       // Clean up presence indicator
       this.presenceIndicator?.detach();
       this.presenceIndicator = null;
@@ -796,6 +825,8 @@ export class CustomInfoDialog implements FocusableDialog {
       poi: (c) => PoiPanel.render(c),
       finances: (c) => FinancesPanel.render(c),
       phases: (c) => PhaseCalendar.mount(c),
+      decisions: (c) => DecisionsPanel.render(c),
+      abilities: (c) => AbilitiesPanel.render(c),
     };
   }
 
@@ -829,6 +860,19 @@ export class CustomInfoDialog implements FocusableDialog {
 
   public refreshGangsPanel() {
     void this.renderTabPanel('gangs');
+  }
+
+  public refreshDecisionsPanel() {
+    void this.renderTabPanel('decisions');
+  }
+
+  public refreshAbilitiesPanel() {
+    void this.renderTabPanel('abilities');
+  }
+
+  /** Generic: refresh any tab panel by key (used by settings onChange handlers) */
+  public refreshTabPanel(tabKey: string) {
+    void this.renderTabPanel(tabKey);
   }
 
   public refreshBuildingsPanel() {
@@ -1120,21 +1164,37 @@ export class CustomInfoDialog implements FocusableDialog {
   }
 
   /**
+   * Persist the dialog's current screen position and size to localStorage.
+   * Called on drag/resize end, on close, and on beforeunload (F5).
+   */
+  private _saveCurrentPosition(): void {
+    if (!this.element) return;
+    try {
+      const r = this.element.getBoundingClientRect();
+      // Only save if the element has been laid out (non-zero size).
+      // A zero rect means the browser hasn't painted the element yet or it is
+      // detached; saving 0,0 would restore the dialog in the top-left corner.
+      if (r.width === 0 && r.height === 0) {
+        console.warn('CustomInfoDialog | _saveCurrentPosition skipped – element has no layout yet');
+        return;
+      }
+      localStorage.setItem(
+        CustomInfoDialog.POS_LS_KEY,
+        JSON.stringify({ x: r.left, y: r.top, width: r.width, height: r.height })
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /**
    * Handle mouse up
    */
   private handleMouseUp(): void {
     if (this.element) {
       this.element.style.cursor = '';
-      if ((this.isDragging || this.isResizing) && this.element) {
-        const r = this.element.getBoundingClientRect();
-        try {
-          localStorage.setItem(
-            CustomInfoDialog.POS_LS_KEY,
-            JSON.stringify({ x: r.left, y: r.top, width: r.width, height: r.height })
-          );
-        } catch {
-          /* ignore */
-        }
+      if (this.isDragging || this.isResizing) {
+        this._saveCurrentPosition();
       }
     }
     this.isDragging = false;

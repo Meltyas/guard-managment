@@ -336,6 +336,10 @@ export class GMWarehouseDialog implements FocusableDialog {
     // Load gangs tab content
     await this.refreshGangsTab();
 
+    // Load decisions and abilities tabs
+    await this.refreshDecisionsTab();
+    await this.refreshAbilitiesTab();
+
     // Restore last tab
     const lastTab = localStorage.getItem('guard-management-warehouse-tab');
     if (lastTab && this.element) {
@@ -482,6 +486,10 @@ export class GMWarehouseDialog implements FocusableDialog {
         target.classList.add('active');
         const content = container.querySelector(`.tab-content[data-tab="${tabName}"]`);
         if (content) content.classList.add('active');
+
+        // Refresh panels that render dynamically
+        if (tabName === 'decisions') void this.refreshDecisionsTab();
+        else if (tabName === 'abilities') void this.refreshAbilitiesTab();
       });
     });
 
@@ -1088,6 +1096,36 @@ export class GMWarehouseDialog implements FocusableDialog {
     }
 
     this.addTemplateEventListeners();
+  }
+
+  /**
+   * Refresh decisions tab — mounts DecisionsPanel into the warehouse container.
+   */
+  public async refreshDecisionsTab(): Promise<void> {
+    if (!this.element) return;
+    const container = this.element.querySelector('.warehouse-decisions-container') as HTMLElement | null;
+    if (!container) return;
+    try {
+      const { DecisionsPanel } = await import('../ui/panels/DecisionsPanel.js');
+      await DecisionsPanel.render(container);
+    } catch (e) {
+      console.error('GMWarehouseDialog | refreshDecisionsTab error', e);
+    }
+  }
+
+  /**
+   * Refresh abilities tab — mounts AbilitiesPanel into the warehouse container.
+   */
+  public async refreshAbilitiesTab(): Promise<void> {
+    if (!this.element) return;
+    const container = this.element.querySelector('.warehouse-abilities-container') as HTMLElement | null;
+    if (!container) return;
+    try {
+      const { AbilitiesPanel } = await import('../ui/panels/AbilitiesPanel.js');
+      await AbilitiesPanel.render(container);
+    } catch (e) {
+      console.error('GMWarehouseDialog | refreshAbilitiesTab error', e);
+    }
   }
 
   /**
